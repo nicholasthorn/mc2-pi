@@ -54,6 +54,7 @@ PostcompVertex::PostcompVertex( const PostcompVertex& src )
 	localRGBLight = src.localRGBLight;
 	terrainType = src.terrainType;
 	selected = src.selected;
+	water = src.water;
 	shadow = src.shadow;
 	highlighted = src.highlighted;
 }
@@ -66,7 +67,9 @@ PostcompVertex::PostcompVertex()
 	localRGBLight = 0;
 	terrainType = 0;
 	selected = 0;
-
+	water = 0;
+	shadow = 0;
+	highlighted = 0;
 }
 
 //---------------------------------------------------------------------------

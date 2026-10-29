@@ -113,6 +113,9 @@ class BldgAppearanceType : public AppearanceType
             numWeaponNodes = 0;
             isForestClump = false;
             MemSet(rotationalNodeId, 0);//sebi
+            terrainLightRGB = 0;
+            terrainLightIntensity = 0.0f;
+            terrainLightInnerRadius = terrainLightOuterRadius = 0.0f;
             //
 		}
 	
@@ -432,6 +435,8 @@ class TreeAppearanceType : public AppearanceType
 
 			for (i=0;i<MAX_BD_ANIMATIONS;i++)
 				treeAnimData[i] = NULL;
+
+			isForestClump = false;
 				
 			treeShadowShape = NULL;
 			

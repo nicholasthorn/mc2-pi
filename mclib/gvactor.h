@@ -99,6 +99,10 @@ class GVAppearanceType : public AppearanceType
 			}
 				
 			destructEffect[0] = 0;
+
+			memset(rotationalNodeId, 0, sizeof(rotationalNodeId));
+			numSmokeNodes = numWeaponNodes = numFootNodes = 0;
+			nodeData = NULL;
 		}
 	
 		GVAppearanceType (void)

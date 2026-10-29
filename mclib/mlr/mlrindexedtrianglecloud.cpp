@@ -78,6 +78,10 @@ MLRIndexedTriangleCloud::MLRIndexedTriangleCloud(int nr) :
 {
 	Verify(gos_GetCurrentHeap() == Heap);
 	usedNrOfPoints = NULL;
+	index = NULL;
+	texCoords = NULL;
+	gos_indices = NULL;
+	numGOSIndices = 0;
 
 	Check_Pointer(this);
 	

@@ -62,6 +62,7 @@ class BitFlag
 			maskValue = 0;
 			divValue = 1;
 			colWidth = 1;
+			totalFlags = totalRAM = 0;
 		}
 		
 		BitFlag (void)
@@ -115,6 +116,7 @@ class ByteFlag
 			
 			flagPane = NULL;
 			flagWindow = NULL;
+			totalFlags = totalRAM = 0;
 		}
 		
 		ByteFlag (void)

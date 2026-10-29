@@ -78,6 +78,8 @@ class AppearanceType
 			typeUpperLeft.Zero();
 			typeLowerRight.Zero();
 			designerTypeBounds = false;
+			boundsUpperLeftX = boundsUpperLeftY = 0.0f;
+			boundsLowerRightX = boundsLowerRightY = 0.0f;
  		}
 
 		AppearanceType (void)

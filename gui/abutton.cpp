@@ -50,6 +50,10 @@ aButton& aButton::operator=( const aButton& src)
 }
 aButton::aButton( const aButton& src ) : aObject( src )
 {
+	clickSFX = src.clickSFX;
+	highlightSFX = src.highlightSFX;
+	disabledSFX = src.disabledSFX;
+	holdTime = src.holdTime;
 	copyData( src );
 }
 void aButton::copyData( const aButton& src )

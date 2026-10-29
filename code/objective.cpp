@@ -1486,6 +1486,9 @@ CObjective::CObjective(int alignment) {
 	m_changedStatus = false;
 	m_resolvedStatus = OS_UNDETERMINED;
 	m_modelScale = 1.0f;
+	m_markerText[0] = 0;
+	m_modelType = 0;
+	m_modelBaseColor = m_modelHighlightColor = m_modelHighlightColor2 = 0;
 }
 
 CObjective &CObjective::operator=(const CObjective &master) {

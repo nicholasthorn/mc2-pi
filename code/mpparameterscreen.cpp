@@ -96,6 +96,12 @@ MPParameterScreen::MPParameterScreen()
 
 	chatToSend = IDS_MP_PARAMETER_NO_MAP_CHAT;
 
+	playerCount = 0;
+	bLoading = false;
+	bootPlayerID = 0;
+	delayTime = 0.0f;
+	bWaitingToStart = false;
+
 	s_instance = this;
 }
 
@@ -1524,6 +1530,7 @@ aPlayerParams::aPlayerParams()
 	textObjects = 0;
 	staticCount = rectCount = textCount = 0;
 	bHasFocus = 0;
+	commanderID = -1;
 }
 
 aPlayerParams::~aPlayerParams()

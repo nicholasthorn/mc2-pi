@@ -72,6 +72,10 @@ class ObjectType {
 
 			appearName = NULL;
 			subType = 0;
+
+			objTypeNum = 0;
+			numUsers = 0;
+			teamId = -1;		//neutral, as init(FilePtr) sets it
 		}
 		
 		ObjectType (void) {
@@ -214,6 +218,8 @@ class ObjectTypeManager {
 	public:
 
 		void init (void) {
+			numObjectTypes = 0;
+			table = NULL;
 		}
 			
 		ObjectTypeManager (void) {

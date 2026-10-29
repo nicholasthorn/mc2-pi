@@ -75,6 +75,9 @@ aEdit::aEdit(  )
 	bIMEInitialized = false;
 	bWierdChars = true;
 
+	// set by init()
+	cursorColor = highlightColor = textColor = selectedColor = outlineColor = 0;
+
 	//MarkForBackSurfaceUpdate();
 }
 
