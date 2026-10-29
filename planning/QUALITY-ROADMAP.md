@@ -58,13 +58,16 @@ undefined behaviour, signedness, alignment/packing, 32-bit pointer assumptions.
       The 101 left: 53 `tgl.cpp` placement-new false positives, 11
       `invalidLifetime` false positives (draw info re-pointed before each
       use), multiplayer-screen stub NULLs (unreachable), a few others.
-- [ ] Bulk noise: `duplInheritedMember` (2650) is mostly the "Stuff"
+- [x] Bulk noise: `duplInheritedMember` (2650) is mostly the "Stuff"
       class-registration pattern (every class redeclares InitializeClass,
       TerminateClass, DefaultData, Make, TestInstance on purpose; ~1800).
       Filter those five names in the gate, keep the check for the rest.
-- [ ] `invalidPrintfArgType_*` (~444): `%d` with `long` arguments in log
-      text (64-bit Linux portability); mechanical sweep.
-- [ ] `uninitMemberVar` (795): class by class (141 are the unused
+      Done: the gate drops 2251; 399 other names are left to review.
+- [x] `invalidPrintfArgType_*` (~444): `%d` with `long` arguments in log
+      text (64-bit Linux portability); mechanical sweep. Done: 433 sites
+      fixed from GCC `-Wformat`; 16 left are cppcheck-only or deliberate
+      (`note.cpp` sscanf into `Radian`, `heap.cpp` `%08p`).
+- [ ] `uninitMemberVar` (787): class by class (141 are the unused
       networking stub in `multplyr.h`).
 - [ ] `clang-tidy` job, narrow ruleset to start: `bugprone-*`,
       `clang-analyzer-*`, `cppcoreguidelines-init-variables`,
