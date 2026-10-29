@@ -2307,6 +2307,10 @@ bool gos_CreateRenderer(HGOSWINDOW win, int w, int h) {
         SPEW(("GLEW", "Error: %s\n", glewGetErrorString(err)));
         return false;
     }
+    // glewInit() queries glGetString(GL_EXTENSIONS), which a core profile
+    // rejects with GL_INVALID_ENUM; clear it so the first CHECK_GL_ERROR
+    // does not report it against unrelated code.
+    while(glGetError() != GL_NO_ERROR) {}
 
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);

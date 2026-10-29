@@ -36,9 +36,10 @@ static void logmsg(const char* header, const char* fmt, va_list ap)
 
 	char				text[MAX_LOG_LINE] = {0};
 
-    size_t header_len = strlen(header);
+    // header plus ": " (the message used to overwrite the separator)
+    size_t header_len = strlen(header) + 2;
 
-    sprintf(text, "%s: ", header);
+    snprintf(text, MAX_LOG_LINE, "%s: ", header);
 	vsnprintf(text + header_len, MAX_LOG_LINE - header_len - 1, fmt, ap);
 
 	size_t len = strlen(text);
