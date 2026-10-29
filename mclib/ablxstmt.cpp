@@ -232,10 +232,14 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
 
 	//--------------------------
 	// Now, do the assignment...
+	// The target can sit at any byte offset inside a packed array or record,
+	// so store scalars with memcpy rather than through the StackItem union
+	// (which needs pointer alignment).
 	if ((targetTypePtr == RealTypePtr) && (expressionTypePtr == IntegerTypePtr)) {
 		//-------------------------
 		// integer assigned to real
-		targetPtr->real = (float)(tos->integer);
+		float value = (float)(tos->integer);
+		memcpy(targetPtr, &value, sizeof(value));
 		}
 	else if (targetTypePtr->form == FRM_ARRAY) {
 		//-------------------------
@@ -255,14 +259,14 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
 	else if ((targetTypePtr == IntegerTypePtr) || (targetTypePtr->form == FRM_ENUM)) {
 		//------------------------------------------------------
 		// Range check assignment to integer or enum subrange...
-		targetPtr->integer = tos->integer;
+		memcpy(targetPtr, &tos->integer, sizeof(tos->integer));
 		}
 	else if (targetTypePtr == CharTypePtr)
-		targetPtr->byte = tos->byte;
+		*(unsigned char*)targetPtr = tos->byte;
 	else {
 		//-----------------------
 		// Assign real to real...
-		targetPtr->real = tos->real;
+		memcpy(targetPtr, &tos->real, sizeof(tos->real));
 	}
 
 	//-----------------------------

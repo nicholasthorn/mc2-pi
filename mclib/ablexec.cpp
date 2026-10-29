@@ -107,6 +107,19 @@ extern void (*ABLEndlessStateCallback) (UserFile* log);
 // CRUNCH/DECRUNCH routines
 //***************************************************************************
 
+// The code segment is a packed byte stream, so values in it are generally not
+// aligned. Read and write them with memcpy (a plain load/store on x86 and
+// aarch64) rather than through typed pointers, which is undefined behaviour.
+template <typename T> static inline void putCode (char* dest, T value) {
+	memcpy(dest, &value, sizeof(T));
+}
+
+template <typename T> static inline T peekCode (const char* src) {
+	T value;
+	memcpy(&value, src, sizeof(T));
+	return(value);
+}
+
 void crunchToken (void) {
 
 	if (!Crunch)
@@ -130,8 +143,7 @@ void crunchSymTableNodePtr (SymTableNodePtr nodePtr) {
 	if (codeBufferPtr >= (codeBuffer + MaxCodeBufferSize - 100))
 		syntaxError(ABL_ERR_SYNTAX_CODE_SEGMENT_OVERFLOW);
 	else {
-		SymTableNodePtr* nodePtrPtr = (SymTableNodePtr*)codeBufferPtr;
-		*nodePtrPtr = nodePtr;
+		putCode<SymTableNodePtr>(codeBufferPtr, nodePtr);
 		codeBufferPtr += sizeof(SymTableNodePtr);
 	}
 }
@@ -152,7 +164,7 @@ void crunchStatementMarker (void) {
 		if (IncludeDebugInfo) {
 			*((unsigned char*)codeBufferPtr) = (unsigned char)FileNumber;
 			codeBufferPtr += sizeof(unsigned char);
-			*((int*)codeBufferPtr) = lineNumber;
+			putCode<int>(codeBufferPtr, lineNumber);
 			codeBufferPtr += sizeof(int);
 		}
 		*codeBufferPtr = saveCode;
@@ -192,7 +204,7 @@ char* crunchAddressMarker (Address address) {
 		*codeBufferPtr = (char)TKN_ADDRESS_MARKER;
 		codeBufferPtr++;
 		saveCodeBufferPtr = codeBufferPtr;
-		*((Address*)codeBufferPtr) = address;
+		putCode<Address>(codeBufferPtr, address);
 		codeBufferPtr += sizeof(Address);
 		*codeBufferPtr = saveCode;
 		codeBufferPtr++;
@@ -208,9 +220,9 @@ char* fixupAddressMarker (Address address) {
 	if (!Crunch)
 		return(NULL);
 
-	char* oldAddress = *((Address*)address);
+	char* oldAddress = peekCode<Address>(address);
 
-	*((size_t*)address) = codeBufferPtr - address;
+	putCode<size_t>(address, codeBufferPtr - address);
 	return(oldAddress);
 }
 
@@ -224,7 +236,7 @@ void crunchInteger (int value) {
 	if (codeBufferPtr >= (codeBuffer + MaxCodeBufferSize - 100))
 		syntaxError(ABL_ERR_SYNTAX_CODE_SEGMENT_OVERFLOW);
 	else {
-		*((int*)codeBufferPtr) = value;
+		putCode<int>(codeBufferPtr, value);
 		codeBufferPtr += sizeof(int);
 	}
 }
@@ -254,7 +266,7 @@ void crunchOffset (Address address) {
 	if (codeBufferPtr >= (codeBuffer + MaxCodeBufferSize - 100))
 		syntaxError(ABL_ERR_SYNTAX_CODE_SEGMENT_OVERFLOW);
 	else {
-		*((size_t*)codeBufferPtr) = address - codeBufferPtr;
+		putCode<size_t>(codeBufferPtr, address - codeBufferPtr);
 		codeBufferPtr += sizeof(size_t);
 	}
 }
@@ -278,6 +290,10 @@ char* createCodeSegment (long& codeSegmentSize) {
 	if (!codeSegment)
 		ABL_Fatal(0, " ABL: Unable to AblCodeHeap->malloc code segment ");
 
+	// codeSegmentSize includes one byte past the last crunched token, which
+	// was never written; the VM reads it as a token, so make it TKN_NONE.
+	*codeBufferPtr = (char)TKN_NONE;
+
 	for (long i = 0; i < codeSegmentSize; i++)
 		codeSegment[i] = codeBuffer[i];
 	codeSegment[codeSegmentSize] = 0;  // VM end-of-segment sentinel
@@ -290,9 +306,7 @@ char* createCodeSegment (long& codeSegmentSize) {
 
 SymTableNodePtr getCodeSymTableNodePtr (void) {
 
-	SymTableNodePtr* nodePtrPtr = (SymTableNodePtr*)codeSegmentPtr;
-
-	SymTableNodePtr nodePtr = *nodePtrPtr;
+	SymTableNodePtr nodePtr = peekCode<SymTableNodePtr>(codeSegmentPtr);
 	codeSegmentPtr += sizeof(SymTableNodePtr);
 	return(nodePtr);
 }
@@ -309,7 +323,7 @@ int getCodeStatementMarker (void) {
 		if (IncludeDebugInfo) {
 			FileNumber = *((unsigned char*)codeSegmentPtr);
 			codeSegmentPtr += sizeof(unsigned char);
-			lineNum = *((int*)codeSegmentPtr);
+			lineNum = peekCode<int>(codeSegmentPtr);
 			codeSegmentPtr += sizeof(int);
 		}
 	}
@@ -323,7 +337,7 @@ char* getCodeAddressMarker (void) {
 	Address address = NULL;
 
 	if (codeToken == TKN_ADDRESS_MARKER) {
-		address = *((size_t*)codeSegmentPtr) + codeSegmentPtr - 1;
+		address = peekCode<size_t>(codeSegmentPtr) + codeSegmentPtr - 1;
 		codeSegmentPtr += sizeof(Address);
 	}
 	return(address);
@@ -333,7 +347,7 @@ char* getCodeAddressMarker (void) {
 
 int getCodeInteger (void) {
 
-	int value = *((int*)codeSegmentPtr);
+	int value = peekCode<int>(codeSegmentPtr);
 	codeSegmentPtr += sizeof(int);
 	return(value);
 }
@@ -351,7 +365,7 @@ unsigned char getCodeByte (void) {
 
 char* getCodeAddress (void) {
 
-	Address address = *((size_t*)codeSegmentPtr) + codeSegmentPtr - 1;
+	Address address = peekCode<size_t>(codeSegmentPtr) + codeSegmentPtr - 1;
 	codeSegmentPtr += sizeof(size_t);
 	return(address);
 }

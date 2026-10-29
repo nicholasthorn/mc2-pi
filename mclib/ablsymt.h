@@ -53,7 +53,9 @@ typedef enum {
 	DFN_FUNCTION
 } DefinitionType;
 
-typedef enum {
+// ": int": besides the built-ins below, a key also holds the table index of a
+// library routine (ablsymt.cpp), which is outside the listed values
+typedef enum : int {
 	RTN_DECLARED,
 	RTN_FORWARD,
 	RTN_RETURN,
