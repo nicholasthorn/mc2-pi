@@ -5582,12 +5582,9 @@ long Mover::getWeaponsReady (int* list, int listSize) {
 		}
 	else
 		for (long item = 0; item < listSize; item++) {
-			if (isWeaponReady(list[item])) {
-				if (list)
-					list[numReady++] = list[item];
-				else
-					numReady++;
-			}
+			// a caller passing listSize must pass the list too
+			if (isWeaponReady(list[item]))
+				list[numReady++] = list[item];
 		}
 
 	return(numReady);
@@ -6158,7 +6155,7 @@ long Mover::sortWeapons (int* weaponList, long* valueList, long listSize, long s
 		return(-2);
 
 	long aimLocation = -1;
-	if (pilot && pilot->getCurTacOrder()->isCombatOrder())
+	if (pilot->getCurTacOrder()->isCombatOrder())
 		aimLocation = pilot->getCurTacOrder()->attackParams.aimLocation;
 	//----------------------------------------------------------------------
 	// BIG ASSUMPTION HERE: That a mech will not have more than 100 weapons.

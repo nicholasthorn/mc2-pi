@@ -327,7 +327,7 @@ long Logistics::update (void)
 		if ( missionResults )
 			missionResults->update();
 
-		if ( missionResults->isDone() )
+		if ( missionResults && missionResults->isDone() )
 		{
 			missionResults->end();
 			if ( !justStartMission && !MPlayer )

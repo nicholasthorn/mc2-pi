@@ -2157,7 +2157,10 @@ int LogisticsData::acceptMechModificationsUseOldVariant( const char* name )
 	LogisticsVariant* pVar = getVariant( name );
 
 	if ( !pVar )
+	{
 		Assert( 0, 0, "couldn't find the old variant\n" );
+		return -1;	// Assert only logs here; carrying on dereferences NULL
+	}
 
 	LogisticsVariant* pOldVar = currentlyModifiedMech->getVariant();
 	delete pOldVar;

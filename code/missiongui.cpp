@@ -538,6 +538,7 @@ void MissionInterfaceManager::update (void)
 			if (!targetButton)
 			{
 				animationRunning = false;
+				return;		//as below: nothing else in the GUI runs this frame
 			}
 
 			userInput->setMouseCursor(mState_TUTORIALS);
