@@ -37,7 +37,8 @@ aListBox::aListBox()
 	clickSFX = LOG_SELECT;
 	highlightSFX = LOG_DIGITALHIGHLIGHT;
 	disabledSFX = LOG_WRONGBUTTON;
-
+	itemHeight = 0;
+	scrollActive = false;
 }
 
 long aListBox::init(long xPos, long yPos,long w, long h )
@@ -619,6 +620,8 @@ aDropList::aDropList(void)
 	selectionIndex = -1;
 
 	rects = NULL;
+	rectCount = 0;
+	textLeft = textTop = 0;
 }	
 
 aDropList& aDropList::operator=( const aDropList& src)
@@ -956,6 +959,7 @@ aComboBox::aComboBox(void) : templateItem( 27333 )
 	listBoxMaxHeight = 0.0;
 	selectionIndex = -1;
 	rects = NULL;
+	rectCount = 0;
 }
 
 aComboBox& aComboBox::operator=(const aComboBox& src )

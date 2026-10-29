@@ -75,6 +75,9 @@ MLR_Terrain::MLR_Terrain(
 	Verify(gos_GetCurrentHeap() == Heap);
 
 	texCoords.SetLength(0);
+
+	// set by SetUVData()
+	borderPixelFun = xUVFac = zUVFac = minX = minZ = 0.0f;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,6 +89,9 @@ MLR_Terrain::MLR_Terrain(ClassData *class_data):
 	Verify(gos_GetCurrentHeap() == Heap);
 
 	texCoords.SetLength(0);
+
+	// set by SetUVData()
+	borderPixelFun = xUVFac = zUVFac = minX = minZ = 0.0f;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

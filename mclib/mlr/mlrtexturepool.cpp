@@ -55,6 +55,11 @@ MLRTexturePool::MLRTexturePool(MemoryStream *stream):
 	Verify(gos_GetCurrentHeap() == Heap);
 
 	unLoadedImages = false;
+	instanceDepth = instanceMax = handleDepth = handleMax = 0;
+	lastHandle = storedTextures = 0;
+	freeHandle = NULL;
+	firstFreeHandle = lastFreeHandle = 0;
+	imagePool = NULL;
 
 	STOP(("Not implemented"));
 }

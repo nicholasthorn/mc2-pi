@@ -42,6 +42,9 @@ aObject::aObject()
 		location[i].rhw = .5;
 	showWindow = 1;
 	helpID = 0;
+	helpHeader = 0;
+	ID = 0;
+	memset( pChildren, 0, sizeof( pChildren ) );
 	fileWidth = 0.0f;
 }
 
@@ -554,6 +557,15 @@ void aObject::copyData( const aObject& src )
 
 aObject::aObject( const aObject& src )
 {
+	// copyData() copies only some fields, and destroy() later uses pParent
+	// and textureHandle: start from an empty object
+	pNumberOfChildren = 0;
+	memset( pChildren, 0, sizeof( pChildren ) );
+	pParent = NULL;
+	textureHandle = 0;
+	helpID = 0;
+	helpHeader = 0;
+
 	copyData( src );
 }
 aObject& aObject::operator=( const aObject& src )

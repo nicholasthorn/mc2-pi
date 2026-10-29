@@ -967,6 +967,12 @@ class MechWarrior {
 		void init (MechWarriorData data);
 
 		MechWarrior (void) {
+			// not reset by init(): setup() assigns index, loading the
+			// pilot file / a save sets the rest
+			index = -1;
+			paintScheme = -1;
+			memset(skills, 0, sizeof(skills));
+			warriorBrainHandle = -1;
 			init(true);
 		}
 

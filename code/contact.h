@@ -214,6 +214,10 @@ class SensorSystem {
 		}
 
 		SensorSystem (void) {
+			// the manager links pooled sensors after construction;
+			// init() runs again on reuse and must not touch the links
+			prev = next = NULL;
+			memset(contacts, 0, sizeof(contacts));
 			init();
 		}
 
@@ -291,6 +295,8 @@ class TeamSensorSystem {
 		void destroy (void);
 
 		TeamSensorSystem (void) {
+			memset(contacts, 0, sizeof(contacts));
+			memset(sensors, 0, sizeof(sensors));
 			init();
 		}
 		
@@ -387,6 +393,8 @@ class SensorSystemManager {
 			for (long i = 0; i < MAX_TEAMS; i++)
 				teamSensors[i] = NULL;
 			numEcms = 0;
+			for (long i = 0; i < MAX_ECMS; i++)
+				ecms[i] = ECMInfo();
 			teamToUpdate = 0;
 		}
 		

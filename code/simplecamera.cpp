@@ -44,6 +44,11 @@ SimpleCamera::SimpleCamera()
 	bIsInMission = false;
 
     bContextNotSet = true;
+
+	oldCam = NULL;
+	memset( bounds, 0, sizeof( bounds ) );
+	rotationIncrement = fudgeX = fudgeY = 0.0f;
+	shapeScale = 1.0f;
 }
 
 

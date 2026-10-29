@@ -34,6 +34,7 @@ LogisticsScreen::LogisticsScreen()
 	
 	fadeInTime = fadeOutTime= fadeTime = 0;
 	fadeOutMaxColor = 0xff000000;
+	status = RUNNING;
 
 	
 }
@@ -55,9 +56,13 @@ void	LogisticsScreen::clear()
 {
 	if ( statics )
 		delete [] statics;
+	statics = 0;
+	staticCount = 0;
 
 	if ( rects )
 		delete [] rects;
+	rects = 0;
+	rectCount = 0;
 
 	if ( buttons )
 		delete  [] buttons;
@@ -504,6 +509,23 @@ void LogisticsScreen::render( int xOffset, int yOffset )
 
 LogisticsScreen::LogisticsScreen( const LogisticsScreen& src )
 {
+	// copyData() starts with destroy(), which frees statics and rects:
+	// they must be valid (empty) first
+	statics = 0;
+	rects = 0;
+	buttons = 0;
+	edits = 0;
+	textObjects = 0;
+	animObjects = 0;
+	staticCount = rectCount = buttonCount = textCount = editCount = animObjectsCount = 0;
+
+	helpTextArrayID = src.helpTextArrayID;
+	fadeInTime = src.fadeInTime;
+	fadeOutTime = src.fadeOutTime;
+	fadeTime = src.fadeTime;
+	fadeOutMaxColor = src.fadeOutMaxColor;
+	status = src.status;
+
 	copyData( src );
 }
 LogisticsScreen& LogisticsScreen::operator=( const LogisticsScreen& src )

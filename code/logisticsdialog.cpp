@@ -51,6 +51,7 @@ void LogisticsDialog::begin()
 LogisticsDialog::LogisticsDialog()
 {
 	oldFont = -1;
+	bDone = false;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -357,6 +358,7 @@ void				LogisticsOneButtonDialog::setText( const char* mainText )
 
 LogisticsSaveDialog::LogisticsSaveDialog(  ) 
 {
+	bPromptOverwrite = bDeletePrompt = bLoad = bCampaign = false;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1156,6 +1158,7 @@ LogisticsVariantDialog::LogisticsVariantDialog(  )
 {
 	if ( !s_instance )
 		s_instance = this;
+	bPromptOverwrite = bDeletePrompt = bTranscript = false;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1571,6 +1574,7 @@ int	LogisticsVariantDialog::handleMessage ( unsigned long what, unsigned long wh
 
 LogisticsAcceptVariantDialog::LogisticsAcceptVariantDialog()
 {
+	bNameUsedPrompt = false;
 }
 LogisticsAcceptVariantDialog::~LogisticsAcceptVariantDialog()
 {

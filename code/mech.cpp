@@ -650,6 +650,11 @@ void BattleMechType::init (void) {
 	explRad = 0.0;
 	LOSFactor = 1.0f;
 	destructDamage = 0.0f;
+
+	// read by init(FilePtr, ...)
+	isEndoSteel = false;
+	memset(maxInternalStructure, 0, sizeof(maxInternalStructure));
+	memset(moveAnimSpeed, 0, sizeof(moveAnimSpeed));
 }
 
 //--------------------------------------------------------------------------

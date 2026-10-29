@@ -62,6 +62,11 @@ MechLabScreen::MechLabScreen(  )
 
 	selRect = NULL;
 
+	pCurDialog = NULL;
+	componentCount = 0;
+	originalCost = 0.0f;
+	bSaveDlg = bErrorDlg = false;
+	flashHeatRange = false;
 }
 
 //-------------------------------------------------------------------------------------------------
