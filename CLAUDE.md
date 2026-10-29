@@ -85,7 +85,8 @@ detailed conventions.
 
 - **Layers:** `code/` (game) calls `mclib/` (engine) and `gui/`, which call
   `GameOS/` (platform). GameOS calls back into the game through the
-  `Environment` callbacks (`InitializeGameEngine`, etc.) set in `code/logmain.cpp`.
+  `Environment` callbacks (`InitializeGameEngine`, etc.) set in `code/mechcmd2.cpp`.
+  (`code/logmain.cpp` sets them too but is not in the build.)
 - **Frame:** game render functions only *enqueue* triangles. `mcTextureManager->renderLists()`
   (called from `code/gamecam.cpp`) sends them to GL, and `gos_RendererEndFrame()`
   in `gameos_graphics.cpp` ends the frame.

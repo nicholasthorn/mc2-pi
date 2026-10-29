@@ -41,6 +41,8 @@ belongs in commit messages and PRs.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: Agent docs checked against the code: `File::open` order (loose files before FST) and `Environment` callback location corrected; em dashes removed from back-ported comments.
+- 2026-10-29: Dependabot action bumps merged (#1, #2, #3).
 - 2026-10-29: Agent setup drafted (CLAUDE.md, rules, five skills, planning/); roadmap moved to `planning/`.
 - 2026-10-29: CI push builds limited to `pi-port`; PRs still run (`18594b6`).
 - 2026-10-29: Back-port: animation double-step and null guards (`495f7ba`).

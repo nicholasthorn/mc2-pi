@@ -15,9 +15,12 @@ Line numbers drift: grep the symbol before citing a line.
 
 - `mclib/file.cpp/.h`: `File` base class. `File::open(const char*, FileMode,
   ...)` lowercases the name (unless `doNotLower`), converts `\` to `/` under
-  `LINUX_BUILD` (paths stored inside data files use `\`), then tries the FST
-  archives before loose files. Other overloads open a child of a parent file or
-  an in-memory buffer.
+  `LINUX_BUILD` (paths stored inside data files use `\`), then opens a loose file
+  on disk if one exists and only falls back to the FST archives (`FastFileFind`)
+  when it does not. Loose files therefore override archive contents (the
+  original "useful for patches" behaviour), which is how upscaled or modded
+  assets can be dropped in. Other overloads open a child of a parent file or an
+  in-memory buffer.
 - `mclib/ffile.cpp`, `mclib/fastfile.cpp`: `FastFile` (FST archive), `FastFileInit`,
   `FastFileFind`, the `fastFiles` registry.
 - `mclib/packet.cpp`: `PacketFile` (`.pak` containers of numbered packets).
