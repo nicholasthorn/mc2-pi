@@ -1,6 +1,8 @@
 #include "gameos.hpp"
 #include "gos_render.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <SDL2/SDL.h>
@@ -30,6 +32,15 @@ extern void gos_DestroyAudio();
 
 static bool g_exit = false;
 static bool g_focus_lost = false;
+static bool g_gameplay_started = false;
+
+void __stdcall gos_MarkGameplayStarted(const char* missionName)
+{
+    // scripts/smoke.sh requires this line before [AUTOEXIT]
+    printf("[MISSION] %s started\n", missionName ? missionName : "");
+    fflush(stdout);
+    g_gameplay_started = true;
+}
 #if 0
 static camera g_camera;
 #endif
@@ -171,6 +182,15 @@ int main(int argc, char** argv)
     }
     cmdline[cmdline_len] = '\0';
 
+    // -autoexit <frames>: quit cleanly after that many frames of gameplay,
+    // counted from gos_MarkGameplayStarted() (smoke runs, scripts/smoke.sh).
+    // The game's own command-line parser ignores it.
+    long autoexit_frames = 0;
+    for(int i=1;i<argc-1;++i) {
+        if(0 == strcmp(argv[i], "-autoexit"))
+            autoexit_frames = atol(argv[i+1]);
+    }
+
     // fills in Environment structure
     GetGameOSEnvironment(cmdline);
 
@@ -183,6 +203,9 @@ int main(int argc, char** argv)
 
     graphics::RenderWindowHandle win = gos_GetWindow();
     graphics::RenderContextHandle ctx = gos_GetRenderContext();
+
+    long frame_count = 0;
+    double total_sec = 0.0;
 
     while( !g_exit ) {
 
@@ -211,6 +234,18 @@ int main(int argc, char** argv)
 		uint64_t end_tick = timing::gettickcount();
 		double dt_sec = timing::ticks2sec(end_tick - start_tick);
 		frameRate = (float)(1.0 / dt_sec);
+
+        if(g_gameplay_started) {
+            ++frame_count;
+            total_sec += dt_sec;
+        }
+        if(autoexit_frames > 0 && frame_count >= autoexit_frames) {
+            // scripts/smoke.sh treats a missing [AUTOEXIT] line as a failure
+            printf("[AUTOEXIT] %ld gameplay frames in %.1f s (%.1f fps)\n", frame_count,
+                    total_sec, total_sec > 0.0 ? frame_count / total_sec : 0.0);
+            fflush(stdout);
+            g_exit = true;
+        }
     }
     
     Environment.TerminateGameEngine();

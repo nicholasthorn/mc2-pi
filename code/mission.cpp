@@ -321,6 +321,15 @@ long Mission::update (void)
 	{
 		turn++;
 
+		// Tell GameOS gameplay has begun: "-autoexit" counts frames from here
+		// and scripts/smoke.sh checks for the marker it prints.
+		static const Mission* reportedMission = NULL;
+		if (reportedMission != this)
+		{
+			gos_MarkGameplayStarted(missionFileName);
+			reportedMission = this;
+		}
+
 		memset(ObjectManager->moverLineOfSightTable, -1, ObjectManager->maxMovers*ObjectManager->maxMovers);
 
 #ifdef LAB_ONLY

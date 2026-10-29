@@ -1914,6 +1914,11 @@ void __stdcall gos_srand( unsigned int seed );
 // Return a random number between 0 and 32767
 //
 int __stdcall gos_rand();
+//
+// The game calls this on the first frame of a mission. "-autoexit <frames>"
+// counts frames from here (smoke runs, scripts/smoke.sh).
+//
+void __stdcall gos_MarkGameplayStarted( const char* missionName );
 
 
 

@@ -1,0 +1,114 @@
+name: Smoke
+
+# Launches real missions headless (Xvfb + Mesa llvmpipe) and fails on a crash,
+# hang, GL/shader error or STOP line: scripts/smoke.sh. Nightly and on demand,
+# not per push: it needs the built game data and takes several minutes.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke
+  cancel-in-progress: true
+
+env:
+  MISSIONS: "mc2_01 mc2_03 mc2_10 mc2_17 mc2_24"
+
+jobs:
+  data:
+    name: Game data (mc2srcdata, cached)
+    runs-on: ubuntu-24.04
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      # Rebuild only when mc2srcdata or the data tools change. Data is
+      # platform independent, so the arm64 job reuses this cache.
+      - name: Cache key
+        id: key
+        run: |
+          sha=$(git ls-remote https://github.com/alariq/mc2srcdata.git HEAD | cut -c1-12)
+          echo "key=gamedata-$sha-${{ hashFiles('data_tools/**', 'text_tool/**', 'mclib/ffile.cpp', 'mclib/packet.cpp', 'mclib/lz*.cpp', 'scripts/build_gamedata.sh') }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: cache
+        with:
+          path: gamedata
+          key: ${{ steps.key.outputs.key }}
+          lookup-only: true
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      - name: Build data tools
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_BUILD_TESTS=OFF
+          cmake --build build --target aseconv makefst makersp pak text_tool
+      # Only movies/ is in Git LFS: skip the LFS download entirely (it would
+      # count against the upstream repo's bandwidth) and build without movies.
+      - name: Build game data
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/alariq/mc2srcdata.git srcdata
+          scripts/build_gamedata.sh --src-data srcdata --build-dir build --out gamedata --no-movies
+      - uses: actions/cache/save@v6
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: gamedata
+          key: ${{ steps.key.outputs.key }}
+
+  smoke:
+    name: Smoke ${{ matrix.name }}
+    needs: data
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64 (desktop GL)
+            os: ubuntu-24.04
+            gles: "OFF"
+          - name: Linux arm64 (GLES, Raspberry Pi)
+            os: ubuntu-24.04-arm
+            gles: "ON"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config xvfb xauth \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev \
+            libglew-dev libgl-dev libgles-dev libegl-dev libgl1-mesa-dri
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: smoke-${{ matrix.os }}-gles${{ matrix.gles }}
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DMC2_BUILD_TESTS=OFF -DMC2_GLES=${{ matrix.gles }}
+          cmake --build build --target mc2 mc2res_64
+      - uses: actions/cache/restore@v6
+        with:
+          path: gamedata
+          key: ${{ needs.data.outputs.key }}
+          fail-on-cache-miss: true
+      - name: Smoke
+        run: scripts/smoke.sh --game-dir gamedata --build-dir build --missions "$MISSIONS" --log-dir smoke-logs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: smoke-logs-${{ matrix.os }}-gles${{ matrix.gles }}
+          path: smoke-logs
+          retention-days: 14

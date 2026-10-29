@@ -51,6 +51,15 @@ if [ -n "$BUILD_DIR" ]; then
     rm -rf "$GAME_DIR/shaders" && cp -r "$SRC_DIR/shaders" "$GAME_DIR/" || exit 2
 fi
 
+# Without options.cfg the game's first launch only runs the hardware "sniffer"
+# and exits (code/mechcmd2.cpp). Do what that launch does to the config
+# (minprefs.cfg -> options.cfg / orgprefs.cfg) so every smoke run plays the
+# mission, with fixed minimum graphics settings.
+if [ ! -f "$GAME_DIR/options.cfg" ]; then
+    cp "$GAME_DIR/minprefs.cfg" "$GAME_DIR/options.cfg" || exit 2
+    [ -f "$GAME_DIR/orgprefs.cfg" ] || cp "$GAME_DIR/minprefs.cfg" "$GAME_DIR/orgprefs.cfg"
+fi
+
 mkdir -p "$LOG_DIR"
 LOG_DIR="$(cd "$LOG_DIR" && pwd)"
 
@@ -81,6 +90,13 @@ for m in $MISSIONS; do
     [ $rc -eq 137 ] && reasons+=("hung (killed after ${TIMEOUT}s)")
     [ $rc -ne 0 ] && [ $rc -ne 137 ] && reasons+=("exit status $rc")
     grep -q '^\[AUTOEXIT\]' "$log" || reasons+=("never reached $FRAMES frames")
+    # code/mission.cpp prints [MISSION] on the mission's first frame; it must
+    # come before [AUTOEXIT] or the frames were spent in menus / loading.
+    mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
+    aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
+    if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
+        reasons+=("mission never started")
+    fi
     nbad=$(grep -cE "$BAD" "$log")
     [ "$nbad" -gt 0 ] && reasons+=("$nbad error line(s)")
 
@@ -88,7 +104,7 @@ for m in $MISSIONS; do
         echo "PASS $m (${secs}s) $(grep -m1 '^\[AUTOEXIT\]' "$log")"
     else
         failed=1
-        echo "FAIL $m (${secs}s): $(IFS=', '; echo "${reasons[*]}")"
+        echo "FAIL $m (${secs}s): $(printf '%s; ' "${reasons[@]}")"
         grep -E "$BAD" "$log" | sort | uniq -c | sort -rn | head -10 | sed 's/^/    /'
         echo "    log: $log"
     fi
