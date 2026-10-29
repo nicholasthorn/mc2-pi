@@ -47,6 +47,10 @@ if(MC2_SANITIZE)
     # UBSan reports and continues, so one run lists every finding; the test
     # runners treat any "runtime error:" line as a failure.
     set(_mc2_san "-fsanitize=${MC2_SANITIZE} -fno-omit-frame-pointer")
+    # GCC 12/13 report false -Warray-bounds positives under sanitizer
+    # instrumentation (e.g. "offset 0 is out of the bounds [0, 0]" on a stack
+    # buffer). Normal builds keep -Werror=array-bounds.
+    set(_mc2_san "${_mc2_san} -Wno-error=array-bounds")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${_mc2_san}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_mc2_san}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${MC2_SANITIZE}")

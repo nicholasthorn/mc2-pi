@@ -35,7 +35,7 @@ belongs in commit messages and PRs.
 
 ## Known issues
 
-- Networking is stubbed (UI only).
+- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
 - Sound: panning/doppler not implemented (alariq README).
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
