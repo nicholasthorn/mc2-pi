@@ -28,32 +28,23 @@
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	code/ablmc2.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'objectNum' and 'newBRValue'.
 1	code/artlry.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
-1	code/artlry.cpp	warning	duplInheritedMember	The class 'ArtilleryType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Artillery()' at line N. Dynamic binding is not used.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~ArtilleryType()' at line N. Dynamic binding is not used.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Artillery()' at line N. Dynamic binding is not used.
-3	code/artlry.h	warning	duplInheritedMember	The class 'ArtilleryType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/attributemeter.cpp	warning	uninitMemberVar	Member variable 'AttributeMeter::addedColorMax' is not initialized in the constructor.
 1	code/attributemeter.cpp	warning	uninitMemberVar	Member variable 'AttributeMeter::addedColorMin' is not initialized in the constructor.
 1	code/attributemeter.cpp	warning	uninitMemberVar	Member variable 'AttributeMeter::helpID' is not initialized in the constructor.
 1	code/bldng.cpp	warning	duplInheritedMember	The class 'Building' defines member function with name 'isVisible' also defined in its parent class 'TerrainObject'.
-1	code/bldng.cpp	warning	duplInheritedMember	The class 'Building' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
-1	code/bldng.cpp	warning	duplInheritedMember	The class 'BuildingType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/bldng.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Building()' at line N. Dynamic binding is not used.
 1	code/bldng.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BuildingType()' at line N. Dynamic binding is not used.
 1	code/bldng.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Building()' at line N. Dynamic binding is not used.
 2	code/bldng.h	warning	duplInheritedMember	The class 'Building' defines member function with name 'isVisible' also defined in its parent class 'TerrainObject'.
-2	code/bldng.h	warning	duplInheritedMember	The class 'Building' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
 1	code/bldng.h	warning	duplInheritedMember	The class 'Building' defines member variable with name 'listID' also defined in its parent class 'TerrainObject'.
-3	code/bldng.h	warning	duplInheritedMember	The class 'BuildingType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
-1	code/bldng.h	warning	duplInheritedMember	The class 'BuildingType' defines member variable with name 'teamId' also defined in its parent class 'ObjectType'.
 1	code/bldng.h	warning	duplInheritedMember	The struct '_BuildingData' defines member variable with name 'listID' also defined in its parent struct '_TerrainObjectData'.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Carnage()' at line N. Dynamic binding is not used.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~ExplosionType()' at line N. Dynamic binding is not used.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~FireType()' at line N. Dynamic binding is not used.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Carnage()' at line N. Dynamic binding is not used.
-3	code/carnage.h	warning	duplInheritedMember	The class 'ExplosionType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
-3	code/carnage.h	warning	duplInheritedMember	The class 'FireType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/carnage.h	warning	uninitMemberVar	Member variable 'Carnage::effectId' is not initialized in the constructor.
 1	code/chatwindow.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
 1	code/chatwindow.cpp	warning	uninitDerivedMemberVar	Member variable 'aListItem::state' is not initialized in the constructor. Maybe it should be initialized directly in the class aListItem?
@@ -77,12 +68,8 @@
 1	code/gameobj.cpp	warning	nullPointerRedundantCheck	Either the condition '!target' is redundant or there is possible null pointer dereference: target.
 1	code/gameobj.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GameObject()' at line N. Dynamic binding is not used.
 1	code/gameobj.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'GameObject()' at line N. Dynamic binding is not used.
-1	code/gamesound.h	warning	duplInheritedMember	The class 'GameSoundSystem' defines member function with name 'init' also defined in its parent class 'SoundSystem'.
-1	code/gate.cpp	warning	duplInheritedMember	The class 'Gate' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
 1	code/gate.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Gate()' at line N. Dynamic binding is not used.
 1	code/gate.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GateType()' at line N. Dynamic binding is not used.
-1	code/gate.h	warning	duplInheritedMember	The class 'Gate' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
-3	code/gate.h	warning	duplInheritedMember	The class 'GateType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/gate.h	warning	uninitMemberVar	Member variable 'Gate::buildingDescriptionID' is not initialized in the constructor.
 1	code/gate.h	warning	uninitMemberVar	Member variable 'Gate::teamId' is not initialized in the constructor.
 1	code/goal.h	warning	uninitMemberVar	Member variable 'GoalManager::regionMap' is not initialized in the constructor.
@@ -90,20 +77,17 @@
 1	code/group.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~MoverGroup()' at line N. Dynamic binding is not used.
 1	code/group.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'MoverGroup()' at line N. Dynamic binding is not used.
 1	code/group.h	warning	uninitMemberVar	Member variable 'MoverGroup::moverWIDs' is not initialized in the constructor.
-1	code/gvehicl.cpp	warning	duplInheritedMember	The class 'GroundVehicleType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/gvehicl.cpp	warning	negativeIndex	Either the condition 'shotInfo->hitLocation<0' is redundant or the array 'armor[11]' is accessed at index -1, which is out of bounds.
 2	code/gvehicl.cpp	warning	nullPointerRedundantCheck	Either the condition '!appearance' is redundant or there is possible null pointer dereference: appearance.
 1	code/gvehicl.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GroundVehicle()' at line N. Dynamic binding is not used.
 1	code/gvehicl.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GroundVehicleType()' at line N. Dynamic binding is not used.
 1	code/gvehicl.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'GroundVehicle()' at line N. Dynamic binding is not used.
-1	code/gvehicl.h	warning	duplInheritedMember	The class 'GroundVehicleType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 3	code/infowindow.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	code/infowindow.cpp	warning	pointerSize	Size of pointer 'skillInfos' used instead of size of its data.
 1	code/infowindow.cpp	warning	uninitMemberVar	Member variable 'InfoWindow::bUnitChanged' is not initialized in the constructor.
 1	code/light.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Light()' at line N. Dynamic binding is not used.
 1	code/light.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~LightType()' at line N. Dynamic binding is not used.
 1	code/light.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Light()' at line N. Dynamic binding is not used.
-2	code/light.h	warning	duplInheritedMember	The class 'LightType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/loadscreen.cpp	warning	uninitMemberVar	Member variable 'LoadScreenWrapper::waitForResChange' is not initialized in the constructor.
 2	code/logistics.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 2	code/logistics.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
@@ -114,11 +98,7 @@
 1	code/logisticsdata.cpp	warning	identicalConditionAfterEarlyExit	Identical condition 'p1->getRank()>p2->getRank()', second condition is always false
 1	code/logisticsdata.cpp	warning	uninitMemberVar	Member variable 'LogisticsData::oldVariant' is not initialized in the constructor.
 1	code/logisticsdialog.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
-1	code/logisticsdialog.cpp	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member function with name 'init' also defined in its parent class 'LogisticsVariantDialog'.
-1	code/logisticsdialog.cpp	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member function with name 'init' also defined in its parent class 'LogisticsOneButtonDialog'.
-1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member function with name 'init' also defined in its parent class 'LogisticsVariantDialog'.
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member variable with name 'selectedName' also defined in its parent class 'LogisticsVariantDialog'.
-1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member function with name 'init' also defined in its parent class 'LogisticsOneButtonDialog'.
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member function with name 'instance' also defined in its parent class 'LogisticsOneButtonDialog'.
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member variable with name 's_instance' also defined in its parent class 'LogisticsOneButtonDialog'.
 1	code/logisticsmech.cpp	warning	uninitMemberVar	Member variable 'LogisticsMech::baseColor' is not initialized in the constructor.
@@ -140,17 +120,13 @@
 1	code/mech.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'inv_id<255' is redundant or the array 'inventory[72]' is accessed at index 254, which is out of bounds.
 3	code/mech.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'numAntiMissileSystems==16' is redundant or the array 'antiMissileSystem[16]' is accessed at index 16, which is out of bounds.
 3	code/mech.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'spaceData[0]<255' is redundant or the array 'inventory[72]' is accessed at index 254, which is out of bounds.
-1	code/mech.cpp	warning	duplInheritedMember	The class 'BattleMech' defines member function with name 'isWeaponWorking' also defined in its parent class 'Mover'.
-1	code/mech.cpp	warning	duplInheritedMember	The class 'BattleMechType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 3	code/mech.cpp	warning	nullPointerRedundantCheck	Either the condition 'appearance' is redundant or there is possible null pointer dereference: appearance.
 2	code/mech.cpp	warning	oppositeInnerCondition	Opposite inner 'if' condition leads to a dead code block.
 1	code/mech.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BattleMech()' at line N. Dynamic binding is not used.
 1	code/mech.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BattleMechType()' at line N. Dynamic binding is not used.
 1	code/mech.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'BattleMech()' at line N. Dynamic binding is not used.
 2	code/mech.h	warning	duplInheritedMember	The class 'BattleMech' defines member function with name 'initOptimalCells' also defined in its parent class 'Mover'.
-2	code/mech.h	warning	duplInheritedMember	The class 'BattleMech' defines member function with name 'isWeaponWorking' also defined in its parent class 'Mover'.
 1	code/mech.h	warning	duplInheritedMember	The class 'BattleMech' defines member variable with name 'longName' also defined in its parent class 'Mover'.
-1	code/mech.h	warning	duplInheritedMember	The class 'BattleMechType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/mech.h	warning	duplInheritedMember	The struct '_MechData' defines member variable with name 'longName' also defined in its parent struct '_MoverData'.
 1	code/mechbayscreen.cpp	warning	uninitMemberVar	Member variable 'MechBayScreen::weightCenterX' is not initialized in the constructor.
 1	code/mechbayscreen.cpp	warning	uninitMemberVar	Member variable 'MechBayScreen::weightCenterY' is not initialized in the constructor.
@@ -280,19 +256,14 @@
 1	code/team.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Team()' at line N. Dynamic binding is not used.
 1	code/team.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Team()' at line N. Dynamic binding is not used.
 1	code/team.h	warning	uninitMemberVar	Member variable 'Team::roster' is not initialized in the constructor.
-1	code/terrobj.cpp	warning	duplInheritedMember	The class 'TerrainObjectType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/terrobj.cpp	warning	nullPointerArithmeticRedundantCheck	Either the condition 'cellsCovered' is redundant or there is pointer arithmetic with NULL pointer.
 1	code/terrobj.cpp	warning	nullPointerRedundantCheck	Either the condition 'cellsCovered' is redundant or there is possible null pointer dereference: curCoord++.
 1	code/terrobj.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~TerrainObject()' at line N. Dynamic binding is not used.
 1	code/terrobj.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~TerrainObjectType()' at line N. Dynamic binding is not used.
 1	code/terrobj.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'TerrainObject()' at line N. Dynamic binding is not used.
-3	code/terrobj.h	warning	duplInheritedMember	The class 'TerrainObjectType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/terrobj.h	warning	duplInheritedMember	The class 'TerrainObjectType' defines member variable with name 'subType' also defined in its parent class 'ObjectType'.
-1	code/turret.cpp	warning	duplInheritedMember	The class 'Turret' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
 1	code/turret.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Turret()' at line N. Dynamic binding is not used.
 1	code/turret.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~TurretType()' at line N. Dynamic binding is not used.
-1	code/turret.h	warning	duplInheritedMember	The class 'Turret' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
-3	code/turret.h	warning	duplInheritedMember	The class 'TurretType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 2	code/warrior.cpp	error	nullPointer	Null pointer dereference: getGroup()
 1	code/warrior.cpp	warning	negativeIndex	Either the condition 'numSteps>0' is redundant or the array 'globalPath[50]' is accessed at index -2, which is out of bounds.
 3	code/warrior.cpp	warning	nullPointerRedundantCheck	Either the condition 'myVehicle' is redundant or there is possible null pointer dereference: myVehicle.
@@ -306,29 +277,22 @@
 1	code/weaponbolt.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~WeaponBolt()' at line N. Dynamic binding is not used.
 1	code/weaponbolt.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~WeaponBoltType()' at line N. Dynamic binding is not used.
 1	code/weaponbolt.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'WeaponBolt()' at line N. Dynamic binding is not used.
-3	code/weaponbolt.h	warning	duplInheritedMember	The class 'WeaponBoltType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/weaponbolt.h	warning	uninitMemberVar	Member variable 'WeaponBolt::halfDistanceToTarget' is not initialized in the constructor.
 1	code/weather.h	warning	uninitMemberVar	Member variable 'Weather::baseLighteningChance' is not initialized in the constructor.
 1	data_tools/aseconv.cpp	warning	selfAssignment	Redundant assignment of 'CommandLine' to itself.
-1	gui/aanimobject.cpp	warning	duplInheritedMember	The class 'aAnimObject' defines member function with name 'init' also defined in its parent class 'aObject'.
-1	gui/aanimobject.h	warning	duplInheritedMember	The class 'aAnimObject' defines member function with name 'init' also defined in its parent class 'aObject'.
 1	gui/abutton.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'fXcaleX' and 'fScaleY'.
-1	gui/abutton.cpp	warning	duplInheritedMember	The class 'aAnimButton' defines member function with name 'init' also defined in its parent class 'aButton'.
 1	gui/abutton.cpp	warning	duplInheritedMember	The class 'aButton' defines member function with name 'getID' also defined in its parent class 'aObject'.
 1	gui/abutton.cpp	warning	duplInheritedMember	The class 'aButton' defines member function with name 'setID' also defined in its parent class 'aObject'.
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::clickSFX' is not assigned a value in 'aButton::operator='.
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::disabledSFX' is not assigned a value in 'aButton::operator='.
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::highlightSFX' is not assigned a value in 'aButton::operator='.
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::holdTime' is not assigned a value in 'aButton::operator='.
-1	gui/abutton.h	warning	duplInheritedMember	The class 'aAnimButton' defines member function with name 'init' also defined in its parent class 'aButton'.
 1	gui/abutton.h	warning	duplInheritedMember	The class 'aButton' defines member function with name 'getID' also defined in its parent class 'aObject'.
 1	gui/abutton.h	warning	duplInheritedMember	The class 'aButton' defines member function with name 'setID' also defined in its parent class 'aObject'.
 1	gui/aedit.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	gui/aedit.cpp	warning	operatorEqVarError	Member variable 'aEdit::cursorTime' is not assigned a value in 'aEdit::operator='.
 1	gui/aedit.h	warning	duplInheritedMember	The class 'aEdit' defines member function with name 'getColor' also defined in its parent class 'aObject'.
-1	gui/alistbox.cpp	warning	duplInheritedMember	The class 'aAnimTextListItem' defines member function with name 'init' also defined in its parent class 'aTextListItem'.
 2	gui/alistbox.cpp	warning	operatorEqToSelf	'operator=' should check for assignment to self to avoid problems with dynamic memory.
-1	gui/alistbox.h	warning	duplInheritedMember	The class 'aAnimTextListItem' defines member function with name 'init' also defined in its parent class 'aTextListItem'.
 1	gui/ascroll.cpp	warning	uninitMemberVar	Member variable 'aScrollBar::scrollTab' is not initialized in the constructor.
 2	gui/asystem.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	gui/asystem.cpp	warning	funcArgOrderDifferent	Function 'rectIntersect' argument order different: declaration 'top, left, bottom, right' definition 'left, top, right, bottom'
@@ -371,8 +335,6 @@
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~TreeAppearanceType()' at line N. Dynamic binding is not used.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'BldgAppearance()' at line N. Dynamic binding is not used.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'TreeAppearance()' at line N. Dynamic binding is not used.
-1	mclib/bdactor.h	warning	duplInheritedMember	The class 'BldgAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
-1	mclib/bdactor.h	warning	duplInheritedMember	The class 'TreeAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
 1	mclib/camera.cpp	warning	nullPointer	Possible null pointer dereference: closestVertex
 1	mclib/camera.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Camera()' at line N. Dynamic binding is not used.
 1	mclib/cellip.cpp	warning	uninitMemberVar	Member variable 'EllipseElement::clip' is not initialized in the constructor.
@@ -399,100 +361,10 @@
 1	mclib/genactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GenericAppearance()' at line N. Dynamic binding is not used.
 1	mclib/genactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GenericAppearanceType()' at line N. Dynamic binding is not used.
 1	mclib/genactor.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'GenericAppearance()' at line N. Dynamic binding is not used.
-1	mclib/genactor.h	warning	duplInheritedMember	The class 'GenericAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
-1	mclib/gosfx/card.hpp	warning	duplInheritedMember	The class 'Card' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/card.hpp	warning	duplInheritedMember	The class 'Card' defines member function with name 'GetSpecification' also defined in its parent class 'Singleton'.
-1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetParticle' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/debriscloud.hpp	warning	duplInheritedMember	The class 'DebrisCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
 1	mclib/gosfx/effect.hpp	warning	uninitMemberVar	Member variable 'Event::m_effectID' is not initialized in the constructor.
 1	mclib/gosfx/effect.hpp	warning	uninitMemberVar	Member variable 'Event::m_flags' is not initialized in the constructor.
 1	mclib/gosfx/effect.hpp	warning	uninitMemberVar	Member variable 'Event::m_time' is not initialized in the constructor.
 1	mclib/gosfx/effectcloud.cpp	warning	uninitMemberVar	Member variable 'EffectCloud__Specification::m_particleEffectID' is not initialized in the constructor.
-1	mclib/gosfx/effectcloud.hpp	warning	duplInheritedMember	The class 'EffectCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/effectcloud.hpp	warning	duplInheritedMember	The class 'EffectCloud' defines member function with name 'GetParticle' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/effectcloud.hpp	warning	duplInheritedMember	The class 'EffectCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/effectcloud.hpp	warning	duplInheritedMember	The class 'EffectCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/effectcloud.hpp	warning	duplInheritedMember	The class 'EffectCloud' defines member function with name 'GetSpecification' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'ComplexCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'ComplexCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'ConstantCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'ConstantCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'ComputeRange' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Load' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Save' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'SetCurve' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeRange' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeRange' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Load' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Load' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Save' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Save' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'SetCurve' also defined in its parent class 'ConstantCurve'.
-2	mclib/gosfx/fcurve.cpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'SetCurve' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'ComplexCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'ComplexCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'ConstantCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'ConstantCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'ComputeRange' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'ComputeSlope' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'ComputeValue' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Load' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Save' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'LinearCurve' defines member function with name 'SetCurve' also defined in its parent class 'ConstantCurve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , ComplexCurve , Curve :: e_ComplexComplexType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , ComplexCurve , Curve :: e_ComplexComplexType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , ComplexCurve , e_ComplexComplexType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , ComplexCurve , e_ComplexComplexType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , LinearCurve , Curve :: e_ComplexLinearType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , LinearCurve , Curve :: e_ComplexLinearType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , SplineCurve , Curve :: e_ComplexSplineType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , SplineCurve , Curve :: e_ComplexSplineType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , SplineCurve , e_ComplexSplineType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ComplexCurve , SplineCurve , e_ComplexSplineType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , ComplexCurve , Curve :: e_ConstantComplexType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , ComplexCurve , Curve :: e_ConstantComplexType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , ComplexCurve , e_ConstantComplexType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , ComplexCurve , e_ConstantComplexType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , LinearCurve , Curve :: e_ConstantLinearType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , LinearCurve , Curve :: e_ConstantLinearType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , LinearCurve , e_ConstantLinearType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , LinearCurve , e_ConstantLinearType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , SplineCurve , Curve :: e_ConstantSplineType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , SplineCurve , Curve :: e_ConstantSplineType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , SplineCurve , e_ConstantSplineType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < ConstantCurve , SplineCurve , e_ConstantSplineType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , LinearCurve , Curve :: e_SplineLinearType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , LinearCurve , Curve :: e_SplineLinearType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , LinearCurve , e_SplineLinearType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , LinearCurve , e_SplineLinearType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , SplineCurve , Curve :: e_SplineSplineType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , SplineCurve , Curve :: e_SplineSplineType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , SplineCurve , e_SplineSplineType >' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SeededCurveOf < SplineCurve , SplineCurve , e_SplineSplineType >' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeRange' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeRange' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeSlope' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeSlope' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeValue' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'ComputeValue' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Load' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Load' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Load' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Save' also defined in its parent class 'ConstantCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Save' also defined in its parent class 'Curve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'Save' also defined in its parent class 'LinearCurve'.
-1	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'SetCurve' also defined in its parent class 'ConstantCurve'.
-2	mclib/gosfx/fcurve.hpp	warning	duplInheritedMember	The class 'SplineCurve' defines member function with name 'SetCurve' also defined in its parent class 'LinearCurve'.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < ComplexCurve , ComplexCurve , Curve :: e_ComplexComplexType >::m_seeded' is not initialized in the constructor.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < ComplexCurve , ComplexCurve , e_ComplexComplexType >::m_seeded' is not initialized in the constructor.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < ComplexCurve , LinearCurve , Curve :: e_ComplexLinearType >::m_seeded' is not initialized in the constructor.
@@ -508,40 +380,11 @@
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < SplineCurve , LinearCurve , e_SplineLinearType >::m_seeded' is not initialized in the constructor.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < SplineCurve , SplineCurve , Curve :: e_SplineSplineType >::m_seeded' is not initialized in the constructor.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < SplineCurve , SplineCurve , e_SplineSplineType >::m_seeded' is not initialized in the constructor.
-1	mclib/gosfx/particlecloud.hpp	warning	duplInheritedMember	The class 'ParticleCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetParticle' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetSpecification' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/pointcloud.hpp	warning	duplInheritedMember	The class 'PointCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/pointcloud.hpp	warning	duplInheritedMember	The class 'PointCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/pointcloud.hpp	warning	duplInheritedMember	The class 'PointCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/pointlight.hpp	warning	duplInheritedMember	The class 'PointLight' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/shape.hpp	warning	duplInheritedMember	The class 'Shape' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/shape.hpp	warning	duplInheritedMember	The class 'Shape' defines member function with name 'GetSpecification' also defined in its parent class 'Singleton'.
-1	mclib/gosfx/shapecloud.hpp	warning	duplInheritedMember	The class 'ShapeCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/shapecloud.hpp	warning	duplInheritedMember	The class 'ShapeCloud' defines member function with name 'GetParticle' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/shapecloud.hpp	warning	duplInheritedMember	The class 'ShapeCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/shapecloud.hpp	warning	duplInheritedMember	The class 'ShapeCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/shapecloud.hpp	warning	duplInheritedMember	The class 'ShapeCloud' defines member function with name 'GetSpecification' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/shardcloud.hpp	warning	duplInheritedMember	The class 'ShardCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/shardcloud.hpp	warning	duplInheritedMember	The class 'ShardCloud' defines member function with name 'GetParticle' also defined in its parent class 'SpinningCloud'.
-1	mclib/gosfx/shardcloud.hpp	warning	duplInheritedMember	The class 'ShardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/shardcloud.hpp	warning	duplInheritedMember	The class 'ShardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/shardcloud.hpp	warning	duplInheritedMember	The class 'ShardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'SpinningCloud'.
 1	mclib/gosfx/singleton.cpp	warning	uninitMemberVar	Member variable 'Singleton__Specification::m_alignZUsingX' is not initialized in the constructor.
 1	mclib/gosfx/singleton.cpp	warning	uninitMemberVar	Member variable 'Singleton__Specification::m_alignZUsingY' is not initialized in the constructor.
-1	mclib/gosfx/singleton.hpp	warning	duplInheritedMember	The class 'Singleton' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/spinningcloud.hpp	warning	duplInheritedMember	The class 'SpinningCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/spinningcloud.hpp	warning	duplInheritedMember	The class 'SpinningCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/spinningcloud.hpp	warning	duplInheritedMember	The class 'SpinningCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
-1	mclib/gosfx/tube.hpp	warning	duplInheritedMember	The class 'Tube' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
 1	mclib/gvactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GVAppearance()' at line N. Dynamic binding is not used.
 1	mclib/gvactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GVAppearanceType()' at line N. Dynamic binding is not used.
 1	mclib/gvactor.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'GVAppearance()' at line N. Dynamic binding is not used.
-1	mclib/gvactor.h	warning	duplInheritedMember	The class 'GVAppearance' defines member variable with name 'objectNameId' also defined in its parent class 'ObjectAppearance'.
-1	mclib/gvactor.h	warning	duplInheritedMember	The class 'GVAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
 1	mclib/heap.cpp	warning	duplInheritedMember	The class 'UserHeap' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/heap.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 4) requires 'long' but the argument type is 'unsigned long'.
 1	mclib/heap.cpp	warning	uninitMemberVar	Member variable 'HeapManager::totalSize' is not initialized in the constructor.
@@ -550,12 +393,10 @@
 1	mclib/mapdata.cpp	portability	shiftNegativeLHS	Shifting a negative value is technically undefined behaviour
 1	mclib/mapdata.cpp	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
-1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'init' also defined in its parent class 'HeapManager'.
 4	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
 1	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	mclib/mech3d.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Mech3DAppearance()' at line N. Dynamic binding is not used.
 1	mclib/mech3d.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Mech3DAppearance()' at line N. Dynamic binding is not used.
-1	mclib/mech3d.h	warning	duplInheritedMember	The class 'Mech3DAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
 1	mclib/mlr/gosimage.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
 2	mclib/mlr/gosimage.cpp	warning	uninitMemberVar	Member variable 'GOSImage::ipHints' is not initialized in the constructor.
 2	mclib/mlr/mlr_i_dt_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DT_TMesh::gos_vertices2uv' is not initialized in the constructor.
@@ -594,8 +435,6 @@
 1	mclib/soundsys.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~SoundSystem()' at line N. Dynamic binding is not used.
 1	mclib/stuff/average.hpp	warning	uninitMemberVar	Member variable 'AverageOf::next' is not initialized in the constructor.
 1	mclib/stuff/average.hpp	warning	uninitMemberVar	Member variable 'AverageOf::size' is not initialized in the constructor.
-1	mclib/stuff/color.hpp	warning	duplInheritedMember	The class 'HSVAColor' defines member variable with name 'Unassigned' also defined in its parent class 'HSVColor'.
-1	mclib/stuff/color.hpp	warning	duplInheritedMember	The class 'RGBAColor' defines member variable with name 'Unassigned' also defined in its parent class 'RGBColor'.
 2	mclib/stuff/database.cpp	error	leakReturnValNotUsed	Return value of allocation function 'new' is not stored.
 1	mclib/stuff/database.cpp	warning	noCopyConstructor	Class 'DatabaseHandle' does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s).
 1	mclib/stuff/database.cpp	warning	noOperatorEq	Class 'DatabaseHandle' does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).
@@ -608,21 +447,6 @@
 1	mclib/stuff/filestream.cpp	warning	pointerAdditionResultNotNull	Comparison is wrong. Result of 'current_position+2' can't be 0 unless there is pointer overflow, and pointer overflow is undefined behaviour.
 1	mclib/stuff/filestream.cpp	warning	uninitMemberVar	Member variable 'Directory::fileOk' is not initialized in the constructor.
 1	mclib/stuff/filestream.cpp	warning	uninitMemberVar	Member variable 'FileStream::writeEnabled' is not initialized in the constructor.
-2	mclib/stuff/filestream.hpp	warning	duplInheritedMember	The class 'FileStream' defines member function with name 'TestClass' also defined in its parent class 'MemoryStream'.
-1	mclib/stuff/filestream_test.cpp	warning	duplInheritedMember	The class 'FileStream' defines member function with name 'TestClass' also defined in its parent class 'MemoryStream'.
-1	mclib/stuff/line.cpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'GetDistanceTo' also defined in its parent class 'Ray3D'.
-1	mclib/stuff/line.cpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'SetDirection' also defined in its parent class 'Ray3D'.
-3	mclib/stuff/line.hpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'GetDistanceTo' also defined in its parent class 'Ray3D'.
-2	mclib/stuff/line.hpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'SetDirection' also defined in its parent class 'Ray3D'.
-8	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'BuildRotation' also defined in its parent class 'AffineMatrix4D'.
-1	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'BuildTranslation' also defined in its parent class 'AffineMatrix4D'.
-1	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'Invert' also defined in its parent class 'AffineMatrix4D'.
-2	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'Solve' also defined in its parent class 'AffineMatrix4D'.
-2	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'TestClass' also defined in its parent class 'AffineMatrix4D'.
-2	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'operator*=' also defined in its parent class 'AffineMatrix4D'.
-13	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'operator=' also defined in its parent class 'AffineMatrix4D'.
-1	mclib/stuff/linearmatrix.hpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member variable with name 'Identity' also defined in its parent class 'AffineMatrix4D'.
-1	mclib/stuff/linearmatrix_test.cpp	warning	duplInheritedMember	The class 'LinearMatrix4D' defines member function with name 'TestClass' also defined in its parent class 'AffineMatrix4D'.
 1	mclib/stuff/marray.hpp	warning	operatorEqVarError	Member variable 'DynamicArrayOf < Effect__Specification * >::data' is not assigned a value in 'DynamicArrayOf < Effect__Specification * >::operator='.
 1	mclib/stuff/marray.hpp	warning	operatorEqVarError	Member variable 'DynamicArrayOf < MLRPrimitiveBase * >::data' is not assigned a value in 'DynamicArrayOf < MLRPrimitiveBase * >::operator='.
 1	mclib/stuff/marray.hpp	warning	operatorEqVarError	Member variable 'DynamicArrayOf < MidLevelRenderer :: MLRShape * >::data' is not assigned a value in 'DynamicArrayOf < MidLevelRenderer :: MLRShape * >::operator='.
@@ -634,15 +458,6 @@
 1	mclib/stuff/marray.hpp	warning	operatorEqVarError	Member variable 'StaticArrayOf < MLRTexture * , MLRState :: TextureMask + 1 >::data' is not assigned a value in 'StaticArrayOf < MLRTexture * , MLRState :: TextureMask + 1 >::operator='.
 1	mclib/stuff/marray.hpp	warning	uninitMemberVar	Member variable 'StaticArrayOf < MLRTexture * , MLRState :: TextureMask + 1 >::data' is not initialized in the copy constructor.
 1	mclib/stuff/matrix.hpp	warning	uninitMemberVar	Member variable 'Matrix4D::entries' is not initialized in the constructor.
-2	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryBlockOf' defines member function with name 'Delete' also defined in its parent class 'MemoryBlock'.
-2	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryBlockOf' defines member function with name 'New' also defined in its parent class 'MemoryBlock'.
-2	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryBlockOf' defines member function with name 'operator[]' also defined in its parent class 'MemoryBlock'.
-1	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryStackOf < AffineMatrix4D >' defines member function with name 'Peek' also defined in its parent class 'MemoryStack'.
-2	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryStackOf < AffineMatrix4D >' defines member function with name 'Pop' also defined in its parent class 'MemoryStack'.
-1	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryStackOf < LinearMatrix4D >' defines member function with name 'Peek' also defined in its parent class 'MemoryStack'.
-2	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryStackOf < LinearMatrix4D >' defines member function with name 'Pop' also defined in its parent class 'MemoryStack'.
-1	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryStackOf < Matrix4D >' defines member function with name 'Peek' also defined in its parent class 'MemoryStack'.
-2	mclib/stuff/memoryblock.hpp	warning	duplInheritedMember	The class 'MemoryStackOf < Matrix4D >' defines member function with name 'Pop' also defined in its parent class 'MemoryStack'.
 2	mclib/stuff/memorystream.cpp	warning	uninitMemberVar	Member variable 'MemoryStream::workingBitBuffer' is not initialized in the constructor.
 1	mclib/stuff/memorystream_test.cpp	warning	uninitMemberVar	Member variable 'MinMaxHolderOf < float >::maxValue' is not initialized in the constructor.
 1	mclib/stuff/memorystream_test.cpp	warning	uninitMemberVar	Member variable 'MinMaxHolderOf < float >::minValue' is not initialized in the constructor.
@@ -651,88 +466,10 @@
 1	mclib/stuff/memorystream_test.cpp	warning	uninitMemberVar	Member variable 'MinMaxHolderOf < int >::minValue' is not initialized in the constructor.
 1	mclib/stuff/memorystream_test.cpp	warning	uninitMemberVar	Member variable 'MinMaxHolderOf < int >::value' is not initialized in the constructor.
 1	mclib/stuff/mstring.hpp	warning	copyCtorPointerCopying	Value of pointer 'representation', which points to allocated memory, is copied in copy constructor instead of allocating new memory.
-1	mclib/stuff/namelist.cpp	warning	duplInheritedMember	The class 'NameList' defines member function with name 'DeleteEntry' also defined in its parent class 'ObjectNameList'.
-1	mclib/stuff/namelist.hpp	warning	duplInheritedMember	The class 'AlphaNameList' defines member function with name 'TestClass' also defined in its parent class 'NameList'.
-1	mclib/stuff/namelist.hpp	warning	duplInheritedMember	The class 'AlphaNameList' defines member function with name 'TestClass' also defined in its parent class 'ObjectNameList'.
-1	mclib/stuff/namelist.hpp	warning	duplInheritedMember	The class 'NameList' defines member function with name 'DeleteEntry' also defined in its parent class 'ObjectNameList'.
-1	mclib/stuff/namelist.hpp	warning	duplInheritedMember	The class 'NameList' defines member function with name 'TestClass' also defined in its parent class 'ObjectNameList'.
-1	mclib/stuff/namelist_test.cpp	warning	duplInheritedMember	The class 'AlphaNameList' defines member function with name 'TestClass' also defined in its parent class 'NameList'.
-1	mclib/stuff/namelist_test.cpp	warning	duplInheritedMember	The class 'AlphaNameList' defines member function with name 'TestClass' also defined in its parent class 'ObjectNameList'.
-1	mclib/stuff/namelist_test.cpp	warning	duplInheritedMember	The class 'NameList' defines member function with name 'TestClass' also defined in its parent class 'ObjectNameList'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Add' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Combine' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Cross' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Divide' also defined in its parent class 'Vector3D'.
-4	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Multiply' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Negate' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'Subtract' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'TestClass' also defined in its parent class 'UnitVector3D'.
-2	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'TestClass' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator*' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator*' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator*=' also defined in its parent class 'UnitVector3D'.
-3	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator*=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator+=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator-=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator/=' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator=' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'operator=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Backward' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Backward' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Down' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Down' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Forward' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Forward' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Left' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Left' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Right' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Right' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Up' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal.hpp	warning	duplInheritedMember	The class 'Normal3D' defines member variable with name 'Up' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/normal_test.cpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'TestClass' also defined in its parent class 'UnitVector3D'.
-1	mclib/stuff/normal_test.cpp	warning	duplInheritedMember	The class 'Normal3D' defines member function with name 'TestClass' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'Add' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'Combine' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'Divide' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'Lerp' also defined in its parent class 'Vector3D'.
-3	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'Multiply' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'MultiplyByInverse' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'Negate' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'TestClass' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'operator*' also defined in its parent class 'Vector3D'.
-3	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'operator*=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'operator+=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'operator-=' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'operator/=' also defined in its parent class 'Vector3D'.
-3	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'operator=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d.hpp	warning	duplInheritedMember	The class 'Point3D' defines member variable with name 'Identity' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/point3d_test.cpp	warning	duplInheritedMember	The class 'Point3D' defines member function with name 'TestClass' also defined in its parent class 'Vector3D'.
 1	mclib/stuff/rotation.cpp	warning	funcArgOrderDifferent	Function 'Multiply' argument order different: declaration 'q1, q2' definition 'q2, q1'
 2	mclib/stuff/rotation.hpp	warning	objectIndex	The address of local variable 'x' might be accessed at non-zero index.
 2	mclib/stuff/scalar.hpp	portability	invalidPointerCast	Casting from float * to unsigned short * is not portable due to different binary data representations on different platforms.
 1	mclib/stuff/tree.cpp	warning	nullPointerRedundantCheck	Either the condition 'successor->greater!=0' is redundant or there is possible null pointer dereference: successor.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Add' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Combine' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Cross' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Divide' also defined in its parent class 'Vector3D'.
-4	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Multiply' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'MultiplyByInverse' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Negate' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'Subtract' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'TestClass' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'operator*' also defined in its parent class 'Vector3D'.
-2	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'operator*=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'operator+=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'operator-=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'operator/=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'operator=' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member variable with name 'Backward' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member variable with name 'Down' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member variable with name 'Forward' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member variable with name 'Left' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member variable with name 'Right' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector.hpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member variable with name 'Up' also defined in its parent class 'Vector3D'.
-1	mclib/stuff/unitvector_test.cpp	warning	duplInheritedMember	The class 'UnitVector3D' defines member function with name 'TestClass' also defined in its parent class 'Vector3D'.
 2	mclib/stuff/vector2d.hpp	warning	objectIndex	The address of local variable 'x' might be accessed at non-zero index.
 2	mclib/stuff/vector3d.hpp	warning	objectIndex	The address of local variable 'x' might be accessed at non-zero index.
 2	mclib/stuff/vector4d.hpp	warning	objectIndex	The address of local variable 'x' might be accessed at non-zero index.
@@ -757,9 +494,7 @@
 1	mclib/tgl.h	warning	uninitDerivedMemberVar	Member variable 'TG_TypeNode::parentId' is not initialized in the constructor. Maybe it should be initialized directly in the class TG_TypeNode?
 1	mclib/tgl.h	warning	uninitMemberVar	Member variable 'TG_Shape::cur_viewport' is not initialized in the constructor.
 1	mclib/txmmgr.h	warning	duplInheritedMember	The class 'gos_RenderShapeManager < TG_RenderShape >' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
-1	mclib/txmmgr.h	warning	duplInheritedMember	The class 'gos_RenderShapeManager < TG_RenderShape >' defines member function with name 'init' also defined in its parent class 'HeapManager'.
 1	mclib/txmmgr.h	warning	duplInheritedMember	The class 'gos_VERTEXManager' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
-1	mclib/txmmgr.h	warning	duplInheritedMember	The class 'gos_VERTEXManager' defines member function with name 'init' also defined in its parent class 'HeapManager'.
 2	mclib/txmmgr.h	warning	nullPointerRedundantCheck	Either the condition 'hardwareVertexData' is redundant or there is possible null pointer dereference: hardwareVertexData.
 2	mclib/txmmgr.h	warning	nullPointerRedundantCheck	Either the condition 'vertexData' is redundant or there is possible null pointer dereference: vertexData.
 1	mclib/userinput.h	warning	uninitMemberVar	Member variable 'UserInput::mouseFrame' is not initialized in the constructor.

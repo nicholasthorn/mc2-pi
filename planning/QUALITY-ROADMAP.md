@@ -63,6 +63,10 @@ undefined behaviour, signedness, alignment/packing, 32-bit pointer assumptions.
       TerminateClass, DefaultData, Make, TestInstance on purpose; ~1800).
       Filter those five names in the gate, keep the check for the rest.
       Done: the gate drops 2251; 399 other names are left to review.
+      Reviewed: mclib/stuff and mclib/gosfx (~290) are the libraries'
+      type-covariant redefinitions and `init` overloads are per class, so
+      both are filtered too; real ones fixed (vehicle tooltip name, team
+      id); 41 left, mostly harmless shadows next to the save structs.
 - [x] `invalidPrintfArgType_*` (~444): `%d` with `long` arguments in log
       text (64-bit Linux portability); mechanical sweep. Done: 433 sites
       fixed from GCC `-Wformat`; 16 left are cppcheck-only or deliberate
