@@ -18,7 +18,7 @@
 
 
 void Image::clear(){
-	delete pixels;
+	delete[] pixels;	// allocated with new[]
 	pixels = NULL;
 	width = height = 0;
 	format = FORMAT_NONE;

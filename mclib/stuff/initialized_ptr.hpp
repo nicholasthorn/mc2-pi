@@ -49,6 +49,7 @@ namespace Stuff
 		Initialized_Ptr& operator=(T* ptr)
 		{
 			m_ptr = ptr;
+			return *this;
 		}
 
 	  private:
@@ -58,4 +59,4 @@ namespace Stuff
 }; // namespace Stuff
 
 
-#endif // PTR_HPP
+#endif // PTR_HPP

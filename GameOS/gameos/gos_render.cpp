@@ -173,7 +173,7 @@ RenderWindow* create_window(
                     }
                     SDL_PixelFormatEnumToMasks(mode.format, &bpp, &Rmask, &Gmask, &Bmask, &Amask);
                     fprintf(stderr, "    Mode %d: %dx%d@%dHz, %d bits-per-pixel (%s)\n",
-                            j, mode.w, mode.h, mode.refresh_rate, bpp,
+                            mode_idx, mode.w, mode.h, mode.refresh_rate, bpp,
                             SDL_GetPixelFormatName(mode.format));
                     if (Rmask || Gmask || Bmask) {
                         fprintf(stderr, "        Red Mask   = 0x%.8x\n",

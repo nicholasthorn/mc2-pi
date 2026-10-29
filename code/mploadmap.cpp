@@ -330,8 +330,8 @@ void MPLoadMap::seedFromCampaign()
 		 {
 			 findPath.init( savePath, newestFile, ".fit" );
 			 FitIniFile file;
-			 long group;
-			 long missions;
+			 long group = 0;		// stay 0 if the file or block is missing
+			 long missions = 0;
 			 char campaignFileName[256];
 			 campaignFileName[0] = 0;
 			 if ( NO_ERR == file.open( findPath ) )

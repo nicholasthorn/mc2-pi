@@ -1301,7 +1301,9 @@ long GroundVehicle::calcCV (bool calcMax) {
 	//-------------------
 	// Movement Factor...
     int i = 0;
-	for (; i < 5; i++)
+	// the last row is the catch-all: stop there instead of running past
+	// the end of the 5-row table when the speed exceeds every entry
+	for (; i < 4; i++)
 		if (maxMoveSpeed <= TargetMoveModifierTable[i][0])
 			break;
 	defensiveBR += (TargetMoveModifierTable[i][1] * 10);

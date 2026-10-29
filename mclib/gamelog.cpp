@@ -135,7 +135,8 @@ GameLog* GameLog::getNewFile (void) {
 			fileHandle = i;
 			break;
 		}
-	return(files[i]);
+	// all in use: callers check for NULL (files[i] would be one past the end)
+	return(fileHandle < 0 ? NULL : files[i]);
 }
 
 //---------------------------------------------------------------------------

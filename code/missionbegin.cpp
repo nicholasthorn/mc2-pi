@@ -1101,7 +1101,7 @@ void MissionBegin::beginMPlayer()
 	{
 		for ( int i = 0; i < 4; i++ )
 		{
-			for ( int j = 0; j < 4; j++ )
+			for ( int j = 0; j < DIM_SCREEN_Y; j++ )	// was 4: the array has 3 columns
 			{
 				if ( multiplayerScreens[i][j] )
 				{

@@ -3619,7 +3619,7 @@ void Mover::printHandleWeaponHitDebugInfo (WeaponShotInfo* shotInfo) {
 	};
 
 	char s[1024];
-	char statusStr[15];
+	char statusStr[32];		// was 15: " *** DESTROYED:" needs 16
 	if (FromMP) {
 		if (isDestroyed())
 			sprintf(statusStr, " DESTROYED:");
@@ -4502,8 +4502,10 @@ long Mover::calcMoveGoal (GameObjectPtr target,
 		// Anything beyond our max range is bad...
 		long fireRange = (long)pilot->getCurTacOrder()->attackParams.range;
 		if (/*!playerMove && */(fireRange != FIRERANGE_SHORT) && (fireRange != FIRERANGE_MEDIUM) && (fireRange != FIRERANGE_LONG)) {
-			long firstIndex = rangedCellsIndices[maxCellRange + 1][0];
 			long lastIndex = rangedCellsIndices[MAX_ATTACK_CELLRANGE - 1][1];
+			// at the maximum range there are no cells beyond it (and row
+			// maxCellRange + 1 would be past the end of rangedCellsIndices)
+			long firstIndex = (maxCellRange + 1 < MAX_ATTACK_CELLRANGE) ? rangedCellsIndices[maxCellRange + 1][0] : lastIndex;
 			for (long i = firstIndex; i < lastIndex; i++) {
 				long r = goalCell[0] - mapCellUL[0] + rangedCells[i][0];
 				long c = goalCell[1] - mapCellUL[1] + rangedCells[i][1];
@@ -4522,8 +4524,9 @@ long Mover::calcMoveGoal (GameObjectPtr target,
 				moveCellRange = 1;
 			if (moveCellRange > (MAX_ATTACK_CELLRANGE - 1))
 				moveCellRange = (MAX_ATTACK_CELLRANGE - 1);
-			long firstIndex = rangedCellsIndices[moveCellRange + 1][0];
 			long lastIndex = rangedCellsIndices[MAX_ATTACK_CELLRANGE - 1][1];
+			// see above: nothing lies beyond the maximum range
+			long firstIndex = (moveCellRange + 1 < MAX_ATTACK_CELLRANGE) ? rangedCellsIndices[moveCellRange + 1][0] : lastIndex;
 			for (long i = firstIndex; i < lastIndex; i++) {
 				long r = centerCell[0] - mapCellUL[0] + rangedCells[i][0];
 				long c = centerCell[1] - mapCellUL[1] + rangedCells[i][1];

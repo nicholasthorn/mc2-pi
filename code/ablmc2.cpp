@@ -2364,8 +2364,9 @@ void execObjectVisible (void) {
 			// Run through all objects fitting the group.
 			// Can anyone in the group see the object?
 			long numObjects = getMovers(objectId1, moverList);
+			// (was object1->lineOfSight(moverList[i]) with object1 still NULL)
 			for (long i = 0; i < numObjects; i++)
-				if (object1->lineOfSight(moverList[i])) {
+				if (moverList[i]->lineOfSight(object2)) {
 					result = 1;
 					break;
 				}
@@ -2833,7 +2834,7 @@ void execSetObjectActive(void) {
 		long numObjects = getMovers(objectId1, moverList);
 		for (long i = 0; i < numObjects; i++)
 			if (moverList[i]->getAwake() != active) {
-				object1->setAwake(active);
+				moverList[i]->setAwake(active);		// was object1, still NULL here
 #ifdef USE_IFACE
 				theInterface->ActivateMech(moverList[i]->getPartId());
 #endif
@@ -4619,9 +4620,12 @@ void execGetRepairState (void) {
 			cur += mover->armor[i].curArmor;
 		}
 	}
-	// make it a percentage...
-	cur *= 100;
-	ABLi_pokeInteger(cur / max);
+	// make it a percentage... (max is 0 for a non-mover or missing object:
+	// keep the 0 poked above instead of an integer divide by zero, SIGFPE)
+	if (max > 0) {
+		cur *= 100;
+		ABLi_pokeInteger(cur / max);
+	}
 }
 
 //*****************************************************************************

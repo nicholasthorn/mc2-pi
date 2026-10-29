@@ -1984,7 +1984,7 @@ bool MechWarrior::injure (float numWounds, bool checkEject) {
 			if (myVehicle)
 				myVehicle->disable(PILOT_DEATH);
 	
-			if (getGroup())
+			if (getGroup() && myVehicle)	// myVehicle can be NULL (checked just above)
 				getGroup()->handleMateDestroyed(myVehicle->getWatchID());
 	
 			//---------------------------------------

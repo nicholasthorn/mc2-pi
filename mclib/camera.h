@@ -369,7 +369,9 @@ class Camera
 
 		void destroy (void);
 		
-		~Camera (void)
+		// virtual: GameCamera objects are deleted through Camera pointers
+		// (mission.cpp: delete eye)
+		virtual ~Camera (void)
 		{
 			destroy();
 		}
