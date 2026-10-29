@@ -24,7 +24,7 @@ belongs in commit messages and PRs.
 
 **Not verified / unknown**
 
-- [x] Real Pi 400 hardware (2026-10-29, at `10401db`): builds and runs. GPU (GLES) build, mc2_01, 3000 gameplay frames in 51.2 s (58.5 fps, about 800x600); that is at the 60 Hz vsync cap (`ENABLE_VSYNC` is hard-coded on in `gos_render.cpp`), so real GPU headroom is unmeasured. Software rendering: mc2_01 50.4 fps, mc2_03 67.1 fps.
+- [x] Real Pi 400 hardware (2026-10-29, at `10401db`): builds and runs. GPU (GLES) build, mc2_01, 3000 gameplay frames in 51.2 s (58.5 fps, about 800x600); that is at the 60 Hz vsync cap (`ENABLE_VSYNC` is hard-coded on in `gos_render.cpp`), so real GPU headroom is unmeasured; `MC2_VSYNC=0` now turns it off. Software rendering: mc2_01 50.4 fps, mc2_03 67.1 fps.
 - [ ] Pi: GPU frame rate with vsync off; the other three smoke missions on the GPU build
 - [ ] Desktop GL run on Windows after the GLES changes
 
@@ -113,6 +113,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: `MC2_VSYNC=0` env switch to run without vsync; startup logs `vsync: on/off` (Xvfb smoke checked both).
 - 2026-10-29: confirmed on real Pi 400 hardware: GPU build mc2_01 58.5 fps (vsync-capped), software rendering mc2_01 50.4 / mc2_03 67.1 fps (user test).
 - 2026-10-29: `uninitMemberVar` tail: 35 constructors given zero/neutral defaults (screens, movie, font, image, input, file/packet streams, MLR sorter/lights, gate ids, tactical order, radio, weather, objectives) (`afb57ff`); baseline 592 -> 523.
 - 2026-10-29: inventory ids bounded by the 72-entry table, not the 255 sentinel (corrupt mech profiles); printf signedness; `LogisticsScreen`/`aObject` assignment copies help/fade fields; gate filters ctor/dtor `init`/`destroy`/`close` (`7446063`); baseline 702 -> 592.

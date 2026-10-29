@@ -4,6 +4,7 @@
 #include <windows.h>
 #endif
 #include <stdio.h>
+#include <stdlib.h> // getenv
 #include <assert.h>
 #include <SDL2/SDL.h>
 #include "utils/graphics.h"
@@ -300,6 +301,14 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
         SDL_GL_DeleteContext(glcontext);
         return NULL;
     } 
+
+    // MC2_VSYNC=0 turns vsync off, e.g. to measure frame rate past the
+    // display refresh rate
+    const char* vsync_env = getenv("MC2_VSYNC");
+    if (vsync_env && vsync_env[0] == '0' && vsync_env[1] == '\0') {
+        ENABLE_VSYNC = false;
+    }
+    fprintf(stderr, "vsync: %s\n", ENABLE_VSYNC ? "on" : "off (MC2_VSYNC=0)");
 
     if (ENABLE_VSYNC) {
         SDL_GL_SetSwapInterval(1);

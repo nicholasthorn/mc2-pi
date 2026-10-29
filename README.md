@@ -83,6 +83,8 @@ into it):
 - New source files build with `-Wall -Wextra -Werror` (`MC2_STRICT_WARNINGS`).
 - `-autoexit <frames>` quits cleanly after that many gameplay frames (used by
   the smoke runs).
+- `MC2_VSYNC=0` turns vsync off (on by default), to measure frame rate past
+  the display refresh rate.
 - Workflows: [ci.yml](.github/workflows/ci.yml),
   [smoke.yml](.github/workflows/smoke.yml),
   [static.yml](.github/workflows/static.yml).
