@@ -200,8 +200,9 @@ TG_ShapePtr TG_TypeNode::CreateFrom (void)
 {
 	// construct in place (as TG_TypeShape::CreateFrom does): TG_Shape has a
 	// virtual function, so raw heap memory has no valid vptr
+	TG_ShapePtr newShape = NULL;
 	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
-	TG_ShapePtr newShape = ::new(memarea) TG_Shape();
+	newShape = ::new(memarea) TG_Shape();
 	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
@@ -358,8 +359,9 @@ void TG_TypeNode::SaveBinaryCopy (File &binFile)
 // This function creates an instance of a TG_Shape from a TG_TypeShape.  Saves RAM.
 TG_ShapePtr TG_TypeShape::CreateFrom (void)
 {
+	TG_ShapePtr newShape = NULL;
 	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
-	TG_ShapePtr newShape = ::new(memarea) TG_Shape();
+	newShape = ::new(memarea) TG_Shape();
 	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
