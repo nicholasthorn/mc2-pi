@@ -378,7 +378,8 @@ bool ExplosionType::handleCollision (GameObjectPtr collidee, GameObjectPtr colli
 					distance -= collidee->getPosition();
 					float range = distance.GetLength();
 
-			 		float littleExtent = ((TurretPtr)collider)->getLittleExtent();
+					// was cast to TurretPtr: read the turret type's field from a gate type
+			 		float littleExtent = ((GatePtr)collider)->getLittleExtent();
 					if (littleExtent < range) 
 					{
 						float realRange = range - littleExtent;

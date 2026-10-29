@@ -2624,7 +2624,7 @@ bool GroundVehicle::crashAvoidanceSystem (void) {
 
 	//bool stepOnMover = getPathLocked(tileR, tileC, cellR, cellC, crashAvoidSelf);
 	bool reachedEnd;
-	bool blockReachedEnd;
+	bool blockReachedEnd = false;	// getPathRangeBlocked() does not always set it
 	bool nearingMover = getPathRangeLock(crashAvoidPath, &reachedEnd);
 	bool pathLocked = /*stepOnMover ||*/ nearingMover;
 	bool pathBlocked = getPathRangeBlocked(crashAvoidPath, &blockReachedEnd);
