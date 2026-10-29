@@ -219,7 +219,7 @@ long convertASE2TGL(char *file)
 					// We will get animation from LAST LOD loaded
 					long i = 0;
 					char fileCheck[1024];
-					sprintf(fileCheck, "FileName%d", i);
+					sprintf(fileCheck, "FileName%ld", i);
 					result = iniFile.readIdString(fileCheck, fileName, 1023);
 
 					while (result == NO_ERR)
@@ -252,7 +252,7 @@ long convertASE2TGL(char *file)
 						shape->LoadTGMultiShapeFromASE(aseName, true, armProvider);
 
 						i++;
-						sprintf(fileCheck, "FileName%d", i);
+						sprintf(fileCheck, "FileName%ld", i);
 						result = iniFile.readIdString(fileCheck, fileName, 1023);
 					}
 				}
@@ -303,7 +303,7 @@ long convertASE2TGL(char *file)
 
 				long i = 0;
 				char animCheck[1024];
-				sprintf(animCheck, "Animation:%d", i);
+				sprintf(animCheck, "Animation:%ld", i);
 				result = iniFile.seekBlock(animCheck);
 
 				while (result == NO_ERR)		//This thing has animations.  Process them!
@@ -333,7 +333,7 @@ long convertASE2TGL(char *file)
 					}
 
 					i++;
-					sprintf(animCheck, "Animation:%d", i);
+					sprintf(animCheck, "Animation:%ld", i);
 					result = iniFile.seekBlock(animCheck);
 				}
 
