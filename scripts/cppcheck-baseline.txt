@@ -52,14 +52,6 @@
 3	code/bldng.h	warning	duplInheritedMember	The class 'BuildingType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/bldng.h	warning	duplInheritedMember	The class 'BuildingType' defines member variable with name 'teamId' also defined in its parent class 'ObjectType'.
 1	code/bldng.h	warning	duplInheritedMember	The struct '_BuildingData' defines member variable with name 'listID' also defined in its parent struct '_TerrainObjectData'.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::activityEffectId' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::capturable' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::lookoutTowerRange' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::marksImpassableWhenDestroyed' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::perimeterAlarmRange' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::perimeterAlarmTimer' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::powerSource' is not initialized in the constructor.
-1	code/bldng.h	warning	uninitMemberVar	Member variable 'BuildingType::resourcePoints' is not initialized in the constructor.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Carnage()' at line N. Dynamic binding is not used.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~ExplosionType()' at line N. Dynamic binding is not used.
 1	code/carnage.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~FireType()' at line N. Dynamic binding is not used.
@@ -70,29 +62,11 @@
 1	code/chatwindow.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
 1	code/chatwindow.cpp	warning	uninitDerivedMemberVar	Member variable 'aListItem::state' is not initialized in the constructor. Maybe it should be initialized directly in the class aListItem?
 1	code/chatwindow.cpp	warning	uninitMemberVar	Member variable 'ChatWindow::maxItems' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::gridSize' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::gridXCheck' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::gridXOffset' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::gridYCheck' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::gridYOffset' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::maxObjects' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionGrid::nodeSize' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionSystem::alertTime' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'CollisionSystem::warningDist' is not initialized in the constructor.
-1	code/collsn.h	warning	uninitMemberVar	Member variable 'GlobalCollisionAlert::nextRecord' is not initialized in the constructor.
 1	code/comndr.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Commander()' at line N. Dynamic binding is not used.
 1	code/comndr.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Commander()' at line N. Dynamic binding is not used.
 2	code/contact.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'contactIndex<255' is redundant or the array 'contacts[200]' is accessed at index 254, which is out of bounds.
 2	code/contact.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'numEcms==50' is redundant or the array 'ecms[50]' is accessed at index 50, which is out of bounds.
 1	code/contact.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'numSensors==255' is redundant or the array 'sensors[255]' is accessed at index 255, which is out of bounds.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'SensorSystem::contacts' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'SensorSystem::next' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'SensorSystem::prev' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'SensorSystemManager::ecms' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'TeamSensorSystem::contacts' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'TeamSensorSystem::numEcms' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'TeamSensorSystem::numJammers' is not initialized in the constructor.
-1	code/contact.h	warning	uninitMemberVar	Member variable 'TeamSensorSystem::sensors' is not initialized in the constructor.
 1	code/controlgui.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
 3	code/controlgui.cpp	error	nullPointer	Null pointer dereference: pInfo
 1	code/controlgui.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
@@ -108,11 +82,6 @@
 1	code/gameobj.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GameObject()' at line N. Dynamic binding is not used.
 1	code/gameobj.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'GameObject()' at line N. Dynamic binding is not used.
 1	code/gamesound.h	warning	duplInheritedMember	The class 'GameSoundSystem' defines member function with name 'init' also defined in its parent class 'SoundSystem'.
-1	code/gametacmap.cpp	warning	uninitMemberVar	Member variable 'GameTacMap::blipHandle' is not initialized in the constructor.
-1	code/gametacmap.cpp	warning	uninitMemberVar	Member variable 'GameTacMap::bmpHeight' is not initialized in the constructor.
-1	code/gametacmap.cpp	warning	uninitMemberVar	Member variable 'GameTacMap::bmpWidth' is not initialized in the constructor.
-1	code/gametacmap.cpp	warning	uninitMemberVar	Member variable 'GameTacMap::textureHandle' is not initialized in the constructor.
-1	code/gametacmap.cpp	warning	uninitMemberVar	Member variable 'GameTacMap::viewRectHandle' is not initialized in the constructor.
 1	code/gate.cpp	warning	duplInheritedMember	The class 'Gate' defines member function with name 'lightOnFire' also defined in its parent class 'TerrainObject'.
 1	code/gate.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Gate()' at line N. Dynamic binding is not used.
 1	code/gate.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GateType()' at line N. Dynamic binding is not used.
@@ -146,16 +115,6 @@
 1	code/logistics.h	warning	uninitMemberVar	Member variable 'Logistics::bMissionLoaded' is not initialized in the constructor.
 1	code/logistics.h	warning	uninitMemberVar	Member variable 'Logistics::lastMissionResult' is not initialized in the constructor.
 1	code/logistics.h	warning	uninitMemberVar	Member variable 'Logistics::prevState' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::Ammo' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::Type' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::cost' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::damage' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::heat' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::helpStringID' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::range' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::rangeType' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::stringID' is not initialized in the constructor.
-1	code/logisticscomponent.cpp	warning	uninitMemberVar	Member variable 'LogisticsComponent::weight' is not initialized in the constructor.
 2	code/logisticsdata.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
 1	code/logisticsdata.cpp	warning	identicalConditionAfterEarlyExit	Identical condition 'p1->getRank()>p2->getRank()', second condition is always false
 1	code/logisticsdata.cpp	warning	nullPointerRedundantCheck	Either the condition '!pVar' is redundant or there is possible null pointer dereference: pVar.
@@ -163,15 +122,6 @@
 1	code/logisticsdialog.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
 1	code/logisticsdialog.cpp	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member function with name 'init' also defined in its parent class 'LogisticsVariantDialog'.
 1	code/logisticsdialog.cpp	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member function with name 'init' also defined in its parent class 'LogisticsOneButtonDialog'.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsAcceptVariantDialog::bNameUsedPrompt' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsDialog::bDone' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsSaveDialog::bCampaign' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsSaveDialog::bDeletePrompt' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsSaveDialog::bLoad' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsSaveDialog::bPromptOverwrite' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsVariantDialog::bDeletePrompt' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsVariantDialog::bPromptOverwrite' is not initialized in the constructor.
-1	code/logisticsdialog.cpp	warning	uninitMemberVar	Member variable 'LogisticsVariantDialog::bTranscript' is not initialized in the constructor.
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member function with name 'init' also defined in its parent class 'LogisticsVariantDialog'.
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member variable with name 'selectedName' also defined in its parent class 'LogisticsVariantDialog'.
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member function with name 'init' also defined in its parent class 'LogisticsOneButtonDialog'.
@@ -189,12 +139,6 @@
 1	code/logisticspilot.cpp	warning	identicalConditionAfterEarlyExit	Identical condition and return expression 'skillTexts[skillID]', return value is always 0
 1	code/logisticsvariant.cpp	warning	constStatement	Unused variable value 'houseID'
 1	code/logisticsvariant.cpp	warning	identicalConditionAfterEarlyExit	Identical condition '!info', second condition is always false
-1	code/mainmenu.cpp	warning	uninitMemberVar	Member variable 'MainMenu::bDrawBackground' is not initialized in the constructor.
-1	code/mainmenu.cpp	warning	uninitMemberVar	Member variable 'MainMenu::bLegal' is not initialized in the constructor.
-1	code/mainmenu.cpp	warning	uninitMemberVar	Member variable 'MainMenu::endResult' is not initialized in the constructor.
-1	code/mainmenu.cpp	warning	uninitMemberVar	Member variable 'MainMenu::musicStarted' is not initialized in the constructor.
-1	code/mainmenu.cpp	warning	uninitMemberVar	Member variable 'MainMenu::promptToDisconnect' is not initialized in the constructor.
-1	code/mainmenu.cpp	warning	uninitMemberVar	Member variable 'MainMenu::promptToQuit' is not initialized in the constructor.
 1	code/mc2movie.cpp	warning	uselessAssignmentPtrArg	Assignment of function parameter has no effect outside the function. Did you forget dereferencing it?
 1	code/mc2movie.h	warning	uninitMemberVar	Member variable 'MC2Movie::bPaused' is not initialized in the constructor.
 1	code/mc2movie.h	warning	uninitMemberVar	Member variable 'MC2Movie::cur_movie_time_' is not initialized in the constructor.
@@ -239,13 +183,6 @@
 1	code/mech.h	warning	duplInheritedMember	The class 'BattleMech' defines member variable with name 'longName' also defined in its parent class 'Mover'.
 1	code/mech.h	warning	duplInheritedMember	The class 'BattleMechType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/mech.h	warning	duplInheritedMember	The struct '_MechData' defines member variable with name 'longName' also defined in its parent struct '_MoverData'.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMech::ItemLocationToInvLocation' is not initialized in the constructor.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMech::playedJumpSFX' is not initialized in the constructor.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMech::variantID' is not initialized in the constructor.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMech::variantName' is not initialized in the constructor.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMechType::isEndoSteel' is not initialized in the constructor.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMechType::maxInternalStructure' is not initialized in the constructor.
-1	code/mech.h	warning	uninitMemberVar	Member variable 'BattleMechType::moveAnimSpeed' is not initialized in the constructor.
 1	code/mechbayscreen.cpp	warning	uninitMemberVar	Member variable 'MechBayScreen::weightCenterX' is not initialized in the constructor.
 1	code/mechbayscreen.cpp	warning	uninitMemberVar	Member variable 'MechBayScreen::weightCenterY' is not initialized in the constructor.
 1	code/mechbayscreen.cpp	warning	uninitMemberVar	Member variable 'MechBayScreen::weightEndColor' is not initialized in the constructor.
@@ -256,12 +193,6 @@
 1	code/mechicon.h	warning	uninitMemberVar	Member variable 'VehicleIcon::damage' is not initialized in the constructor.
 1	code/mechlabscreen.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
 1	code/mechlabscreen.cpp	warning	nullPointerRedundantCheck	Either the condition 'pVariant' is redundant or there is possible null pointer dereference: pVariant.
-1	code/mechlabscreen.cpp	warning	uninitMemberVar	Member variable 'MechLabScreen::bErrorDlg' is not initialized in the constructor.
-1	code/mechlabscreen.cpp	warning	uninitMemberVar	Member variable 'MechLabScreen::bSaveDlg' is not initialized in the constructor.
-1	code/mechlabscreen.cpp	warning	uninitMemberVar	Member variable 'MechLabScreen::componentCount' is not initialized in the constructor.
-1	code/mechlabscreen.cpp	warning	uninitMemberVar	Member variable 'MechLabScreen::flashHeatRange' is not initialized in the constructor.
-1	code/mechlabscreen.cpp	warning	uninitMemberVar	Member variable 'MechLabScreen::originalCost' is not initialized in the constructor.
-1	code/mechlabscreen.cpp	warning	uninitMemberVar	Member variable 'MechLabScreen::pCurDialog' is not initialized in the constructor.
 1	code/mechlistbox.cpp	warning	duplInheritedMember	The class 'MechListBox' defines member function with name 'setOrange' also defined in its parent class 'aListBox'.
 1	code/mechlistbox.cpp	warning	nullPointerRedundantCheck	Either the condition 'pItem' is redundant or there is possible null pointer dereference: pItem.
 1	code/mechlistbox.cpp	warning	operatorEqVarError	Member variable 'MechListBoxItem::animTime' is not assigned a value in 'MechListBoxItem::operator='.
@@ -272,29 +203,7 @@
 2	code/mission.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 2	code/mission.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 2	code/mission.cpp	warning	nullPointerRedundantCheck	Either the condition 'missionInterface' is redundant or there is possible null pointer dereference: missionInterface.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::actualTime' is not initialized in the constructor.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::m_timeLimit' is not initialized in the constructor.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::missionScriptName' is not initialized in the constructor.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::runningTime' is not initialized in the constructor.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::theSkyNumber' is not initialized in the constructor.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::warning1' is not initialized in the constructor.
-1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::warning2' is not initialized in the constructor.
 1	code/missionbegin.cpp	warning	negativeIndex	Either the condition 'curScreenX!=-1' is redundant or the array 'screens[5][3]' is accessed at index screens[-1][*], which is out of bounds.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::animationRunning' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::bDone' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::bReadyToLoad' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::buttonFlashTime' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::buttonNumFlashes' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::logisticsBrain' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::logisticsScriptHandle' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::targetButtonId' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::targetIsButton' is not initialized in the constructor.
-1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::timeLeftToScroll' is not initialized in the constructor.
-1	code/missionbriefingscreen.cpp	warning	uninitMemberVar	Member variable 'MissionBriefingScreen::bClicked' is not initialized in the constructor.
-1	code/missionbriefingscreen.cpp	warning	uninitMemberVar	Member variable 'MissionBriefingScreen::modelColors' is not initialized in the constructor.
-1	code/missionbriefingscreen.cpp	warning	uninitMemberVar	Member variable 'MissionBriefingScreen::modelScales' is not initialized in the constructor.
-1	code/missionbriefingscreen.cpp	warning	uninitMemberVar	Member variable 'MissionBriefingScreen::modelTypes' is not initialized in the constructor.
-1	code/missionbriefingscreen.cpp	warning	uninitMemberVar	Member variable 'MissionBriefingScreen::runTime' is not initialized in the constructor.
 2	code/missiongui.cpp	error	nullPointer	Null pointer dereference
 1	code/missiongui.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	code/missiongui.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
@@ -335,12 +244,6 @@
 2	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: pWrite
 1	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: player
 1	code/mpparameterscreen.cpp	warning	operatorEqToSelf	'operator=' should check for assignment to self to avoid problems with dynamic memory.
-1	code/mpparameterscreen.cpp	warning	uninitMemberVar	Member variable 'MPParameterScreen::bLoading' is not initialized in the constructor.
-1	code/mpparameterscreen.cpp	warning	uninitMemberVar	Member variable 'MPParameterScreen::bWaitingToStart' is not initialized in the constructor.
-1	code/mpparameterscreen.cpp	warning	uninitMemberVar	Member variable 'MPParameterScreen::bootPlayerID' is not initialized in the constructor.
-1	code/mpparameterscreen.cpp	warning	uninitMemberVar	Member variable 'MPParameterScreen::delayTime' is not initialized in the constructor.
-1	code/mpparameterscreen.cpp	warning	uninitMemberVar	Member variable 'MPParameterScreen::playerCount' is not initialized in the constructor.
-1	code/mpparameterscreen.cpp	warning	uninitMemberVar	Member variable 'aPlayerParams::commanderID' is not initialized in the constructor.
 1	code/mpparameterscreen.cpp	warning	uninitvar	Uninitialized variables: sortedPlayers.checkedIn, sortedPlayers.player, sortedPlayers.commanderID, sortedPlayers.dropZone, sortedPlayers.stripeColor, sortedPlayers.teamSelected, sortedPlayers.team, sortedPlayers.teamSeniority, sortedPlayers.faction, sortedPlayers.cBills, sortedPlayers.resourcePointsAtStart, sortedPlayers.resourcePointsGained, sortedPlayers.resourcePoints, sortedPlayers.rank, sortedPlayers.ready, sortedPlayers.score, sortedPlayers.kills, sortedPlayers.losses, sortedPlayers.winner, sortedPlayers.leftSession, sortedPlayers.booted
 1	code/mpparameterscreen.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~aPlayerParams()' at line N. Dynamic binding is not used.
 2	code/mpprefs.cpp	error	nullPointer	Null pointer dereference: pInfo
@@ -362,11 +265,6 @@
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjective' defines member function with name 'Clear' also defined in its parent class 'EList < CObjectiveCondition * , CObjectiveCondition * >'.
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjectives' defines member function with name 'Clear' also defined in its parent class 'EList < CObjective * , CObjective * >'.
 2	code/objective.cpp	warning	nullPointerRedundantCheck	Either the condition 'pMover' is redundant or there is possible null pointer dereference: pMover.
-1	code/objective.cpp	warning	uninitMemberVar	Member variable 'CObjective::m_markerText' is not initialized in the constructor.
-1	code/objective.cpp	warning	uninitMemberVar	Member variable 'CObjective::m_modelBaseColor' is not initialized in the constructor.
-1	code/objective.cpp	warning	uninitMemberVar	Member variable 'CObjective::m_modelHighlightColor' is not initialized in the constructor.
-1	code/objective.cpp	warning	uninitMemberVar	Member variable 'CObjective::m_modelHighlightColor2' is not initialized in the constructor.
-1	code/objective.cpp	warning	uninitMemberVar	Member variable 'CObjective::m_modelType' is not initialized in the constructor.
 1	code/objective.h	warning	duplInheritedMember	The class 'CObjective' defines member function with name 'Clear' also defined in its parent class 'EList < CObjectiveCondition * , CObjectiveCondition * >'.
 1	code/objective.h	warning	duplInheritedMember	The class 'CObjectives' defines member function with name 'Clear' also defined in its parent class 'EList < CObjective * , CObjective * >'.
 1	code/objective.h	warning	uninitMemberVar	Member variable 'CDisplayResourceTextMessage::m_resourceStringID' is not initialized in the constructor.
@@ -386,18 +284,7 @@
 1	code/objmgr.h	warning	uninitMemberVar	Member variable 'GameObjectManager::collisionSystem' is not initialized in the constructor.
 1	code/objmgr.h	warning	uninitMemberVar	Member variable 'GameObjectManager::numCollidables' is not initialized in the constructor.
 1	code/objtype.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~ObjectType()' at line N. Dynamic binding is not used.
-1	code/objtype.h	warning	uninitMemberVar	Member variable 'ObjectType::numUsers' is not initialized in the constructor.
-1	code/objtype.h	warning	uninitMemberVar	Member variable 'ObjectType::objTypeNum' is not initialized in the constructor.
-1	code/objtype.h	warning	uninitMemberVar	Member variable 'ObjectType::teamId' is not initialized in the constructor.
-1	code/objtype.h	warning	uninitMemberVar	Member variable 'ObjectTypeManager::numObjectTypes' is not initialized in the constructor.
-1	code/objtype.h	warning	uninitMemberVar	Member variable 'ObjectTypeManager::table' is not initialized in the constructor.
 1	code/optionsarea.cpp	warning	uninitDerivedMemberVar	Member variable 'aListItem::state' is not initialized in the constructor. Maybe it should be initialized directly in the class aListItem?
-1	code/optionsarea.cpp	warning	uninitMemberVar	Member variable 'HotKeyListItem::command' is not initialized in the constructor.
-1	code/optionsarea.cpp	warning	uninitMemberVar	Member variable 'HotKeyListItem::hotKey' is not initialized in the constructor.
-1	code/optionsarea.cpp	warning	uninitMemberVar	Member variable 'OptionsGraphics::bExpanded' is not initialized in the constructor.
-1	code/optionsarea.cpp	warning	uninitMemberVar	Member variable 'OptionsXScreen::bShowWarning' is not initialized in the constructor.
-1	code/optionsarea.cpp	warning	uninitMemberVar	Member variable 'OptionsXScreen::tabAreas' is not initialized in the constructor.
-1	code/optionsarea.cpp	warning	uninitMemberVar	Member variable 'ScrollX::buttons' is not initialized in the constructor.
 1	code/pausewindow.cpp	warning	uninitMemberVar	Member variable 'PauseWindow::backgrounds' is not initialized in the constructor.
 1	code/pausewindow.cpp	warning	uninitMemberVar	Member variable 'PauseWindow::currentPos' is not initialized in the constructor.
 1	code/pilotreadyscreen.cpp	warning	uninitMemberVar	Member variable 'PilotReadyScreen::launchFadeTime' is not initialized in the constructor.
@@ -422,12 +309,6 @@
 1	code/saveload.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 3	code/saveload.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
 1	code/simplecamera.cpp	warning	funcArgOrderDifferent	Function 'init' argument order different: declaration 'left, right, top, bottom' definition 'left, top, right, bottom'
-1	code/simplecamera.cpp	warning	uninitMemberVar	Member variable 'SimpleCamera::bounds' is not initialized in the constructor.
-1	code/simplecamera.cpp	warning	uninitMemberVar	Member variable 'SimpleCamera::fudgeX' is not initialized in the constructor.
-1	code/simplecamera.cpp	warning	uninitMemberVar	Member variable 'SimpleCamera::fudgeY' is not initialized in the constructor.
-1	code/simplecamera.cpp	warning	uninitMemberVar	Member variable 'SimpleCamera::oldCam' is not initialized in the constructor.
-1	code/simplecamera.cpp	warning	uninitMemberVar	Member variable 'SimpleCamera::rotationIncrement' is not initialized in the constructor.
-1	code/simplecamera.cpp	warning	uninitMemberVar	Member variable 'SimpleCamera::shapeScale' is not initialized in the constructor.
 1	code/tacordr.h	warning	operatorEqVarError	Member variable 'TacticalOrder::id' is not assigned a value in 'TacticalOrder::operator='.
 1	code/tacordr.h	warning	uninitMemberVar	Member variable 'TacticalOrder::data' is not initialized in the constructor.
 1	code/tacordr.h	warning	uninitMemberVar	Member variable 'TacticalOrder::statusCode' is not initialized in the constructor.
@@ -453,11 +334,7 @@
 1	code/warrior.cpp	warning	nullPointerRedundantCheck	Either the condition 'warriorList[i]==0' is redundant or there is possible null pointer dereference: warriorList[i].
 1	code/warrior.cpp	warning	oppositeInnerCondition	Opposite inner 'if' condition leads to a dead code block.
 1	code/warrior.h	warning	uninitMemberVar	Member variable 'MechWarrior::attackers' is not initialized in the constructor.
-1	code/warrior.h	warning	uninitMemberVar	Member variable 'MechWarrior::index' is not initialized in the constructor.
 1	code/warrior.h	warning	uninitMemberVar	Member variable 'MechWarrior::lastGoalPath' is not initialized in the constructor.
-1	code/warrior.h	warning	uninitMemberVar	Member variable 'MechWarrior::paintScheme' is not initialized in the constructor.
-1	code/warrior.h	warning	uninitMemberVar	Member variable 'MechWarrior::skills' is not initialized in the constructor.
-1	code/warrior.h	warning	uninitMemberVar	Member variable 'MechWarrior::warriorBrainHandle' is not initialized in the constructor.
 1	code/warrior.h	warning	uninitMemberVar	Member variable 'TargetPriorityList::list' is not initialized in the constructor.
 3	code/weaponbolt.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
 2	code/weaponbolt.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
@@ -480,33 +357,15 @@
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::disabledSFX' is not assigned a value in 'aButton::operator='.
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::highlightSFX' is not assigned a value in 'aButton::operator='.
 1	gui/abutton.cpp	warning	operatorEqVarError	Member variable 'aButton::holdTime' is not assigned a value in 'aButton::operator='.
-1	gui/abutton.cpp	warning	uninitMemberVar	Member variable 'aButton::clickSFX' is not initialized in the copy constructor.
-1	gui/abutton.cpp	warning	uninitMemberVar	Member variable 'aButton::disabledSFX' is not initialized in the copy constructor.
-1	gui/abutton.cpp	warning	uninitMemberVar	Member variable 'aButton::highlightSFX' is not initialized in the copy constructor.
-1	gui/abutton.cpp	warning	uninitMemberVar	Member variable 'aButton::holdTime' is not initialized in the copy constructor.
 1	gui/abutton.h	warning	duplInheritedMember	The class 'aAnimButton' defines member function with name 'init' also defined in its parent class 'aButton'.
 1	gui/abutton.h	warning	duplInheritedMember	The class 'aButton' defines member function with name 'getID' also defined in its parent class 'aObject'.
 1	gui/abutton.h	warning	duplInheritedMember	The class 'aButton' defines member function with name 'setID' also defined in its parent class 'aObject'.
 1	gui/aedit.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	gui/aedit.cpp	warning	operatorEqVarError	Member variable 'aEdit::cursorTime' is not assigned a value in 'aEdit::operator='.
-1	gui/aedit.cpp	warning	uninitMemberVar	Member variable 'aEdit::cursorColor' is not initialized in the constructor.
-1	gui/aedit.cpp	warning	uninitMemberVar	Member variable 'aEdit::highlightColor' is not initialized in the constructor.
-1	gui/aedit.cpp	warning	uninitMemberVar	Member variable 'aEdit::outlineColor' is not initialized in the constructor.
-1	gui/aedit.cpp	warning	uninitMemberVar	Member variable 'aEdit::selectedColor' is not initialized in the constructor.
-1	gui/aedit.cpp	warning	uninitMemberVar	Member variable 'aEdit::textColor' is not initialized in the constructor.
 1	gui/aedit.h	warning	duplInheritedMember	The class 'aEdit' defines member function with name 'getColor' also defined in its parent class 'aObject'.
 1	gui/alistbox.cpp	warning	duplInheritedMember	The class 'aAnimTextListItem' defines member function with name 'init' also defined in its parent class 'aTextListItem'.
 2	gui/alistbox.cpp	warning	operatorEqToSelf	'operator=' should check for assignment to self to avoid problems with dynamic memory.
-1	gui/alistbox.cpp	warning	uninitMemberVar	Member variable 'aComboBox::rectCount' is not initialized in the constructor.
-1	gui/alistbox.cpp	warning	uninitMemberVar	Member variable 'aDropList::rectCount' is not initialized in the constructor.
-1	gui/alistbox.cpp	warning	uninitMemberVar	Member variable 'aDropList::textLeft' is not initialized in the constructor.
-1	gui/alistbox.cpp	warning	uninitMemberVar	Member variable 'aDropList::textTop' is not initialized in the constructor.
-1	gui/alistbox.cpp	warning	uninitMemberVar	Member variable 'aListBox::itemHeight' is not initialized in the constructor.
-1	gui/alistbox.cpp	warning	uninitMemberVar	Member variable 'aListBox::scrollActive' is not initialized in the constructor.
 1	gui/alistbox.h	warning	duplInheritedMember	The class 'aAnimTextListItem' defines member function with name 'init' also defined in its parent class 'aTextListItem'.
-1	gui/ascroll.cpp	warning	uninitMemberVar	Member variable 'aScrollBar::color' is not initialized in the constructor.
-1	gui/ascroll.cpp	warning	uninitMemberVar	Member variable 'aScrollBar::pageInc' is not initialized in the constructor.
-1	gui/ascroll.cpp	warning	uninitMemberVar	Member variable 'aScrollBar::scrollInc' is not initialized in the constructor.
 1	gui/ascroll.cpp	warning	uninitMemberVar	Member variable 'aScrollBar::scrollTab' is not initialized in the constructor.
 2	gui/asystem.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	gui/asystem.cpp	warning	funcArgOrderDifferent	Function 'rectIntersect' argument order different: declaration 'top, left, bottom, right' definition 'left, top, right, bottom'
@@ -514,12 +373,6 @@
 1	gui/asystem.cpp	warning	operatorEqVarError	Member variable 'aObject::helpHeader' is not assigned a value in 'aObject::operator='.
 1	gui/asystem.cpp	warning	operatorEqVarError	Member variable 'aObject::helpID' is not assigned a value in 'aObject::operator='.
 1	gui/asystem.cpp	warning	operatorEqVarError	Member variable 'aObject::pParent' is not assigned a value in 'aObject::operator='.
-1	gui/asystem.cpp	warning	uninitMemberVar	Member variable 'aObject::ID' is not initialized in the constructor.
-1	gui/asystem.cpp	warning	uninitMemberVar	Member variable 'aObject::helpHeader' is not initialized in the constructor.
-1	gui/asystem.cpp	warning	uninitMemberVar	Member variable 'aObject::helpHeader' is not initialized in the copy constructor.
-1	gui/asystem.cpp	warning	uninitMemberVar	Member variable 'aObject::helpID' is not initialized in the copy constructor.
-1	gui/asystem.cpp	warning	uninitMemberVar	Member variable 'aObject::pChildren' is not initialized in the constructor.
-1	gui/asystem.cpp	warning	uninitMemberVar	Member variable 'aObject::pParent' is not initialized in the copy constructor.
 1	gui/asystem.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~aObject()' at line N. Dynamic binding is not used.
 1	gui/logisticsscreen.cpp	warning	operatorEqVarError	Member variable 'LogisticsScreen::fadeInTime' is not assigned a value in 'LogisticsScreen::operator='.
 1	gui/logisticsscreen.cpp	warning	operatorEqVarError	Member variable 'LogisticsScreen::fadeOutMaxColor' is not assigned a value in 'LogisticsScreen::operator='.
@@ -527,13 +380,6 @@
 1	gui/logisticsscreen.cpp	warning	operatorEqVarError	Member variable 'LogisticsScreen::fadeTime' is not assigned a value in 'LogisticsScreen::operator='.
 1	gui/logisticsscreen.cpp	warning	operatorEqVarError	Member variable 'LogisticsScreen::helpTextArrayID' is not assigned a value in 'LogisticsScreen::operator='.
 1	gui/logisticsscreen.cpp	warning	operatorEqVarError	Member variable 'LogisticsScreen::status' is not assigned a value in 'LogisticsScreen::operator='.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::fadeInTime' is not initialized in the copy constructor.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::fadeOutMaxColor' is not initialized in the copy constructor.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::fadeOutTime' is not initialized in the copy constructor.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::fadeTime' is not initialized in the copy constructor.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::helpTextArrayID' is not initialized in the copy constructor.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::status' is not initialized in the constructor.
-1	gui/logisticsscreen.cpp	warning	uninitMemberVar	Member variable 'LogisticsScreen::status' is not initialized in the copy constructor.
 1	mclib/abldbug.cpp	portability	invalidPointerCast	Casting between signed char * and float * which have an incompatible binary data representation.
 1	mclib/abldbug.h	warning	uninitMemberVar	Member variable 'WatchManager::numWatches' is not initialized in the constructor.
 1	mclib/abldecl.cpp	warning	nullPointerRedundantCheck	Either the condition '!elementTypePtr' is redundant or there is possible null pointer dereference: elementTypePtr.
@@ -558,10 +404,6 @@
 1	mclib/ablxstmt.cpp	warning	nullPointerRedundantCheck	Either the condition '!dest' is redundant or there is possible null pointer dereference: dest.
 1	mclib/appear.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Appearance()' at line N. Dynamic binding is not used.
 1	mclib/apprtype.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~AppearanceType()' at line N. Dynamic binding is not used.
-1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsLowerRightX' is not initialized in the constructor.
-1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsLowerRightY' is not initialized in the constructor.
-1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsUpperLeftX' is not initialized in the constructor.
-1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsUpperLeftY' is not initialized in the constructor.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BldgAppearance()' at line N. Dynamic binding is not used.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BldgAppearanceType()' at line N. Dynamic binding is not used.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~TreeAppearance()' at line N. Dynamic binding is not used.
@@ -570,23 +412,10 @@
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'TreeAppearance()' at line N. Dynamic binding is not used.
 1	mclib/bdactor.h	warning	duplInheritedMember	The class 'BldgAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
 1	mclib/bdactor.h	warning	duplInheritedMember	The class 'TreeAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
-1	mclib/bdactor.h	warning	uninitMemberVar	Member variable 'BldgAppearanceType::terrainLightInnerRadius' is not initialized in the constructor.
-1	mclib/bdactor.h	warning	uninitMemberVar	Member variable 'BldgAppearanceType::terrainLightIntensity' is not initialized in the constructor.
-1	mclib/bdactor.h	warning	uninitMemberVar	Member variable 'BldgAppearanceType::terrainLightOuterRadius' is not initialized in the constructor.
-1	mclib/bdactor.h	warning	uninitMemberVar	Member variable 'BldgAppearanceType::terrainLightRGB' is not initialized in the constructor.
-1	mclib/bdactor.h	warning	uninitMemberVar	Member variable 'TreeAppearanceType::isForestClump' is not initialized in the constructor.
-1	mclib/bitflag.h	warning	uninitMemberVar	Member variable 'BitFlag::totalFlags' is not initialized in the constructor.
-1	mclib/bitflag.h	warning	uninitMemberVar	Member variable 'BitFlag::totalRAM' is not initialized in the constructor.
-1	mclib/bitflag.h	warning	uninitMemberVar	Member variable 'ByteFlag::totalFlags' is not initialized in the constructor.
-1	mclib/bitflag.h	warning	uninitMemberVar	Member variable 'ByteFlag::totalRAM' is not initialized in the constructor.
 1	mclib/camera.cpp	warning	nullPointer	Possible null pointer dereference: closestVertex
 1	mclib/camera.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Camera()' at line N. Dynamic binding is not used.
 1	mclib/cellip.cpp	warning	uninitMemberVar	Member variable 'EllipseElement::clip' is not initialized in the constructor.
 1	mclib/cellip.h	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
-1	mclib/cepane.h	warning	uninitMemberVar	Member variable 'PaneElement::SizeX' is not initialized in the constructor.
-1	mclib/cepane.h	warning	uninitMemberVar	Member variable 'PaneElement::SizeY' is not initialized in the constructor.
-1	mclib/cepane.h	warning	uninitMemberVar	Member variable 'PaneElement::midx' is not initialized in the constructor.
-1	mclib/cepane.h	warning	uninitMemberVar	Member variable 'PaneElement::midy' is not initialized in the constructor.
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::BarColor' is not initialized in the constructor.
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::BarWidth' is not initialized in the constructor.
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::vertices' is not initialized in the constructor.
@@ -620,9 +449,6 @@
 1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'ParticleCloud'.
 1	mclib/gosfx/cardcloud.hpp	warning	duplInheritedMember	The class 'CardCloud' defines member function with name 'GetSpecification' also defined in its parent class 'SpinningCloud'.
 1	mclib/gosfx/debriscloud.hpp	warning	duplInheritedMember	The class 'DebrisCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
-1	mclib/gosfx/effect.cpp	warning	uninitMemberVar	Member variable 'Effect::m_ageRate' is not initialized in the constructor.
-1	mclib/gosfx/effect.cpp	warning	uninitMemberVar	Member variable 'Effect::m_seed' is not initialized in the constructor.
-2	mclib/gosfx/effect.cpp	warning	uninitMemberVar	Member variable 'Effect__Specification::m_effectID' is not initialized in the constructor.
 1	mclib/gosfx/effect.hpp	warning	uninitMemberVar	Member variable 'Event::m_effectID' is not initialized in the constructor.
 1	mclib/gosfx/effect.hpp	warning	uninitMemberVar	Member variable 'Event::m_flags' is not initialized in the constructor.
 1	mclib/gosfx/effect.hpp	warning	uninitMemberVar	Member variable 'Event::m_time' is not initialized in the constructor.
@@ -723,8 +549,6 @@
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < SplineCurve , LinearCurve , e_SplineLinearType >::m_seeded' is not initialized in the constructor.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < SplineCurve , SplineCurve , Curve :: e_SplineSplineType >::m_seeded' is not initialized in the constructor.
 1	mclib/gosfx/fcurve.hpp	warning	uninitMemberVar	Member variable 'SeededCurveOf < SplineCurve , SplineCurve , e_SplineSplineType >::m_seeded' is not initialized in the constructor.
-2	mclib/gosfx/particlecloud.cpp	warning	uninitMemberVar	Member variable 'ParticleCloud__Specification::m_particleClassSize' is not initialized in the constructor.
-2	mclib/gosfx/particlecloud.cpp	warning	uninitMemberVar	Member variable 'ParticleCloud__Specification::m_totalParticleSize' is not initialized in the constructor.
 1	mclib/gosfx/particlecloud.hpp	warning	duplInheritedMember	The class 'ParticleCloud' defines member function with name 'GetSpecification' also defined in its parent class 'Effect'.
 1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetParticle' also defined in its parent class 'ParticleCloud'.
 1	mclib/gosfx/pertcloud.hpp	warning	duplInheritedMember	The class 'PertCloud' defines member function with name 'GetParticle' also defined in its parent class 'SpinningCloud'.
@@ -759,27 +583,14 @@
 1	mclib/gvactor.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'GVAppearance()' at line N. Dynamic binding is not used.
 1	mclib/gvactor.h	warning	duplInheritedMember	The class 'GVAppearance' defines member variable with name 'objectNameId' also defined in its parent class 'ObjectAppearance'.
 1	mclib/gvactor.h	warning	duplInheritedMember	The class 'GVAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
-1	mclib/gvactor.h	warning	uninitMemberVar	Member variable 'GVAppearanceType::nodeData' is not initialized in the constructor.
-1	mclib/gvactor.h	warning	uninitMemberVar	Member variable 'GVAppearanceType::numFootNodes' is not initialized in the constructor.
-1	mclib/gvactor.h	warning	uninitMemberVar	Member variable 'GVAppearanceType::numSmokeNodes' is not initialized in the constructor.
-1	mclib/gvactor.h	warning	uninitMemberVar	Member variable 'GVAppearanceType::numWeaponNodes' is not initialized in the constructor.
-1	mclib/gvactor.h	warning	uninitMemberVar	Member variable 'GVAppearanceType::rotationalNodeId' is not initialized in the constructor.
 1	mclib/heap.cpp	warning	duplInheritedMember	The class 'UserHeap' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/heap.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 4) requires 'long' but the argument type is 'unsigned long'.
 1	mclib/heap.cpp	warning	uninitMemberVar	Member variable 'HeapManager::totalSize' is not initialized in the constructor.
-1	mclib/heap.cpp	warning	uninitMemberVar	Member variable 'HeapManager::whoMadeMe' is not initialized in the constructor.
-1	mclib/heap.cpp	warning	uninitMemberVar	Member variable 'UserHeap::gosHeap' is not initialized in the constructor.
-1	mclib/heap.cpp	warning	uninitMemberVar	Member variable 'UserHeap::heapName' is not initialized in the constructor.
-1	mclib/heap.cpp	warning	uninitMemberVar	Member variable 'UserHeap::useGOSGuardPage' is not initialized in the constructor.
 1	mclib/heap.h	warning	duplInheritedMember	The class 'UserHeap' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/inifile.h	style	virtualCallInConstructor	Virtual function 'close' is called from destructor '~FitIniFile()' at line N. Dynamic binding is not used.
 1	mclib/mapdata.cpp	portability	shiftNegativeLHS	Shifting a negative value is technically undefined behaviour
 1	mclib/mapdata.cpp	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/mapdata.cpp	warning	operatorEqVarError	Member variable 'PostcompVertex::water' is not assigned a value in 'PostcompVertex::operator='.
-1	mclib/mapdata.cpp	warning	uninitMemberVar	Member variable 'PostcompVertex::highlighted' is not initialized in the constructor.
-1	mclib/mapdata.cpp	warning	uninitMemberVar	Member variable 'PostcompVertex::shadow' is not initialized in the constructor.
-1	mclib/mapdata.cpp	warning	uninitMemberVar	Member variable 'PostcompVertex::water' is not initialized in the constructor.
-1	mclib/mapdata.cpp	warning	uninitMemberVar	Member variable 'PostcompVertex::water' is not initialized in the copy constructor.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'init' also defined in its parent class 'HeapManager'.
 4	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
@@ -789,24 +600,10 @@
 1	mclib/mech3d.h	warning	duplInheritedMember	The class 'Mech3DAppearanceType' defines member function with name 'init' also defined in its parent class 'AppearanceType'.
 1	mclib/mlr/gosimage.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
 2	mclib/mlr/gosimage.cpp	warning	uninitMemberVar	Member variable 'GOSImage::ipHints' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_pmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_PMesh::xOffset' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_pmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_PMesh::xScale' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_pmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_PMesh::yOffset' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_pmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_PMesh::yScale' is not initialized in the constructor.
-2	mclib/mlr/mlr_i_det_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_TMesh::gos_vertices2uv' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_TMesh::xOffset' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_TMesh::xScale' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_TMesh::yOffset' is not initialized in the constructor.
-1	mclib/mlr/mlr_i_det_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DeT_TMesh::yScale' is not initialized in the constructor.
 2	mclib/mlr/mlr_i_dt_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_DT_TMesh::gos_vertices2uv' is not initialized in the constructor.
 1	mclib/mlr/mlr_i_pmesh.cpp	warning	incorrectLogicOperator	Logical conjunction always evaluates to false: (*lightMapUVs)[k][1] < -1.5f && (*lightMapUVs)[k][1] > 1.5f.
 1	mclib/mlr/mlr_i_tmesh.cpp	warning	uninitMemberVar	Member variable 'MLR_I_TMesh::numOfTriangles' is not initialized in the constructor.
 1	mclib/mlr/mlr_i_tmesh.hpp	style	virtualCallInConstructor	Virtual function 'GetNumPrimitives' is called from constructor 'MLR_I_TMesh(ClassData*class_data,Stuff::MemoryStream*stream,int version)' at line N. Dynamic binding is not used.
-2	mclib/mlr/mlr_terrain.cpp	warning	uninitMemberVar	Member variable 'MLR_Terrain::borderPixelFun' is not initialized in the constructor.
-2	mclib/mlr/mlr_terrain.cpp	warning	uninitMemberVar	Member variable 'MLR_Terrain::minX' is not initialized in the constructor.
-2	mclib/mlr/mlr_terrain.cpp	warning	uninitMemberVar	Member variable 'MLR_Terrain::minZ' is not initialized in the constructor.
-2	mclib/mlr/mlr_terrain.cpp	warning	uninitMemberVar	Member variable 'MLR_Terrain::xUVFac' is not initialized in the constructor.
-2	mclib/mlr/mlr_terrain.cpp	warning	uninitMemberVar	Member variable 'MLR_Terrain::zUVFac' is not initialized in the constructor.
 1	mclib/mlr/mlr_terrain2.cpp	warning	invalidFunctionArg	Either the condition '(len=strlen(texName))>0' is redundant or strncpy() argument nr 3 can have invalid value. The value is -6 but the valid values are '0:'.
 1	mclib/mlr/mlr_terrain2.cpp	warning	negativeIndex	Either the condition '(len=strlen(texName))>0' is redundant or the array 'texRoot[1024]' is accessed at index -6, which is out of bounds.
 1	mclib/mlr/mlr_terrain2.cpp	warning	uninitMemberVar	Member variable 'MLR_Terrain2::currentDepth' is not initialized in the constructor.
@@ -815,13 +612,6 @@
 1	mclib/mlr/mlreffect.cpp	warning	uninitMemberVar	Member variable 'MLREffect::colors' is not initialized in the constructor.
 1	mclib/mlr/mlreffect.cpp	warning	uninitMemberVar	Member variable 'MLREffect::drawMode' is not initialized in the constructor.
 1	mclib/mlr/mlreffect.cpp	warning	uninitMemberVar	Member variable 'MLREffect::points' is not initialized in the constructor.
-2	mclib/mlr/mlrindexedprimitivebase.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedPrimitiveBase::gos_indices' is not initialized in the constructor.
-2	mclib/mlr/mlrindexedprimitivebase.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedPrimitiveBase::numGOSIndices' is not initialized in the constructor.
-1	mclib/mlr/mlrindexedprimitivebase.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedPrimitiveBase::visibleIndexedVerticesKey' is not initialized in the constructor.
-1	mclib/mlr/mlrindexedtrianglecloud.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedTriangleCloud::gos_indices' is not initialized in the constructor.
-1	mclib/mlr/mlrindexedtrianglecloud.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedTriangleCloud::index' is not initialized in the constructor.
-1	mclib/mlr/mlrindexedtrianglecloud.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedTriangleCloud::numGOSIndices' is not initialized in the constructor.
-1	mclib/mlr/mlrindexedtrianglecloud.cpp	warning	uninitMemberVar	Member variable 'MLRIndexedTriangleCloud::texCoords' is not initialized in the constructor.
 3	mclib/mlr/mlrlight.cpp	warning	uninitMemberVar	Member variable 'MLRLight::lightMask' is not initialized in the constructor.
 1	mclib/mlr/mlrshape.cpp	warning	uninitMemberVar	Member variable 'MLRShape::worldToShape' is not initialized in the constructor.
 1	mclib/mlr/mlrsorter.cpp	warning	uninitMemberVar	Member variable 'MLRSorter::farClipReciprocal' is not initialized in the constructor.
@@ -829,16 +619,6 @@
 1	mclib/mlr/mlrsorter.cpp	warning	uninitMemberVar	Member variable 'MLRSorter::lastUsedRaw' is not initialized in the constructor.
 1	mclib/mlr/mlrspotlight.cpp	warning	uninitMemberVar	Member variable 'MLRSpotLight::cosSpreadAngle' is not initialized in the constructor.
 1	mclib/mlr/mlrspotlight.cpp	warning	uninitMemberVar	Member variable 'MLRSpotLight::tanSpreadAngle' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::firstFreeHandle' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::freeHandle' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::handleDepth' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::handleMax' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::imagePool' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::instanceDepth' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::instanceMax' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::lastFreeHandle' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::lastHandle' is not initialized in the constructor.
-1	mclib/mlr/mlrtexturepool.cpp	warning	uninitMemberVar	Member variable 'MLRTexturePool::storedTextures' is not initialized in the constructor.
 1	mclib/move.cpp	warning	funcArgOrderDifferent	Function 'init' argument order different: declaration 'h, w' definition 'w, h'
 1	mclib/move.cpp	warning	funcArgOrderDifferent	Function 'placeTerrainObject' argument order different: declaration 'row, col, objectClass, objectTypeID, footPrint, blocksLineOfFire, mineType' definition 'objectClass, objectTypeID, cellRow, cellCol, footPrint, blocksLineOfFire, mineType'
 3	mclib/move.cpp	warning	nullPointerRedundantCheck	Either the condition 'areaMap' is redundant or there is possible null pointer dereference: areaMap.
@@ -846,13 +626,6 @@
 1	mclib/move.h	warning	uninitMemberVar	Member variable 'MissionMap::preservedCells' is not initialized in the constructor.
 1	mclib/move.h	warning	uninitMemberVar	Member variable 'MovePath::stepList' is not initialized in the constructor.
 3	mclib/msl.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::actualRotation' is not initialized in the constructor.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::fadeTable' is not initialized in the constructor.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::homeTeamRelationship' is not initialized in the constructor.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::objectNameId' is not initialized in the constructor.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::paintScheme' is not initialized in the constructor.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::pilotNameID' is not initialized in the constructor.
-1	mclib/objectappearance.h	warning	uninitMemberVar	Member variable 'ObjectAppearance::teamId' is not initialized in the constructor.
 1	mclib/packet.cpp	warning	uninitMemberVar	Member variable 'PacketFile::packetType' is not initialized in the constructor.
 1	mclib/packet.cpp	warning	uninitMemberVar	Member variable 'PacketFile::packetUnpackedSize' is not initialized in the constructor.
 1	mclib/packet.h	style	virtualCallInConstructor	Virtual function 'close' is called from destructor '~PacketFile()' at line N. Dynamic binding is not used.
@@ -862,10 +635,6 @@
 1	mclib/soundsys.cpp	style	arrayIndexThenCheck	Array index 'channel' is used before limits check.
 2	mclib/soundsys.cpp	warning	identicalInnerCondition	Identical inner 'if' condition is always true.
 1	mclib/soundsys.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~SoundSystem()' at line N. Dynamic binding is not used.
-1	mclib/soundsys.h	warning	uninitMemberVar	Member variable 'SoundSystem::digitalMusicVolume' is not initialized in the constructor.
-1	mclib/soundsys.h	warning	uninitMemberVar	Member variable 'SoundSystem::stream1Id' is not initialized in the constructor.
-1	mclib/soundsys.h	warning	uninitMemberVar	Member variable 'SoundSystem::stream2Id' is not initialized in the constructor.
-1	mclib/soundsys.h	warning	uninitMemberVar	Member variable 'SoundSystem::supportDataFile' is not initialized in the constructor.
 1	mclib/stuff/average.hpp	warning	uninitMemberVar	Member variable 'AverageOf::next' is not initialized in the constructor.
 1	mclib/stuff/average.hpp	warning	uninitMemberVar	Member variable 'AverageOf::size' is not initialized in the constructor.
 1	mclib/stuff/color.hpp	warning	duplInheritedMember	The class 'HSVAColor' defines member variable with name 'Unassigned' also defined in its parent class 'HSVColor'.
@@ -1039,13 +808,6 @@
 1	mclib/userinput.h	warning	uninitMemberVar	Member variable 'UserInput::mouseFrame' is not initialized in the constructor.
 1	mclib/userinput.h	warning	uninitMemberVar	Member variable 'UserInput::mouseTextureHandle' is not initialized in the constructor.
 3	mclib/utilities.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::location' is not initialized in the constructor.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::textureHandle' is not initialized in the constructor.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::textureWidth' is not initialized in the constructor.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::u' is not initialized in the constructor.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::uWidth' is not initialized in the constructor.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::v' is not initialized in the constructor.
-1	mclib/utilities.h	warning	uninitMemberVar	Member variable 'StaticInfo::vHeight' is not initialized in the constructor.
 1	mclib/vertex.h	warning	uninitMemberVar	Member variable 'Vertex::blockVertex' is not initialized in the constructor.
 1	mclib/vertex.h	warning	uninitMemberVar	Member variable 'Vertex::clipInfo' is not initialized in the constructor.
 1	mclib/vertex.h	warning	uninitMemberVar	Member variable 'Vertex::hazeFactor' is not initialized in the constructor.

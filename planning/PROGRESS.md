@@ -20,7 +20,7 @@ belongs in commit messages and PRs.
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
-- [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 1731 after fixing error-level bugs, filtering the deliberate "Stuff" member hiding and the printf length-modifier sweep
+- [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 1114 after fixing error-level bugs, filtering the deliberate "Stuff" member hiding, the printf length-modifier sweep and most `uninitMemberVar`
 
 **Not verified / unknown**
 
@@ -30,7 +30,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `uninitMemberVar` (787), remaining `duplInheritedMember` (399), `nullPointerRedundantCheck` (103) (roadmap Phase 2)
+- [ ] cppcheck: remaining `duplInheritedMember` (399), `uninitMemberVar` (170), `nullPointerRedundantCheck` (103) (roadmap Phase 2)
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG)
 
@@ -110,6 +110,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: cppcheck `uninitMemberVar` 787 -> 170 in three batches (`1d806e5`, `3d11ac6`, `ecab444`), including real copy-constructor bugs in `LogisticsScreen` and `aObject` and an unset `MultiPlayer`; gate keys ignore line numbers in messages (`f6fb2d2`); baseline 1731 -> 1114.
 - 2026-10-29: Feasibility studies for the upstream gaps: `future-features/SOUND-POSITIONAL.md` (stereo panning is a small fix; doppler needs a new mixer, low value outside VR) and `future-features/NETWORKING.md` (transport and ~80 `MultiPlayer` methods were stubbed in Microsoft's release; large, phased).
 - 2026-10-29: cppcheck bulk cleanup: gate ignores the five "Stuff" registration names for duplInheritedMember (`b72cf00`), printf length modifiers fixed at 433 sites (`0d96de4`, `ba65d34`); baseline 4415 -> 1731.
 - 2026-10-29: Planned: GitHub release packaging; aim recorded to take as much of the remaster as fits, including upscaled game data after a Pi performance check.
