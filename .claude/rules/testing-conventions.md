@@ -15,14 +15,18 @@ smoke missions. Sanitizers and coverage are still to come
   UBSan)") with leak checking on and `UBSAN_OPTIONS=halt_on_error=1`.
 - **Smoke missions** run sanitized nightly (`smoke.yml`, x64 desktop GL) with
   `ASAN_OPTIONS=alloc_dealloc_mismatch=0:detect_leaks=0` (Mesa's swrast driver
-  trips the mismatch check while loading; the game and Mesa leak at exit) and
-  `UBSAN_OPTIONS=suppressions=scripts/sanitizers/ubsan.supp`. `smoke.sh`
-  fails on any `runtime error:` or sanitizer `ERROR:` line.
-- `scripts/sanitizers/ubsan.supp` is a **baseline of known legacy findings**
-  (TG_* shape type punning, unaligned ABL bytecode reads), each with the reason.
-  Fix the code and delete the line; do not add lines to silence new findings.
+  trips the mismatch check while loading; the game and Mesa leak at exit).
+  `smoke.sh` fails on any `runtime error:` or sanitizer `ERROR:` line.
+- **There is no UBSan suppression list.** The five smoke missions run clean at
+  3000 frames. A new finding gets fixed, not suppressed; if a suppression is
+  ever unavoidable (third-party code), add a file with a reason per line and
+  wire it in through `UBSAN_OPTIONS=suppressions=...`.
+- Packed data (ABL bytecode, TGA pixels after the 18-byte header, records) is
+  read and written with `memcpy`, never through a cast to a wider type.
+  Objects with virtual functions are constructed with placement `new` on
+  heap memory, never used straight from `Malloc`.
 - To reproduce locally: configure a separate build dir with `MC2_SANITIZE`, then
-  run `ctest`, or `smoke.sh` with the same two environment variables.
+  run `ctest`, or `smoke.sh` with the `ASAN_OPTIONS` above.
 
 ## Smoke runs (`scripts/smoke.sh`)
 

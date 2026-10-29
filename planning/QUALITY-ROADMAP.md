@@ -118,9 +118,13 @@ Working practice:
       legacy UB baselined in `scripts/sanitizers/ubsan.supp`. Later runs
       (CI's slower machine, then 3000-frame runs) found a missing-movie
       crash, a Gate read through a Turret cast, an uninitialised bool and an
-      overlapping strcpy; all fixed. Nightly frames raised to 3000 / 1500.
-- [ ] Work down `ubsan.supp`: memcpy-based bytecode reads in the ABL VM;
-      untangle the TG_* shape class casts in `msl.cpp` / `tgl.cpp`.
+      overlapping strcpy; all fixed. Nightly frames raised to 3000.
+- [x] Baseline worked down to nothing and `ubsan.supp` deleted: memcpy-based
+      reads/writes in the ABL VM, ABL assignments and mech icon copies; the
+      uninitialised trailing byte of each ABL code segment; `RoutineKey` given
+      an `int` base type; `TG_TypeNode::CreateFrom` constructs its `TG_Shape`
+      with placement new (raw `Malloc` left it without a vptr, the cause of
+      all ~40 "TG_Shape" findings).
 - [ ] Sanitized smoke on arm64 too (ASan on the hosted arm64 runner).
 
 ## Phase 5 - Smoke tests (does the game actually run?)

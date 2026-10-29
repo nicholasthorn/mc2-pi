@@ -84,15 +84,14 @@ jobs:
             os: ubuntu-24.04
             gles: "OFF"
             sanitize: address,undefined
-            frames: 1500
     env:
       # Sanitizer runtime options (only matter for the sanitize entry).
       # alloc_dealloc_mismatch: Mesa's swrast driver trips it while loading.
       # detect_leaks: the game and Mesa leak at exit; leak checking runs on
-      # the unit tests instead (ci.yml). Known legacy UBSan findings are
-      # baselined in scripts/sanitizers/ubsan.supp.
+      # the unit tests instead (ci.yml). There is no UBSan baseline: any
+      # finding fails the run.
       ASAN_OPTIONS: alloc_dealloc_mismatch=0:detect_leaks=0
-      UBSAN_OPTIONS: print_stacktrace=1:suppressions=${{ github.workspace }}/scripts/sanitizers/ubsan.supp
+      UBSAN_OPTIONS: print_stacktrace=1
     steps:
       - uses: actions/checkout@v7
         with:
