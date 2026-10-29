@@ -68,6 +68,9 @@ cmake -S . -B build-san -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_SANITIZ
 # Shaders: compile-check every shader as GLSL ES 3.10 and GLSL 4.20 (needs glslang-tools)
 python3 scripts/validate_shaders.py
 
+# cppcheck against the baseline: changed files only (seconds) or the whole tree (slow)
+python3 scripts/cppcheck_gate.py --build-dir build --files code/foo.cpp
+
 # Game data from an alariq/mc2srcdata checkout (platform independent; copy to the Pi)
 scripts/build_gamedata.sh --src-data ../mc2srcdata --build-dir build --out ../mc2game [--no-movies]
 
@@ -94,7 +97,9 @@ CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
 tests on each, and validates the shaders on every push to `pi-port` and every PR.
 `.github/workflows/smoke.yml` runs five missions nightly (and on demand) on
 x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan. CI also runs the unit
-tests under ASan + UBSan on every push. See `.claude/rules/` for the
+tests under ASan + UBSan and cppcheck on changed files on every push;
+`.github/workflows/static.yml` runs cppcheck on the whole tree nightly. New
+code builds with `-Wall -Wextra -Werror` (`.claude/rules/build-conventions.md`). See `.claude/rules/` for the
 detailed conventions.
 
 ## Architecture in one screen

@@ -41,8 +41,28 @@ When you can only build one locally, say which ones were not built.
   `size_t` in new code and treat any pointer/integer cast as suspect.
 - **Type punning.** GCC `-O2` breaks `*(long*)&someDouble` style punning (see the
   `ablxstd.cpp` fix). Use `memcpy`.
-- **`-fpermissive`** is on for GCC/Clang and hides non-conforming code. Do not rely
-  on it in new code; MSVC and Clang may reject what GCC accepts.
+- **`-fpermissive` is gone** (the tree builds without it). Do not bring it back:
+  it hid code that Clang and MSVC reject.
+
+## Warnings and static analysis
+
+- **New code builds with `-Wall -Wextra -Werror`** (GCC/Clang) via
+  `MC2_STRICT_WARNINGS`, applied per source file with
+  `set_source_files_properties(<file> PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")`
+  in the directory that owns the target. Add every new `.cpp` to that list.
+  Legacy files keep the global flags; do not turn the strict set on for them
+  wholesale.
+- A target that holds new code but includes legacy headers should include those
+  headers as `SYSTEM` (see `tests/unit/CMakeLists.txt`), so warnings report the
+  new code only.
+- **cppcheck** (`scripts/cppcheck_gate.py`) compares against
+  `scripts/cppcheck-baseline.txt` and fails on any finding not in it: changed
+  `.cpp` files on every push/PR (`ci.yml`), the full tree nightly
+  (`static.yml`). Fix new findings; for a genuine false positive use an inline
+  `// cppcheck-suppress <id>` with a reason. Never add lines to the baseline by
+  hand; regenerate it with the `update_baseline` run of `static.yml` (the
+  baseline depends on the cppcheck version, so it comes from CI) after fixing
+  findings, so counts only go down.
 
 ## Dependencies
 

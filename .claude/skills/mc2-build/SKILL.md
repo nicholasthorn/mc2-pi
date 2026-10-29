@@ -11,8 +11,8 @@ in `.claude/rules/build-conventions.md`; this skill is the map and the recipes.
 
 ## Key files
 
-- `CMakeLists.txt`: global flags (`-fsigned-char`, `-fpermissive`, warning
-  set), `LINUX_BUILD` / `PLATFORM_WINDOWS` / `USE_ASSEMBLER_CODE=0`, the
+- `CMakeLists.txt`: global flags (`-fsigned-char`, warning set; no
+  `-fpermissive`), `MC2_STRICT_WARNINGS` for new files, `LINUX_BUILD` / `PLATFORM_WINDOWS` / `USE_ASSEMBLER_CODE=0`, the
   `MC2_GLES` option (`PkgConfig::GLESV2` vs `GLEW::GLEW OpenGL::GL` in
   `MC2_GL_LIBS`), `MC2_SANITIZE` (e.g. `address,undefined`, GCC/Clang only),
   `MC2_BUILD_TESTS`, subdirectories, and the hand-written `SOURCES` list for
