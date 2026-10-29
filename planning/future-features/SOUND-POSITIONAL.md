@@ -1,7 +1,9 @@
 # Positional sound: panning, and maybe doppler
 
-Status: feasibility study, nothing built. Written 2026-10-29 from a read of
-`pi-port`. Upstream's README lists "panning, doppler, etc. not supported yet".
+Status: option A (stereo panning) implemented on branch `stereo-panning`
+(`GameOS/gameos/utils/audio_pan.cpp`, unit-tested; not yet checked by ear).
+Option B not started. Written 2026-10-29 from a read of `pi-port`. Upstream's
+README lists "panning, doppler, etc. not supported yet".
 
 ## Problem
 

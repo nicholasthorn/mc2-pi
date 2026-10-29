@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include "utils/vec.h"
+#include "utils/audio_pan.h"
 
 static const DWORD INVALID_AUDIO_ID = -1;
 static const DWORD MAX_VOLUME = 254;
@@ -633,19 +634,11 @@ void __stdcall gosAudio_SetChannelSlider( int Channel, enum gosAudio_Properties 
         case gosAudio_Panning:
         {
             ci->fPanning = value1; // -1 ... +1
-            // TODO: looks like panning sets level of volume in channels (like max. posssible)
-            // so if we set Panning(0,0) and then changes volume, we will not hear anyting!
-            // probably we need to uodate panning each time we set volume...  
-            // like check dwProperties if panning property allocated and then do our dirty stuff
-            /*
-            uint8_t cur_volume = (uint8_t)(2*ci->fVolume * MAX_VOLUME);
-            float t = (0.5f * ci->fPanning + 0.5f);
-            t = t < 0.0f ? 0.0f : t;
-            t = t > 1.0f ? 1.0f : t;
-            uint8_t right = (uint8_t)(t*cur_volume);
-            Mix_SetPanning(Channel, cur_volume - right, right);
-            printf("Mix_SetPanning(%d, %d, %d)\n", Channel, cur_volume-right, right);
-            */
+            // Balance only: Mix_Volume scales the channel separately, so the
+            // pan never has to know the volume. (255, 255) at centre
+            // unregisters the panning effect.
+            const StereoLevels levels = panToStereoLevels(ci->fPanning);
+            Mix_SetPanning(Channel, levels.left, levels.right);
             break;
         }
         case gosAudio_Frequency:
@@ -671,7 +664,7 @@ void __stdcall gosAudio_GetChannelSlider( int Channel, enum gosAudio_Properties 
     switch(prop) {
         case gosAudio_Common: break; //?
         case gosAudio_Volume: *value1 = ci->fVolume; break;
-        case gosAudio_Panning: *value1 = ci->fPanning; // -1 ... +1
+        case gosAudio_Panning: *value1 = ci->fPanning; break; // -1 ... +1
         case gosAudio_Frequency:
         {
             PAUSE(("Cannot change frequency on a specific channel\n"));
