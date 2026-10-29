@@ -218,3 +218,10 @@ add_subdirectory("./res" "./out/res")
 add_subdirectory("./data_tools" "./out/data_tools")
 add_subdirectory("./text_tool" "./out/text_tool")
 add_subdirectory("./Viewer" "./out/Viewer")
+
+# Unit tests (doctest + CTest): see tests/unit/CMakeLists.txt.
+option(MC2_BUILD_TESTS "Build the unit tests (run with ctest)" ON)
+if(MC2_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory("./tests/unit" "./out/tests/unit")
+endif()

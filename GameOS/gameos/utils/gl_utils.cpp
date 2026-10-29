@@ -5,6 +5,7 @@
 #include <cstring>
 #include <vector>
 #include "utils/graphics.h"
+#include "utils/pixel_repack.h"
 #include "utils/shader_builder.h"
 #include "utils/gl_utils.h"
 #include "utils/vec.h"
@@ -274,13 +275,10 @@ void updateTexture(const Texture& t, void* pdata, TexFormat pdata_format/*= TF_C
         std::vector<uint8_t> repacked;
         if(pdata_format != TF_COUNT && pdata_format != t.fmt_ &&
            pdata_format <= TF_RGBA8 && t.fmt_ <= TF_RGBA8) {
-            const int src_n = textureFormatNumChannels[pdata_format];
             const int dst_n = textureFormatNumChannels[t.fmt_];
-            const uint8_t* src = (const uint8_t*)pdata;
             repacked.resize((size_t)t.w * t.h * dst_n);
-            for(size_t i = 0; i < (size_t)t.w * t.h; ++i)
-                for(int c = 0; c < dst_n; ++c)
-                    repacked[i*dst_n + c] = c < src_n ? src[i*src_n + c] : 0xff;
+            repackPixels8((const uint8_t*)pdata, textureFormatNumChannels[pdata_format],
+                          repacked.data(), dst_n, (size_t)t.w * t.h);
             pdata = repacked.data();
             fmt = textureFormats[t.fmt_];
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

@@ -70,6 +70,8 @@ jobs:
           -DMC2_GLES=${{ matrix.gles }}
       - name: Build
         run: cmake --build build
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
       - name: Package
         if: matrix.artifact
         run: |
@@ -114,4 +116,7 @@ jobs:
           -DCMAKE_PREFIX_PATH="$(cygpath -m "$GITHUB_WORKSPACE")/3rdparty"
           -DCMAKE_LIBRARY_ARCHITECTURE=x64
       - name: Build
-        run: cmake --build build64 --config RelWithDebInfo --target mc2 -- -m
+        run: cmake --build build64 --config RelWithDebInfo --target mc2 mc2_tests -- -m
+      - name: Unit tests
+        # zlib1.dll etc. come from the extracted 3rdparty tree
+        run: PATH="$GITHUB_WORKSPACE/3rdparty/lib/x64:$PATH" ctest --test-dir build64 -C RelWithDebInfo --output-on-failure
