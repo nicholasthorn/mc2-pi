@@ -697,6 +697,8 @@ void TeamSensorSystem::init (void) {
 	numSensors = 0;
 	ecms = NULL;
 	jammers = NULL;
+	numEcms = 0;
+	numJammers = 0;
 }
 
 //---------------------------------------------------------------------------

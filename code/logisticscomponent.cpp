@@ -60,6 +60,13 @@ LogisticsComponent::LogisticsComponent()
 	iconX = iconY = 0;
 	bAvailable = 0;
 	recycleTime = 0.f;
+
+	// read by init()
+	Type = stringID = helpStringID = 0;
+	range = 0;
+	rangeType = NO_RANGE;
+	damage = weight = heat = 0.0f;
+	Ammo = cost = 0;
 }
 
 //-------------------------------------------------------------------------------------------------

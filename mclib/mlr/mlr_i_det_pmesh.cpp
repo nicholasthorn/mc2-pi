@@ -101,6 +101,9 @@ MLR_I_DeT_PMesh::MLR_I_DeT_PMesh(ClassData *class_data):
 	noDetailDistance = -1.0f;
 	detTextureVisible = true;
 	passes = 2;
+
+	xOffset = yOffset = 0.0f;
+	xScale = yScale = 1.0f;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

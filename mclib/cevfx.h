@@ -77,7 +77,9 @@ class VFXShapeElement : public Element
 		shapeTable[0] = shapeTable[1] = shapeTable[2] = shapeTable[3] = NULL;
 		frameNum[0] = frameNum[1] = frameNum[2] = frameNum[3] = 0;
 
-		x = y = 0;
+		x = y = xHS = yHS = 0;
+		textureFactor = 0.0f;
+		z = topZ = 0.0f;
 
 		reverse[0] = reverse[1] = reverse[2] = reverse[3] = FALSE;
 		
@@ -129,8 +131,10 @@ class TextureElement : public Element
 
 	TextureElement (void)
 	{
-		x = y = 0;
+		x = y = xHS = yHS = 0;
+		tWidth = 0.0f;
 		topZ = z = 0.0;
+		fogRGB = 0xffffffff;		//NO Fog
 		textureMemoryHandle = 0xffffffff;
 		lightRGB = 0xffffffff;
 	}
@@ -161,6 +165,8 @@ class PolygonQuadElement : public Element
 		
 	PolygonQuadElement (void)
 	{
+		for (int i = 0; i < 4; i++)
+			vertices[i] = gos_VERTEX();
 	}
 	
 	void init (gos_VERTEX *v);
@@ -181,6 +187,8 @@ class PolygonTriElement : public Element
 		
 	PolygonTriElement (void)
 	{
+		for (int i = 0; i < 3; i++)
+			vertices[i] = gos_VERTEX();
 	}
 	
 	void init (gos_VERTEX *v);
@@ -203,6 +211,8 @@ class TexturedPolygonQuadElement : public PolygonQuadElement
 		
 	TexturedPolygonQuadElement (void)
 	{
+		textureHandle = 0;
+		zWrite = zComp = true;
 	}
 	
 	void init (gos_VERTEX *v, DWORD tHandle, bool writeZ = true, bool compZ = true);
@@ -223,6 +233,7 @@ class TexturedPolygonTriElement : public PolygonTriElement
 		
 	TexturedPolygonTriElement (void)
 	{
+		textureHandle = 0;
 	}
 	
 	void init (gos_VERTEX *v, DWORD tHandle);

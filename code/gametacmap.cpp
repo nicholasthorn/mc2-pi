@@ -43,6 +43,10 @@ GameTacMap::GameTacMap()
 	objectiveAnimationId = -1;
 	objectiveFlashTime = 0.0f;
 	objectiveNumFlashes = 0;
+
+	// set by init()
+	textureHandle = viewRectHandle = blipHandle = 0;
+	bmpWidth = bmpHeight = 0;
 }
 
 void GameTacMap::init( unsigned char* bitmapData, int dataSize )

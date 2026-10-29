@@ -86,6 +86,9 @@ MLRIndexedPrimitiveBase::MLRIndexedPrimitiveBase(
 
 	visibleIndexedVerticesKey = false;
 	visibleIndexedVertices.SetLength(coords.GetLength());
+
+	gos_indices = NULL;
+	numGOSIndices = 0;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,6 +110,10 @@ MLRIndexedPrimitiveBase::MLRIndexedPrimitiveBase(ClassData *class_data):
 	MLRPrimitiveBase(class_data), index(0)
 {
 	Verify(gos_GetCurrentHeap() == Heap);
+
+	visibleIndexedVerticesKey = false;
+	gos_indices = NULL;
+	numGOSIndices = 0;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

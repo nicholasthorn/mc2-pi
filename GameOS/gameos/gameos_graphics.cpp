@@ -687,6 +687,7 @@ class gosTexture {
             }
 
             is_locked_ = false;
+            lock_type_read_only_ = false;
             is_from_memory_ = from_memory;
         }
 
@@ -713,6 +714,7 @@ class gosTexture {
             tex_.h = h;
 
             is_locked_ = false;
+            lock_type_read_only_ = false;
             is_from_memory_ = true;
         }
 
@@ -994,6 +996,27 @@ class gosRenderer {
             height_ = h;
             ctx_h_ = ctx_h;
             win_h_ = win_h;
+
+            // init() creates the meshes and materials and sets the rest;
+            // until then everything reads as empty
+            reqWidth = reqHeight = reqBitDepth = reqAntiAlias = 0;
+            reqGotoFullscreen = false;
+            pendingRequest = false;
+            renderStatesStackPointer = -1;
+            curTextAttribs_ = gosTextAttribs();
+            curTextPosX_ = curTextPosY_ = 0;
+            curTextLeft_ = curTextTop_ = curTextRight_ = curTextBottom_ = 0;
+            clearDepth_ = clearColor_ = clearStencil_ = false;
+            clearDepthValue_ = 0.0f;
+            clearColorValue_ = clearStencilValue_ = 0;
+            viewportTop_ = viewportLeft_ = viewportBottom_ = viewportRight_ = 0.0f;
+            quads_ = tris_ = indexed_tris_ = lines_ = points_ = text_ = NULL;
+            basic_material_ = basic_tex_material_ = text_material_ = NULL;
+            basic_lighted_material_ = basic_tex_lighted_material_ = NULL;
+            YCbCr_material_ = NULL;
+            num_draw_calls_ = num_draw_calls_to_draw_ = 0;
+            break_on_draw_call_ = false;
+            break_draw_call_num_ = 0;
         }
 
         uint32_t addTexture(gosTexture* texture) {

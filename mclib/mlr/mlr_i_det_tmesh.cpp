@@ -89,6 +89,8 @@ MLR_I_DeT_TMesh::MLR_I_DeT_TMesh(
 	detTextureVisible = true;
 
 	passes = 2;
+
+	gos_vertices2uv = NULL;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,6 +107,10 @@ MLR_I_DeT_TMesh::MLR_I_DeT_TMesh(ClassData *class_data):
 
 	detTextureVisible = true;
 	passes = 2;
+
+	xOffset = yOffset = 0.0f;
+	xScale = yScale = 1.0f;
+	gos_vertices2uv = NULL;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

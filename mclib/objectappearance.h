@@ -95,7 +95,9 @@ class ObjectAppearance: public Appearance
 	protected:
 		
 		long	highlightColor;
-		ObjectAppearance(){	highlightColor = 0; damage = 0; lightIntensity = rotation = 0.0; selected = 0; pilotName[0] = 0;}
+		ObjectAppearance(){	highlightColor = 0; damage = 0; lightIntensity = rotation = 0.0; selected = 0; pilotName[0] = 0;
+			teamId = 0; homeTeamRelationship = 0; actualRotation = 0.0f; objectNameId = 0; pilotNameID = 0;
+			paintScheme = 0; fadeTable = NULL;}
 
 
 		/*

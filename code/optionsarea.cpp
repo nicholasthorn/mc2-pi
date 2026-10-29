@@ -88,6 +88,10 @@ OptionsXScreen::OptionsXScreen()
 	bDone = 0;
 	curTab = 0;
 	helpTextArrayID = 1;
+	// the destructor deletes these
+	for ( int i = 0; i < 4; i++ )
+		tabAreas[i] = NULL;
+	bShowWarning = 0;
 }
 
 OptionsXScreen::~OptionsXScreen()
@@ -364,6 +368,7 @@ OptionsGraphics::OptionsGraphics()
     resolutionModes = NULL;
     resolutionModesStr = NULL;
     numResolutionModes = 0;
+    bExpanded = 0;
 }
 
 void OptionsGraphics::init(long xOffset, long yOffset)
@@ -1315,6 +1320,7 @@ ScrollX::ScrollX()
 	lastX = 0;
 	scrollInc = 1;
 	pageInc = 5;
+	buttons[0] = buttons[1] = buttons[2] = NULL;
 }
 
 long ScrollX::init(aButton* pLeft, aButton* pRight, aButton* pTab)
@@ -1567,6 +1573,8 @@ HotKeyListItem::~HotKeyListItem()
 }
 HotKeyListItem::HotKeyListItem( )
 {
+	hotKey = 0;
+	command = 0;
 	if ( s_item )
 	{
 		description = s_item->description;

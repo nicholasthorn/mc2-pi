@@ -86,6 +86,12 @@ MainMenu::MainMenu(  )
 	bHostLeftDlg = 0;
 
 	introMovie = 0;
+
+	bDrawBackground = false;
+	promptToQuit = promptToDisconnect = false;
+	bLegal = false;
+	musicStarted = false;
+	endResult = 0;
 }
 
 //-------------------------------------------------------------------------------------------------

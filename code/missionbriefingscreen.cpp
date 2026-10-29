@@ -31,7 +31,14 @@ MissionBriefingScreen::MissionBriefingScreen(  )
 	LogisticsScreen::helpTextArrayID = 4;
 
 	for ( int i = 0; i < MAX_OBJECTIVES; i++ )
+	{
 		objectiveButtons[i] = NULL;
+		modelTypes[i] = 0;
+		modelScales[i] = 1.0f;
+		modelColors[i][0] = modelColors[i][1] = modelColors[i][2] = 0;
+	}
+	runTime = 0.0f;
+	bClicked = false;
 }
 
 MissionBriefingScreen::~MissionBriefingScreen()

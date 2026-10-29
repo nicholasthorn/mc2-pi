@@ -34,6 +34,7 @@ class PaneElement : public Element
 	{
 		shapePane = NULL;
 		x = y = 0;
+		midx = midy = SizeX = SizeY = 0;
 	}
 
 	PaneElement (PANE *_shapePane, long _x, long _y, long _midx, long _midy, long _SizeX, long _SizeY);

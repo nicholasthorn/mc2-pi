@@ -650,6 +650,9 @@ class MCMSG_PlayerUpdate {
 			type = MCMSG_PLAYER_UPDATE;
 			senderTime = -1.0;
 			stage = 0;
+			memset(sessionIPAddress, 0, sizeof(sessionIPAddress));
+			memset(versionStamp, 0, sizeof(versionStamp));
+			memset(&info, 0, sizeof(info));
 		}
 };
 
@@ -670,6 +673,7 @@ class MCMSG_MissionSettingsUpdate {
 
 		void init (void) {
 			type = MCMSG_MISSION_SETTINGS_UPDATE;
+			missionSettings = MissionSettings();
 		}
 };
 
@@ -693,7 +697,10 @@ class MCMSG_MissionSetup {
 
 		void init (void) {
 			type = MCMSG_MISSION_SETUP;
+			randomSeed = 0;
 			subType = 0;
+			memset(commandersToLoad, 0, sizeof(commandersToLoad));
+			mechData = CompressedMech();
 		}
 };
 
@@ -814,6 +821,9 @@ class MCMSG_PlayerInsignia {
 
 		void init (void) {
 			type = MCMSG_PLAYER_INSIGNIA;
+			commanderID = -1;
+			memset(fileName, 0, sizeof(fileName));
+			dataSize = 0;
 		}
 };
 
@@ -863,6 +873,8 @@ class MCMSG_EndMission {
 		void init (void) {
 			type = MCMSG_END_MISSION;
 			result = -1;
+			memset(teamScore, 0, sizeof(teamScore));
+			memset(playerScore, 0, sizeof(playerScore));
 		}
 };
 
@@ -969,6 +981,7 @@ class MCMSG_PlayerMoverGroup {
 
 		void init (void) {
 			type = MCMSG_PLAYER_MOVERGROUP;
+			action = 0;
 			commanderID = -1;
 			groupId = -1;
 			moverGroupInfo = 0;
@@ -1022,6 +1035,8 @@ class MCMSG_MoverUpdate {
 
 		void init (void) {
 			type = MCMSG_MOVER_UPDATE;
+			memset(teamScore, 0, sizeof(teamScore));
+			memset(playerScore, 0, sizeof(playerScore));
 			updateId = 0xFFFF;
 			numRLEs = 0;
 		}
@@ -1291,9 +1306,9 @@ typedef enum {
 	NUM_VERSION_STATUS_TYPES
 } VersionStatus;
 
-class MultiPlayer {
-
-	public:
+// Plain data, so value-initialising it in MultiPlayer's constructor zeroes
+// every field (MultiPlayer::init is a stub in this build).
+struct MultiPlayerState {
 
 		bool				onLAN;
 		bool				hostLeft;
@@ -1302,7 +1317,6 @@ class MultiPlayer {
 		bool				availableCIDs[MAX_MC_PLAYERS];
 		MC2Session			sessionList[MAX_SESSIONS];
 		unsigned long		teamSeniority[MAX_TEAMS];
-		static long			colors[MAX_COLORS];
 		char				colorsCID[MAX_COLORS];
 		char				sessionIPAddress[16];
 		bool				sessionScanning;
@@ -1437,7 +1451,13 @@ class MultiPlayer {
 		char				currentChatMessages[MAX_STORED_CHATS][MAX_CHAT_LENGTH];
 		long				currentChatMessagePlayerIDs[MAX_STORED_CHATS];
 		long				chatCount;
+};
 
+class MultiPlayer : public MultiPlayerState {
+
+	public:
+
+		static long			colors[MAX_COLORS];
 		static bool			launchedFromLobby;
 		static bool			registerZone;
 		static long			presetDropZones[MAX_MC_PLAYERS];
@@ -1463,7 +1483,7 @@ class MultiPlayer {
 		void resetForNewGame (void);
 
 
-		MultiPlayer (void) {
+		MultiPlayer (void) : MultiPlayerState() {
 			init();
 		}
 		

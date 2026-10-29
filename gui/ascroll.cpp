@@ -15,6 +15,9 @@ aScrollBar::aScrollBar()
 	scrollMax = 0;
 	scrollPos = 0;
 	lastY = 0;
+	scrollInc = 1;
+	pageInc = 1;
+	color = 0;
 }
 
 long aScrollBar::init(long xPos, long yPos, long w, long h)

@@ -246,8 +246,14 @@ class Mission
 			missionInterface = NULL;
 
 			missionFileName[0] = 0;
+			missionScriptName[0] = 0;
 
 			missionBrainParams = NULL;
+
+			m_timeLimit = 0.0f;
+			warning1 = warning2 = false;
+			actualTime = runningTime = 0.0f;
+			theSkyNumber = 0;
 		}
 		
 		Mission (void)

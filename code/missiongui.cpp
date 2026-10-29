@@ -331,6 +331,7 @@ void MissionInterfaceManager::init (void)
 		mechRecovered[i] = false;
 		mechToRecover[i] = 0;
 		vehicleID[i] = 0;
+		vehicleDropped[i] = false;
 	}
 	
 	bPaused = 0;
@@ -360,6 +361,18 @@ void MissionInterfaceManager::init (void)
 	reinforcement = NULL;
 	bForcedShot = false;
 	bAimedShot = false;
+
+	// loaded by init(FitIniFile*) or set when used
+	baseFrameLength = zoomInc = rotationInc = scrollInc = 0.0f;
+	screenScrollLeft = screenScrollRight = screenScrollUp = screenScrollDown = 0.0f;
+	degPerSecRot = 0.0f;
+	vTolSpeed = 0.0f;
+	vehicleFile = NULL;
+	selectClicked = commandClicked = cameraClicked = false;
+	attilaXAxis = attilaYAxis = attilaRZAxis = 0.0f;
+	buttonFlashTime = 0.0f;
+	targetIsButton = targetIsPressed = false;
+	swapTime = 0.0f;
 }
 
 #define TACMAP_ID		0

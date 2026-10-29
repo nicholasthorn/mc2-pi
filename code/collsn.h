@@ -62,6 +62,7 @@ class GlobalCollisionAlert
 		{
 			collisionAlerts = NULL;
 			maxAlerts = 0;
+			nextRecord = 0;
 		}
 
 		long init (unsigned long maxCollisionAlerts);
@@ -136,6 +137,11 @@ class CollisionGrid
 			gridOrigin.Zero();
 			
 			gridIsGo = FALSE;
+
+			maxObjects = 0;
+			gridSize = nodeSize = 0;
+			gridXOffset = gridYOffset = 0.0f;
+			gridXCheck = gridYCheck = 0.0f;
 		}
 		
 		CollisionGrid (void)
@@ -205,6 +211,7 @@ class CollisionSystem
 		void init (void)
 		{
 			collisionGrid = NULL;
+			warningDist = alertTime = 0.0f;
 		}
 		
 		CollisionSystem (void)
@@ -234,4 +241,4 @@ class CollisionSystem
 
 extern CollisionSystem *collisionSystem;
 //------------------------------------------------------------------------------
-#endif
+#endif

@@ -227,6 +227,10 @@ class SoundSystem
 			isRaining = oldRaining = 0;
 			sensorBeepUpdateTime = 0.0f;
 			gamePaused = false;
+
+			supportDataFile = NULL;
+			stream1Id = stream2Id = 0;
+			digitalMusicVolume = NULL;
 		}
 		
 		long init (const char *soundFileName);

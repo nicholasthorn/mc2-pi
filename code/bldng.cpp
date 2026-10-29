@@ -138,6 +138,15 @@ void BuildingType::init (void) {
 	numMarines = 0;
 	canRefit = false;
 	mechBay = false;
+
+	// read by init(FitIniFilePtr)
+	resourcePoints = 0;
+	marksImpassableWhenDestroyed = false;
+	capturable = false;
+	powerSource = false;
+	perimeterAlarmRange = perimeterAlarmTimer = 0.0f;
+	lookoutTowerRange = 0.0f;
+	activityEffectId = 0;
 }
 
 //---------------------------------------------------------------------------

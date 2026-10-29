@@ -24,6 +24,9 @@ gosFX::ParticleCloud__Specification::ParticleCloud__Specification(
 	Check_Object(stream);
 	Verify(gos_GetCurrentHeap() == Heap);
 
+	// the derived specification sets these
+	m_particleClassSize = m_totalParticleSize = 0;
+
 	//
 	//-------------------
 	// Load in the curves
@@ -62,6 +65,7 @@ gosFX::ParticleCloud__Specification::ParticleCloud__Specification(
 {
 	Verify(gos_GetCurrentHeap() == Heap);
 	m_maxParticleCount = 0;
+	m_particleClassSize = m_totalParticleSize = 0;
 	Check_Pointer(this);
 }
 

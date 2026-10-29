@@ -278,6 +278,13 @@ void GroundVehicleType::init (void)  {
 	aerospaceSpotter = false;
 	moveType = MOVETYPE_GROUND;
 	LOSFactor = 1.0f;
+
+	// read by init(FitIniFile*)
+	chassis = 0;
+	memset(maxInternalStructure, 0, sizeof(maxInternalStructure));
+	resourcePoints = 0;
+	pathLocks = true;
+	isSensorContact = false;
 }
 
 //---------------------------------------------------------------------------
@@ -869,6 +876,13 @@ void GroundVehicle::init (bool create) {
 	isVehiclePilot = false;
 
 	lowestWeaponNodeID = -2;
+
+	suspension = 0.0f;
+	mineSweeper = false;
+	notMineYet = true;
+	battleRating = 0;
+	descID = -1;
+	dTime = 0.0f;
 
 	dVel.Zero();
 	dRot.Zero();

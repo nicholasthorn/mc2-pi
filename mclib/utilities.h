@@ -36,7 +36,11 @@ public:
 
 	void setColor( long newColor );
 
-	StaticInfo(){}
+	StaticInfo() : textureHandle(0), u(0), v(0), uWidth(0), vHeight(0), textureWidth(0)
+	{
+		for (int i = 0; i < 4; i++)
+			location[i] = gos_VERTEX();
+	}
 	~StaticInfo();
 
 	unsigned long textureHandle;

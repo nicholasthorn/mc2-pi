@@ -261,8 +261,28 @@ void GameObjectManager::init (void) {
 	currentCarnageIndex = 0;
 	currentLightIndex = 0;
 	currentArtilleryIndex = 0;
+
+	maxMechs = maxVehicles = maxMovers = 0;
+	memset(gateControls, 0, sizeof(gateControls));
+	memset(turretControls, 0, sizeof(turretControls));
+	memset(powerGenerators, 0, sizeof(powerGenerators));
+	memset(specialBuildings, 0, sizeof(specialBuildings));
+	moverLineOfSightTable = NULL;
+	useMoverLineOfSightTable = false;
+	memset(moverList, 0, sizeof(moverList));
+	memset(goodMoverList, 0, sizeof(goodMoverList));
+	memset(badMoverList, 0, sizeof(badMoverList));
+	memset(moversRemoved, 0, sizeof(moversRemoved));
+	watchList = NULL;
+	rebuildCollidableList = false;
+	memset(numCaptures, 0, sizeof(numCaptures));
+	memset(captureList, 0, sizeof(captureList));
+	totalObjCount = 0;
+	objData = NULL;
+	collisionSystem = NULL;
 	
-	long totalBlocks = Terrain::blocksMapSide * Terrain::blocksMapSide;
+	long totalBlocks
+ = Terrain::blocksMapSide * Terrain::blocksMapSide;
 
 	for (long i = 0; i < totalBlocks; i++) {
 		Terrain::objBlockInfo[i].active = false;

@@ -424,6 +424,11 @@ class BattleMech : public Mover {
 		
 		BattleMech (void)
 		{
+			// not reset by init(): set when the mech is loaded
+			variantID = 0;
+			variantName[0] = 0;
+			playedJumpSFX = false;
+			memset(ItemLocationToInvLocation, 0, sizeof(ItemLocationToInvLocation));
 			init(true);
 		}
 			

@@ -61,6 +61,15 @@ MissionBegin::MissionBegin()
 	animJustBegun = 0;
 	placeHolderScreen = NULL;
 
+	bDone = bReadyToLoad = false;
+	logisticsBrain = NULL;
+	logisticsScriptHandle = 0;
+	animationRunning = false;
+	timeLeftToScroll = 0.0f;
+	targetButtonId = -1;
+	targetIsButton = false;
+	buttonNumFlashes = 0;
+	buttonFlashTime = 0.0f;
 }
 
 MissionBegin::~MissionBegin()

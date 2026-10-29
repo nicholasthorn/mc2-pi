@@ -196,6 +196,14 @@ class MasterComponent {
 			masterID = -1;
 			name[0] = '\0';
 			abbreviation[0] = '\0';
+			resourcePoints = 0;
+			form = COMPONENT_FORM_SIMPLE;
+			tonnage = 0.0f;
+			size = health = disableLevel = 0;
+			memset(criticalSpacesReq, 0, sizeof(criticalSpacesReq));
+			uses = techBase = 0;
+			CV = 0.0f;
+			art = 0;
 		}
 
 		MasterComponent (void) {

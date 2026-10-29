@@ -94,6 +94,7 @@ gosFX::Effect__Specification::Effect__Specification(
 	//--------------
 	//
 	m_class = class_id;
+	m_effectID = 0;	// EffectLibrary assigns it
 	*stream >> m_name;
 
 	//
@@ -142,6 +143,7 @@ gosFX::Effect__Specification::Effect__Specification(
 	Check_Pointer(this);
 	Verify(gos_GetCurrentHeap() == Heap);
 	m_class = class_id;
+	m_effectID = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -383,6 +385,8 @@ gosFX::Effect::Effect(
 	m_flags = flags;
 	m_lastRan = -1.0f;
 	m_localToParent = Stuff::LinearMatrix4D::Identity;
+	m_ageRate = 0.0f;	// set by Start()
+	m_seed = 0.0f;
 }
 
 

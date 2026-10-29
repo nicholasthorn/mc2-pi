@@ -67,8 +67,13 @@ undefined behaviour, signedness, alignment/packing, 32-bit pointer assumptions.
       text (64-bit Linux portability); mechanical sweep. Done: 433 sites
       fixed from GCC `-Wformat`; 16 left are cppcheck-only or deliberate
       (`note.cpp` sscanf into `Radian`, `heap.cpp` `%08p`).
-- [ ] `uninitMemberVar` (787): class by class (141 are the unused
-      networking stub in `multplyr.h`).
+- [ ] `uninitMemberVar` (787 -> 170): class by class. Done for the 80 or
+      so largest files, which turned up real copy-constructor bugs
+      (`LogisticsScreen`, `aObject`) and an entirely unset `MultiPlayer`.
+      Left on purpose: count-guarded buffers on hot paths
+      (`MovePath::stepList`, terrain `Vertex`), flexible array members
+      in the multiplayer messages, `SeededCurveOf` (cppcheck mis-parses
+      it). The rest is a long tail of 1-3 per file.
 - [ ] `clang-tidy` job, narrow ruleset to start: `bugprone-*`,
       `clang-analyzer-*`, `cppcoreguidelines-init-variables`,
       `bugprone-narrowing-conversions`. Run on changed files only in PRs

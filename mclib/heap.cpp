@@ -144,6 +144,7 @@ void HeapManager::init (void)
 	totalSize = 0;
 	committedSize = 0;
 	nxt = NULL;
+	whoMadeMe = 0;
 }
 		
 //---------------------------------------------------------------------------
@@ -287,6 +288,10 @@ UserHeap::UserHeap (void) : HeapManager()
 	#endif	
 		
 	heapState = NO_ERR;
+
+	heapName = NULL;
+	useGOSGuardPage = false;
+	gosHeap = NULL;
 }
 
 //---------------------------------------------------------------------------

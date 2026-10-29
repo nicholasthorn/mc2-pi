@@ -16,6 +16,14 @@ MLRTexture::MLRTexture(MemoryStream *stream)
 	Check_Pointer(this);
 	Check_Object(stream);
 
+	// nothing is read: Save() writes nothing either
+	textureNameHashValue = 0;
+	instance = 0;
+	textureHandle = 0;
+	textureMatrix = AffineMatrix4D::Identity;
+	textureMatrixIsIdentity = true;
+	image = NULL;
+	thePool = NULL;
 	hint = 0;
 }
 
@@ -85,17 +93,9 @@ void
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-MLRTexture::MLRTexture(const MLRTexture& tex)
-{
-	Check_Object(&tex);
-	Verify(gos_GetCurrentHeap() == Heap);
-}
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
 MLRTexture::~MLRTexture()
 {
-	if(NULL==thePool->GetImage(image->GetName()))
+	if(image && thePool && NULL==thePool->GetImage(image->GetName()))
 	{
 		Unregister_Object(image);
 		delete image;
