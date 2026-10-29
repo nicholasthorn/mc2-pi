@@ -340,19 +340,21 @@ void
 			//
 			else if (p[-1] == '*')
 			{
+				// memmove: source and destination overlap within buffer,
+				// which strcpy does not allow
 				if (!comment_mode)
 				{
-					strcpy(p-1, p+1);
+					memmove(p-1, p+1, strlen(p+1)+1);
 					--p;
 				}
 				else if (!comment_start)
 				{
-					strcpy(buffer, p+1);
+					memmove(buffer, p+1, strlen(p+1)+1);
 					p = buffer;
 				}
 				else
 				{
-					strcpy(comment_start, p+1);
+					memmove(comment_start, p+1, strlen(p+1)+1);
 					p = comment_start;
 				}
 				comment_start = NULL;
