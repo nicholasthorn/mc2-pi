@@ -122,11 +122,13 @@ RenderWindow* create_window(
 	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, GL_CONTEXT_FLAG_DEBUG_BIT);
 
     // some defaults just to shut up static analyzer
+    // (positional: designated initializers are C++20 and MSVC rejects them earlier)
     SDL_DisplayMode preferred_mode = {
-        .format = SDL_PIXELFORMAT_RGB888,            /**< pixel format */
-        .w = 800,
-        .h = 600,                      /**< height, in screen coordinates */
-        .refresh_rate = 0           /**< refresh rate (or zero for unspecified) */
+        SDL_PIXELFORMAT_RGB888,     /**< pixel format */
+        800,                        /**< width, in screen coordinates */
+        600,                        /**< height, in screen coordinates */
+        0,                          /**< refresh rate (or zero for unspecified) */
+        nullptr                     /**< driver-specific data */
     };
 
     if (VERBOSE_MODES) {
