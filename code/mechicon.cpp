@@ -363,13 +363,17 @@ void MechIcon::setDrawBack( bool bSet)
 		pDestData = pDestRow;
 		pSrcData = pSrcRow;
 		for ( int i = 0; i < unitIconX; ++i ) // do four icons per row
-		{	
+		{
+			// unaligned source (pixels follow the 18-byte TGA header)
+			DWORD srcPixel;
+			memcpy( &srcPixel, pSrcData, sizeof(srcPixel) );
+
 			bool bDraw = 0;
 			// compare colors, only draw back ones which are 4, 5, 6, and 7
 			for ( int i = 0; i < 3; i++ )
 			{
 				long compColor =  damageColors[0][i];
-				long srcColor = *pSrcData;
+				long srcColor = srcPixel;
 
 				long compMin = compColor >> 16;
 				compMin += 4;
@@ -380,11 +384,11 @@ void MechIcon::setDrawBack( bool bSet)
 					bDraw = 1;
 				}
 			}
-			if (  *pSrcData == 0xff505050 )
+			if (  srcPixel == 0xff505050 )
 				bDraw = 1;
 
 			if ( bDraw )
-				*pDestData++ = *pSrcData;
+				*pDestData++ = srcPixel;
 			else
 				*pDestData++ = 0;
 
@@ -521,7 +525,7 @@ bool MechIcon::init( long whichIndex )
 	TEXTUREPTR textureData;
 	gos_LockTexture( s_textureHandle[textureIndex], 0, 0, &textureData );
 
-	DWORD* pDestData, *pDestRow = textureData.pTexture + offsetY * textureData.Width + offsetX;
+	DWORD* pDestRow = textureData.pTexture + offsetY * textureData.Width + offsetX;
 	char* pTmp = (char*)s_MechTextures + sizeof ( TGAFileHeader );
 	DWORD* pSrcRow = (DWORD*)pTmp;
 
@@ -533,16 +537,12 @@ bool MechIcon::init( long whichIndex )
 
 	pSrcRow += tmpOffset;
 
-	DWORD* pSrcData = pSrcRow;
 
 	for( int j = 0; j < unitIconY; ++j )
 	{
-		pDestData = pDestRow;
-		pSrcData = pSrcRow;
-		for ( int i = 0; i < unitIconX; ++i ) // do four icons per row
-		{	
-			*pDestData++ = *pSrcData++;
-		}
+		// the pixels follow an 18-byte TGA header, so the source DWORDs are
+		// not aligned: copy the row bytewise
+		memcpy( pDestRow, pSrcRow, unitIconX * sizeof(DWORD) );
 		pSrcRow += s_MechTextures->width;
 		pDestRow += textureData.Width;
 	}
@@ -1183,7 +1183,7 @@ bool VehicleIcon::init( Mover* pMover )
 	gos_LockTexture( s_textureHandle[texIndex], 0, 0, &textureData );
 
 	
-	DWORD* pDestData, *pDestRow = textureData.pTexture + offsetY * textureData.Width + offsetX;
+	DWORD* pDestRow = textureData.pTexture + offsetY * textureData.Width + offsetX;
 	char* pTmp = (char*)s_VehicleTextures + sizeof ( TGAFileHeader );
 	DWORD* pSrcRow = (DWORD*)pTmp;
 
@@ -1196,16 +1196,11 @@ bool VehicleIcon::init( Mover* pMover )
 
 	pSrcRow += tmpOffset;
 
-	DWORD* pSrcData = pSrcRow;
 
 	for( int j = 0; j < unitIconY; ++j )
 	{
-		pDestData = pDestRow;
-		pSrcData = pSrcRow;
-		for ( int i = 0; i < unitIconX; ++i ) // do four icons per row
-		{	
-			*pDestData++ = *pSrcData++;
-		}
+		// unaligned source (pixels follow the 18-byte TGA header)
+		memcpy( pDestRow, pSrcRow, unitIconX * sizeof(DWORD) );
 		pSrcRow += s_VehicleTextures->width;
 		pDestRow += textureData.Width;
 	}

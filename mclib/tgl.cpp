@@ -199,7 +199,10 @@ void TG_TypeNode::destroy (void)
 TG_ShapePtr TG_TypeNode::CreateFrom (void)
 {
 	TG_ShapePtr newShape = NULL;
-	newShape = (TG_ShapePtr)TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
+	// construct in place (as TG_TypeShape::CreateFrom does): TG_Shape has a
+	// virtual function, so raw heap memory has no valid vptr
+	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
+	newShape = ::new(memarea) TG_Shape();
 	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
