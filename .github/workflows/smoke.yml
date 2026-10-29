@@ -112,7 +112,7 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DMC2_BUILD_TESTS=OFF -DMC2_GLES=${{ matrix.gles }} \
             -DMC2_SANITIZE=${{ matrix.sanitize }}
-          cmake --build build --target mc2 mc2res_64
+          cmake --build build --target mc2 mc2res_64 -- -k 0   # report every failing file
       - uses: actions/cache/restore@v6
         with:
           path: gamedata
