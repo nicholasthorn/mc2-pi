@@ -3832,7 +3832,7 @@ void GlobalMap::openArea (long area) {
 
 void GlobalMap::print (char* fileName) {
 
-	if (areaMap)
+	if (!areaMap)
 		return;
 
 	File* debugFile = new File;

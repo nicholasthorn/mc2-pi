@@ -984,7 +984,7 @@ void ForceGroupIcon::render()
 	}
 
 
-	if ( unit && (unit->getStatus () == OBJECT_STATUS_SHUTDOWN) )
+	if ( unit->getStatus () == OBJECT_STATUS_SHUTDOWN )
 	{
 		drawRect( selectionRect[locationIndex], 0xaa000000 );
 	}

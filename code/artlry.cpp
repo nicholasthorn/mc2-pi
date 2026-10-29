@@ -990,7 +990,7 @@ long Artillery::update (void)
 		bomber->setVisibility(true,true);
 		bomber->update();
 		
-		if (bomber && leftContrail && leftContrail->IsExecuted())
+		if (leftContrail && leftContrail->IsExecuted())
 		{
 			Stuff::Vector3D lPosition = bomber->getDustNodePosition(GV_LEFT_DUST_ID);
 			
@@ -1010,7 +1010,7 @@ long Artillery::update (void)
 			leftContrail->Execute(&info);
 		}
 		
-		if (bomber && rightContrail && rightContrail->IsExecuted())
+		if (rightContrail && rightContrail->IsExecuted())
 		{
 			Stuff::Vector3D lPosition = bomber->getNodeNamePosition("activity_node");
 			

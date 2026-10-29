@@ -437,6 +437,8 @@ bool CSpecificEnemyUnitObjectiveCondition::Read( FitIniFile* missionFile )
 			long i;
 			for (i = 0; i < numMovers; i+= 1) {
 				pMover = ObjectManager->getMover(i);
+				if (!pMover)
+					continue;
 				bool close_x = areCloseEnough(pMover->getPosition().x, positionX);
 				bool close_y = areCloseEnough(pMover->getPosition().y, positionY);
 				// FIXME: sebi: one of the missions has bad data and so this condition never worked which led to assert(false)

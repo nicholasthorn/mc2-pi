@@ -269,10 +269,10 @@ long aObject::numberOfChildren() const
 
 void aObject::addChild(aObject* c)
 {
-	Assert (pNumberOfChildren < MAX_CHILDREN, pNumberOfChildren+1, "Too many children!");
-	Assert(c->getParent() == NULL || c->getParent() == this, 0, " Adding child that's someone else's ");
 	if (!c)
 		return;
+	Assert (pNumberOfChildren < MAX_CHILDREN, pNumberOfChildren+1, "Too many children!");
+	Assert(c->getParent() == NULL || c->getParent() == this, 0, " Adding child that's someone else's ");
 	removeChild(c);	//	make sure this isn't already my child (Duplicate children screws up bringToFront())
 	c->setParent(this);
 	pChildren[pNumberOfChildren] = c;

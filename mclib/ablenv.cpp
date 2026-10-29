@@ -508,7 +508,7 @@ long ABLModule::init (int moduleHandle) {
 		for (long i = 0; i < numStatics; i++)
 			if (sizeList[i] > 0) {
 				staticData[i].address = (char*)ABLStackMallocCallback(sizeList[i]);
-				if (!staticData) {
+				if (!staticData[i].address) {
 					char err[255];
 					sprintf(err, "ABL: Unable to AblStackHeap->malloc staticData address [Module %d]", id);
 					ABL_Fatal(0, err);
@@ -650,7 +650,7 @@ void ABLModule::read (ABLFile* moduleFile) {
 			if (sizeList[i] > 0) {
 				if (fresh) {
 					staticData[i].address = (char*)ABLStackMallocCallback(sizeList[i]);
-					if (!staticData) {
+					if (!staticData[i].address) {
 						char err[255];
 						sprintf(err, "ABL: Unable to AblStackHeap->malloc staticData address [Module %d]", id);
 						ABL_Fatal(0, err);

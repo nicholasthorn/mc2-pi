@@ -55,7 +55,8 @@ void FullPathFileName::init (const char * dir_path, const char * name, const cha
 
 	long total_length = strlen(dir_path);
 	total_length += strlen(name);
-	total_length += strlen(ext);
+	if (ext)
+		total_length += strlen(ext);
 	total_length++;
 
 
