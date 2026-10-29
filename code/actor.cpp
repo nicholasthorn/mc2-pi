@@ -380,7 +380,7 @@ long VFXAppearance::render (long depthFixup)
 		lightg = eye->getLightGreen(lightIntensity,visible,seen);
 		lightb = eye->getLightBlue(lightIntensity,visible,seen);
 					
-		DWORD lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+		DWORD lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 			
 		newElement.setLight(lightRGB);
 	

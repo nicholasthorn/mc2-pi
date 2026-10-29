@@ -254,7 +254,7 @@ typedef struct _TG_Light
 		g = intensity * ((OEMaRGB >> 8) & 0x000000ff);
 		b = intensity * ((OEMaRGB) & 0x000000ff);
 
-		aRGB = (0xff << 24) + (r << 16) + (g << 8) + (b);
+		aRGB = (0xffu << 24) + (r << 16) + (g << 8) + (b);
 	}
 
 	bool GetFalloff(float length, float &falloff)

@@ -841,7 +841,7 @@ void TerrainQuad::setupTextures (void)
 					specR = specG = specB = lighteningLevel;
 				}
 
-				vertices[0]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+				vertices[0]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
 				for (long i=2;i<eye->getNumTerrainLights();i++)
@@ -892,8 +892,8 @@ void TerrainQuad::setupTextures (void)
 				}
 			}
 			
-			vertices[0]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
-			vertices[0]->fogRGB = (0xff<<24) + (specR<<16) + (specG << 8) + (specB);
+			vertices[0]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
+			vertices[0]->fogRGB = (0xffu<<24) + (specR<<16) + (specG << 8) + (specB);
 				
 			//Fog
 			DWORD fogResult = 0xff;
@@ -930,7 +930,7 @@ void TerrainQuad::setupTextures (void)
 						fogResult = 0xff;
 					}
 					
-					vertices[0]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+					vertices[0]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 				}
 			}
 
@@ -944,7 +944,7 @@ void TerrainQuad::setupTextures (void)
 				if (distFog < fogResult)
 				   fogResult = distFog;
 				
-				vertices[0]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+				vertices[0]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 			}
 
 			vertices[0]->calcThisFrame |= 1;
@@ -995,7 +995,7 @@ void TerrainQuad::setupTextures (void)
 				{
 					specR = specG = specB = lighteningLevel;
 				}
-				vertices[1]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+				vertices[1]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
 				for (long i=2;i<eye->getNumTerrainLights();i++)
@@ -1046,8 +1046,8 @@ void TerrainQuad::setupTextures (void)
 				}
 			}
 			
-			vertices[1]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
-			vertices[1]->fogRGB = (0xff<<24) + (specR<<16) + (specG << 8) + (specB);
+			vertices[1]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
+			vertices[1]->fogRGB = (0xffu<<24) + (specR<<16) + (specG << 8) + (specB);
 
 			//Fog
 			DWORD fogResult = 0xff;
@@ -1084,7 +1084,7 @@ void TerrainQuad::setupTextures (void)
 					   fogResult = 0xff;
 					}
 					
-					vertices[1]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+					vertices[1]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 				}
 			}
 
@@ -1098,7 +1098,7 @@ void TerrainQuad::setupTextures (void)
 				if (distFog < fogResult)
 				   fogResult = distFog;
 				   
-				vertices[1]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+				vertices[1]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 			}
 
 			vertices[1]->calcThisFrame |= 1;
@@ -1149,7 +1149,7 @@ void TerrainQuad::setupTextures (void)
 				{
 					specR = specG = specB = lighteningLevel;
 				}
-				vertices[2]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+				vertices[2]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
 				for (long i=2;i<eye->getNumTerrainLights();i++)
@@ -1200,8 +1200,8 @@ void TerrainQuad::setupTextures (void)
 				}
 			}
 			
-			vertices[2]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
-			vertices[2]->fogRGB = (0xff<<24) + (specR<<16) + (specG << 8) + (specB);
+			vertices[2]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
+			vertices[2]->fogRGB = (0xffu<<24) + (specR<<16) + (specG << 8) + (specB);
 
 			//Fog
 			DWORD fogResult = 0xff;
@@ -1238,7 +1238,7 @@ void TerrainQuad::setupTextures (void)
 					   fogResult = 0xff;
 				   }
 					
-					vertices[2]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+					vertices[2]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 				}
 			}
 
@@ -1252,7 +1252,7 @@ void TerrainQuad::setupTextures (void)
 				if (distFog < fogResult)
 				   fogResult = distFog;
 				   
-				vertices[2]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+				vertices[2]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 			}
 
 			vertices[2]->calcThisFrame |= 1;
@@ -1303,7 +1303,7 @@ void TerrainQuad::setupTextures (void)
 				{
 					specR = specG = specB = lighteningLevel;
 				}
-				vertices[3]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+				vertices[3]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
 				for (long i=2;i<eye->getNumTerrainLights();i++)
@@ -1354,8 +1354,8 @@ void TerrainQuad::setupTextures (void)
 				}
 			}
 			
-			vertices[3]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
-			vertices[3]->fogRGB = (0xff<<24) + (specR<<16) + (specG << 8) + (specB);
+			vertices[3]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
+			vertices[3]->fogRGB = (0xffu<<24) + (specR<<16) + (specG << 8) + (specB);
 			
 			//Fog
 			DWORD fogResult = 0xff;
@@ -1404,7 +1404,7 @@ void TerrainQuad::setupTextures (void)
 				if (distFog < fogResult)
 				   fogResult = distFog;
 				   
-				vertices[3]->fogRGB = (fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
+				vertices[3]->fogRGB = ((DWORD)fogResult<<24) + (specR<<16) + (specG << 8) + (specB);
 			}
 
 			vertices[3]->calcThisFrame |= 1;

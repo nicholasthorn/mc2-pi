@@ -1663,7 +1663,7 @@ void Mech3DAppearance::setPaintScheme (void)
 					newColorBlue  *= baseColorRed;
 					unsigned char blue = (unsigned char)newColorBlue;
 
-					newColor = (0xff<<24) + (red<<16) + (green<<8) + (blue);
+					newColor = (0xffu<<24) + (red<<16) + (green<<8) + (blue);
 				}
 				else if ((!baseColorRed) && (!baseColorBlue))
 				{
@@ -1684,7 +1684,7 @@ void Mech3DAppearance::setPaintScheme (void)
 					newColorBlue  *= baseColorGreen;
 					unsigned char blue = (unsigned char)newColorBlue;
 
-					newColor = (0xff<<24) + (red<<16) + (green<<8) + (blue);
+					newColor = (0xffu<<24) + (red<<16) + (green<<8) + (blue);
 				}
 				else if ((!baseColorRed) && (!baseColorGreen))
 				{
@@ -1705,7 +1705,7 @@ void Mech3DAppearance::setPaintScheme (void)
 					newColorBlue  *= baseColorBlue;
 					unsigned char blue = (unsigned char)newColorBlue;
 
-					newColor = (0xff<<24) + (red<<16) + (green<<8) + (blue);
+					newColor = (0xffu<<24) + (red<<16) + (green<<8) + (blue);
 				}
 
 				*textureMemory = newColor;
@@ -3038,7 +3038,7 @@ void Mech3DAppearance::updateGeometry (void)
 		eye->setLightColor(0,lightRGB);
 		eye->setLightIntensity(0,1.0);
 	
-		DWORD fogRGB = 0xff<<24;
+		DWORD fogRGB = 0xffu<<24;
 		float fogStart = eye->fogStart;
 		float fogFull = eye->fogFull;
 	
@@ -3046,7 +3046,7 @@ void Mech3DAppearance::updateGeometry (void)
 		{
 			float fogFactor = fogStart - xlatPosition.y;
 			if (fogFactor < 0.0)
-				fogRGB = 0xff<<24;
+				fogRGB = 0xffu<<24;
 			else
 			{
 				fogFactor /= (fogStart - fogFull);
@@ -3061,13 +3061,13 @@ void Mech3DAppearance::updateGeometry (void)
 					fogFactor = 256.0;
 				}
 	
-				unsigned char fogResult = fogFactor;
-				fogRGB = fogResult << 24;
+				unsigned char fogResult = (unsigned char)(int)fogFactor;	// via int: fogFactor can be 256.0, out of range for a byte (x86 result: 0)
+				fogRGB = (DWORD)fogResult << 24;
 			}
 		}
 		else
 		{
-			fogRGB = 0xff<<24;
+			fogRGB = 0xffu<<24;
 		}
 	
 		if (useFog)

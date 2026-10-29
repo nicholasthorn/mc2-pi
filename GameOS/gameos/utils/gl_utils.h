@@ -2,12 +2,14 @@
 #define __GL_UTILS_H__
 
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include "utils/camera.h"
 #include "utils/shader_builder.h"
 #include "utils/render_constants.h"
 
-#define BUFFER_OFFSET(bytes) ((GLubyte*) NULL + (bytes))
+// GL buffer offset as a pointer (arithmetic on a NULL pointer is undefined)
+#define BUFFER_OFFSET(bytes) ((void*)(uintptr_t)(bytes))
 
 uint32_t vec4_to_uint32(const vec4& v);
 vec4 uint32_to_vec4(uint32_t v);

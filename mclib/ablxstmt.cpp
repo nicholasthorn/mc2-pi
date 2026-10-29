@@ -424,7 +424,9 @@ void execActualParams (SymTableNodePtr routineIdPtr) {
 			if ((formalTypePtr == RealTypePtr) && (actualTypePtr == IntegerTypePtr)) {
 				//---------------------------------------------
 				// Real formal parameter, but integer actual...
-				tos->real = (float)(tos->integer);
+				// (via a temporary: overlapping union members in one assignment)
+				float value = (float)(tos->integer);
+				tos->real = value;
 			}
 
 			//----------------------------------------------------------

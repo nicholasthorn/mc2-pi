@@ -1032,7 +1032,7 @@ class gosRenderer {
                 }
             };
 
-            equals_to eq;
+            equals_to eq = equals_to();
             eq.fnt_ = font;
 
             std::vector<gosFont*>::iterator it = 
@@ -1074,7 +1074,7 @@ class gosRenderer {
                 }
             };
 
-            equals_to eq;
+            equals_to eq = equals_to();
             eq.font_id_ = font_id;
 
             std::vector<gosFont*>::iterator it = 

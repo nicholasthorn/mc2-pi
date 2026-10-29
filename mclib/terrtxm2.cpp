@@ -927,7 +927,7 @@ void TerrainColorMap::burnInShadows (bool doBumpPass, const char *fileName)
 			lightg = currentGreen;
 			lightb = currentBlue;
 			
-			*cMap = (0xff << 24) + (lightr << 16) + (lightg << 8) + (lightb);
+			*cMap = (0xffu << 24) + (lightr << 16) + (lightg << 8) + (lightb);
 		}
 		cMap++;
 	}

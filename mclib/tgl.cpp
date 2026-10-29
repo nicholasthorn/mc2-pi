@@ -198,11 +198,10 @@ void TG_TypeNode::destroy (void)
 // This function creates an instance of a TG_Shape from a TG_TypeNode.  Saves RAM.
 TG_ShapePtr TG_TypeNode::CreateFrom (void)
 {
-	TG_ShapePtr newShape = NULL;
 	// construct in place (as TG_TypeShape::CreateFrom does): TG_Shape has a
 	// virtual function, so raw heap memory has no valid vptr
 	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
-	newShape = ::new(memarea) TG_Shape();
+	TG_ShapePtr newShape = ::new(memarea) TG_Shape();
 	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
@@ -359,10 +358,8 @@ void TG_TypeNode::SaveBinaryCopy (File &binFile)
 // This function creates an instance of a TG_Shape from a TG_TypeShape.  Saves RAM.
 TG_ShapePtr TG_TypeShape::CreateFrom (void)
 {
-	TG_ShapePtr newShape = NULL;
-	//newShape = (TG_ShapePtr)TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
 	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
-	newShape = ::new(memarea) TG_Shape();
+	TG_ShapePtr newShape = ::new(memarea) TG_Shape();
 	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
@@ -1184,7 +1181,7 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 			DWORD greenC = green * 0xff;
 			DWORD blueC = blue * 0xff;
 
-			listOfTypeVertices[listOfTypeTriangles[i].Vertices[0]].aRGBLight = (0xff << 24) + (redC << 16) + (greenC << 8) + blueC;
+			listOfTypeVertices[listOfTypeTriangles[i].Vertices[0]].aRGBLight = (0xffu << 24) + (redC << 16) + (greenC << 8) + blueC;
 
 			//Load up the VERTCOL1
 			sprintf(faceId,"%s",ASE_NUM_CVERTEX);
@@ -1216,7 +1213,7 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 			greenC = green * 0xff;
 			blueC = blue * 0xff;
 
-			listOfTypeVertices[listOfTypeTriangles[i].Vertices[1]].aRGBLight = (0xff << 24) + (redC << 16) + (greenC << 8) + blueC;
+			listOfTypeVertices[listOfTypeTriangles[i].Vertices[1]].aRGBLight = (0xffu << 24) + (redC << 16) + (greenC << 8) + blueC;
 
 			//Load up the VERTCOL2
 			sprintf(faceId,"%s",ASE_NUM_CVERTEX);
@@ -1248,7 +1245,7 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 			greenC = green * 0xff;
 			blueC = blue * 0xff;
 
-			listOfTypeVertices[listOfTypeTriangles[i].Vertices[2]].aRGBLight = (0xff << 24) + (redC << 16) + (greenC << 8) + blueC;
+			listOfTypeVertices[listOfTypeTriangles[i].Vertices[2]].aRGBLight = (0xffu << 24) + (redC << 16) + (greenC << 8) + blueC;
 		}
 		else
 		{
@@ -2119,7 +2116,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			if (blueFinal > 255)
 				blueFinal = 255;
 					
-			listOfVertices[j].argb = (0xff << 24) + (redFinal << 16) + (greenFinal << 8) + (blueFinal);
+			listOfVertices[j].argb = (0xffu << 24) + (redFinal << 16) + (greenFinal << 8) + (blueFinal);
 
 			// NEW
 			// Add in the pre-calced or calced this frame terrain lights.
@@ -2140,7 +2137,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		}
 		else
 		{
-			listOfVertices[j].argb = (0xff << 24) + (redAmb << 16) + (greenAmb << 8) + (blueAmb);
+			listOfVertices[j].argb = (0xffu << 24) + (redAmb << 16) + (greenAmb << 8) + (blueAmb);
 		}
 
 		DWORD fogValue = (listOfVertices[j].frgb >> 24) & 0x000000ff;
@@ -2186,12 +2183,12 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			}
 			else
 			{
-				listOfVertices[j].frgb = (0xff << 24) + (redSpec << 16) + (greenSpec << 8) + (blueSpec);
+				listOfVertices[j].frgb = (0xffu << 24) + (redSpec << 16) + (greenSpec << 8) + (blueSpec);
 			}
 		}
 		else
 		{
-			listOfVertices[j].frgb = (0xff << 24) + (redSpec << 16) + (greenSpec << 8) + (blueSpec);
+			listOfVertices[j].frgb = (0xffu << 24) + (redSpec << 16) + (greenSpec << 8) + (blueSpec);
 		}
 
 		//-------------------
@@ -2995,7 +2992,7 @@ void TG_Shape::MultiTransformShadows (Stuff::Point3D *pos, Stuff::LinearMatrix4D
 									{
 										float fogFactor = fogStart - pos->y;
 										if (fogFactor < 0.0)
-											fogRGB = (0xff<<24);
+											fogRGB = (0xffu<<24);
 										else
 										{
 											fogFactor /= (fogStart - fogFull);
@@ -3011,12 +3008,12 @@ void TG_Shape::MultiTransformShadows (Stuff::Point3D *pos, Stuff::LinearMatrix4D
 											}
 		
 											unsigned char fogResult = float2long(fogFactor);
-											fogRGB = (fogResult << 24);
+											fogRGB = ((DWORD)fogResult << 24);
 										}
 									}
 									else
 									{
-										fogRGB = (0xff<<24);
+										fogRGB = (0xffu<<24);
 									}
 								}
 								
@@ -3132,7 +3129,7 @@ void TG_Shape::MultiTransformShadows (Stuff::Point3D *pos, Stuff::LinearMatrix4D
 										{
 											float fogFactor = fogStart - pos->y;
 											if (fogFactor < 0.0)
-												fogRGB = (0xff<<24);
+												fogRGB = (0xffu<<24);
 											else
 											{
 												fogFactor /= (fogStart - fogFull);
@@ -3148,12 +3145,12 @@ void TG_Shape::MultiTransformShadows (Stuff::Point3D *pos, Stuff::LinearMatrix4D
 												}
 			
 												unsigned char fogResult = float2long(fogFactor);
-												fogRGB = (fogResult << 24);
+												fogRGB = ((DWORD)fogResult << 24);
 											}
 										}
 										else
 										{
-											fogRGB = (0xff<<24);
+											fogRGB = (0xffu<<24);
 										}
 									}
 									

@@ -1043,7 +1043,7 @@ long GenericAppearance::update (bool animate)
 		eye->setLightColor(0,lightRGB);
 		eye->setLightIntensity(0,1.0);
 	
-		DWORD fogRGB = 0xff<<24;
+		DWORD fogRGB = 0xffu<<24;
 		float fogStart = eye->fogStart;
 		float fogFull = eye->fogFull;
 	
@@ -1055,7 +1055,7 @@ long GenericAppearance::update (bool animate)
 		{
 			float fogFactor = fogStart - xlatPosition.y;
 			if (fogFactor < 0.0)
-				fogRGB = 0xff<<24;
+				fogRGB = 0xffu<<24;
 			else
 			{
 				fogFactor /= (fogStart - fogFull);
@@ -1071,12 +1071,12 @@ long GenericAppearance::update (bool animate)
 				}
 	
 				unsigned char fogResult = float2long(fogFactor);
-				fogRGB = fogResult << 24;
+				fogRGB = (DWORD)fogResult << 24;
 			}
 		}
 		else
 		{
-			fogRGB = 0xff<<24;
+			fogRGB = 0xffu<<24;
 		}
 	
 		if (useFog)

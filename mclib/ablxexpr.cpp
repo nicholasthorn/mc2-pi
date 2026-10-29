@@ -65,10 +65,16 @@ extern DebuggerPtr		debugger;
 inline void promoteOperandsToReal (StackItemPtr operand1Ptr, TypePtr type1Ptr,
 								   StackItemPtr operand2Ptr, TypePtr type2Ptr) {
 
-	if (type1Ptr == IntegerTypePtr)
-		operand1Ptr->real = (float)(operand1Ptr->integer);
-	if (type2Ptr == IntegerTypePtr)
-		operand2Ptr->real = (float)(operand2Ptr->integer);
+	// via a temporary: reading one union member and writing another in the
+	// same assignment is undefined behaviour
+	if (type1Ptr == IntegerTypePtr) {
+		float value = (float)(operand1Ptr->integer);
+		operand1Ptr->real = value;
+	}
+	if (type2Ptr == IntegerTypePtr) {
+		float value = (float)(operand2Ptr->integer);
+		operand2Ptr->real = value;
+	}
 }
 
 //***************************************************************************
@@ -203,13 +209,22 @@ TypePtr execVariable (SymTableNodePtr idPtr, UseType use) {
 	//		c) it's the address of an array or record;
 	// Otherwise, replace the address with the value it points to.
 	if ((use != USE_TARGET) && (use != USE_REFPARAM) &&	(typePtr->form != FRM_ARRAY)) {
+		// Read through a copy of the address (tos->address and the value share
+		// the union), with memcpy because variables in packed arrays/records
+		// can be unaligned.
+		const char* src = tos->address;
 		if ((typePtr == IntegerTypePtr) || (typePtr->form == FRM_ENUM)) {
-			tos->integer = *((int*)tos->address);
+			int value;
+			memcpy(&value, src, sizeof(value));
+			tos->integer = value;
 			}
 		else if (typePtr == CharTypePtr)
-			tos->byte = *((char*)tos->address);
-		else
-			tos->real = *((float*)tos->address);
+			tos->byte = *src;
+		else {
+			float value;
+			memcpy(&value, src, sizeof(value));
+			tos->real = value;
+		}
 	}
 
 	if (debugger) {

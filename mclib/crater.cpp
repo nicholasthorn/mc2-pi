@@ -369,7 +369,7 @@ void CraterManager::render (void)
 				lightg = eye->ambientGreen;
 				lightb = eye->ambientBlue;
 						
-				lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+				lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 				
 				if (Terrain::terrainTextures2)
 				{
@@ -385,10 +385,10 @@ void CraterManager::render (void)
 						specR = specG = specB = TerrainQuad::lighteningLevel;
 					}
 					
-					lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xff << 24);
+					lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 				}
 
-				DWORD fogRGB = (0xff<<24) + (specR<<16) + (specG<<8) + specB;
+				DWORD fogRGB = (0xffu<<24) + (specR<<16) + (specG<<8) + specB;
 				
 				if (useFog)
 				{
@@ -400,7 +400,7 @@ void CraterManager::render (void)
 					{
 						float fogFactor = fogStart - currCrater->position[0].z;
 						if (fogFactor < 0.0)
-							fogRGB = (0xff<<24) + (specR<<16) + (specG<<8) + specB; 
+							fogRGB = (0xffu<<24) + (specR<<16) + (specG<<8) + specB; 
 						else
 						{
 							fogFactor /= (fogStart - fogFull);
@@ -415,14 +415,14 @@ void CraterManager::render (void)
 								fogFactor = 256.0;
 							}
 
-							unsigned char fogResult = fogFactor;
+							unsigned char fogResult = (unsigned char)(int)fogFactor;	// via int: fogFactor can be 256.0, out of range for a byte (x86 result: 0)
 							fogValue = fogFactor;
-							fogRGB = (fogResult << 24) + (specR<<16) + (specG<<8) + specB;
+							fogRGB = ((DWORD)fogResult << 24) + (specR<<16) + (specG<<8) + specB;
 						}
 					}
 					else
 					{
-						fogRGB = (0xff<<24) + (specR<<16) + (specG<<8) + specB;
+						fogRGB = (0xffu<<24) + (specR<<16) + (specG<<8) + specB;
 					}
 					
 					if (hazeFactor != 0.0f)
