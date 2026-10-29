@@ -41,28 +41,28 @@ extern volatile bool mc2UseAsyncMouse;		//Should mouse draw and update in separa
 extern DWORD gEnableDetailTexture;
 
 CPrefs::CPrefs() {
-	DigitalMasterVolume = 255;
-	MusicVolume = 64;
-	sfxVolume = 64;
-	RadioVolume = 64;
-	BettyVolume = 64;
+	this->DigitalMasterVolume = 255;
+	this->MusicVolume = 64;
+	this->sfxVolume = 64;
+	this->RadioVolume = 64;
+	this->BettyVolume = 64;
 
-	useShadows = true;
-	useWaterInterestTexture = true;
-	useHighObjectDetail = true;
+	this->useShadows = true;
+	this->useWaterInterestTexture = true;
+	this->useHighObjectDetail = true;
 
-	GameDifficulty = 0;
-	useUnlimitedAmmo = true;
+	this->GameDifficulty = 0;
+	this->useUnlimitedAmmo = true;
 
-	renderer = 0;
-    resolutionX = 800;
-    resolutionY = 600;
+	this->renderer = 0;
+    this->resolutionX = 800;
+    this->resolutionY = 600;
     bitDepth = 32;
-    displayNumber = 0;
+    this->displayNumber = 0;
 
 	fullScreen = false;
-	gammaLevel = 0;
-	useLeftRightMouseProfile = true; // if false, use old style commands
+	this->gammaLevel = 0;
+	this->useLeftRightMouseProfile = true; // if false, use old style commands
 	for ( int i = 0; i < 10; i++ )
 		playerName[i][0] = 0;
 
@@ -76,6 +76,15 @@ CPrefs::CPrefs() {
 	insigniaFile[0] = 0;
 	for (int i = 0; i < 10; i++ )
 		unitName[i][0] = 0;
+
+	// same defaults load() falls back to
+	pilotVideos = true;
+	this->useLocalShadows = true;
+	this->useNonWeaponEffects = false;
+	asyncMouse = false;
+	fogPos = 50;
+	saveTranscripts = false;
+	tutorials = true;
 
 #if 0
 	FilterState = gos_FilterNone;

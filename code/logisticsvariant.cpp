@@ -37,6 +37,12 @@ LogisticsChassis::LogisticsChassis()
 	canHaveOptics = 
 	canHaveJumpJets = 0;
 
+	// the rest is read by init()
+	ID = fitID = encyclopediaID = helpID = houseID = 0;
+	maxHeat = baseArmor = maxArmor = 0;
+	speed = scale = 0.0f;
+	iconPictureIndex = 0;
+	componentAreaWidth = componentAreaHeight = 0;
 }
 
 int LogisticsChassis::init( CSVFile* file, int chassisID )
@@ -233,14 +239,14 @@ LogisticsVariant::LogisticsVariant( const LogisticsChassis* pChassis , bool Desi
 	bDesignerMech = Designer;
 	bHidden = 0;
 	fileID = 0;
+	memset( components, 0, sizeof( components ) );
 
 
 }
 LogisticsVariant::~LogisticsVariant()
 {
-	chassis->refCount--;
-
-	if ( chassis->refCount == 0 )
+	// a default-constructed variant has no chassis until init()
+	if ( chassis && --chassis->refCount == 0 )
 		delete chassis;
 
 	chassis = NULL;

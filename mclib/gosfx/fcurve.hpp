@@ -104,7 +104,7 @@ namespace gosFX {
 			m_value;
 
 		ConstantCurve(CurveType type=e_ConstantType):
-			Curve(type)
+			Curve(type), m_value(0.0f)
 				{}
 
 		ConstantCurve&
@@ -156,7 +156,7 @@ namespace gosFX {
 			m_slope;
 
 		LinearCurve(CurveType type=e_LinearType):
-			ConstantCurve(type)
+			ConstantCurve(type), m_slope(0.0f)
 				{}
 
 		LinearCurve&
@@ -209,7 +209,7 @@ namespace gosFX {
 			m_b;
 
 		SplineCurve():
-			LinearCurve(e_SplineType)
+			LinearCurve(e_SplineType), m_a(0.0f), m_b(0.0f)
 				{}
 
 		SplineCurve&

@@ -358,6 +358,30 @@ class Camera
 			cameraAltitudeDesired = 1200.0f;
 
 			nightFactor = 0.0f;
+
+			// the rest is loaded by init(FitIniFile*) or set per frame;
+			// start from zero rather than heap garbage
+			memset(zoomLevelLODScale, 0, sizeof(zoomLevelLODScale));
+			startZInverse = startWInverse = zPerPixel = wPerPixel = 0.0f;
+			numLights = numActiveLights = numTerrainLights = 0;
+			lights_shader_data_ = NULL;
+			fadeStart = 0;
+			lightYaw = lightPitch = 0.0f;
+			lightFinalYaw = lightFinalPitch = lightTimeToFinal = 0.0f;
+			camera_fov = cosHalfFOV = 0.0f;
+			lightRed = lightGreen = lightBlue = 0;
+			ambientRed = ambientGreen = ambientBlue = 0;
+			terrainShadowColorEnabled = false;
+			terrainShadowRed = terrainShadowGreen = terrainShadowBlue = 0;
+			dayLightPitch = 0.0f;
+			dayLightRed = dayLightGreen = dayLightBlue = 0;
+			dayAmbientRed = dayAmbientGreen = dayAmbientBlue = 0;
+			sunsetLightRed = sunsetLightGreen = sunsetLightBlue = 0;
+			nightLightRed = nightLightGreen = nightLightBlue = 0;
+			nightAmbientRed = nightAmbientGreen = nightAmbientBlue = 0;
+			day2NightTransitionTime = dayLightTime = 0.0f;
+			seenRed = seenGreen = seenBlue = 0;
+			baseRed = baseGreen = baseBlue = 0;
 		}
 
 		Camera (void)

@@ -1205,6 +1205,10 @@ class GlobalMap {
 			closes = false;
 			opens = false;
 			numOffMapAreas = 0;
+			memset(offMapAreas, 0, sizeof(offMapAreas));
+			numSpecialAreas = 0;
+			goalArea = -1;
+			moverTeamID = -1;
 
 			log = NULL;
 			logEnabled = false;
@@ -1496,7 +1500,13 @@ class MoveMap {
 			maxCol = 0;
 			map = NULL;
 			mapRowTable = NULL;
+			mapRowStartTable = NULL;
+			mapColTable = NULL;
 			moveLevel = 0;
+			moverWID = 0;
+			moverTeamID = -1;
+			moverLayingMines = false;
+			moverWithdrawing = false;
 			startR = -1;
 			startC = -1;
 			goalR = -1;
