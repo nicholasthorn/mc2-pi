@@ -22,6 +22,44 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq glslang-tools
       - run: python3 scripts/validate_shaders.py
 
+  cppcheck:
+    name: cppcheck (changed files)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+          fetch-depth: 0
+      # .cpp files this push / PR touched (header-only changes are covered by
+      # the nightly full run in static.yml)
+      - name: Changed files
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            range="origin/${{ github.base_ref }}...HEAD"
+          elif [ -n "${{ github.event.before }}" ] && \
+               git cat-file -e "${{ github.event.before }}" 2>/dev/null; then
+            range="${{ github.event.before }}..HEAD"
+          else
+            range="HEAD~1..HEAD"
+          fi
+          files=$(git diff --name-only --diff-filter=AMR "$range" -- \
+                  'code/*.cpp' 'mclib/*.cpp' 'GameOS/*.cpp' 'gui/*.cpp' | tr '\n' ' ')
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          echo "changed: ${files:-none}"
+      - name: Install dependencies
+        if: steps.files.outputs.files != ''
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config cppcheck \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      - name: Check changed files against baseline
+        if: steps.files.outputs.files != ''
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo > /dev/null
+          python3 scripts/cppcheck_gate.py --build-dir build -j "$(nproc)" \
+            --files ${{ steps.files.outputs.files }}
+
   sanitizers:
     name: Unit tests (ASan + UBSan)
     runs-on: ubuntu-24.04
