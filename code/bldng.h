@@ -55,7 +55,6 @@ class BuildingType : public ObjectType {
 
 		float			damageLevel;
 		float			sensorRange;
-		long			teamId;
 		float			baseTonnage;
 		float			explDmg;
 		float			explRad;
@@ -208,7 +207,6 @@ class Building : public TerrainObject
 
 		virtual bool isNeutral (TeamPtr team);
 
-		void lightOnFire (float timeToBurn);
 
 		long updateAnimations (void);
 		

@@ -212,7 +212,6 @@ class Gate : public TerrainObject
 
 		TeamPtr getTeam (void); 
 
-		void lightOnFire (float timeToBurn);
 			
 		virtual float getDestructLevel (void)
 		{

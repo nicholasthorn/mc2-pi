@@ -2019,11 +2019,6 @@ long Turret::handleWeaponFire (long weaponIndex,
 
 //---------------------------------------------------------------------------
 
-void Turret::lightOnFire (float timeToBurn) {
-
-}
-
-//---------------------------------------------------------------------------
 void Turret::renderShadows (void)
 {
 	if (appearance->hasAnimationData(0))

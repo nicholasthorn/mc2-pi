@@ -8943,23 +8943,6 @@ float			damage = 0;
 
 //---------------------------------------------------------------------------
 
-bool BattleMech::isWeaponWorking (long weaponIndex)
-{
-//long bodyLocation = inventory[weaponIndex].bodyLocation;
-
-//	if ((bodyLocation == MECH_BODY_LOCATION_LARM) && inventory[actuator[ACTUATOR_LSHOULDER]].disabled)
-//		return(false);
-//	else if ((bodyLocation == MECH_BODY_LOCATION_RARM) && inventory[actuator[ACTUATOR_RSHOULDER]].disabled)
-//		return(false);
-//	else
-	if (inventory[weaponIndex].disabled)
-		return(false);
-	else if (getWeaponShots(weaponIndex) == 0)
-		return (false);
-	return(true);
-}
-
-//---------------------------------------------------------------------------
 float BattleMech::getTotalEffectiveness(void)
 {
 float weaponEffect, result;

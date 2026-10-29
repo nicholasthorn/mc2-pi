@@ -691,7 +691,6 @@ class BattleMech : public Mover {
 
 		virtual float calcMaxTargetDamage(void);
 
-		bool isWeaponWorking (long weaponIndex);
 		
 		void damageLoadedComponents (void);
 

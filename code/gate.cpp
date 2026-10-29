@@ -582,12 +582,6 @@ long Gate::setTeamId (long _teamId, bool setup)
 }
 
 //---------------------------------------------------------------------------
-void Gate::lightOnFire (float timeToBurn)
-{
-	//Gates have never burned
-}
-
-//---------------------------------------------------------------------------
 void Gate::render (void)
 {
 	if (appearance->canBeSeen())

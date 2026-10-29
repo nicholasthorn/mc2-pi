@@ -1040,13 +1040,6 @@ bool Building::isNeutral (TeamPtr team) {
 
 //---------------------------------------------------------------------------
 
-void Building::lightOnFire (float timeToBurn) 
-{
-	//Nothing lights on fire now. Part of the effect.
-}
-
-//---------------------------------------------------------------------------
-
 bool Building::isCaptureable (long capturingTeamID) {
 
 //	if (MPlayer)
@@ -1275,7 +1268,7 @@ void Building::init (bool create, ObjectTypePtr objType) {
 	setFlag(OBJECT_FLAG_CANREFIT, type->canRefit);
 	setFlag(OBJECT_FLAG_MECHBAY, type->mechBay);
 
-	setTeamId(type->teamId,true);
+	setTeamId(type->getTeamId(),true);
 
 	if (type->sensorRange > -1.0 && getTeam())
 		setSensorData(getTeam(), type->sensorRange, true);

@@ -31,10 +31,15 @@ EXCLUDE = ["tests", "thirdparty", "3rdparty"]
 # Microsoft's "Stuff" class registration: every class in mclib/stuff, mlr,
 # gosfx and the object types declares its own static InitializeClass /
 # TerminateClass / DefaultData / Make / TestInstance, hiding the parent's on
-# purpose. duplInheritedMember stays on for every other name, where hiding a
-# parent's member is a likely bug.
+# purpose. Every game object type likewise declares its own init() overloads.
+# The Stuff and gosFX libraries go further: their math types (Point3D,
+# Normal3D, UnitVector3D, LinearMatrix4D...) and effect classes redefine
+# operators, Load/Save, GetSpecification etc. per class so they return the
+# derived type. duplInheritedMember stays on for every other name and the rest
+# of the tree, where hiding a parent's member is a likely bug.
 DELIBERATE_HIDING = {"InitializeClass", "TerminateClass", "DefaultData",
-                     "Make", "TestInstance"}
+                     "Make", "TestInstance", "init"}
+DELIBERATE_HIDING_DIRS = ("mclib/stuff/", "mclib/gosfx/")
 HIDDEN_NAME = re.compile(r"with name '([^']+)' also defined in its parent class")
 # some messages name a line ("called from constructor 'Camera()' at line
 # 389"); keys must not move when unrelated edits shift the code
@@ -46,8 +51,10 @@ def key(path, severity, check, message):
                      LINE_IN_MESSAGE.sub("at line N", message)])
 
 
-def ignored(check, message):
+def ignored(path, check, message):
     if check == "duplInheritedMember":
+        if path.startswith(DELIBERATE_HIDING_DIRS):
+            return True
         m = HIDDEN_NAME.search(message)
         return bool(m) and m.group(1) in DELIBERATE_HIDING
     return False
@@ -73,7 +80,7 @@ def run_cppcheck(build_dir, files, jobs):
             continue  # -i is not honoured in --project mode by every version
         if severity in ("information", "debug"):
             continue
-        if ignored(check, message):
+        if ignored(path, check, message):
             continue
         findings[key(path, severity, check, message)] += 1
     return findings

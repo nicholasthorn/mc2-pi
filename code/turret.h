@@ -208,7 +208,6 @@ class Turret : public TerrainObject {
 			netRosterIndex = index;
 		}
 
-		void lightOnFire (float timeToBurn);
 
 		virtual long kill (void) 
 		{

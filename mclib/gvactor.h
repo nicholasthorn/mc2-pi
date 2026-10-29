@@ -186,7 +186,6 @@ class GVAppearance : public ObjectAppearance
 		TG_MultiShapePtr							sensorTriangleShape;
 		float										sensorSpin;
 									
-		long										objectNameId;
 	
 		float										turretRotation;
 		float										pitch;
