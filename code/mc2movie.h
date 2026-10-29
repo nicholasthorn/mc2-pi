@@ -32,6 +32,7 @@ class MC2Movie
 		MC2Movie (void)
 		{
 			MC2Surface = NULL;
+			pimpl = NULL;	// destroy_stuff() runs even if init() never did
 
 			for (long i=0;i<MAX_TEXTURES_NEEDED;i++)
 			{

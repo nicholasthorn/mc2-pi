@@ -159,12 +159,16 @@ void MC2Movie::init (const char *MC2Name, RECT mRect, bool useWaveFile)
 
 
     pimpl = (MoviePlayerImpl*)gos_Malloc(sizeof(MoviePlayerImpl));
+    pimpl->plm = NULL;
     char buf[1024];
     sprintf(buf, "./data/movies/%s.mpg", MOVIEName);
     plm_t* plm = plm_create_with_filename(buf);
 
     if(!plm) {
+        // e.g. data built without movies: play nothing (update() reports the
+        // movie as finished) instead of decoding through an unset pointer
         SPEW(("[MOVIE]", "Could not create movie: %s\n", buf));
+        stillPlaying = false;
         return;
     }
 
@@ -224,13 +228,20 @@ void MC2Movie::init (const char *MC2Name, RECT mRect, bool useWaveFile)
 }
 
 void MC2Movie::destroy_stuff(struct MoviePlayerImpl* pimpl) {
-	plm_destroy(pimpl->plm);
-    gos_Free(pimpl);
-    pimpl = 0;
+    if(pimpl) {
+        if(pimpl->plm)
+            plm_destroy(pimpl->plm);
+        gos_Free(pimpl);
+        pimpl = 0;
+    }
 
-    gos_DestroyVertexDeclaration(vdecl_);
-    gos_DestroyBuffer(quad_vb_);
-    gos_DestroyBuffer(quad_ib_);
+    // not created when the movie file could not be opened
+    if(vdecl_)
+        gos_DestroyVertexDeclaration(vdecl_);
+    if(quad_vb_)
+        gos_DestroyBuffer(quad_vb_);
+    if(quad_ib_)
+        gos_DestroyBuffer(quad_ib_);
 
     gos_DestroyTexture(texY);
     gos_DestroyTexture(texCB);
@@ -308,6 +319,12 @@ bool MC2Movie::update (void)
 
 			return true;
 		}
+
+        if(!pimpl || !pimpl->plm) {
+            // movie file could not be opened (see init): treat it as finished
+            stillPlaying = false;
+            return true;
+        }
 
         if(!bPaused) {
             plm_decode(pimpl->plm, frameLength);
