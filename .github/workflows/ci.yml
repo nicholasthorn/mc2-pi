@@ -18,7 +18,7 @@ jobs:
     name: Shaders (GLSL ES 3.10 + GLSL 4.20)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq glslang-tools
       - run: python3 scripts/validate_shaders.py
 
@@ -49,7 +49,7 @@ jobs:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: false  # 3rdparty.zip is only needed on Windows
       - name: Install dependencies
@@ -90,7 +90,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           lfs: false
       # Fetch the LFS-stored 3rdparty.zip only when it changes, to stay within
