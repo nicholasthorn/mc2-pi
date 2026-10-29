@@ -18,6 +18,7 @@ belongs in commit messages and PRs.
 - [x] CI: Linux x64 GCC, Linux x64 Clang, Linux arm64 GLES, Windows MSVC, shader validation (GLSL ES 3.10 + GLSL 4.20); Dependabot
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
+- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
 
 **Not verified / unknown**
 
@@ -27,8 +28,8 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] Warnings + cppcheck baseline; ASan/UBSan job (unit tests are ready for it)
-- [ ] Auto-exit flag and smoke runs under Xvfb + llvmpipe
+- [ ] Warnings + cppcheck baseline; ASan/UBSan job (unit tests and smoke runs are ready for it)
+- [ ] Deterministic smoke runs (seed the RNG)
 
 ## Known issues
 
@@ -36,11 +37,13 @@ belongs in commit messages and PRs.
 - Sound: panning/doppler not implemented (alariq README).
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
+- `-mission <name>` with a mission that does not exist crashes (SIGSEGV) instead of reporting an error.
 
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: Smoke runs: `-autoexit`, `scripts/smoke.sh`, `scripts/build_gamedata.sh`, nightly `smoke.yml`. Found and fixed a spurious `GL_INVALID_ENUM` left by `glewInit()` on core profiles, and the `STOP:` log separator being overwritten.
 - 2026-10-29: Unit-test harness ported from the remaster (doctest + heap shim, CTest, CI on all four configs); new tests for path conversion, pixel repack (extracted to `pixel_repack.cpp`), RollDice.
 - 2026-10-29: Agent docs checked against the code: `File::open` order (loose files before FST) and `Environment` callback location corrected; em dashes removed from back-ported comments.
 - 2026-10-29: Dependabot action bumps merged (#1, #2, #3).

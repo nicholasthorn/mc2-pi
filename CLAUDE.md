@@ -65,9 +65,16 @@ ctest --test-dir build --output-on-failure
 # Shaders: compile-check every shader as GLSL ES 3.10 and GLSL 4.20 (needs glslang-tools)
 python3 scripts/validate_shaders.py
 
+# Game data from an alariq/mc2srcdata checkout (platform independent; copy to the Pi)
+scripts/build_gamedata.sh --src-data ../mc2srcdata --build-dir build --out ../mc2game [--no-movies]
+
 # Run (from the game directory: mc2, libmc2res_64.so, shaders/, data/, assets/, *.fst)
 ./mc2 -mission mc2_01
+./mc2 -mission mc2_01 -autoexit 600   # quit cleanly after 600 gameplay frames
 LIBGL_ALWAYS_SOFTWARE=1 ./mc2     # WSL2 / no GPU: Mesa llvmpipe, closest PC match to the Pi
+
+# Smoke: run missions headless (Xvfb + llvmpipe), fail on crash/hang/GL error/STOP
+scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2_03"]
 ```
 
 Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
@@ -81,7 +88,9 @@ Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
 > arm64. If you can only verify one, say which one was not verified.
 
 CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
-tests on each, and validates the shaders on every push to `pi-port` and every PR. See `.claude/rules/` for the
+tests on each, and validates the shaders on every push to `pi-port` and every PR.
+`.github/workflows/smoke.yml` runs five missions nightly (and on demand) on
+x64 desktop GL and arm64 GLES. See `.claude/rules/` for the
 detailed conventions.
 
 ## Architecture in one screen
@@ -105,7 +114,8 @@ detailed conventions.
 
 Unit tests are doctest in `tests/unit/` (one `mc2_tests` binary under CTest),
 linking real engine files against a heap shim; CI runs them on all four
-configurations. Still to come (sanitizers, smoke runs, coverage, benchmarks):
+configurations. Smoke runs: `scripts/smoke.sh` (needs built game data), nightly
+in CI. Still to come (sanitizers, coverage, benchmarks):
 `planning/QUALITY-ROADMAP.md`. How to write and run tests:
 `.claude/rules/testing-conventions.md`.
 

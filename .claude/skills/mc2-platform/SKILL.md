@@ -59,9 +59,15 @@ Line numbers drift: grep the symbol before citing a line.
 
 ## Recipes
 
-**Add a command-line flag:** parse it in `code/mechcmd2.cpp` next to `-mission`,
-store it in a global, document it in `CLAUDE.md` "Common commands" if it is for
-development (for example an auto-exit for smoke runs).
+**Add a command-line flag:** a game flag is parsed in `code/mechcmd2.cpp` next
+to `-mission` and stored in a global. A flag that only the GameOS frame loop
+uses is parsed from `argv` in `main()` in `GameOS/gameos/gameosmain.cpp`
+instead, as `-autoexit` is (`ParseCommandLine` ignores flags it does not know).
+Document development flags in `CLAUDE.md` "Common commands".
+
+**Game tells GameOS something:** add a `gos_*` function to
+`GameOS/include/gameos.hpp` and call it from `code/` (as
+`gos_MarkGameplayStarted()` does). GameOS never calls into `code/` directly.
 
 **Add a Win32 function the legacy code calls:** declare in the matching
 `GameOS/include/platform_*.h`, implement in `GameOS/src/platform_*.cpp`, keep the

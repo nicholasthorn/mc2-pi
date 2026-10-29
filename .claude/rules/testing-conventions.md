@@ -3,8 +3,30 @@
 ## Current state
 
 CI builds all four configurations, runs the unit tests (`ctest`) on all four,
-and compiles every shader as GLSL ES 3.10 and GLSL 4.20. Smoke runs, sanitizers
-and coverage are still to come (`planning/QUALITY-ROADMAP.md`).
+and compiles every shader as GLSL ES 3.10 and GLSL 4.20. A nightly workflow runs
+smoke missions. Sanitizers and coverage are still to come
+(`planning/QUALITY-ROADMAP.md`).
+
+## Smoke runs (`scripts/smoke.sh`)
+
+- Launches each mission with `-mission <name> -autoexit <frames>` under Mesa
+  llvmpipe (`LIBGL_ALWAYS_SOFTWARE=1`), through `xvfb-run` when there is no
+  display, with `SDL_AUDIODRIVER=dummy`. Works for both renderers.
+- `-autoexit N` counts **gameplay** frames: the game calls
+  `gos_MarkGameplayStarted()` on a mission's first frame (`code/mission.cpp`),
+  which prints `[MISSION] <name> started`; GameOS prints `[AUTOEXIT] ...` and
+  exits cleanly after N more frames.
+- A run fails on: non-zero exit, a hang (killed after `--timeout`), no
+  `[MISSION]` before `[AUTOEXIT]`, or any `OpenGL Error`, `: ERROR: `,
+  `STOP: ` or `FATAL` line. Logs go to `--log-dir`. A new error that is
+  genuinely harmless gets fixed at the source (see the post-`glewInit()` error
+  clear), not added to an ignore list.
+- Game data comes from `scripts/build_gamedata.sh`. `--no-movies` is enough
+  for smoke runs and needs no Git LFS download.
+- A game directory without `options.cfg` only runs the hardware sniffer on its
+  first launch and exits. `smoke.sh` copies `minprefs.cfg` to `options.cfg`
+  first (as that launch would), so runs use fixed minimum settings.
+- llvmpipe frame rates are not performance numbers for the Pi.
 
 ## The unit-test harness (`tests/unit/`)
 

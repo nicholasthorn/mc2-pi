@@ -16,10 +16,7 @@ has a reusable unit-test harness (see Phase 3).
 - [x] Own GitHub repo for `pi-port`: `nicholasthorn/mc2-pi` (remote `pi`).
 - [x] arm64 runners: CI uses `ubuntu-24.04-arm` (free for public repos only).
 - [x] Uncommitted edits committed (`57e2e25`).
-- [ ] Decide where game data comes from in CI. Running missions needs
-      `mc2srcdata` (git-lfs) built with `makefst`/`makersp`/`aseconv`.
-      GitHub's free LFS bandwidth is small, so build the data once and cache
-      it as a CI cache entry keyed on the `mc2srcdata` commit.
+- [x] Game data in CI: built by the smoke workflow and cached (Phase 5).
 
 ## Phase 1 - CI skeleton (build + test on every push)
 
@@ -122,14 +119,19 @@ The game already supports `-mission <name>`. Mesa's software renderer
 (`LIBGL_ALWAYS_SOFTWARE=1`, llvmpipe) supports GL 4.5 and ES 3.2, so missions
 can run on GitHub's GPU-less runners under `Xvfb`.
 
-- [ ] Add an auto-exit: env var or flag to quit after N frames / N seconds
-      with exit code 0, nonzero on fatal error. (Remastered's smoke mode is a
-      reference, but write a small one - its runner is tied to its own tooling.)
-- [ ] `scripts/smoke.sh`: launch a short list of missions under
-      `xvfb-run` + llvmpipe; fail on crash, nonzero exit, GL errors or
-      `STOP`/assert lines in the log.
-- [ ] Nightly CI job on x64 (`MC2_GLES=OFF`) and arm64 (`MC2_GLES=ON`),
-      using the cached built data from Phase 0.
+- [x] Auto-exit: `-autoexit <frames>` (parsed in `gameosmain.cpp`) quits
+      cleanly after N **gameplay** frames, counted from
+      `gos_MarkGameplayStarted()` (called on a mission's first frame).
+      Counting from process start spent nearly all frames on loading.
+- [x] `scripts/smoke.sh`: missions under `xvfb-run` + llvmpipe; fails on
+      non-zero exit, hang, no `[MISSION]` marker, GL errors, shader errors,
+      `STOP`/`FATAL` lines. Both renderers pass locally on five missions.
+- [x] Nightly CI job (`.github/workflows/smoke.yml`) on x64 (`MC2_GLES=OFF`)
+      and arm64 (`MC2_GLES=ON`), with cached game data.
+- [x] Game data in CI: `scripts/build_gamedata.sh --no-movies` from a
+      `GIT_LFS_SKIP_SMUDGE=1` shallow clone (only `movies/` is in LFS, so no
+      LFS bandwidth is used), cached on the mc2srcdata commit + tool sources.
+- [ ] Deterministic runs: seed the RNG in smoke mode so a failure reproduces.
 - [ ] Optional later: screenshot at a fixed frame + perceptual diff against
       a baseline. Only after confirming two identical runs produce the same
       image (remastered found frame-to-frame variance blocked this).
