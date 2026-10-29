@@ -14,7 +14,9 @@ in `.claude/rules/build-conventions.md`; this skill is the map and the recipes.
 - `CMakeLists.txt`: global flags (`-fsigned-char`, `-fpermissive`, warning
   set), `LINUX_BUILD` / `PLATFORM_WINDOWS` / `USE_ASSEMBLER_CODE=0`, the
   `MC2_GLES` option (`PkgConfig::GLESV2` vs `GLEW::GLEW OpenGL::GL` in
-  `MC2_GL_LIBS`), subdirectories, and the hand-written `SOURCES` list for `code/`.
+  `MC2_GL_LIBS`), `MC2_SANITIZE` (e.g. `address,undefined`, GCC/Clang only),
+  `MC2_BUILD_TESTS`, subdirectories, and the hand-written `SOURCES` list for
+  `code/`.
   `CMAKE_EXPORT_COMPILE_COMMANDS` is already on.
 - `mclib/CMakeLists.txt`, `mclib/{stuff,mlr,gosfx}/CMakeLists.txt`,
   `gui/`, `GameOS/gameos/`, `GameOS/src/`: library targets.

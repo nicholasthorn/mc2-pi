@@ -62,6 +62,9 @@ cmake --build build64 --config RelWithDebInfo --target mc2 mc2_tests
 # Unit tests (doctest, built by default; Windows adds -C RelWithDebInfo)
 ctest --test-dir build --output-on-failure
 
+# ASan + UBSan build (GCC/Clang); runtime options: .claude/rules/testing-conventions.md
+cmake -S . -B build-san -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_SANITIZE=address,undefined
+
 # Shaders: compile-check every shader as GLSL ES 3.10 and GLSL 4.20 (needs glslang-tools)
 python3 scripts/validate_shaders.py
 
@@ -90,7 +93,8 @@ Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
 CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
 tests on each, and validates the shaders on every push to `pi-port` and every PR.
 `.github/workflows/smoke.yml` runs five missions nightly (and on demand) on
-x64 desktop GL and arm64 GLES. See `.claude/rules/` for the
+x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan. CI also runs the unit
+tests under ASan + UBSan on every push. See `.claude/rules/` for the
 detailed conventions.
 
 ## Architecture in one screen

@@ -108,10 +108,17 @@ Working practice:
 
 ## Phase 4 - Sanitizers
 
-- [ ] CI job: ASan + UBSan (`-fsanitize=address,undefined
-      -fno-omit-frame-pointer`) building and running the unit tests on Linux.
-      UBSan is especially relevant on ARM (alignment, signed overflow).
-- [ ] Nightly: sanitizer build running the smoke missions (Phase 5).
+- [x] `-DMC2_SANITIZE=address,undefined` CMake option (GCC/Clang).
+- [x] CI job (every push): ASan + UBSan build running the unit tests, leak
+      checking on. Clean on first run.
+- [x] Nightly: sanitized x64 build running the smoke missions. First run
+      found 6 real bugs (fixed: uninitialised ABL code-size sum and
+      mouse-drag flag, Gate cast to Building, NULL deref in
+      IsGateDisabled, signed overflow in the MString hash, shift of -1) and
+      legacy UB baselined in `scripts/sanitizers/ubsan.supp`.
+- [ ] Work down `ubsan.supp`: memcpy-based bytecode reads in the ABL VM;
+      untangle the TG_* shape class casts in `msl.cpp` / `tgl.cpp`.
+- [ ] Sanitized smoke on arm64 too (ASan on the hosted arm64 runner).
 
 ## Phase 5 - Smoke tests (does the game actually run?)
 

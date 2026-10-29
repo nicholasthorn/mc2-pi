@@ -19,6 +19,7 @@ belongs in commit messages and PRs.
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
+- [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64); legacy UBSan baseline in `scripts/sanitizers/ubsan.supp`
 
 **Not verified / unknown**
 
@@ -28,7 +29,8 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] Warnings + cppcheck baseline; ASan/UBSan job (unit tests and smoke runs are ready for it)
+- [ ] Warnings + cppcheck baseline
+- [ ] Shrink `ubsan.supp`: memcpy-based ABL bytecode reads; TG_* shape casts
 - [ ] Deterministic smoke runs (seed the RNG)
 
 ## Known issues
@@ -43,6 +45,7 @@ belongs in commit messages and PRs.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: Sanitizers: `MC2_SANITIZE`, per-push ASan+UBSan unit tests, nightly sanitized smoke. Fixed 6 bugs it found plus a third networking-stub NULL in `mpprefs.cpp`; legacy UB baselined in `ubsan.supp`.
 - 2026-10-29: Smoke runs: `-autoexit`, `scripts/smoke.sh`, `scripts/build_gamedata.sh`, nightly `smoke.yml`. Found and fixed a spurious `GL_INVALID_ENUM` left by `glewInit()` on core profiles, and the `STOP:` log separator being overwritten.
 - 2026-10-29: Unit-test harness ported from the remaster (doctest + heap shim, CTest, CI on all four configs); new tests for path conversion, pixel repack (extracted to `pixel_repack.cpp`), RollDice.
 - 2026-10-29: Agent docs checked against the code: `File::open` order (loose files before FST) and `Environment` callback location corrected; em dashes removed from back-ported comments.
