@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shaders:
+    name: Shaders (GLSL ES 3.10 + GLSL 4.20)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq glslang-tools
+      - run: python3 scripts/validate_shaders.py
+
+  linux:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64 GCC (desktop GL)
+            os: ubuntu-24.04
+            cc: gcc
+            cxx: g++
+            gles: "OFF"
+          - name: Linux x64 Clang (desktop GL)
+            os: ubuntu-24.04
+            cc: clang
+            cxx: clang++
+            gles: "OFF"
+          - name: Linux arm64 GCC (GLES, Raspberry Pi)
+            os: ubuntu-24.04-arm
+            cc: gcc
+            cxx: g++
+            gles: "ON"
+            artifact: mc2-linux-arm64-gles
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false  # 3rdparty.zip is only needed on Windows
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config clang \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev \
+            libglew-dev libgl-dev libgles-dev libegl-dev
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}-${{ matrix.cc }}-gles${{ matrix.gles }}
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DMC2_GLES=${{ matrix.gles }}
+      - name: Build
+        run: cmake --build build
+      - name: Package
+        if: matrix.artifact
+        run: |
+          mkdir -p dist
+          cp build/mc2 build/out/res/libmc2res_64.so dist/
+          cp -r shaders dist/
+      - uses: actions/upload-artifact@v4
+        if: matrix.artifact
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist
+          retention-days: 14
+
+  windows:
+    name: Windows x64 MSVC (desktop GL)
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      # Fetch the LFS-stored 3rdparty.zip only when it changes, to stay within
+      # the repo's free LFS bandwidth.
+      - name: 3rdparty.zip LFS id
+        id: lfs
+        run: echo "oid=$(git lfs ls-files -l | awk '$3 == "3rdparty.zip" {print $1}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: cache3p
+        with:
+          path: 3rdparty.zip
+          key: lfs-3rdparty-${{ steps.lfs.outputs.oid }}
+      - name: Fetch 3rdparty.zip
+        if: steps.cache3p.outputs.cache-hit != 'true'
+        run: git lfs pull --include=3rdparty.zip
+      - name: Extract 3rdparty
+        run: 7z x -y 3rdparty.zip > /dev/null
+      - name: Configure
+        run: >
+          cmake -S . -B build64 -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_PREFIX_PATH="$(cygpath -m "$GITHUB_WORKSPACE")/3rdparty"
+          -DCMAKE_LIBRARY_ARCHITECTURE=x64
+      - name: Build
+        run: cmake --build build64 --config RelWithDebInfo --target mc2 -- -m
