@@ -70,7 +70,17 @@ undefined behaviour, signedness, alignment/packing, 32-bit pointer assumptions.
 - [x] `invalidPrintfArgType_*` (~444): `%d` with `long` arguments in log
       text (64-bit Linux portability); mechanical sweep. Done: 433 sites
       fixed from GCC `-Wformat`; 16 left are cppcheck-only or deliberate
-      (`note.cpp` sscanf into `Radian`, `heap.cpp` `%08p`).
+      (`note.cpp` sscanf into `Radian`, `heap.cpp` `%08p`). The 16
+      signedness ones (`%d` for unsigned) are fixed too.
+- [x] `virtualCallInConstructor` (73): every class calls its own
+      `init()` from its constructor and `destroy()`/`close()` from its
+      destructor; each level frees only its own members and nulls them, so
+      static binding is intended. Filtered in the gate for those three
+      names; 1 left (`MLR_I_TMesh` via `FindFacePlanes`, harmless).
+- [ ] `operatorEqVarError` (30 -> 13): `LogisticsScreen` and `aObject`
+      assignment fixed, Stuff array helpers suppressed inline. The rest
+      (`MechListBoxItem`, `LogisticsMechIcon`, `TacticalOrder::id`, `aButton`
+      SFX) copy a layout template and keep runtime state on purpose.
 - [ ] `uninitMemberVar` (787 -> 170): class by class. Done for the 80 or
       so largest files, which turned up real copy-constructor bugs
       (`LogisticsScreen`, `aObject`) and an entirely unset `MultiPlayer`.
