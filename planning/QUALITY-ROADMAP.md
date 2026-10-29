@@ -115,7 +115,10 @@ Working practice:
       found 6 real bugs (fixed: uninitialised ABL code-size sum and
       mouse-drag flag, Gate cast to Building, NULL deref in
       IsGateDisabled, signed overflow in the MString hash, shift of -1) and
-      legacy UB baselined in `scripts/sanitizers/ubsan.supp`.
+      legacy UB baselined in `scripts/sanitizers/ubsan.supp`. Later runs
+      (CI's slower machine, then 3000-frame runs) found a missing-movie
+      crash, a Gate read through a Turret cast, an uninitialised bool and an
+      overlapping strcpy; all fixed. Nightly frames raised to 3000 / 1500.
 - [ ] Work down `ubsan.supp`: memcpy-based bytecode reads in the ABL VM;
       untangle the TG_* shape class casts in `msl.cpp` / `tgl.cpp`.
 - [ ] Sanitized smoke on arm64 too (ASan on the hosted arm64 runner).

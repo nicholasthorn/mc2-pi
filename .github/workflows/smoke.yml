@@ -84,7 +84,7 @@ jobs:
             os: ubuntu-24.04
             gles: "OFF"
             sanitize: address,undefined
-            frames: 300
+            frames: 1500
     env:
       # Sanitizer runtime options (only matter for the sanitize entry).
       # alloc_dealloc_mismatch: Mesa's swrast driver trips it while loading.
@@ -119,9 +119,11 @@ jobs:
           key: ${{ needs.data.outputs.key }}
           fail-on-cache-miss: true
       - name: Smoke
+        # Longer runs reach combat, triggers and in-mission videos; 300 frames
+        # missed a crash that 3000 found.
         run: >
           scripts/smoke.sh --game-dir gamedata --build-dir build --missions "$MISSIONS"
-          --frames ${{ matrix.frames || 600 }} --timeout 900 --log-dir smoke-logs
+          --frames ${{ matrix.frames || 3000 }} --timeout 1200 --log-dir smoke-logs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
