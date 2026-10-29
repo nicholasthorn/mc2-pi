@@ -133,7 +133,7 @@ int MechLabScreen::init( FitIniFile& file )
 	char blockName[64];
 	for ( int i = 0; i < MECH_LAB_ATTRIBUTE_METER_COUNT; i++ )
 	{
-		sprintf( blockName, "AttributeMeter%ld", i );
+		sprintf( blockName, "AttributeMeter%d", i );
 		attributeMeters[i].init( &file, blockName );
 	}
 
@@ -201,7 +201,7 @@ int MechLabScreen::init( FitIniFile& file )
 	{
 		for ( int j = 0; j < 2; j++ )
 		{
-			sprintf( fileName, "mcl_mc_%ldby%ld_selection.tga", j+1, i+1 );
+			sprintf( fileName, "mcl_mc_%dby%d_selection.tga", j+1, i+1 );
 			path.init( artPath, fileName, ".tga" );
 
 			if ( fileExists( path ) )
@@ -344,7 +344,7 @@ void MechLabScreen::begin()
 
 	// init CBills
 	char text[32];
-	sprintf( text, "%ld ", LogisticsData::instance->getCBills() );
+	sprintf( text, "%d ", LogisticsData::instance->getCBills() );
 	textObjects[1].setText( text );
 
 
@@ -1176,7 +1176,7 @@ void	MechLabScreen::setComponent( LogisticsComponent* pComponent, bool bMessageF
 
 			// set up jump range
 			attributeMeters[4].setValue(((float)pVariant->getMaxJumpRange() * 25.0f) / MAX_JUMP_RANGE );
-			sprintf( text, "%ld", pVariant->getMaxJumpRange() * 25);
+			sprintf( text, "%d", pVariant->getMaxJumpRange() * 25);
 			textObjects[7].setText( text );
 			textObjects[7].setColor( 0xff005392 );
 			rects[16].setHelpID( IDS_HELP_PM_JUMP );
@@ -1321,7 +1321,7 @@ void	MechLabScreen::setComponent( LogisticsComponent* pComponent, bool bMessageF
 
 			if ( !useUnlimitedAmmo )
 			{
-				sprintf( text, "%ld", pCurComponent->getAmmo() );
+				sprintf( text, "%d", pCurComponent->getAmmo() );
 				textObjects[13].setText( text );
 				attributeMeters[3].setValue( ((float)pCurComponent->getAmmo())/164.f );
 			}

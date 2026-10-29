@@ -1152,7 +1152,7 @@ long	LogisticsData::load( FitIniFile& file )
 	// load variants
 	for ( int i = 0; i < variantCount; i++ )
 	{
-		sprintf( tmp, "Variant%ld", i );
+		sprintf( tmp, "Variant%d", i );
 		file.seekBlock( tmp );
 		result = loadVariant( file );
 		if ( result != NO_ERR )
@@ -1165,7 +1165,7 @@ long	LogisticsData::load( FitIniFile& file )
 	// load pilots
 	for (int i = 0; i < pilotCount; i++ )
 	{
-		sprintf( tmp, "Pilot%ld", i );
+		sprintf( tmp, "Pilot%d", i );
 		if ( NO_ERR != file.seekBlock( tmp ) )
 		{
 			gosASSERT( 0 );
@@ -1189,7 +1189,7 @@ long	LogisticsData::load( FitIniFile& file )
 	int count = 0;
 	for (int i = 0; i < inventoryCount; i++ )
 	{
-		sprintf( tmp, "Inventory%ld", i ) ;
+		sprintf( tmp, "Inventory%d", i ) ;
 		if ( NO_ERR != file.seekBlock( tmp ) )
 		{
 			gosASSERT( 0 );
@@ -1251,7 +1251,7 @@ long LogisticsData::loadVariant( FitIniFile& file )
 	// add those components
 	for ( int i = 0; i < componentCount; i++ )
 	{
-		sprintf( tmp, "Component%ld", i );
+		sprintf( tmp, "Component%d", i );
 		file.readIdLong(tmp, id );
 		
 		strcpy( tmp2, tmp );
@@ -1530,7 +1530,7 @@ long LogisticsData::updateAvailability()
 			available[i] = 1;
 		else
 		{
-			sprintf( tmp, "Component%ld", i );
+			sprintf( tmp, "Component%d", i );
 			if ( NO_ERR != file.readIdLong( tmp, component ) )
 				break;
 
@@ -1588,7 +1588,7 @@ long LogisticsData::updateAvailability()
 	file.seekBlock( "Mechs" );
 	for (int i = 0; i < 255; i++ )
 	{
-		sprintf( tmp, "Mech%ld", i );
+		sprintf( tmp, "Mech%d", i );
 		if ( NO_ERR != file.readIdString( tmp, chassisFileName, 254 ) )
 			break;
 
@@ -1637,7 +1637,7 @@ long LogisticsData::updateAvailability()
 	file.seekBlock( "Pilots" );
 	for (int i = 0; i < 255; i++ )
 	{
-		sprintf( tmp, "Pilot%ld", i );
+		sprintf( tmp, "Pilot%d", i );
 		if ( NO_ERR != file.readIdString( tmp, pilotName, 254 ) )
 			break;
 
@@ -1689,7 +1689,7 @@ void LogisticsData::appendAvailability(const char* pFileName, bool* availableArr
 		for ( int i = 0; i < 255; i++ )
 		{
 			{
-				sprintf( tmp, "Component%ld", i );
+				sprintf( tmp, "Component%d", i );
 				if ( NO_ERR != file.readIdLong( tmp, component ) )
 					break;
 
@@ -1709,7 +1709,7 @@ void LogisticsData::appendAvailability(const char* pFileName, bool* availableArr
 	file.seekBlock( "Pilots" );
 	for ( int i = 0; i < 255; i++ )
 	{
-		sprintf( tmp, "Pilot%ld", i );
+		sprintf( tmp, "Pilot%d", i );
 		if ( NO_ERR != file.readIdString( tmp, pilotName, 254 ) )
 			break;
 
@@ -1730,7 +1730,7 @@ void LogisticsData::appendAvailability(const char* pFileName, bool* availableArr
 	char chassisFileName[256];
 	for (int i = 0; i < 255; i++ )
 	{
-		sprintf( tmp, "Mech%ld", i );
+		sprintf( tmp, "Mech%d", i );
 		if ( NO_ERR != file.readIdString( tmp, chassisFileName, 255 ) )
 			break;
 
@@ -2549,7 +2549,7 @@ int LogisticsData::addBuilding( long fitID, PacketFile& objectFile, float scale 
 			{
 				
 				file.readIdLong( weaponNameStr, bldg.componentIDs[i] );
-				sprintf( weaponNameStr, "WeaponType%ld", i+1 );
+				sprintf( weaponNameStr, "WeaponType%d", i+1 );
 			}
 			
 		}

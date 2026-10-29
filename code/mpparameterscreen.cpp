@@ -1666,7 +1666,7 @@ void aPlayerParams::init( FitIniFile* pFile, const char* blockNameParam )
 				char blockName[128];
 				for ( int i = 0; i < staticCount; i++ )
 				{
-					sprintf( blockName, "%s%ld", staticName, i );
+					sprintf( blockName, "%s%d", staticName, i );
 					statics[i].init( &file, blockName );			
 					addChild(&(statics[i]));
 				}
@@ -1689,7 +1689,7 @@ void aPlayerParams::init( FitIniFile* pFile, const char* blockNameParam )
 				char blockName[128];
 				for ( int i = 0; i < rectCount; i++ )
 				{
-					sprintf( blockName, "%s%ld", rectName, i );
+					sprintf( blockName, "%s%d", rectName, i );
 					rects[i].init( &file, blockName );
 					addChild(&(rects[i]));
 				}
@@ -1712,7 +1712,7 @@ void aPlayerParams::init( FitIniFile* pFile, const char* blockNameParam )
 				char blockName[64];
 				for ( int i = 0; i < textCount; i++ )
 				{
-					sprintf( blockName, "%s%ld", textName, i );
+					sprintf( blockName, "%s%d", textName, i );
 					textObjects[i].init( &file, blockName );
 					addChild(&(textObjects[i]));
 				}
@@ -2155,7 +2155,7 @@ void	aPlayerParams::setData( const _MC2Player* data)
 			{
 				aStyle2TextListItem* pTmp2 = new aStyle2TextListItem;
 				char tmpStr[32];
-				sprintf(tmpStr, "%ld", i+1);
+				sprintf(tmpStr, "%d", i+1);
 				*pTmp2 = templateItem;
 				pTmp2->setText( tmpStr );
 				pTmp2->resize( teamNumberDropList.width() - 

@@ -1541,7 +1541,7 @@ bool Mission::calcComplexDropZones (char* missionName, char dropZoneCID[MAX_MC_P
 	if (numParts)
 		for (long i = 1; i < long(numParts + 1); i++) {
 			char partName[12];
-			sprintf(partName,"Part%d",i);
+			sprintf(partName,"Part%ld",i);
 			
 			//------------------------------------------------------------------
 			// Find the object to load
@@ -2333,7 +2333,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 		for (long i = 1; i <= numWarriors; i++) 
 		{
 			char warriorName[12];
-			sprintf(warriorName,"Warrior%d",i);
+			sprintf(warriorName,"Warrior%ld",i);
 			
 			//-------------------------
 			// Find the warrior to load
@@ -2515,7 +2515,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 		if (result == NO_ERR)
 			for (long i = 0; i < numSquads; i++) {
 				char s[128];
-				sprintf(s, "Squad%d", i);
+				sprintf(s, "Squad%ld", i);
 				unsigned long alternate = -1;
 				result = missionFile->readIdULong(s, alternate);
 				if (result == NO_ERR)
@@ -2566,7 +2566,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 				result = missionFile->readIdULong("Pilot", realPilot);
 				gosASSERT(result == NO_ERR);
 
-				sprintf(partName, "Part%d", partId);
+				sprintf(partName, "Part%ld", partId);
 				result = missionFile->seekBlock(partName);
 				gosASSERT(result == NO_ERR);
 			}
@@ -2872,7 +2872,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 		if (commandersToLoad[curCommanderId][0] == -1)
 			continue;
 
-		sprintf(headingStr, "Commander%dGroup:%d", curCommanderId, numGroups);
+		sprintf(headingStr, "Commander%ldGroup:%ld", curCommanderId, numGroups);
 		result = missionFile->seekBlock(headingStr);
 		while (result == NO_ERR) {
 			//---------------------------
@@ -2893,7 +2893,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 			}
 			
 			numGroups++;
-			sprintf(headingStr, "Commander%dGroup:%d", curCommanderId, numGroups);
+			sprintf(headingStr, "Commander%ldGroup:%ld", curCommanderId, numGroups);
 			result = missionFile->seekBlock(headingStr);
 		}
 	}

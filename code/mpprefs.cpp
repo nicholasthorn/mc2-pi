@@ -67,7 +67,7 @@ int MPPrefs::init( FitIniFile& file )
 	const char* headers[3] = {"PlayerNameComboBox", "UnitNameComboBox", "UnitInsigniaComboBox" };
 	for (int i = 0; i< count; i++ )
 	{
-		sprintf( blockName, "ComboBox%ld",  i );
+		sprintf( blockName, "ComboBox%d",  i );
 		file.seekBlock( blockName );
 		file.readIdString( "FileName", blockName, 255);
 

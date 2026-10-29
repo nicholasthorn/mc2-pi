@@ -655,7 +655,7 @@ void aGameListItem::setSessionInfo( MC2Session* pSession )
 	mapName.setText( pSession->map );
 	
 	char tmp[256];
-	sprintf( tmp, "%ld/%ld", pSession->numPlayers, pSession->maxPlayers );
+	sprintf( tmp, "%d/%d", pSession->numPlayers, pSession->maxPlayers );
 	numPlayers.setText( tmp );
 	sprintf( tmp, "%ld", pSession->ping );
 	latency.setText( tmp );

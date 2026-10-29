@@ -1876,13 +1876,13 @@ void HeapList::initializeStatistics()
 			for (long i=0;i<50;i++)
 			{
 				char heapString[255];
-				sprintf(heapString,"Heap %d - HeapSize",i);
+				sprintf(heapString,"Heap %ld - HeapSize",i);
 				AddStatistic(heapString,"bytes",gos_DWORD, &(heapRecords[i].heapSize), Stat_AutoReset | Stat_Total);
 
-				sprintf(heapString,"Heap %d - TotalLeft",i);
+				sprintf(heapString,"Heap %ld - TotalLeft",i);
 				AddStatistic(heapString,"bytes",gos_DWORD, &(heapRecords[i].totalCoreLeft), Stat_AutoReset | Stat_Total);
 
-				sprintf(heapString,"Heap %d - CoreLeft",i);
+				sprintf(heapString,"Heap %ld - CoreLeft",i);
 				AddStatistic(heapString,"bytes",gos_DWORD, &(heapRecords[i].coreLeft), Stat_AutoReset | Stat_Total);
 
 				StatisticFormat( "" );
@@ -1958,7 +1958,7 @@ unsigned long textToLong (char *num)
 long longToText (char *result, long num, unsigned long bufLen)
 {
 	char temp[250];
-	sprintf(temp,"%08X",num);
+	sprintf(temp,"%08lX",num);
 
 	unsigned long numLength = strlen(temp);
 	if (numLength >= bufLen)
@@ -2061,7 +2061,7 @@ void HeapList::dumpLog (void)
 		
 		if (currentHeap)
 		{
-			sprintf(msg,"ListNo: %d     Heap: %d     Type: %d     Made by: %08ld",i,heapNumber,currentHeap->heapType(),currentHeap->owner());
+			sprintf(msg,"ListNo: %ld     Heap: %lu     Type: %d     Made by: %08ld",i,heapNumber,currentHeap->heapType(),currentHeap->owner());
 			logFile.writeLine(msg);
 
 			if (mapResult == NO_ERR)
@@ -2074,7 +2074,7 @@ void HeapList::dumpLog (void)
 				}
 			}
 			
-			sprintf(msg,"HeapSize: %d     HeapStart: %08p",currentHeap->tSize(),currentHeap->getHeapPtr());
+			sprintf(msg,"HeapSize: %lu     HeapStart: %08p",currentHeap->tSize(),currentHeap->getHeapPtr());
 			logFile.writeLine(msg);
 
 			totalCommit += currentHeap->tSize();
@@ -2082,7 +2082,7 @@ void HeapList::dumpLog (void)
 			if (currentHeap->heapType() == 1)
 			{
 				UserHeapPtr userHeap = (UserHeapPtr)currentHeap;
-				sprintf(msg,"TotalCoreLeft: %d     CoreLeft: %d",userHeap->totalCoreLeft(),userHeap->coreLeft());
+				sprintf(msg,"TotalCoreLeft: %lu     CoreLeft: %lu",userHeap->totalCoreLeft(),userHeap->coreLeft());
 				logFile.writeLine(msg);
 				
 				sprintf(msg,"Frag Level: %f       PercentFree: %f",(float(userHeap->coreLeft())/float(userHeap->totalCoreLeft())),1.0 - (float(currentHeap->tSize()-userHeap->coreLeft())/float(currentHeap->tSize())) );
@@ -2096,7 +2096,7 @@ void HeapList::dumpLog (void)
 		}
 		else
 		{
-			sprintf(msg,"ListNo: %d  is Freed",i);
+			sprintf(msg,"ListNo: %ld  is Freed",i);
 			logFile.writeLine(msg);
 		}
 		
@@ -2104,7 +2104,7 @@ void HeapList::dumpLog (void)
 		logFile.writeLine(msg);
 	}	
 	
-	sprintf(msg,"Total Committed Memory: %d      Total Free in Commit: %d",totalCommit,totalFree);
+	sprintf(msg,"Total Committed Memory: %lu      Total Free in Commit: %lu",totalCommit,totalFree);
 	logFile.writeLine(msg);
 	sprintf(msg,"---------------------------");
 	logFile.writeLine(msg);

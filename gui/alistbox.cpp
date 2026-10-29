@@ -693,7 +693,7 @@ long aDropList::init( FitIniFile* file, const char* blockName )
 		rects = new aRect[rectCount];
 		for ( int i = 0; i < rectCount; i++ )
 		{
-			sprintf( tmpBlockName, "Rect%ld", i );
+			sprintf( tmpBlockName, "Rect%d", i );
 			rects[i].init( file, tmpBlockName );
 		}
 	}
@@ -1031,7 +1031,7 @@ long aComboBox::init( FitIniFile* file, const char* blockName )
 			rects = new aRect[rectCount];
 			for ( int i = 0; i < rectCount; i++ )
 			{
-				sprintf( blockName, "Rect%ld", i );
+				sprintf( blockName, "Rect%d", i );
 				rects[i].init( file, blockName );
 			}
 		}

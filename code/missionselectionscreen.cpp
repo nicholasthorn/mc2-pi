@@ -403,7 +403,7 @@ void MissionSelectionScreen::setMission( int whichOne )
 	LogisticsData::instance->setCurrentMission( missionNames[whichOne] );
 
 	char text[64];
-	sprintf( text, "%ld ", LogisticsData::instance->getCBills() );
+	sprintf( text, "%d ", LogisticsData::instance->getCBills() );
 	textObjects[RP_TEXT].setText( text );
 
 

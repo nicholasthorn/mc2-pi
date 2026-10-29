@@ -352,7 +352,7 @@ void MPLoadMap::seedFromCampaign()
 					for ( int i = 0; i < group+1; i++ )
 					{
 						char blockName[64];
-						sprintf( blockName,  "Group%ld", i );
+						sprintf( blockName,  "Group%d", i );
 						if ( NO_ERR == campaignFile.seekBlock( blockName ) )
 						{
 							long count = missions;
@@ -363,7 +363,7 @@ void MPLoadMap::seedFromCampaign()
 
 							for ( int j = 0; j < count; j++ )
 							{
-								sprintf( blockName, "Group%ldMission%ld", i, j );
+								sprintf( blockName, "Group%dMission%d", i, j );
 								if ( NO_ERR == campaignFile.seekBlock( blockName ) )
 								{
 									char tmpFileName[255];

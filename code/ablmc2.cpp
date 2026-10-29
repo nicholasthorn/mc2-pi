@@ -6599,7 +6599,7 @@ extern GameObjectPtr LastCoreAttackTarget;
 void ablEndlessStateCallback (UserFile* log) {
 
 	char s[256];
-	sprintf(s, "Mover = %s (%d)", CurWarrior->getVehicle()->getName(), CurWarrior->getVehicle()->getPartId());
+	sprintf(s, "Mover = %s (%ld)", CurWarrior->getVehicle()->getName(), CurWarrior->getVehicle()->getPartId());
 	log->write(s);
 	sprintf(s, "     Status = %d", CurWarrior->getVehicle()->getStatus());
 	log->write(s);
@@ -6612,7 +6612,7 @@ void ablEndlessStateCallback (UserFile* log) {
 	log->write(s);
 	log->write(" ");
 	if (LastCoreAttackTarget) {
-		sprintf(s, "Target = %s (%d)", LastCoreAttackTarget->getName(), LastCoreAttackTarget->getPartId());
+		sprintf(s, "Target = %s (%ld)", LastCoreAttackTarget->getName(), LastCoreAttackTarget->getPartId());
 		log->write(s);
 		Stuff::Vector3D pos;
 		pos = LastCoreAttackTarget->getPosition();

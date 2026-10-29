@@ -1075,7 +1075,7 @@ void TerrainColorMap::resetWaterDetailTextures (const char *fileName)
 		{
 			strcpy(waterFile, fileName);
 			char dName[1024];
-			sprintf(dName,"%04d.tga",i);
+			sprintf(dName,"%04ld.tga",i);
 			char *subStringToBeReplaced = &(waterFile[strlen(waterFile)-strlen("0000.tga")]);
 			strcpy(subStringToBeReplaced, dName);
 		}
