@@ -1099,6 +1099,7 @@ ActivePilotListItem::ActivePilotListItem( LogisticsPilot* pPilot )
 
 	memset( medalIcons, 0, MAX_MEDAL * sizeof (aObject*) );
 	memset( medalTexts, 0, MAX_MEDAL * sizeof(aText*) );
+	itemCount = 0;
 
 	promotionShown = 0;
 	showingPromotion = 0;

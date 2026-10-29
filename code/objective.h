@@ -564,7 +564,7 @@ class CDisplayResourceTextMessage: public CObjectiveAction {
 private:
 	int m_resourceStringID;
 public:
-	CDisplayResourceTextMessage(int alignment) : CObjectiveAction(alignment) {}
+	CDisplayResourceTextMessage(int alignment) : CObjectiveAction(alignment), m_resourceStringID(0) {}
 	action_species_type Species() { return DISPLAY_RESOURCE_TEXT_MESSAGE; }
 	bool Init() { return true; }
 	bool Read( FitIniFile* missionFile );
@@ -619,7 +619,7 @@ class C_RemoveStructure: public CObjectiveAction {
 private:
 	long m_pBuildingWID;
 public:
-	C_RemoveStructure(int alignment) : CObjectiveAction(alignment) {}
+	C_RemoveStructure(int alignment) : CObjectiveAction(alignment), m_pBuildingWID(0) {}
 	bool SetParams(float positionX, float positionY);
 	action_species_type Species() { return _REMOVE_STRUCTURE; }
 	bool Init() { return true; }

@@ -37,6 +37,7 @@ MPConnectionType::MPConnectionType() : lanPanel(*this), tcpipPanel(*this)
 
 	connectionType = 0;
 	pPanel = 0;
+	pMPHostGame = 0;
 
 	ppConnectionScreen = 0;
 	pLocalBrowserScreen = 0;

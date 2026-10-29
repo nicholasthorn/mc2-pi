@@ -44,6 +44,7 @@ MLRSpotLight::MLRSpotLight() :
 {
 	Verify(gos_GetCurrentHeap() == Heap);
 	lightMap = NULL;
+	tanSpreadAngle = cosSpreadAngle = 0.0f;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

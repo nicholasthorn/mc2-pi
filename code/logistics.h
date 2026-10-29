@@ -54,6 +54,9 @@ class Logistics
 	
 		Logistics (void)
 		{
+			bMissionLoaded = false;
+			lastMissionResult = 0;
+			prevState = 0;
 			init();
 		}
 		
@@ -115,4 +118,4 @@ class Logistics
 
 extern Logistics *logistics;
 //----------------------------------------------------------------------------------
-#endif
+#endif

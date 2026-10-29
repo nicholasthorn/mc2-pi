@@ -76,6 +76,7 @@ public:
 	{
 		pParentScreen = &refParentScreenParam;
 		connectingTime = 0.f;
+		bConnectingDlg = bErrorDlg = bExpanded = bFoundConnection = false;
 	}
 	void init(FitIniFile* pFile);
 	virtual void destroy();

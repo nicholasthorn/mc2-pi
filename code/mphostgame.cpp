@@ -31,6 +31,7 @@ extern CPrefs prefs;
 MPHostGame::MPHostGame()
 {
 	bDone = 0;
+	bShowDlg = 0;
 
 	status = RUNNING;
 }

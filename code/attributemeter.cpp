@@ -27,6 +27,9 @@ AttributeMeter::AttributeMeter()
 	numBars = 0;
 	percent = 0;
 	addedPercent = 0;
+	addedColorMin = 0;
+	addedColorMax = 0;
+	helpID = 0;
 	bShow = 1;
 }
 

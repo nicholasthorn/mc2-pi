@@ -35,6 +35,9 @@ MechBayScreen::MechBayScreen() : mechListBox( 1, 0 )
 	pDragMech = 0;
 	dragLeft = 0;
 
+	weightCenterX = weightCenterY = 0;
+	weightStartColor = weightEndColor = 0;
+
 	helpTextArrayID = 13;
 
 }

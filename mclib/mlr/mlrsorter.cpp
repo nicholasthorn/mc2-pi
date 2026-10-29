@@ -367,6 +367,9 @@ MLRSorter::MLRSorter(ClassData *class_data, MLRTexturePool *tp):
 {
 	Verify(gos_GetCurrentHeap() == Heap);
 	texturePool = tp;
+	lastUsedRaw = 0;
+	lastUsedDraw = 0;
+	farClipReciprocal = 0.0f;
 
 	gos_PushCurrentHeap(StaticHeap);
 	rawDrawData.SetLength(Limits::Max_Number_Primitives_Per_Frame);

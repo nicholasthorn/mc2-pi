@@ -22,6 +22,8 @@ LogisticsMissionInfo::LogisticsMissionInfo()
 {
 	currentMission = -1;
 	currentStage = 0;
+	lastMission = 0;
+	lastStage = 0;
 	groups = 0;
 	currentMissionName = missionName;
 	groupCount = 0;

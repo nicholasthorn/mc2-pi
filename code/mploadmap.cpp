@@ -29,6 +29,7 @@ static const int CANCEL_BUTTON_ID = 1000002;
 MPLoadMap::MPLoadMap()
 {
 	bDone = 0;
+	bIsSingle = 0;
 
 	status = RUNNING;
 	helpTextArrayID = 6;

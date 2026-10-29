@@ -261,6 +261,8 @@ class UserInput
 
 		UserInput (void)
 		{
+			mouseFrame = 0;
+			mouseTextureHandle = 0;
 			init();
 		}
 

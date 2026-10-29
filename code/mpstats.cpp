@@ -21,6 +21,8 @@ MPStats::MPStats(  )
 	helpTextArrayID = 8;
 	status = -1;
 	bHostLeftDlg = 0;
+	bShowMainMenu = 0;
+	bSavingStats = 0;
 }
 
 //-------------------------------------------------------------------------------------------------

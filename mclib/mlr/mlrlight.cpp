@@ -43,6 +43,7 @@ MLRLight::MLRLight(ClassData *class_data) :
 	RegisteredClass(class_data)
 {
 	Verify(gos_GetCurrentHeap() == Heap);
+	lightMask = 0;
 	intensity = 1.0f;
 
 	lightToWorld = LinearMatrix4D::Identity;
@@ -62,6 +63,7 @@ MLRLight::MLRLight(
 {
 	Check_Object(stream);
 	Verify(gos_GetCurrentHeap() == Heap);
+	lightMask = 0;
 
 	LinearMatrix4D matrix;
 	*stream >> intensity >> color >> matrix;
@@ -88,6 +90,7 @@ MLRLight::MLRLight(
 {
 	Check_Object(page);
 	Verify(gos_GetCurrentHeap() == Heap);
+	lightMask = 0;
 
 	lightName = page->GetName();
 

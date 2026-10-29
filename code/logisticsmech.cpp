@@ -15,6 +15,8 @@ LogisticsMech::LogisticsMech( LogisticsVariant* pVar, int Count ) : pVariant( pV
 	ID = (Count << 24 | pVar->getID() );
 	pilot = 0;
 	forceGroup = 0;
+	pilotID = 0;
+	baseColor = highlightColor1 = highlightColor2 = 0;
 }
 
 LogisticsMech::~LogisticsMech()

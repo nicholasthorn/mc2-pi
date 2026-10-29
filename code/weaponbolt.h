@@ -237,6 +237,7 @@ class WeaponBolt : public GameObject
 			targetPosition = NULL;
 			
 			distanceToTarget = 0.0;
+			halfDistanceToTarget = 0.0;
 			
 			ownerWID = targetWID = 0;
 

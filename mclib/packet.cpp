@@ -193,6 +193,8 @@ PacketFile::PacketFile (void)
 {
 	seekTable = NULL;
 	usesCheckSum = FALSE;
+	packetType = 0;
+	packetUnpackedSize = 0;
 	clear();
 }
 

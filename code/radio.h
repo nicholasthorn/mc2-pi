@@ -137,6 +137,7 @@ class Radio
 
 		Radio (void)
 		{
+			owner = NULL;
 			init();
 		}
 	

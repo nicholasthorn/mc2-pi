@@ -273,6 +273,8 @@ class TacticalOrder {
 		void destroy (void);
 
 		TacticalOrder (void) {
+			statusCode = 0;
+			data[0] = data[1] = 0;
 			init();
 		}
 

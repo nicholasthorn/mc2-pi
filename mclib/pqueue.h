@@ -45,6 +45,8 @@ class PriorityQueue {
 		}
 
 		PriorityQueue (void) {
+			maxItems = 0;
+			keyMin = 0;
 			init();
 		}
 

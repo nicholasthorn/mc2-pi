@@ -89,6 +89,7 @@ class Weather
 	
 		Weather (void)
 		{
+			baseLighteningChance = 0.0f;
 			init();
 		}
 		

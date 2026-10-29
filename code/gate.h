@@ -186,6 +186,8 @@ class Gate : public TerrainObject
 			
 			parentId = 0xffffffff;
 			parent = 0;
+			teamId = -1;
+			buildingDescriptionID = -1;
 
 			updatedTurn = -1;
 		}

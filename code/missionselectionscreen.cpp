@@ -26,6 +26,7 @@ MissionSelectionScreen::MissionSelectionScreen(  )
 	status = RUNNING;
 	LogisticsScreen::helpTextArrayID = 3;
 	bMovie = 0;
+	playedLogisticsTune = 0;
 
 	missionCount = 0;
 	// pressedButton was left uninitialized -> update() reads garbage at line 177

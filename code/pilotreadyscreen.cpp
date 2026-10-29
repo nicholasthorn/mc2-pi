@@ -37,6 +37,9 @@ PilotReadyScreen::PilotReadyScreen()
 	status = PAUSED;
 	helpTextArrayID = 13;
 	mechSelected = 0;
+	launchFadeTime = 0.f;
+	memset( skillLocations, 0, sizeof( skillLocations ) );
+	memset( medalLocations, 0, sizeof( medalLocations ) );
 
 }
 

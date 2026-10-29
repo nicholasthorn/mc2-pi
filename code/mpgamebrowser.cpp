@@ -40,6 +40,7 @@ MPGameBrowser::MPGameBrowser()
 
 	helpTextArrayID = 5;
 	bShowErrorDlg = 0;
+	oldScrollPos = 0;
 
 	sortOrder = SORT_ORDER_NAME;
 	bSortUpward = 1;

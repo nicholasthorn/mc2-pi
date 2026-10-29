@@ -293,6 +293,8 @@ class GameObjectManager {
 		void init (void);
 		
 		GameObjectManager (void) {
+			numCollidables = 0;
+			collisionSystem = NULL;
 			init();
 		}
 

@@ -108,6 +108,8 @@ static FORMAT getFormatFromBpp(const unsigned int bpp) {
 Image::Image(void)
 {
 	pixels = 0;
+	width = height = 0;
+	format = FORMAT_NONE;
 }
 
 Image::~Image(void)

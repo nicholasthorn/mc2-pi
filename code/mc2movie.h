@@ -49,6 +49,9 @@ class MC2Movie
 
 			separateWAVE = false;
 			soundStarted = false;
+			bPaused = false;
+			cur_movie_time_ = 0.0;
+			singleTextureSize = 0;
 
 			waveName = NULL;
 			m_MC2Name = NULL;

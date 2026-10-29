@@ -18,6 +18,8 @@ GOSImage::GOSImage( const char* iName ) : Plug (DefaultData)
 
 	instance = 0;
 
+	ipHints = (gos_TextureHints)0;
+
 	mcTextureNodeIndex = 0xffffffff;
 
 	ptr.pTexture = NULL;
@@ -36,6 +38,8 @@ GOSImage::GOSImage( DWORD iHandle ) : Plug (DefaultData)
 	flags = Loaded;
 
 	instance = 0;
+
+	ipHints = (gos_TextureHints)0;
 
 	mcTextureNodeIndex = iHandle;
 

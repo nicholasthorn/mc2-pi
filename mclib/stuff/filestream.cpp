@@ -204,6 +204,7 @@ FileStream::FileStream():
 	fileName = NULL;
 	isOpen = false;
 	fileHandle = NULL;
+	writeEnabled = ReadOnly;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -216,6 +217,7 @@ FileStream::FileStream(
 {
 	fileName = NULL;
 	isOpen = false;
+	writeEnabled = ReadOnly;
 	Open(file_name, writable);
 }
 
