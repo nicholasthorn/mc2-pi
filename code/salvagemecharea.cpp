@@ -392,7 +392,7 @@ SalvageListItem::SalvageListItem( BattleMech* pMech )
 	icon->update();
 
 	// A salvageable mech may have a null/partial appearance (stub-substituted
-	// chassis, partial GLB import — see "mech appearance has no base shape" warns).
+	// chassis, partial GLB import; see "mech appearance has no base shape" warns).
 	// Guard before deref so the salvage list survives it instead of crashing
 	// (SalvageMechScreen::init, salvagemecharea.cpp).
 	psRed = psGreen = psBlue = 0;

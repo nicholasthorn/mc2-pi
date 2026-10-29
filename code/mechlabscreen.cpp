@@ -236,7 +236,7 @@ void MechLabScreen::begin()
 	{
 		// getMechToModify() can return null when no mech is selected (e.g. forced
 		// begin() from the soak check-screens harness before logistics is staged).
-		// Bail out early rather than null-deref — caller should have guarded first.
+		// Bail out early rather than null-deref; the caller should have guarded first.
 		LogisticsMech* mechToMod = LogisticsData::instance
 		                           ? LogisticsData::instance->getMechToModify()
 		                           : nullptr;

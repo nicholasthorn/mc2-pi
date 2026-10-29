@@ -322,7 +322,7 @@ gosFX::ParticleCloud::ParticleCloud(
 	//
 	m_data.SetLength(spec->m_maxParticleCount*spec->m_totalParticleSize);
 
-	// Zero the raw channel block so every particle slot starts cleared — in
+	// Zero the raw channel block so every particle slot starts cleared, in
 	// particular each slot's m_effect pointer is NULL until CreateNewParticle
 	// sets it. Without this, a slot activated over uninitialized pool memory
 	// holds a garbage m_effect that EffectCloud::DestroyParticle then delete's

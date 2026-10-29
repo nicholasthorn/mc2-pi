@@ -605,7 +605,7 @@ void GameObjectManager::setWatchID (GameObjectPtr obj) {
 		// indices are [0, getMaxObjects()]. On watch-ID exhaustion (long
 		// reinforcement churn burns a fresh slot per re-acquire) fail safe:
 		// leave the object un-watchable (watchID stays 0) instead of writing
-		// OOB. Reuse is deliberately avoided — it would reintroduce ABA /
+		// OOB. Reuse is deliberately avoided: it would reintroduce ABA /
 		// stale-target hazards. The Save-side clamp is independent (see ::Save).
 		if (nextWatchID > (unsigned long)getMaxObjects()) {
 			static unsigned long s_watchIdDrops = 0;
@@ -3050,7 +3050,7 @@ long GameObjectManager::Save (PacketFilePtr file, long packetNum)
 			// If none, let it be.  It'll be zero already
 			// DO NOT CALL getWatchID!!!!!!!
 			// That will assign them to objects which don't have them!!!!
-			// OBJMGR-WATCHID-BOUNDS-1: clamp independently of setWatchID —
+			// OBJMGR-WATCHID-BOUNDS-1: clamp independently of setWatchID:
 			// watchList and watchSave are both sized getMaxObjects()+1, so j must
 			// not exceed getMaxObjects(). Previously j<=nextWatchID could read
 			// watchList[j] / write watchSave[j] one past the allocation
@@ -3680,7 +3680,7 @@ long GameObjectManager::Load (PacketFilePtr file, long packetNum)
 	// cross-version save can hold an index outside [0, maxObj]; objList is sized
 	// maxObj+1. Validate each entry before dereferencing objList. On an invalid
 	// index, invalidate that watch slot (treat the saved object reference as
-	// gone) and continue — never OOB-read objList, never crash the load. Loop is
+	// gone) and continue; never OOB-read objList, never crash the load. Loop is
 	// bounded by the allocated capacity (getMaxObjects()), not any serialized
 	// value.
 	const long _maxObj = getMaxObjects();

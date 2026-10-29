@@ -1174,7 +1174,7 @@ void Building::setSensorData (TeamPtr team, float range, bool setTeam)
 			{
 				// Pool exhausted (MAX_SENSORS). Fatal(0,...) is non-fatal here and
 				// would fall through to a null deref at setOwner. Skip sensor setup
-				// gracefully — building runs sensorless rather than crashing.
+				// gracefully: the building runs sensorless rather than crashing.
 				return;
 			}
 		}
