@@ -27,9 +27,6 @@
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	code/ablmc2.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'objectNum' and 'newBRValue'.
-2	code/ablmc2.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'objectId<=508' is redundant or the array 'Team::teams[8]' is accessed at index 8, which is out of bounds.
-1	code/ablmc2.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'partId<=508' is redundant or the array 'Team::teams[8]' is accessed at index 8, which is out of bounds.
-2	code/ablmc2.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'teamId<=508' is redundant or the array 'Team::teams[8]' is accessed at index 8, which is out of bounds.
 1	code/artlry.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	code/artlry.cpp	warning	duplInheritedMember	The class 'ArtilleryType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Artillery()' at line N. Dynamic binding is not used.
@@ -146,31 +143,6 @@
 1	code/mech.cpp	warning	duplInheritedMember	The class 'BattleMech' defines member function with name 'isWeaponWorking' also defined in its parent class 'Mover'.
 1	code/mech.cpp	warning	duplInheritedMember	The class 'BattleMechType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 3	code/mech.cpp	warning	nullPointerRedundantCheck	Either the condition 'appearance' is redundant or there is possible null pointer dereference: appearance.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::ItemLocationToInvLocation' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::actuator' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::cBills' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::centerTorsoBlowTime' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::chassisBR' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::chassisClass' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::damageAfterDisabled' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::damageThisFrame' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::descID' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::gyro' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::lastJumpTime' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::leftArmRotation' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::legStatus' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::longName' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::maxWeaponDamage' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::numArmorComponents' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::numJumpJets' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::pilotNum' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::pivotTurnRate' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::rightArmRotation' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::rotateValues' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::torsoRotation' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::torsoStatus' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::variantID' is not assigned a value in 'BattleMech::operator='.
-1	code/mech.cpp	warning	operatorEqVarError	Member variable 'BattleMech::variantName' is not assigned a value in 'BattleMech::operator='.
 2	code/mech.cpp	warning	oppositeInnerCondition	Opposite inner 'if' condition leads to a dead code block.
 1	code/mech.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BattleMech()' at line N. Dynamic binding is not used.
 1	code/mech.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BattleMechType()' at line N. Dynamic binding is not used.
@@ -338,8 +310,6 @@
 1	code/weaponbolt.h	warning	uninitMemberVar	Member variable 'WeaponBolt::halfDistanceToTarget' is not initialized in the constructor.
 1	code/weather.h	warning	uninitMemberVar	Member variable 'Weather::baseLighteningChance' is not initialized in the constructor.
 1	data_tools/aseconv.cpp	warning	selfAssignment	Redundant assignment of 'CommandLine' to itself.
-1	gui/aanim.cpp	warning	operatorEqVarError	Member variable 'aAnimation::direction' is not assigned a value in 'aAnimation::operator='.
-1	gui/aanim.cpp	warning	uninitMemberVar	Member variable 'aAnimation::direction' is not initialized in the copy constructor.
 1	gui/aanimobject.cpp	warning	duplInheritedMember	The class 'aAnimObject' defines member function with name 'init' also defined in its parent class 'aObject'.
 1	gui/aanimobject.h	warning	duplInheritedMember	The class 'aAnimObject' defines member function with name 'init' also defined in its parent class 'aObject'.
 1	gui/abutton.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'fXcaleX' and 'fScaleY'.
@@ -412,7 +382,6 @@
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::vertices' is not initialized in the constructor.
 1	mclib/cevfx.cpp	style	arrayIndexThenCheck	Array index 'i' is used before limits check.
 1	mclib/clouds.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
-2	mclib/cmponent.h	warning	arrayIndexOutOfBoundsCond	Either the condition 'location>8' is redundant or the array 'criticalSpacesReq[8]' is accessed at index 8, which is out of bounds.
 1	mclib/csvfile.cpp	warning	constStatement	Unused variable value 'fName'
 1	mclib/csvfile.cpp	warning	uninitMemberVar	Member variable 'CSVFile::dataBuffer' is not initialized in the constructor.
 1	mclib/csvfile.h	style	virtualCallInConstructor	Virtual function 'close' is called from destructor '~CSVFile()' at line N. Dynamic binding is not used.
@@ -580,7 +549,6 @@
 1	mclib/inifile.h	style	virtualCallInConstructor	Virtual function 'close' is called from destructor '~FitIniFile()' at line N. Dynamic binding is not used.
 1	mclib/mapdata.cpp	portability	shiftNegativeLHS	Shifting a negative value is technically undefined behaviour
 1	mclib/mapdata.cpp	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
-1	mclib/mapdata.cpp	warning	operatorEqVarError	Member variable 'PostcompVertex::water' is not assigned a value in 'PostcompVertex::operator='.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'init' also defined in its parent class 'HeapManager'.
 4	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
