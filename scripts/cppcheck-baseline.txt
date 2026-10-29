@@ -5,9 +5,6 @@
 1	GameOS/gameos/gameos_fileio.cpp	warning	noCopyConstructor	Struct 'gosFileStream' does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s).
 1	GameOS/gameos/gameos_fileio.cpp	warning	noOperatorEq	Struct 'gosFileStream' does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).
 1	GameOS/gameos/gameos_fileio.cpp	warning	uninitMemberVar	Member variable 'gosFileStream::BytesTransfered' is not initialized in the constructor.
-4	GameOS/gameos/gameos_graphics.cpp	error	nullPointerArithmetic	Pointer addition with NULL pointer.
-1	GameOS/gameos/gameos_graphics.cpp	error	uninitStructMember	Uninitialized struct member: eq.fnt_
-1	GameOS/gameos/gameos_graphics.cpp	error	uninitStructMember	Uninitialized struct member: eq.font_id_
 1	GameOS/gameos/gameos_graphics.cpp	portability	shiftTooManyBitsSigned	Shifting signed 32-bit value by 31 bits is implementation-defined behaviour
 1	GameOS/gameos/gameos_graphics.cpp	warning	noCopyConstructor	Class 'gosTexture' does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s).
 1	GameOS/gameos/gameos_graphics.cpp	warning	noOperatorEq	Class 'gosTexture' does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).
@@ -59,19 +56,14 @@
 1	GameOS/gameos/gos_font.h	warning	uninitMemberVar	Member variable 'gosGlyphInfo::font_line_skip_' is not initialized in the constructor.
 1	GameOS/gameos/gos_font.h	warning	uninitMemberVar	Member variable 'gosGlyphInfo::max_advance_' is not initialized in the constructor.
 1	GameOS/gameos/gos_font.h	warning	uninitMemberVar	Member variable 'gosGlyphInfo::start_glyph_' is not initialized in the constructor.
-1	GameOS/gameos/gos_render.cpp	error	uninitvar	Uninitialized variable: j
-1	GameOS/gameos/utils/Image.cpp	error	mismatchAllocDealloc	Mismatching allocation and deallocation: Image::pixels
 1	GameOS/gameos/utils/Image.cpp	warning	uninitMemberVar	Member variable 'Image::format' is not initialized in the constructor.
 1	GameOS/gameos/utils/Image.cpp	warning	uninitMemberVar	Member variable 'Image::height' is not initialized in the constructor.
 1	GameOS/gameos/utils/Image.cpp	warning	uninitMemberVar	Member variable 'Image::width' is not initialized in the constructor.
-4	GameOS/gameos/utils/gl_utils.h	error	nullPointerArithmetic	Pointer addition with NULL pointer.
 1	GameOS/gameos/utils/gl_utils.h	warning	uninitMemberVar	Member variable 'Texture::type_' is not initialized in the constructor.
 2	GameOS/gameos/utils/shader_builder.cpp	portability	invalidPointerCast	Casting between unsigned char * and float * which have an incompatible binary data representation.
 1	GameOS/gameos/utils/shader_builder.cpp	warning	nullPointerArithmeticRedundantCheck	Either the condition 'eol' is redundant or there is pointer arithmetic with NULL pointer.
 1	GameOS/gameos/utils/shader_builder.h	warning	uninitMemberVarPrivate	Member variable 'glsl_program::last_load_time_' is not initialized in the constructor.
 1	GameOS/gameos/utils/shader_builder.h	warning	uninitMemberVarPrivate	Member variable 'glsl_program::prefix_' is not initialized in the constructor.
-2	code/ablmc2.cpp	error	nullPointer	Null pointer dereference: object1
-1	code/ablmc2.cpp	error	zerodiv	Division by zero.
 1	code/ablmc2.cpp	portability	invalidPointerCast	Casting from double * to signed int * is not portable due to different binary data representations on different platforms.
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
@@ -80,7 +72,6 @@
 1	code/ablmc2.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'partId<=508' is redundant or the array 'Team::teams[8]' is accessed at index 8, which is out of bounds.
 2	code/ablmc2.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'teamId<=508' is redundant or the array 'Team::teams[8]' is accessed at index 8, which is out of bounds.
 2	code/ablmc2.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 2) requires 'int' but the argument type is 'signed long'.
-1	code/artlry.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xff<<8)+(0x00<<16)+(0xff<<24)'.
 1	code/artlry.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	code/artlry.cpp	warning	duplInheritedMember	The class 'ArtilleryType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 3	code/artlry.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
@@ -160,8 +151,6 @@
 1	code/controlgui.cpp	warning	noOperatorEq	Class 'ControlGui' does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).
 1	code/controlgui.cpp	warning	uninitMemberVar	Member variable 'ControlGui::mouseInVehicleStopButton' is not initialized in the constructor.
 2	code/controlgui.cpp	warning	uninitvar	Uninitialized variables: sorted.checkedIn, sorted.player, sorted.commanderID, sorted.dropZone, sorted.stripeColor, sorted.teamSelected, sorted.team, sorted.teamSeniority, sorted.faction, sorted.cBills, sorted.resourcePointsAtStart, sorted.resourcePointsGained, sorted.resourcePoints, sorted.rank, sorted.ready, sorted.score, sorted.kills, sorted.losses, sorted.winner, sorted.leftSession, sorted.booted
-1	code/gamecam.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	code/gamecam.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xff<<8)+(0x00<<16)+(0xff<<24)'.
 1	code/gamecam.cpp	warning	duplInheritedMember	The class 'GameCamera' defines member function with name 'destroy' also defined in its parent class 'Camera'.
 1	code/gamecam.h	warning	duplInheritedMember	The class 'GameCamera' defines member function with name 'destroy' also defined in its parent class 'Camera'.
 5	code/gameobj.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
@@ -189,9 +178,6 @@
 1	code/group.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~MoverGroup()' at line 111. Dynamic binding is not used.
 1	code/group.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'MoverGroup()' at line 105. Dynamic binding is not used.
 1	code/group.h	warning	uninitMemberVar	Member variable 'MoverGroup::moverWIDs' is not initialized in the constructor.
-1	code/gvehicl.cpp	error	arrayIndexOutOfBounds	Array 'TargetMoveModifierTable[5][2]' accessed at index TargetMoveModifierTable[5][1], which is out of bounds.
-2	code/gvehicl.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0xff<<16)+(0xff<<24)'.
-1	code/gvehicl.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xff<<8)+(0x00<<16)+(0xff<<24)'.
 1	code/gvehicl.cpp	warning	duplInheritedMember	The class 'GroundVehicleType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
 4	code/gvehicl.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
 2	code/gvehicl.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 2) requires 'int' but the argument type is 'signed long'.
@@ -302,8 +288,6 @@
 1	code/mc2movie.h	warning	uninitMemberVar	Member variable 'MC2Movie::bPaused' is not initialized in the constructor.
 1	code/mc2movie.h	warning	uninitMemberVar	Member variable 'MC2Movie::cur_movie_time_' is not initialized in the constructor.
 1	code/mc2movie.h	warning	uninitMemberVar	Member variable 'MC2Movie::singleTextureSize' is not initialized in the constructor.
-5	code/mech.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0xff<<16)+(0xff<<24)'.
-1	code/mech.cpp	error	integerOverflow	Signed integer overflow for expression '0xff+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
 1	code/mech.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'inv_id<255' is redundant or the array 'inventory[72]' is accessed at index 254, which is out of bounds.
 3	code/mech.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'numAntiMissileSystems==16' is redundant or the array 'antiMissileSystem[16]' is accessed at index 16, which is out of bounds.
 3	code/mech.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'spaceData[0]<255' is redundant or the array 'inventory[72]' is accessed at index 254, which is out of bounds.
@@ -381,7 +365,6 @@
 1	code/mechlistbox.cpp	warning	operatorEqVarError	Member variable 'MechListBoxItem::state' is not assigned a value in 'MechListBoxItem::operator='.
 1	code/mechlistbox.h	warning	duplInheritedMember	The class 'MechListBox' defines member function with name 'setOrange' also defined in its parent class 'aListBox'.
 1	code/mechpurchasescreen.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 1) requires 'long' but the argument type is 'signed int'.
-1	code/mission.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xff<<8)+(0x00<<16)+(0xff<<24)'.
 2	code/mission.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 2	code/mission.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 6	code/mission.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
@@ -394,7 +377,6 @@
 1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::theSkyNumber' is not initialized in the constructor.
 1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::warning1' is not initialized in the constructor.
 1	code/mission.h	warning	uninitMemberVar	Member variable 'Mission::warning2' is not initialized in the constructor.
-1	code/missionbegin.cpp	error	arrayIndexOutOfBounds	Array 'multiplayerScreens[5][3]' accessed at index multiplayerScreens[*][3], which is out of bounds.
 1	code/missionbegin.cpp	warning	negativeIndex	Either the condition 'curScreenX!=-1' is redundant or the array 'screens[5][3]' is accessed at index screens[-1][*], which is out of bounds.
 1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::animationRunning' is not initialized in the constructor.
 1	code/missionbegin.cpp	warning	uninitMemberVar	Member variable 'MissionBegin::bDone' is not initialized in the constructor.
@@ -455,8 +437,6 @@
 1	code/missionselectionscreen.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 1) requires 'long' but the argument type is 'signed int'.
 1	code/missionselectionscreen.cpp	warning	uninitMemberVar	Member variable 'MissionSelectionScreen::playedLogisticsTune' is not initialized in the constructor.
 1	code/movemgr.cpp	warning	nullPointerRedundantCheck	Either the condition '!freeList' is redundant or there is possible null pointer dereference: freeList.
-1	code/mover.cpp	error	arrayIndexOutOfBounds	Array 'rangedCellsIndices[30][2]' accessed at index rangedCellsIndices[30][0], which is out of bounds.
-1	code/mover.cpp	error	bufferAccessOutOfBounds	Buffer is accessed out of bounds: statusStr
 1	code/mover.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'body[i].criticalSpaces[j].inventoryID<255' is redundant or the array 'inventory[72]' is accessed at index 254, which is out of bounds.
 2	code/mover.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'targetId>=96' is redundant or the array 'MPlayer->moverRoster[96]' is accessed at index 96, which is out of bounds.
 29	code/mover.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
@@ -494,8 +474,6 @@
 2	code/mploadmap.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 1) requires 'long' but the argument type is 'signed int'.
 1	code/mploadmap.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 2) requires 'long' but the argument type is 'signed int'.
 1	code/mploadmap.cpp	warning	uninitMemberVar	Member variable 'MPLoadMap::bIsSingle' is not initialized in the constructor.
-1	code/mploadmap.cpp	warning	uninitvar	Uninitialized variable: group
-1	code/mploadmap.cpp	warning	uninitvar	Uninitialized variable: missions
 1	code/mploadmap.h	warning	duplInheritedMember	The class 'MPLoadMap' defines member function with name 'isDone' also defined in its parent class 'LogisticsDialog'.
 2	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
 10	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: pInfo
@@ -665,7 +643,6 @@
 1	code/multplyr.h	warning	uninitMemberVar	Member variable 'MultiPlayer::worldStateLoad' is not initialized in the constructor.
 1	code/multplyr.h	warning	uninitMemberVar	Member variable 'MultiPlayer::worldUpdateFrequency' is not initialized in the constructor.
 1	code/multplyr.h	warning	uninitMemberVar	Member variable 'MultiPlayer::worldUpdateTime' is not initialized in the constructor.
-2	code/objective.cpp	error	integerOverflow	Signed integer overflow for expression '(0x00)+(0xff<<8)+(0xff<<16)+(0xff<<24)'.
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjective' defines member function with name 'Clear' also defined in its parent class 'EList < CObjectiveCondition * , CObjectiveCondition * >'.
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjectives' defines member function with name 'Clear' also defined in its parent class 'EList < CObjective * , CObjective * >'.
 8	code/objective.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
@@ -921,7 +898,6 @@
 1	mclib/abldecl.cpp	warning	nullPointerRedundantCheck	Either the condition '!elementTypePtr' is redundant or there is possible null pointer dereference: elementTypePtr.
 6	mclib/abldecl.cpp	warning	nullPointerRedundantCheck	Either the condition '!stringTypePtr' is redundant or there is possible null pointer dereference: stringTypePtr.
 3	mclib/abldecl.cpp	warning	nullPointerRedundantCheck	Either the condition '!typePtr' is redundant or there is possible null pointer dereference: typePtr.
-1	mclib/ablenv.cpp	error	arrayIndexOutOfBounds	Array 'files[6]' accessed at index 6, which is out of bounds.
 2	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!breakPointManager' is redundant or there is possible null pointer dereference: breakPointManager.
 2	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!dest' is redundant or there is possible null pointer dereference: dest.
 3	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!staticData' is redundant or there is possible null pointer dereference: staticData.
@@ -936,21 +912,15 @@
 1	mclib/ablrtn.cpp	warning	nullPointerRedundantCheck	Either the condition '!paramList' is redundant or there is possible null pointer dereference: paramList.
 2	mclib/ablsymt.cpp	warning	nullPointerRedundantCheck	Either the condition '!newNode' is redundant or there is possible null pointer dereference: newNode.
 4	mclib/ablsymt.cpp	warning	nullPointerRedundantCheck	Either the condition '!newType' is redundant or there is possible null pointer dereference: newType.
-5	mclib/ablxexpr.cpp	error	overlappingWriteUnion	Overlapping read/write of union is undefined behavior
-1	mclib/ablxexpr.cpp	portability	invalidPointerCast	Casting between signed char * and float * which have an incompatible binary data representation.
 1	mclib/ablxstd.cpp	portability	invalidPointerCast	Casting between signed char * and float * which have an incompatible binary data representation.
 1	mclib/ablxstd.cpp	portability	memsetClassFloat	Using memset() on union which contains a floating point number.
-1	mclib/ablxstmt.cpp	error	overlappingWriteUnion	Overlapping read/write of union is undefined behavior
 1	mclib/ablxstmt.cpp	warning	nullPointerRedundantCheck	Either the condition '!dest' is redundant or there is possible null pointer dereference: dest.
-6	mclib/appear.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/appear.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xff<<8)+(0x00<<16)+(0xff<<24)'.
 1	mclib/appear.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Appearance()' at line 120. Dynamic binding is not used.
 1	mclib/apprtype.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~AppearanceType()' at line 111. Dynamic binding is not used.
 1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsLowerRightX' is not initialized in the constructor.
 1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsLowerRightY' is not initialized in the constructor.
 1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsUpperLeftX' is not initialized in the constructor.
 1	mclib/apprtype.h	warning	uninitMemberVar	Member variable 'AppearanceType::boundsUpperLeftY' is not initialized in the constructor.
-2	mclib/bdactor.cpp	error	integerOverflow	Signed integer overflow for expression '(0xff)+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
 2	mclib/bdactor.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BldgAppearance()' at line 269. Dynamic binding is not used.
 1	mclib/bdactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~BldgAppearanceType()' at line 126. Dynamic binding is not used.
@@ -970,7 +940,6 @@
 1	mclib/bitflag.h	warning	uninitMemberVar	Member variable 'ByteFlag::totalFlags' is not initialized in the constructor.
 1	mclib/bitflag.h	warning	uninitMemberVar	Member variable 'ByteFlag::totalRAM' is not initialized in the constructor.
 1	mclib/camera.cpp	warning	nullPointer	Possible null pointer dereference: closestVertex
-1	mclib/camera.h	error	virtualDestructor	Class 'Camera' which is inherited by class 'GameCamera' does not have a virtual destructor.
 1	mclib/camera.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Camera()' at line 365. Dynamic binding is not used.
 1	mclib/camera.h	warning	uninitMemberVar	Member variable 'Camera::ambientBlue' is not initialized in the constructor.
 1	mclib/camera.h	warning	uninitMemberVar	Member variable 'Camera::ambientGreen' is not initialized in the constructor.
@@ -1032,69 +1001,6 @@
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::BarColor' is not initialized in the constructor.
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::BarWidth' is not initialized in the constructor.
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::vertices' is not initialized in the constructor.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0x20<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0x40<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0x60<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0x80<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0xA0<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0xC0<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0xE0<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x00<<8)+(0xFF<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x10<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x20<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x30<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x40<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x50<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x60<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x70<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x80<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0x90<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xA0<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xB0<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xC0<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xD0<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xE0<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xF0<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x00+(0xFF<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x20+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x40+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x60+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0x80+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0xA0+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0xC0+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0xE0+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '0xFF+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '104+(104<<8)+(104<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '112+(112<<8)+(112<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '120+(120<<8)+(120<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '128+(128<<8)+(128<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '132+(132<<8)+(136<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '136+(136<<8)+(136<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '144+(144<<8)+(144<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '148+(152<<8)+(156<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '156+(156<<8)+(156<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '168+(168<<8)+(168<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '168+(172<<8)+(176<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '180+(180<<8)+(180<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '184+(192<<8)+(196<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '196+(196<<8)+(196<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '204+(212<<8)+(220<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '208+(208<<8)+(208<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '224+(224<<8)+(224<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '236+(236<<8)+(236<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '248+(248<<8)+(248<<16)+(0xff<<24)'.
-2	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '255+(255<<8)+(255<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '28+(36<<8)+(48<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '44+(52<<8)+(116<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '44+(52<<8)+(60<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '44+(52<<8)+(88<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '48+(56<<8)+(148<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '48+(64<<8)+(172<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '52+(72<<8)+(196<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '56+(80<<8)+(220<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '60+(68<<8)+(76<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '92+(116<<8)+(255<<16)+(0xff<<24)'.
-1	mclib/cevfx.cpp	error	integerOverflow	Signed integer overflow for expression '96+(100<<8)+(104<<16)+(0xff<<24)'.
 1	mclib/cevfx.cpp	style	arrayIndexThenCheck	Array index 'i' is used before limits check.
 1	mclib/cevfx.h	warning	uninitMemberVar	Member variable 'PolygonQuadElement::vertices' is not initialized in the constructor.
 1	mclib/cevfx.h	warning	uninitMemberVar	Member variable 'PolygonTriElement::vertices' is not initialized in the constructor.
@@ -1127,7 +1033,6 @@
 1	mclib/cmponent.h	warning	uninitMemberVar	Member variable 'MasterComponent::tonnage' is not initialized in the constructor.
 1	mclib/cmponent.h	warning	uninitMemberVar	Member variable 'MasterComponent::uses' is not initialized in the constructor.
 2	mclib/color.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
-1	mclib/crater.cpp	error	floatConversionOverflow	Undefined behaviour: float (256) to integer conversion overflow.
 1	mclib/csvfile.cpp	warning	constStatement	Unused variable value 'fName'
 1	mclib/csvfile.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
 1	mclib/csvfile.cpp	warning	invalidPrintfArgType_uint	%x in format string (no. 1) requires 'unsigned int' but the argument type is 'signed long'.
@@ -1144,15 +1049,8 @@
 2	mclib/ffile.cpp	warning	constStatement	Unused variable value 'size'
 4	mclib/file.cpp	warning	invalidPrintfArgType_sint	%ld in format string (no. 1) requires 'long' but the argument type is 'unsigned long'.
 1	mclib/file.cpp	warning	uninitMemberVar	Member variable 'File::fastFileHandle' is not initialized in the constructor.
-1	mclib/file.cpp	warning	uninitvar	Uninitialized variable: mTime
 1	mclib/file.h	style	virtualCallInConstructor	Virtual function 'close' is called from destructor '~File()' at line 204. Dynamic binding is not used.
-1	mclib/floathelp.cpp	error	integerOverflow	Signed integer overflow for expression '(0x00)+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/floathelp.cpp	error	integerOverflow	Signed integer overflow for expression '(0xff)+(0xff<<8)+(0xff<<16)+(0xff<<24)'.
-1	mclib/floathelp.h	error	integerOverflow	Signed integer overflow for expression '(0x00)+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
-1	mclib/floathelp.h	error	integerOverflow	Signed integer overflow for expression '(0xff)+(0xff<<8)+(0xff<<16)+(0xff<<24)'.
-1	mclib/gamelog.cpp	error	arrayIndexOutOfBounds	Array 'files[6]' accessed at index 6, which is out of bounds.
 1	mclib/gamelog.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
-1	mclib/genactor.cpp	error	integerOverflow	Signed integer overflow for expression '(0xff)+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
 1	mclib/genactor.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
 1	mclib/genactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GenericAppearance()' at line 202. Dynamic binding is not used.
 1	mclib/genactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GenericAppearanceType()' at line 98. Dynamic binding is not used.
@@ -1853,8 +1751,6 @@
 1	mclib/gosfx/tube.hpp	warning	duplInheritedMember	The class 'Tube' defines member variable with name 'DefaultData' also defined in its parent class 'Plug'.
 1	mclib/gosfx/tube.hpp	warning	duplInheritedMember	The class 'Tube' defines member variable with name 'DefaultData' also defined in its parent class 'RegisteredClass'.
 2	mclib/gosfx/tube.hpp	warning	duplInheritedMember	The class 'Tube__Specification' defines member function with name 'Make' also defined in its parent class 'Effect__Specification'.
-1	mclib/gvactor.cpp	error	floatConversionOverflow	Undefined behaviour: float (256) to integer conversion overflow.
-1	mclib/gvactor.cpp	error	integerOverflow	Signed integer overflow for expression '(0xff)+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
 3	mclib/gvactor.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
 1	mclib/gvactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GVAppearance()' at line 270. Dynamic binding is not used.
 1	mclib/gvactor.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~GVAppearanceType()' at line 111. Dynamic binding is not used.
@@ -1894,8 +1790,6 @@
 1	mclib/mapdata.cpp	warning	uninitMemberVar	Member variable 'PostcompVertex::water' is not initialized in the copy constructor.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'init' also defined in its parent class 'HeapManager'.
-1	mclib/mech3d.cpp	error	floatConversionOverflow	Undefined behaviour: float (256) to integer conversion overflow.
-1	mclib/mech3d.cpp	error	integerOverflow	Signed integer overflow for expression '(0xff)+(0x00<<8)+(0x00<<16)+(0xff<<24)'.
 4	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
 1	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 4	mclib/mech3d.cpp	warning	invalidPrintfArgType_sint	%d in format string (no. 1) requires 'int' but the argument type is 'signed long'.
@@ -3182,7 +3076,6 @@
 1	mclib/stuff/hash.hpp	warning	duplInheritedMember	The class 'HashIterator' defines member function with name 'TestInstance' also defined in its parent class 'Iterator'.
 2	mclib/stuff/hash.hpp	warning	duplInheritedMember	The class 'HashIterator' defines member function with name 'TestInstance' also defined in its parent class 'SafeIterator'.
 1	mclib/stuff/hash.hpp	warning	duplInheritedMember	The class 'HashIterator' defines member function with name 'TestInstance' also defined in its parent class 'SocketIterator'.
-1	mclib/stuff/initialized_ptr.hpp	error	missingReturn	Found an exit path from function with non-void return type that has missing return statement
 1	mclib/stuff/line.cpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'GetDistanceTo' also defined in its parent class 'Ray3D'.
 1	mclib/stuff/line.cpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'SetDirection' also defined in its parent class 'Ray3D'.
 3	mclib/stuff/line.hpp	warning	duplInheritedMember	The class 'Line3D' defines member function with name 'GetDistanceTo' also defined in its parent class 'Ray3D'.
@@ -3452,11 +3345,3 @@
 1	mclib/vertex.h	warning	uninitMemberVar	Member variable 'Vertex::vx' is not initialized in the constructor.
 1	mclib/vertex.h	warning	uninitMemberVar	Member variable 'Vertex::vy' is not initialized in the constructor.
 1	mclib/vertex.h	warning	uninitMemberVar	Member variable 'Vertex::wAlpha' is not initialized in the constructor.
-2	tests/unit/doctest.h	warning	uninitMemberVar	Member variable 'ConsoleReporter::currentSubcaseLevel' is not initialized in the constructor.
-2	tests/unit/doctest.h	warning	uninitMemberVar	Member variable 'ConsoleReporter::hasLoggedCurrentTestStart' is not initialized in the constructor.
-2	tests/unit/doctest.h	warning	uninitMemberVar	Member variable 'ConsoleReporter::tc' is not initialized in the constructor.
-1	tests/unit/doctest.h	warning	uninitMemberVar	Member variable 'DiscardOStream::discardBuf' is not initialized in the constructor.
-1	tests/unit/doctest.h	warning	uninitMemberVar	Member variable 'Result::m_passed' is not initialized in the constructor.
-1	tests/unit/test_fst_roundtrip.cpp	error	resourceLeak	Resource leak: fp
-1	tests/unit/test_paths.cpp	error	resourceLeak	Resource leak: fp
-4	thirdparty/pl_mpeg/pl_mpeg.h	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
