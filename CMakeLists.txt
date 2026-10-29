@@ -30,11 +30,21 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -ggdb")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-local-typedefs -Werror=array-bounds -Wno-switch -Wwrite-strings -Wno-unknown-warning-option -Wunused-variable -fpermissive") # -fsanitize=address -fno-omit-frame-pointer")
+    # (-fpermissive was dropped: the code builds without it, and it hid
+    # non-conforming code that Clang/MSVC then rejected)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-local-typedefs -Werror=array-bounds -Wno-switch -Wwrite-strings -Wno-unknown-warning-option -Wunused-variable")
     # The code assumes x86/MSVC signed char (char tables holding -1, == -1
     # tests); plain char is unsigned on ARM (Raspberry Pi), so pin it.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsigned-char")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsigned-char")
+endif()
+
+# Warnings for NEW code. Applied per source file (set_source_files_properties
+# ... COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}") in the directory that owns the
+# target, so legacy files keep the flags above. GCC/Clang only: on MSVC the
+# legacy headers would need /external:I handling to stay quiet.
+if(NOT MSVC)
+    set(MC2_STRICT_WARNINGS -Wall -Wextra -Werror)
 endif()
 
 # MC2_SANITIZE: comma-separated -fsanitize= list for GCC/Clang, e.g.

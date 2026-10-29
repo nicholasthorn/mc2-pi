@@ -40,12 +40,25 @@ add_executable(mc2_tests
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
 )
 
-target_include_directories(mc2_tests PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+# Engine headers are legacy code: include them as SYSTEM headers (replacing the
+# plain -I paths inherited from the top-level include_directories) so the
+# strict warnings below report the test code, not the 2001 headers it uses.
+get_target_property(_mc2_engine_includes mc2_tests INCLUDE_DIRECTORIES)
+set_target_properties(mc2_tests PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(mc2_tests SYSTEM PRIVATE
+    ${_mc2_engine_includes}
     ${MC2_SRC}/mclib
     ${MC2_SRC}/GameOS/include
     ${MC2_SRC}/GameOS/gameos
 )
+
+# New code in this target is held to -Wall -Wextra -Werror (GCC/Clang); the
+# legacy engine .cpp files above keep the global flags.
+set_source_files_properties(
+    test_main.cpp heap_shim.cpp test_file_inifile.cpp test_csvfile.cpp
+    test_fst_roundtrip.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
+    PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 
 # Fixtures are copied next to the tests and opened by RELATIVE path:
 # File::open lowercases the whole name, so an absolute path with upper-case

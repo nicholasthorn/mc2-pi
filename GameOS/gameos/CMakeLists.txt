@@ -39,3 +39,7 @@ include_directories(${THIRDPARTY_INCLUDE_DIRS})
 add_library(gameos ${SOURCES})
 add_library(gameos_main ${MAIN_SRC})
 
+# new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
+set_source_files_properties(utils/pixel_repack.cpp
+    PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+
