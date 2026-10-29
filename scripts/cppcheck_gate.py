@@ -45,6 +45,8 @@ def run_cppcheck(build_dir, files, jobs):
         path = os.path.relpath(os.path.abspath(path), ROOT).replace("\\", "/")
         if path.startswith(".."):
             continue  # system headers etc.
+        if path.split("/", 1)[0] in EXCLUDE:
+            continue  # -i is not honoured in --project mode by every version
         if severity in ("information", "debug"):
             continue
         findings[SEP.join([path, severity, check, message])] += 1
