@@ -328,8 +328,9 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 			{
 				getButton( 57/*MB_MSG_MAINMENU*/ )->press( 0 );
 				if (MPlayer->commanderID > -1) {
+					// getPlayerInfo() returns NULL while networking is unimplemented
 					MC2Player* pInfo = MPlayer->getPlayerInfo( MPlayer->commanderID );
-					if ( pInfo->ready )
+					if ( pInfo && pInfo->ready )
 						pInfo->ready = 0;
 					if (!MPlayer->isHost())
 					{
@@ -386,7 +387,7 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 			{
 
 				MC2Player* pInfo = MPlayer->getPlayerInfo( MPlayer->commanderID );
-				if ( pInfo->ready )
+				if ( pInfo && pInfo->ready )
 					pInfo->ready = 0;
 				if (!MPlayer->isHost())
 				{
