@@ -105,7 +105,7 @@ jobs:
             libglew-dev libgl-dev libgles-dev libegl-dev libgl1-mesa-dri
       - uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: smoke-${{ matrix.os }}-gles${{ matrix.gles }}-${{ matrix.sanitize }}
+          key: smoke-${{ matrix.os }}-gles${{ matrix.gles }}${{ matrix.sanitize && '-san' || '' }}
       - name: Build
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
