@@ -165,7 +165,8 @@ class PolygonQuadElement : public Element
 		
 	PolygonQuadElement (void)
 	{
-		memset(vertices, 0, sizeof(vertices));
+		for (int i = 0; i < 4; i++)
+			vertices[i] = gos_VERTEX();
 	}
 	
 	void init (gos_VERTEX *v);
@@ -186,7 +187,8 @@ class PolygonTriElement : public Element
 		
 	PolygonTriElement (void)
 	{
-		memset(vertices, 0, sizeof(vertices));
+		for (int i = 0; i < 3; i++)
+			vertices[i] = gos_VERTEX();
 	}
 	
 	void init (gos_VERTEX *v);

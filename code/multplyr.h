@@ -673,7 +673,7 @@ class MCMSG_MissionSettingsUpdate {
 
 		void init (void) {
 			type = MCMSG_MISSION_SETTINGS_UPDATE;
-			memset(&missionSettings, 0, sizeof(missionSettings));
+			missionSettings = MissionSettings();
 		}
 };
 
@@ -700,7 +700,7 @@ class MCMSG_MissionSetup {
 			randomSeed = 0;
 			subType = 0;
 			memset(commandersToLoad, 0, sizeof(commandersToLoad));
-			memset(&mechData, 0, sizeof(mechData));
+			mechData = CompressedMech();
 		}
 };
 

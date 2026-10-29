@@ -36,6 +36,14 @@ EXCLUDE = ["tests", "thirdparty", "3rdparty"]
 DELIBERATE_HIDING = {"InitializeClass", "TerminateClass", "DefaultData",
                      "Make", "TestInstance"}
 HIDDEN_NAME = re.compile(r"with name '([^']+)' also defined in its parent class")
+# some messages name a line ("called from constructor 'Camera()' at line
+# 389"); keys must not move when unrelated edits shift the code
+LINE_IN_MESSAGE = re.compile(r"\bat line \d+")
+
+
+def key(path, severity, check, message):
+    return SEP.join([path, severity, check,
+                     LINE_IN_MESSAGE.sub("at line N", message)])
 
 
 def ignored(check, message):
@@ -67,7 +75,7 @@ def run_cppcheck(build_dir, files, jobs):
             continue
         if ignored(check, message):
             continue
-        findings[SEP.join([path, severity, check, message])] += 1
+        findings[key(path, severity, check, message)] += 1
     return findings
 
 
@@ -78,8 +86,8 @@ def load_baseline():
             for line in f:
                 if line.startswith("#") or not line.strip():
                     continue
-                count, key = line.rstrip("\n").split("\t", 1)
-                base[key.replace("\t", SEP)] = int(count)
+                count, rest = line.rstrip("\n").split("\t", 1)
+                base[key(*rest.split("\t"))] += int(count)
     return base
 
 

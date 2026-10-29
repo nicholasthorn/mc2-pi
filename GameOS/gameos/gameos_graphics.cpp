@@ -1003,7 +1003,7 @@ class gosRenderer {
             reqGotoFullscreen = false;
             pendingRequest = false;
             renderStatesStackPointer = -1;
-            memset(&curTextAttribs_, 0, sizeof(curTextAttribs_));
+            curTextAttribs_ = gosTextAttribs();
             curTextPosX_ = curTextPosY_ = 0;
             curTextLeft_ = curTextTop_ = curTextRight_ = curTextBottom_ = 0;
             clearDepth_ = clearColor_ = clearStencil_ = false;
