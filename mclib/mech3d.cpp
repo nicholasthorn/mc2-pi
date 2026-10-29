@@ -1314,6 +1314,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	oldStateGoal = 1;			//Always start in Stand Mode
 
 	currentFrame = 0.0f;
+	lastAnimAdvanceTurn = -1;
 
 	pointLight = NULL;
 	lightId = 0xffffffff;
@@ -4076,10 +4077,19 @@ long Mech3DAppearance::update (bool animate)
 			{
 				if (!setFirstFrame)		//DO NOT ANIMATE ON FIRST FRAME!  Wait a bit!
 				{
-					if (inReverse)
-						currentFrame -= frameInc;
-					else
-						currentFrame += frameInc;
+					// Advance the gait at most once per frame. Mover::getLOSPosition()
+					// calls update() a second time in combat to refresh weapon nodes,
+					// which used to step the animation twice (visible double-step,
+					// worse at low frame rates). Geometry below still recomputes.
+					// (from mc2-opengl-remastered 07d27b2f / 7603d042)
+					if (lastAnimAdvanceTurn != turn)
+					{
+						if (inReverse)
+							currentFrame -= frameInc;
+						else
+							currentFrame += frameInc;
+						lastAnimAdvanceTurn = turn;
+					}
 				}
 	
 				//--------------------------------------

@@ -356,6 +356,7 @@ class Mech3DAppearance: public ObjectAppearance
 		long						hitGestureId;			//What gesture should I go back to when hit?
 
 		float						currentFrame;			//One for each part.
+		long						lastAnimAdvanceTurn;	//turn of the last gait advance (advance at most once per frame)
 		long						currentLOD;
 
 		TG_LightPtr					pointLight;
