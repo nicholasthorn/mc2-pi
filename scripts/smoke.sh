@@ -76,7 +76,7 @@ if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
 fi
 
 # Log lines that mean something went wrong even if the game kept running.
-BAD='OpenGL Error|: ERROR: |^STOP: |FATAL'
+BAD='OpenGL Error|: ERROR: |^STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
 
 failed=0
 for m in $MISSIONS; do

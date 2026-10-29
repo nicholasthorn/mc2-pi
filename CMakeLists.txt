@@ -36,6 +36,23 @@ if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsigned-char")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsigned-char")
 endif()
+
+# MC2_SANITIZE: comma-separated -fsanitize= list for GCC/Clang, e.g.
+# "address,undefined". Applied to every target (game, tools, tests).
+set(MC2_SANITIZE "" CACHE STRING "Sanitizers for GCC/Clang builds, e.g. address,undefined")
+if(MC2_SANITIZE)
+    if(MSVC)
+        message(FATAL_ERROR "MC2_SANITIZE is only wired for GCC/Clang")
+    endif()
+    # UBSan reports and continues, so one run lists every finding; the test
+    # runners treat any "runtime error:" line as a failure.
+    set(_mc2_san "-fsanitize=${MC2_SANITIZE} -fno-omit-frame-pointer")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${_mc2_san}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${_mc2_san}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${MC2_SANITIZE}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${MC2_SANITIZE}")
+    message("Sanitizers: ${MC2_SANITIZE}")
+endif()
 # -Wno-unused-local-typedefs - to disable "typedef was ignored on this declaration"
 
 if(MSVC)

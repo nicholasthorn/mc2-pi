@@ -22,6 +22,34 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq glslang-tools
       - run: python3 scripts/validate_shaders.py
 
+  sanitizers:
+    name: Unit tests (ASan + UBSan)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: sanitizers
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DMC2_SANITIZE=address,undefined
+          cmake --build build --target mc2_tests
+      # Leak checking stays on here (unlike the game smoke run). UBSan keeps
+      # going after a finding, so make every finding fail the job.
+      - name: Unit tests
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --output-on-failure
+
   linux:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}

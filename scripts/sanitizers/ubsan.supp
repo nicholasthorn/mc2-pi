@@ -1,0 +1,25 @@
+# UBSan baseline for the smoke runs: known findings in legacy code that need a
+# real refactor, not a one-line fix. Anything NOT listed here fails the run.
+# Fix an entry and delete its line; never add a line to make a new finding go
+# away without writing down why it is safe for now.
+#
+# Used via UBSAN_OPTIONS=suppressions=<this file> (see .github/workflows/smoke.yml
+# and .claude/rules/testing-conventions.md).
+
+# Mech/model loading treats TG_TypeShape/TG_MultiShape objects as TG_Shape
+# (C-style casts between sibling classes with compatible layouts). Works with
+# every compiler in use, but is undefined behaviour; fixing it means untangling
+# the TG_* class hierarchy.
+vptr:*/mclib/msl.cpp
+vptr:*/mclib/msl.h
+vptr:*/mclib/tgl.cpp
+
+# ABL script VM: compiled bytecode is a packed byte stream, read back with
+# int/pointer/size_t loads at unaligned addresses, and enum-typed tokens hold
+# values outside the enum. Unaligned scalar loads are fine on x86 and aarch64
+# Linux; the clean fix is memcpy-based reads in the VM.
+alignment:*/mclib/abl*
+enum:*/mclib/abl*
+
+# Mech icon data is read as DWORDs from a packed buffer (unaligned, see above).
+alignment:*/code/mechicon.cpp

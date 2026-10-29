@@ -80,6 +80,19 @@ jobs:
           - name: Linux arm64 (GLES, Raspberry Pi)
             os: ubuntu-24.04-arm
             gles: "ON"
+          - name: Linux x64 (desktop GL, ASan + UBSan)
+            os: ubuntu-24.04
+            gles: "OFF"
+            sanitize: address,undefined
+            frames: 300
+    env:
+      # Sanitizer runtime options (only matter for the sanitize entry).
+      # alloc_dealloc_mismatch: Mesa's swrast driver trips it while loading.
+      # detect_leaks: the game and Mesa leak at exit; leak checking runs on
+      # the unit tests instead (ci.yml). Known legacy UBSan findings are
+      # baselined in scripts/sanitizers/ubsan.supp.
+      ASAN_OPTIONS: alloc_dealloc_mismatch=0:detect_leaks=0
+      UBSAN_OPTIONS: print_stacktrace=1:suppressions=${{ github.workspace }}/scripts/sanitizers/ubsan.supp
     steps:
       - uses: actions/checkout@v7
         with:
@@ -92,12 +105,13 @@ jobs:
             libglew-dev libgl-dev libgles-dev libegl-dev libgl1-mesa-dri
       - uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: smoke-${{ matrix.os }}-gles${{ matrix.gles }}
+          key: smoke-${{ matrix.os }}-gles${{ matrix.gles }}-${{ matrix.sanitize }}
       - name: Build
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DMC2_BUILD_TESTS=OFF -DMC2_GLES=${{ matrix.gles }}
+            -DMC2_BUILD_TESTS=OFF -DMC2_GLES=${{ matrix.gles }} \
+            -DMC2_SANITIZE=${{ matrix.sanitize }}
           cmake --build build --target mc2 mc2res_64
       - uses: actions/cache/restore@v6
         with:
@@ -105,10 +119,12 @@ jobs:
           key: ${{ needs.data.outputs.key }}
           fail-on-cache-miss: true
       - name: Smoke
-        run: scripts/smoke.sh --game-dir gamedata --build-dir build --missions "$MISSIONS" --log-dir smoke-logs
+        run: >
+          scripts/smoke.sh --game-dir gamedata --build-dir build --missions "$MISSIONS"
+          --frames ${{ matrix.frames || 600 }} --timeout 900 --log-dir smoke-logs
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: smoke-logs-${{ matrix.os }}-gles${{ matrix.gles }}
+          name: smoke-logs-${{ matrix.os }}-gles${{ matrix.gles }}${{ matrix.sanitize && '-san' || '' }}
           path: smoke-logs
           retention-days: 14
