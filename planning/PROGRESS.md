@@ -24,7 +24,8 @@ belongs in commit messages and PRs.
 
 **Not verified / unknown**
 
-- [ ] Running on real Pi 4/400 hardware: record here once confirmed (which missions, frame rate)
+- [x] Real Pi 400 hardware (2026-10-29, at `10401db`): builds and runs. GPU (GLES) build, mc2_01, 3000 gameplay frames in 51.2 s (58.5 fps, about 800x600); that is at the 60 Hz vsync cap (`ENABLE_VSYNC` is hard-coded on in `gos_render.cpp`), so real GPU headroom is unmeasured. Software rendering: mc2_01 50.4 fps, mc2_03 67.1 fps.
+- [ ] Pi: GPU frame rate with vsync off; the other three smoke missions on the GPU build
 - [ ] Desktop GL run on Windows after the GLES changes
 
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
@@ -112,6 +113,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: confirmed on real Pi 400 hardware: GPU build mc2_01 58.5 fps (vsync-capped), software rendering mc2_01 50.4 / mc2_03 67.1 fps (user test).
 - 2026-10-29: `uninitMemberVar` tail: 35 constructors given zero/neutral defaults (screens, movie, font, image, input, file/packet streams, MLR sorter/lights, gate ids, tactical order, radio, weather, objectives) (`afb57ff`); baseline 592 -> 523.
 - 2026-10-29: inventory ids bounded by the 72-entry table, not the 255 sentinel (corrupt mech profiles); printf signedness; `LogisticsScreen`/`aObject` assignment copies help/fade fields; gate filters ctor/dtor `init`/`destroy`/`close` (`7446063`); baseline 702 -> 592.
 - 2026-10-29: `duplInheritedMember`: vehicle tooltip name came from a shadowed field (`GVAppearance::objectNameId`), duplicate `BuildingType::teamId`, dead duplicate overrides removed; gate treats mclib/stuff and mclib/gosfx member hiding (and `init` overloads) as deliberate; forest pathing shadow recorded under Known issues (`22f7c98`); baseline 1060 -> 702.
