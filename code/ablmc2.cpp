@@ -134,6 +134,17 @@ extern bool 			invulnerableON;		//Used for tutorials so mechs can take damage, b
 void DEBUGWINS_setGameObject (long debugObj, GameObjectPtr obj);
 void DEBUGWINS_print (const char* s, long window);
 
+// Team object ids run OBJ_ID_FIRST_TEAM..OBJ_ID_LAST_TEAM (500..508), one
+// more than Team::teams[MAX_TEAMS] holds: a script passing 508 must get no
+// team rather than whatever follows the array
+static TeamPtr teamFromObjectId (long objectId) {
+
+	long index = objectId - OBJ_ID_FIRST_TEAM;
+	if ((index < 0) || (index >= MAX_TEAMS))
+		return(NULL);
+	return(Team::teams[index]);
+}
+
 //*****************************************************************************
 // MISC AI
 //*****************************************************************************
@@ -150,7 +161,7 @@ long getMoversWithinRadius (MoverPtr* moverList, Stuff::Vector3D center, float r
 	Team::sortList->clear(sortDescending);
 
 	TeamPtr team = NULL;
-	if (teamID > -1)
+	if ((teamID > -1) && (teamID < MAX_TEAMS))
 		team = Team::teams[teamID];
 
 	long numValidMovers = 0;
@@ -378,9 +389,9 @@ inline long getMovers (long partId, MoverPtr* list, bool existsOnly) {
 		Fatal(3, " ABL.getMovers: bad id ");
 		//numObjects = Commander::commanders[partId - OBJ_ID_FIRST_COMMANDER]->getRoster((GameObjectPtr*)list);
 	else if ((partId >= OBJ_ID_FIRST_TEAM) && (partId <= OBJ_ID_LAST_TEAM)) {
-		TeamPtr team = Team::teams[partId - OBJ_ID_FIRST_TEAM];
+		TeamPtr team = teamFromObjectId(partId);
 		if (team)
-			numObjects = Team::teams[partId - OBJ_ID_FIRST_TEAM]->getRoster((GameObjectPtr*)list, existsOnly);
+			numObjects = team->getRoster((GameObjectPtr*)list, existsOnly);
 		}
 	else {
 		for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
@@ -609,7 +620,7 @@ void execGetEnemyCount (void) {
 		// We have a group.  Act accordingly.
 		// Run through all objects fitting the group.
 		if ((objectId >= OBJ_ID_FIRST_TEAM) && (objectId <= OBJ_ID_LAST_TEAM)) {
-			TeamPtr team = Team::teams[objectId - OBJ_ID_FIRST_TEAM];
+			TeamPtr team = teamFromObjectId(objectId);
 			if (team)
 				result = SensorManager->getTeamSensor(team->getId())->numContacts;
 		}
@@ -2328,7 +2339,7 @@ void execObjectStatusCount (void) {
 			//Fatal(0, " ABL.objectStatusCount: bad id ");
 			Commander::commanders[1]->getGroup(objectId - ClanStar0)->statusCount(tallyList);
 		else if ((objectId >= OBJ_ID_FIRST_TEAM) && (objectId <= OBJ_ID_LAST_TEAM)) {
-			TeamPtr team = Team::teams[objectId - OBJ_ID_FIRST_TEAM];
+			TeamPtr team = teamFromObjectId(objectId);
 			if (team)
 				team->statusCount(tallyList);
 		}
@@ -4656,7 +4667,7 @@ void execIsTeamTargeting (void) {
 
 	bool targeting = false;
 	if ((teamId >= OBJ_ID_FIRST_TEAM) && (teamId <= OBJ_ID_LAST_TEAM)) {
-		TeamPtr team = Team::teams[teamId - OBJ_ID_FIRST_TEAM];
+		TeamPtr team = teamFromObjectId(teamId);
 		if (team)
 			targeting = team->isTargeting(targetId, exceptId);
 		}
@@ -4698,7 +4709,7 @@ void execIsTeamCapturing (void) {
 	unsigned long targetWID = target ? target->getWatchID(false) : 0;
 	if (targetWID) {
 		if ((teamId >= OBJ_ID_FIRST_TEAM) && (teamId <= OBJ_ID_LAST_TEAM)) {
-			TeamPtr team = Team::teams[teamId - OBJ_ID_FIRST_TEAM];
+			TeamPtr team = teamFromObjectId(teamId);
 			if (team)
 				targeting = ObjectManager->isTeamCapturing(team, targetWID);
 			}

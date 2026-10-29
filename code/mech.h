@@ -418,7 +418,8 @@ class BattleMech : public Mover {
 
 	public:
 
-		void operator = (BattleMech copy);
+		// never used; the old definition was empty, silently copying nothing
+		void operator = (BattleMech copy) = delete;
 		
 		virtual void init (bool create);
 		

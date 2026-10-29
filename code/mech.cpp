@@ -1094,10 +1094,6 @@ GameObjectPtr BattleMechType::createInstance (void) {
 // BATTLEMECH class
 //**********************************************************************************
 
-void BattleMech::operator = (BattleMech copy) {
-
-}
-
 //----------------------------------------------------------------------------------
 
 void BattleMech::handleStaticCollision (void) {
