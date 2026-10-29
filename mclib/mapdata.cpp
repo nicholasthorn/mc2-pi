@@ -38,6 +38,7 @@ PostcompVertex& PostcompVertex::operator=( const PostcompVertex& src )
 		localRGBLight = src.localRGBLight;
 		terrainType = src.terrainType;
 		selected = src.selected;
+		water = src.water;
 		shadow = src.shadow;
 		highlighted = src.highlighted;
 	}

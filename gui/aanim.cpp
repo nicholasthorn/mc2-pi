@@ -32,6 +32,7 @@ aAnimation& aAnimation::operator=( const aAnimation& src )
 
 aAnimation::aAnimation( const aAnimation& src )
 {
+	infos = NULL;	// copyData() frees the old infos
 	copyData( src );
 }
 
@@ -41,10 +42,10 @@ void aAnimation::copyData( const aAnimation& src )
 	{
 		currentTime = src.currentTime;
 		infoCount = src.infoCount;
-		infos = NULL;
 		bLoops = src.bLoops;
 		refX = src.refX;
 		refY = src.refY;
+		direction = src.direction;
 
 		//Maybe someone already inited this?
 		if (infos)
