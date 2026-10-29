@@ -1620,8 +1620,10 @@ bool IsGateDisabled (int objectWID) {
 	GameObjectPtr obj = ObjectManager->getByWatchID(objectWID);
 	if (obj && obj->isDisabled())
 		return(true);
-	if (obj->isBuilding()) {
-		GameObjectPtr parent = ((BuildingPtr)obj)->getParent();
+	// isBuilding() is also true for gates and turrets: use the virtual
+	// getParent() rather than casting to Building
+	if (obj && obj->isBuilding()) {
+		GameObjectPtr parent = obj->getParent();
 		if (parent)
 			return(parent->isDisabled());
 	}

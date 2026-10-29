@@ -515,7 +515,8 @@ namespace Stuff {
 
 		static int andAway[3] = {0x000000ff, 0x0000ffff, 0x00ffffff };
 
-		IteratorPosition ret = 0;
+		// unsigned: the sum is meant to wrap, and signed overflow is undefined
+		DWORD ret = 0;
 
 		/*register*/ int i, r, len = stringLength >> 2;
 
@@ -534,7 +535,7 @@ namespace Stuff {
 
 		ret += stringLength&0x3 ? ((int *)stringText)[i] & andAway[stringLength&0x3-1] : 0;
 
-		return (ret & 0x7fffffff);
+		return (IteratorPosition)(ret & 0x7fffffff);
 	}
 
 	//##########################################################################

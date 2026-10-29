@@ -1264,7 +1264,8 @@ void GameObjectManager::addObject (ObjDataLoader *objData, long& curTerrainObjec
 					for (long i = 0; i < tempNumSpecialAreas; i++)
 						if (tempSpecialAreaFootPrints[i].cellPositionRow == cellRow)
 							if (tempSpecialAreaFootPrints[i].cellPositionCol == cellCol) {
-								((BuildingPtr)obj)->calcSubAreas(tempSpecialAreaFootPrints[i].numCells, tempSpecialAreaFootPrints[i].cells);
+								// was cast to BuildingPtr; a Gate is not a Building
+								((GatePtr)obj)->calcSubAreas(tempSpecialAreaFootPrints[i].numCells, tempSpecialAreaFootPrints[i].cells);
 								break;
 							}
 					((GatePtr)obj)->openSubAreas();

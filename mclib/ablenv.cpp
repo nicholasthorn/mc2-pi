@@ -1356,6 +1356,7 @@ void ABLModule::getInfo (ModuleInfo* moduleInfo) {
 
 	moduleInfo->numRoutines = 0;
 	buildRoutineList(ModuleRegistry[handle].moduleIdPtr->defn.info.routine.localSymTable, moduleInfo);
+	moduleInfo->totalCodeSegmentSize = 0;	// was summed into uninitialised memory
 	for (long i = 0; i < moduleInfo->numRoutines; i++)
 		moduleInfo->totalCodeSegmentSize += moduleInfo->routineInfo[i].codeSegmentSize;
 

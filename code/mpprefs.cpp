@@ -292,9 +292,11 @@ void MPPrefs::update()
 		aBmpListItem* pItem = (aBmpListItem*)(comboBox[2].ListBox().GetItem( newSel ));
 		const char* pName = pItem->getBmp();
 
+		// getPlayerInfo() returns NULL while networking is unimplemented
 		MC2Player* pInfo = MPlayer->getPlayerInfo( MPlayer->commanderID );
 
-		strcpy( pInfo->insigniaFile, pName );
+		if ( pInfo )
+			strcpy( pInfo->insigniaFile, pName );
 
 		MPlayer->sendPlayerUpdate( 0, 5, -1 );
 
