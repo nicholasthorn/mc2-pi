@@ -98,7 +98,7 @@ jobs:
       - name: 3rdparty.zip LFS id
         id: lfs
         run: echo "oid=$(git lfs ls-files -l | awk '$3 == "3rdparty.zip" {print $1}')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         id: cache3p
         with:
           path: 3rdparty.zip
