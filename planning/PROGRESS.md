@@ -34,6 +34,68 @@ belongs in commit messages and PRs.
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG)
 
+## Planned: built releases on GitHub
+
+Not started. Engine-only packages attached to GitHub Releases, built by a
+workflow when a version tag is pushed.
+
+- [ ] `.github/workflows/release.yml`: on `push: tags: ['v*']`, same matrix as
+      `ci.yml`, run the unit tests, package, then create a **draft** release with
+      generated notes (`gh release create`, `permissions: contents: write`).
+- [ ] Packages, plus a `SHA256SUMS` file:
+  - `mc2-pi-arm64-gles.tar.gz`: built inside a `debian:bookworm` container on
+    the arm64 runner, so it matches Raspberry Pi OS's glibc and SDL packages
+    (a binary built on `ubuntu-24.04-arm` probably will not start there).
+  - `mc2-linux-x64.tar.gz`: built on an older base (or an AppImage bundling
+    SDL) so it runs beyond the newest Ubuntu.
+  - `mc2-windows-x64.zip`: `mc2.exe`, `mc2res.dll`, `shaders/`, the SDL2 /
+    SDL2_mixer / SDL2_ttf / GLEW / zlib DLLs from `3rdparty.zip` with their
+    license texts, and either the MSVC runtime DLLs or a note to install the
+    Visual C++ Redistributable (release builds use the dynamic runtime).
+    Unsigned, so SmartScreen will warn.
+- [ ] **No game data in releases** (original Microsoft EULA). Each package has
+      install notes: dependencies, and building the data from `mc2srcdata` with
+      `scripts/build_gamedata.sh`.
+- [ ] Process: `git tag -a vX.Y.Z`, push the tag to `pi`, review the draft,
+      publish. Try it first with a pre-release tag (`v0.1.0-rc1`).
+
+## Taking the useful parts of the remaster
+
+Aim: bring over as much of `mc2-opengl-remastered` as fits this port, not just
+crash fixes. Rule for anything that costs frame time or memory: **measure on the
+target first** (Pi 4/400 today, Quest later) and keep the stock data playable
+without it.
+
+Taken so far:
+
+- [x] Crash and undefined-behaviour fixes (`/mc2-backport`; two batches)
+- [x] Unit-test harness (doctest + heap shim) and several of its tests
+- [x] Ideas and process: agent setup, smoke runs, sanitizers, cppcheck gate
+
+Candidates:
+
+- [ ] Keep sweeping the remaster's history for fixes to shared `code/` and
+      `mclib/` files.
+- [ ] **Later game data: upscaled textures and art.** The remaster ships
+      AI-upscaled (4x) terrain, building, mech and UI art. This port's
+      `File::open` already loads a loose file in preference to the FST archive,
+      so TGA versions can be dropped in without code changes. Not usable as-is:
+      the remaster's KTX2/BC7 cooks (no KTX2 loader here, and BC7 is a desktop
+      format), its 5120x5120 terrain burn-ins (above common GLES texture size
+      limits; check `GL_MAX_TEXTURE_SIZE`), and GLB model imports (need Assimp).
+      **Check performance and memory on the Pi first**: 4x textures are 16x the
+      pixels, the Pi's GPU shares the 4 GB (or less) of system RAM, and upload
+      time matters at mission load. Likely approach: per-tier packs (2x first),
+      measured mission by mission.
+- [ ] Mod-pack content (e.g. the Magic's expansion tweaks in the remaster's
+      `mods/`): needs the remaster's mod loader or a port of it; scope later.
+- [ ] Rendering features (PBR, shadows, terrain upgrades): mostly desktop GL
+      4.3+ and far heavier than the Pi can run; only consider ones that work in
+      GLES 3.1 and pass a Pi frame-time check.
+- [ ] Licensing: check each asset's source and license before shipping or
+      documenting it (upscales derive from the original EULA data; mod content
+      has its own authors).
+
 ## Known issues
 
 - Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
@@ -47,6 +109,9 @@ belongs in commit messages and PRs.
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
+
+- 2026-10-29: Planned: GitHub release packaging; aim recorded to take as much of the remaster as fits, including upscaled game data after a Pi performance check.
+- 2026-10-29: README rewritten for the fork; VR tabletop feasibility plan (`755ead3`).
 
 - 2026-10-29: cppcheck error-level cleanup: 4560 -> 4415 findings, errors ~232 -> 101 (rest mostly known false positives). Real fixes include script-function NULL crashes and a SIGFPE (`ablmc2.cpp`), a stack overflow and out-of-bounds reads (`mover.cpp`, `gvehicl.cpp`, `missionbegin.cpp`, `getNewFile`), and 206 signed-shift colour constants.
 - 2026-10-29: Warnings + static analysis: `MC2_STRICT_WARNINGS` (-Wall -Wextra -Werror) on new code, `-fpermissive` dropped, `scripts/cppcheck_gate.py` + baseline, cppcheck on changed files per push and full tree nightly (`static.yml`).
