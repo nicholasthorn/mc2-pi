@@ -1,0 +1,52 @@
+name: Static analysis
+
+# Full cppcheck run against scripts/cppcheck-baseline.txt: fails on findings
+# that are not in the baseline. Nightly and on demand; the per-push job in
+# ci.yml only checks changed files. Run manually with update_baseline to
+# regenerate the baseline with this runner's cppcheck (download the artifact
+# and commit it).
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      update_baseline:
+        description: "Write a new baseline (artifact) instead of checking"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static
+  cancel-in-progress: true
+
+jobs:
+  cppcheck:
+    name: cppcheck (full tree)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config cppcheck \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      # compile_commands.json is all cppcheck needs: configure, no build
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Check against baseline
+        if: ${{ !inputs.update_baseline }}
+        run: python3 scripts/cppcheck_gate.py --build-dir build -j "$(nproc)"
+      - name: Update baseline
+        if: ${{ inputs.update_baseline }}
+        run: python3 scripts/cppcheck_gate.py --build-dir build --update -j "$(nproc)"
+      - uses: actions/upload-artifact@v7
+        if: ${{ inputs.update_baseline }}
+        with:
+          name: cppcheck-baseline
+          path: scripts/cppcheck-baseline.txt
