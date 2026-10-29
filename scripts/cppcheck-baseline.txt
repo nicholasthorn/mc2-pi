@@ -32,7 +32,6 @@
 2	code/ablmc2.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'teamId<=508' is redundant or the array 'Team::teams[8]' is accessed at index 8, which is out of bounds.
 1	code/artlry.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	code/artlry.cpp	warning	duplInheritedMember	The class 'ArtilleryType' defines member function with name 'init' also defined in its parent class 'ObjectType'.
-3	code/artlry.cpp	warning	nullPointerRedundantCheck	Either the condition 'bomber' is redundant or there is possible null pointer dereference: bomber.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Artillery()' at line N. Dynamic binding is not used.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~ArtilleryType()' at line N. Dynamic binding is not used.
 1	code/artlry.h	style	virtualCallInConstructor	Virtual function 'init' is called from constructor 'Artillery()' at line N. Dynamic binding is not used.
@@ -111,13 +110,11 @@
 1	code/loadscreen.cpp	warning	uninitMemberVar	Member variable 'LoadScreenWrapper::waitForResChange' is not initialized in the constructor.
 2	code/logistics.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 2	code/logistics.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
-1	code/logistics.cpp	warning	nullPointerRedundantCheck	Either the condition 'missionResults' is redundant or there is possible null pointer dereference: missionResults.
 1	code/logistics.h	warning	uninitMemberVar	Member variable 'Logistics::bMissionLoaded' is not initialized in the constructor.
 1	code/logistics.h	warning	uninitMemberVar	Member variable 'Logistics::lastMissionResult' is not initialized in the constructor.
 1	code/logistics.h	warning	uninitMemberVar	Member variable 'Logistics::prevState' is not initialized in the constructor.
 2	code/logisticsdata.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
 1	code/logisticsdata.cpp	warning	identicalConditionAfterEarlyExit	Identical condition 'p1->getRank()>p2->getRank()', second condition is always false
-1	code/logisticsdata.cpp	warning	nullPointerRedundantCheck	Either the condition '!pVar' is redundant or there is possible null pointer dereference: pVar.
 1	code/logisticsdata.cpp	warning	uninitMemberVar	Member variable 'LogisticsData::oldVariant' is not initialized in the constructor.
 1	code/logisticsdialog.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
 1	code/logisticsdialog.cpp	warning	duplInheritedMember	The class 'LogisticsAcceptVariantDialog' defines member function with name 'init' also defined in its parent class 'LogisticsVariantDialog'.
@@ -207,7 +204,6 @@
 2	code/missiongui.cpp	error	nullPointer	Null pointer dereference
 1	code/missiongui.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	code/missiongui.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
-2	code/missiongui.cpp	warning	nullPointerRedundantCheck	Either the condition '!targetButton' is redundant or there is possible null pointer dereference: targetButton.
 1	code/missiongui.cpp	warning	selfAssignment	Redundant assignment of 'mouseY' to itself.
 1	code/missiongui.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~MissionInterfaceManager()' at line N. Dynamic binding is not used.
 1	code/missionselectionscreen.cpp	warning	uninitMemberVar	Member variable 'MissionSelectionScreen::playedLogisticsTune' is not initialized in the constructor.
@@ -215,8 +211,6 @@
 1	code/mover.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'body[i].criticalSpaces[j].inventoryID<255' is redundant or the array 'inventory[72]' is accessed at index 254, which is out of bounds.
 2	code/mover.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'targetId>=96' is redundant or the array 'MPlayer->moverRoster[96]' is accessed at index 96, which is out of bounds.
 2	code/mover.cpp	warning	negativeIndex	Either the condition 'targetId<0' is redundant or the array 'MPlayer->moverRoster[96]' is accessed at index -1, which is out of bounds.
-1	code/mover.cpp	warning	nullPointerRedundantCheck	Either the condition 'list' is redundant or there is possible null pointer dereference: list.
-1	code/mover.cpp	warning	nullPointerRedundantCheck	Either the condition 'pilot' is redundant or there is possible null pointer dereference: pilot.
 1	code/mover.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~Mover()' at line N. Dynamic binding is not used.
 1	code/mover.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~MoverControl()' at line N. Dynamic binding is not used.
 1	code/mover.h	style	virtualCallInConstructor	Virtual function 'destroy' is called from destructor '~MoverDynamics()' at line N. Dynamic binding is not used.
@@ -264,7 +258,6 @@
 1	code/multplyr.h	warning	uninitMemberVar	Member variable 'MCMSG_WorldUpdate::worldChunk' is not initialized in the constructor.
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjective' defines member function with name 'Clear' also defined in its parent class 'EList < CObjectiveCondition * , CObjectiveCondition * >'.
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjectives' defines member function with name 'Clear' also defined in its parent class 'EList < CObjective * , CObjective * >'.
-2	code/objective.cpp	warning	nullPointerRedundantCheck	Either the condition 'pMover' is redundant or there is possible null pointer dereference: pMover.
 1	code/objective.h	warning	duplInheritedMember	The class 'CObjective' defines member function with name 'Clear' also defined in its parent class 'EList < CObjectiveCondition * , CObjectiveCondition * >'.
 1	code/objective.h	warning	duplInheritedMember	The class 'CObjectives' defines member function with name 'Clear' also defined in its parent class 'EList < CObjective * , CObjective * >'.
 1	code/objective.h	warning	uninitMemberVar	Member variable 'CDisplayResourceTextMessage::m_resourceStringID' is not initialized in the constructor.
@@ -369,7 +362,6 @@
 1	gui/ascroll.cpp	warning	uninitMemberVar	Member variable 'aScrollBar::scrollTab' is not initialized in the constructor.
 2	gui/asystem.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	gui/asystem.cpp	warning	funcArgOrderDifferent	Function 'rectIntersect' argument order different: declaration 'top, left, bottom, right' definition 'left, top, right, bottom'
-1	gui/asystem.cpp	warning	nullPointerRedundantCheck	Either the condition '!c' is redundant or there is possible null pointer dereference: c.
 1	gui/asystem.cpp	warning	operatorEqVarError	Member variable 'aObject::helpHeader' is not assigned a value in 'aObject::operator='.
 1	gui/asystem.cpp	warning	operatorEqVarError	Member variable 'aObject::helpID' is not assigned a value in 'aObject::operator='.
 1	gui/asystem.cpp	warning	operatorEqVarError	Member variable 'aObject::pParent' is not assigned a value in 'aObject::operator='.
@@ -387,7 +379,6 @@
 3	mclib/abldecl.cpp	warning	nullPointerRedundantCheck	Either the condition '!typePtr' is redundant or there is possible null pointer dereference: typePtr.
 2	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!breakPointManager' is redundant or there is possible null pointer dereference: breakPointManager.
 2	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!dest' is redundant or there is possible null pointer dereference: dest.
-3	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!staticData' is redundant or there is possible null pointer dereference: staticData.
 2	mclib/ablenv.cpp	warning	nullPointerRedundantCheck	Either the condition '!watchManager' is redundant or there is possible null pointer dereference: watchManager.
 1	mclib/ablenv.h	warning	uninitMemberVar	Member variable 'ABLModule::orderCallFlags' is not initialized in the constructor.
 1	mclib/ablexec.cpp	portability	memsetClassFloat	Using memset() on union which contains a floating point number.
@@ -420,7 +411,6 @@
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::BarWidth' is not initialized in the constructor.
 1	mclib/cepoly.h	warning	uninitMemberVar	Member variable 'PolyElementData::vertices' is not initialized in the constructor.
 1	mclib/cevfx.cpp	style	arrayIndexThenCheck	Array index 'i' is used before limits check.
-1	mclib/cident.cpp	warning	nullPointerRedundantCheck	Either the condition 'ext' is redundant or there is possible null pointer dereference: ext.
 1	mclib/clouds.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 2	mclib/cmponent.h	warning	arrayIndexOutOfBoundsCond	Either the condition 'location>8' is redundant or the array 'criticalSpacesReq[8]' is accessed at index 8, which is out of bounds.
 1	mclib/csvfile.cpp	warning	constStatement	Unused variable value 'fName'
@@ -621,7 +611,6 @@
 1	mclib/mlr/mlrspotlight.cpp	warning	uninitMemberVar	Member variable 'MLRSpotLight::tanSpreadAngle' is not initialized in the constructor.
 1	mclib/move.cpp	warning	funcArgOrderDifferent	Function 'init' argument order different: declaration 'h, w' definition 'w, h'
 1	mclib/move.cpp	warning	funcArgOrderDifferent	Function 'placeTerrainObject' argument order different: declaration 'row, col, objectClass, objectTypeID, footPrint, blocksLineOfFire, mineType' definition 'objectClass, objectTypeID, cellRow, cellCol, footPrint, blocksLineOfFire, mineType'
-3	mclib/move.cpp	warning	nullPointerRedundantCheck	Either the condition 'areaMap' is redundant or there is possible null pointer dereference: areaMap.
 1	mclib/move.h	warning	uninitMemberVar	Member variable 'MissionMap::debugCells' is not initialized in the constructor.
 1	mclib/move.h	warning	uninitMemberVar	Member variable 'MissionMap::preservedCells' is not initialized in the constructor.
 1	mclib/move.h	warning	uninitMemberVar	Member variable 'MovePath::stepList' is not initialized in the constructor.
