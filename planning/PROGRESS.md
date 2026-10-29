@@ -17,6 +17,7 @@ belongs in commit messages and PRs.
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)
 - [x] CI: Linux x64 GCC, Linux x64 Clang, Linux arm64 GLES, Windows MSVC, shader validation (GLSL ES 3.10 + GLSL 4.20); Dependabot
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
+- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
 
 **Not verified / unknown**
 
@@ -25,9 +26,8 @@ belongs in commit messages and PRs.
 
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
-- [ ] Unit-test harness: port doctest + heap shim from the remaster, register with CTest, run in CI
-- [ ] First tests: `File::open` path conversion, GLES texture repacking, CSV/FIT/FST
-- [ ] Warnings + cppcheck baseline; ASan/UBSan job
+- [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
+- [ ] Warnings + cppcheck baseline; ASan/UBSan job (unit tests are ready for it)
 - [ ] Auto-exit flag and smoke runs under Xvfb + llvmpipe
 
 ## Known issues
@@ -41,6 +41,7 @@ belongs in commit messages and PRs.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: Unit-test harness ported from the remaster (doctest + heap shim, CTest, CI on all four configs); new tests for path conversion, pixel repack (extracted to `pixel_repack.cpp`), RollDice.
 - 2026-10-29: Agent docs checked against the code: `File::open` order (loose files before FST) and `Environment` callback location corrected; em dashes removed from back-ported comments.
 - 2026-10-29: Dependabot action bumps merged (#1, #2, #3).
 - 2026-10-29: Agent setup drafted (CLAUDE.md, rules, five skills, planning/); roadmap moved to `planning/`.

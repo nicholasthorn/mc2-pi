@@ -2,10 +2,32 @@
 
 ## Current state
 
-CI checks that all four configurations build and that every shader compiles as
-GLSL ES 3.10 and GLSL 4.20. There is no unit-test framework yet. The plan is
-`planning/QUALITY-ROADMAP.md` (Phase 3 ports the doctest harness from
-`mc2-opengl-remastered/tests/unit/`). Update this file when that lands.
+CI builds all four configurations, runs the unit tests (`ctest`) on all four,
+and compiles every shader as GLSL ES 3.10 and GLSL 4.20. Smoke runs, sanitizers
+and coverage are still to come (`planning/QUALITY-ROADMAP.md`).
+
+## The unit-test harness (`tests/unit/`)
+
+- doctest (`doctest.h`, `test_main.cpp`), one executable `mc2_tests`, registered
+  with CTest. Built by default (`MC2_BUILD_TESTS=ON`) inside the main build, so
+  tests compile with the production flags (`LINUX_BUILD`, `-fsigned-char`,
+  `MC2_GLES`, MSVC defines).
+- Run: `cmake --build build && ctest --test-dir build --output-on-failure`, or
+  run `build/out/tests/unit/mc2_tests` directly (doctest options:
+  `--test-suite=Paths`, `--list-test-cases`).
+- Tests link **real engine `.cpp` files** listed in `tests/unit/CMakeLists.txt`,
+  plus `heap_shim.cpp`, which replaces `mclib/heap.cpp` and the few GameOS
+  globals they need (`systemHeap`, `Environment`, `STOP`, the FST registry). Add
+  a file to the list only when a test needs it; add a symbol to the shim only
+  when the linker demands it. Never link `heap.cpp` into the tests.
+- A dependency that drags in GameOS (like `gos_rand()`) can be replaced by a
+  definition in the test file itself, as `test_routines.cpp` does.
+- Fixtures live in `tests/unit/fixtures/`, are copied into the build tree, and
+  are opened by **relative** path: `File::open` lowercases the whole name, so an
+  absolute path with upper-case directories fails on Linux. Scratch files are
+  created in the working directory (the build tree) and removed by the test.
+- Logic that sits inside GL code is moved into a GL-free file so it can be
+  tested (e.g. `GameOS/gameos/utils/pixel_repack.cpp`).
 
 ## Where TDD applies
 

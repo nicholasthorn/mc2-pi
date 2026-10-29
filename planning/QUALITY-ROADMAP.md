@@ -33,7 +33,7 @@ Goal: every push and PR builds on all targets in under ~10 minutes.
 - [x] Shader validation job (`scripts/validate_shaders.py`, GLSL ES 3.10 + 4.20).
 - [x] Ninja + `ccache` on the Linux jobs. (Windows MSVC job has no compiler cache yet.)
 - [x] `CMAKE_EXPORT_COMPILE_COMMANDS` on (top-level `CMakeLists.txt` and CI).
-- [ ] Run `ctest --output-on-failure` after the build (empty at first; Phase 3 fills it).
+- [x] Run `ctest --output-on-failure` after the build, on all four configurations.
 - [x] Upload the built binary as an artifact (arm64 GLES package, 14 days).
 - [ ] Branch protection on `pi-port`: required CI checks, no direct pushes.
 - [x] Dependabot for GitHub Actions versions.
@@ -71,30 +71,33 @@ across legacy gameplay code.
 
 Port from `mc2-opengl-remastered/tests/unit/`:
 
-- [ ] `doctest.h`, `test_main.cpp`, `CMakeLists.txt` - but register with
-      CTest in the **main** build behind an `MC2_BUILD_TESTS` option
-      (remastered's standalone project is why its tests only ran by hand).
-- [ ] `heap_shim.cpp` - malloc-backed heap + GameOS-global shim so real
-      `mclib` files link without the game. `mclib/heap.h` is identical in
-      both repos.
-- [ ] `test_csvfile` (`csvfile.cpp` identical in both repos).
-- [ ] `test_file_inifile` (`inifile.cpp` 20 lines differ, `packet.cpp` 7).
-- [ ] `test_fst_roundtrip` (`ffile.cpp`, `fastfile.cpp`, `lzdecomp.cpp`
-      differ slightly; `lzcomp.cpp` identical).
-- [ ] `test_paths_mod` - keep the `paths.cpp` part, drop the mod-loading
-      part (remastered-only feature).
-- [ ] `test_argb_pack`, `test_projection` - self-contained.
-- [ ] Optional: `det_rng.h` + `test_det_rng`, `fst_hash` + `test_hashing`.
+- [x] `doctest.h`, `test_main.cpp`, `CMakeLists.txt`, registered with CTest
+      in the **main** build behind `MC2_BUILD_TESTS` (default ON).
+- [x] `heap_shim.cpp` (remaster crash-bundle stubs dropped; FST registry
+      globals added, since each executable defines them in this repo).
+- [x] `test_csvfile`.
+- [x] `test_file_inifile` (its `FitIniFile::open(buffer,len)` cases dropped:
+      that overload only exists in the remaster).
+- [x] `test_fst_roundtrip`.
+- [x] `test_paths_mod` -> `test_paths.cpp`: path globals kept, mod loading
+      dropped.
+- [-] `test_argb_pack`, `test_projection`: not ported. They test the
+      remaster's own SSBO packing / projection code, not code in this repo.
+- [-] `det_rng`, `fst_hash` tests: not ported (remaster-only code).
 
-Platform fixes when porting: replace the hard-coded x64 `zlib.lib` with
-`find_package(ZLIB)`; replace `_putenv_s` with `setenv` on Linux; feed
-`MC2_TEST_FIXTURE_DIR` via CMake as remastered does.
+Platform fixes made when porting: `ZLIB::ZLIB` instead of the hard-coded x64
+`zlib.lib`; the `windows` (GameOS/src) library for the Win32 emulation;
+fixtures copied into the build tree and opened by relative path, because
+`File::open` lowercases the whole path (an absolute `/mnt/c/Users/...` fails on
+Linux).
 
 New tests for the port's own changes:
 
-- [ ] Windows-to-Linux path conversion in `File::open`.
-- [ ] GLES 8-bit texture repacking (`ce99084`) - pure function, test-first.
-- [ ] `RollDice()` range/distribution (the 0..32767 fix).
+- [x] Windows-to-Linux path conversion in `File::open` (`test_paths.cpp`).
+- [x] GLES 8-bit texture repacking: extracted to GL-free
+      `GameOS/gameos/utils/pixel_repack.cpp`, test written first.
+- [x] `RollDice()` / `RandomNumber()` over the whole 15-bit range
+      (`test_routines.cpp`); a mutation back to `rand()` fails 4 cases.
 - [ ] Endianness/struct packing for on-disk formats read on ARM.
 - [ ] Wire the legacy `mclib/stuff` `TestClass()` routines into one doctest
       case each - cheap coverage for the math library.

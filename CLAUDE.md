@@ -57,7 +57,10 @@ cmake --build build-gles
 
 # Windows MSVC (extract 3rdparty.zip first)
 cmake -S . -B build64 -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=<abs path>/3rdparty -DCMAKE_LIBRARY_ARCHITECTURE=x64
-cmake --build build64 --config RelWithDebInfo --target mc2
+cmake --build build64 --config RelWithDebInfo --target mc2 mc2_tests
+
+# Unit tests (doctest, built by default; Windows adds -C RelWithDebInfo)
+ctest --test-dir build --output-on-failure
 
 # Shaders: compile-check every shader as GLSL ES 3.10 and GLSL 4.20 (needs glslang-tools)
 python3 scripts/validate_shaders.py
@@ -77,8 +80,8 @@ Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
 > platform code must build on Windows MSVC, Linux x64 (GCC and Clang) and Linux
 > arm64. If you can only verify one, say which one was not verified.
 
-CI (`.github/workflows/ci.yml`) builds all four configurations and validates the
-shaders on every push to `pi-port` and every PR. See `.claude/rules/` for the
+CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
+tests on each, and validates the shaders on every push to `pi-port` and every PR. See `.claude/rules/` for the
 detailed conventions.
 
 ## Architecture in one screen
@@ -100,9 +103,10 @@ detailed conventions.
 
 ## Testing
 
-Current state: no unit-test framework yet. CI covers build + shader validation.
-The plan (doctest harness ported from the remaster, sanitizers, smoke runs,
-benchmarks) is `planning/QUALITY-ROADMAP.md`; conventions are in
+Unit tests are doctest in `tests/unit/` (one `mc2_tests` binary under CTest),
+linking real engine files against a heap shim; CI runs them on all four
+configurations. Still to come (sanitizers, smoke runs, coverage, benchmarks):
+`planning/QUALITY-ROADMAP.md`. How to write and run tests:
 `.claude/rules/testing-conventions.md`.
 
 Once coverage is measured, the threshold is a **ratchet**:
