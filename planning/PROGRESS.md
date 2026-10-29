@@ -20,7 +20,7 @@ belongs in commit messages and PRs.
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
-- [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 592 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`
+- [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`
 
 **Not verified / unknown**
 
@@ -30,7 +30,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `uninitMemberVar` (169), `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2)
+- [ ] cppcheck: `uninitMemberVar` (100), `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2)
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG)
 
@@ -112,6 +112,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-29: `uninitMemberVar` tail: 35 constructors given zero/neutral defaults (screens, movie, font, image, input, file/packet streams, MLR sorter/lights, gate ids, tactical order, radio, weather, objectives) (`afb57ff`); baseline 592 -> 523.
 - 2026-10-29: inventory ids bounded by the 72-entry table, not the 255 sentinel (corrupt mech profiles); printf signedness; `LogisticsScreen`/`aObject` assignment copies help/fade fields; gate filters ctor/dtor `init`/`destroy`/`close` (`7446063`); baseline 702 -> 592.
 - 2026-10-29: `duplInheritedMember`: vehicle tooltip name came from a shadowed field (`GVAppearance::objectNameId`), duplicate `BuildingType::teamId`, dead duplicate overrides removed; gate treats mclib/stuff and mclib/gosfx member hiding (and `init` overloads) as deliberate; forest pathing shadow recorded under Known issues (`22f7c98`); baseline 1060 -> 702.
 - 2026-10-29: ABL team ids 500..508 indexed `Team::teams[8]` one past the end, body-location off-by-one in `MasterComponent`, `aAnimation` assignment leak, `PostcompVertex` assignment dropped `water` (`4ce088d`); `Fatal()`-returns noted under Known issues; baseline 1095 -> 1060.

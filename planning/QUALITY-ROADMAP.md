@@ -81,13 +81,14 @@ undefined behaviour, signedness, alignment/packing, 32-bit pointer assumptions.
       assignment fixed, Stuff array helpers suppressed inline. The rest
       (`MechListBoxItem`, `LogisticsMechIcon`, `TacticalOrder::id`, `aButton`
       SFX) copy a layout template and keep runtime state on purpose.
-- [ ] `uninitMemberVar` (787 -> 170): class by class. Done for the 80 or
+- [ ] `uninitMemberVar` (787 -> 100): class by class. Done for the 80 or
       so largest files, which turned up real copy-constructor bugs
       (`LogisticsScreen`, `aObject`) and an entirely unset `MultiPlayer`.
       Left on purpose: count-guarded buffers on hot paths
       (`MovePath::stepList`, terrain `Vertex`), flexible array members
       in the multiplayer messages, `SeededCurveOf` (cppcheck mis-parses
-      it). The rest is a long tail of 1-3 per file.
+      it). A further 35 constructors done in the tail; what is left is
+      mostly arrays, count-guarded lists and Stuff/gosFX internals.
 - [ ] `clang-tidy` job, narrow ruleset to start: `bugprone-*`,
       `clang-analyzer-*`, `cppcoreguidelines-init-variables`,
       `bugprone-narrowing-conversions`. Run on changed files only in PRs
