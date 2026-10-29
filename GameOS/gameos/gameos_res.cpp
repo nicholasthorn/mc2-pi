@@ -110,7 +110,7 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
     const char* str = pstrres->getStringByIdFptr(id);
 
     if(NULL == str) {
-        fprintf(stderr, "Requested string id: %d not found, return dummy string\n", id);
+        fprintf(stderr, "Requested string id: %u not found, return dummy string\n", id);
         return dummy_string_res;
     }
     return str;

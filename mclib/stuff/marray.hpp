@@ -122,7 +122,9 @@ namespace Stuff {
 	{ 
 	}
 
+	// AssignData() copies data; cppcheck does not follow it
 	template <class T, size_t N> StaticArrayOf<T, N>& 
+		// cppcheck-suppress operatorEqVarError
 		StaticArrayOf<T, N>::operator=(const StaticArrayOf<T, N> &array)
 	{ 
 		if (this != &array)
@@ -354,7 +356,9 @@ namespace Stuff {
 		}
 	}
 
+	// CopyArray() copies data; cppcheck does not follow it
 	template <class T> DynamicArrayOf<T>& 
+		// cppcheck-suppress operatorEqVarError
 		DynamicArrayOf<T>::operator=(const DynamicArrayOf<T> &array)
 	{ 
 		if (this != &array)

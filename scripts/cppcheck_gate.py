@@ -41,6 +41,13 @@ DELIBERATE_HIDING = {"InitializeClass", "TerminateClass", "DefaultData",
                      "Make", "TestInstance", "init"}
 DELIBERATE_HIDING_DIRS = ("mclib/stuff/", "mclib/gosfx/")
 HIDDEN_NAME = re.compile(r"with name '([^']+)' also defined in its parent class")
+# Every game object, appearance, GUI and file class calls its own init() from
+# its constructor and its own destroy()/close() from its destructor. Each level
+# cleans up only its own members and nulls what it frees, so static binding is
+# what the code wants and repeated calls down the hierarchy are safe. Virtual
+# calls of any other name from a constructor or destructor are still reported.
+CTOR_DTOR_CALLS = {"init", "destroy", "close"}
+VIRTUAL_CALL = re.compile(r"^Virtual function '([^']+)' is called from (con|de)structor")
 # some messages name a line ("called from constructor 'Camera()' at line
 # 389"); keys must not move when unrelated edits shift the code
 LINE_IN_MESSAGE = re.compile(r"\bat line \d+")
@@ -57,6 +64,9 @@ def ignored(path, check, message):
             return True
         m = HIDDEN_NAME.search(message)
         return bool(m) and m.group(1) in DELIBERATE_HIDING
+    if check == "virtualCallInConstructor":
+        m = VIRTUAL_CALL.search(message)
+        return bool(m) and m.group(1) in CTOR_DTOR_CALLS
     return False
 
 

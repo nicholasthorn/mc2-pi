@@ -519,13 +519,6 @@ LogisticsScreen::LogisticsScreen( const LogisticsScreen& src )
 	animObjects = 0;
 	staticCount = rectCount = buttonCount = textCount = editCount = animObjectsCount = 0;
 
-	helpTextArrayID = src.helpTextArrayID;
-	fadeInTime = src.fadeInTime;
-	fadeOutTime = src.fadeOutTime;
-	fadeTime = src.fadeTime;
-	fadeOutMaxColor = src.fadeOutMaxColor;
-	status = src.status;
-
 	copyData( src );
 }
 LogisticsScreen& LogisticsScreen::operator=( const LogisticsScreen& src )
@@ -539,6 +532,13 @@ void LogisticsScreen::copyData( const LogisticsScreen& src )
 	if ( &src != this )
 	{
 		destroy();
+
+		helpTextArrayID = src.helpTextArrayID;
+		fadeInTime = src.fadeInTime;
+		fadeOutTime = src.fadeOutTime;
+		fadeTime = src.fadeTime;
+		fadeOutMaxColor = src.fadeOutMaxColor;
+		status = src.status;
 
 		rectCount = src.rectCount;
 		if ( rectCount )

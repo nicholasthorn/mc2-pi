@@ -29,7 +29,7 @@ GOSImage::GOSImage( DWORD iHandle ) : Plug (DefaultData)
 {
 	char str[20];
 
-	sprintf(str, "image%03d", iHandle);
+	sprintf(str, "image%03u", iHandle);
 
 	imageName = str;
 

@@ -6894,7 +6894,7 @@ bool Mover::recover (void) {
 
 			for (int i = 0; i < numBodyLocations; i++)
 				for (long j = 0; j < NumLocationCriticalSpaces[i]; j++)
-					if (body[i].criticalSpaces[j].inventoryID < 255)
+					if (body[i].criticalSpaces[j].inventoryID < MAX_MOVER_INVENTORY_ITEMS)
 						body[i].criticalSpaces[j].hit = inventory[body[i].criticalSpaces[j].inventoryID].disabled;
 
 			if (getCommanderId() == Commander::home->getId()) 

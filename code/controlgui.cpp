@@ -393,7 +393,7 @@ void ControlGui::render( bool bPaused )
 			char buffer[32];
 			unsigned long minutes = time/60;
 			unsigned long seconds = time%60;
-			sprintf( buffer, "%03ld : %02ld", minutes, seconds );
+			sprintf( buffer, "%03lu : %02lu", minutes, seconds );
 	
 			unsigned long color = timerRect.color;
 			if ( minutes < 5 )

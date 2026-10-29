@@ -546,6 +546,8 @@ void aObject::copyData( const aObject& src )
 		
 		fileWidth = src.fileWidth;
 		showWindow = src.showWindow;
+		helpHeader = src.helpHeader;
+		helpID = src.helpID;
 
 	
 		pNumberOfChildren = 0; // not copying the kids.

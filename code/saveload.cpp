@@ -299,7 +299,7 @@ void Mission::save (const char *saveFileName)
 	// Create a temp fit file and shove it into Packet 0.
 	// COmpress the Wee-wee out of it!!
 	char tmpString[2048];
-	sprintf(tmpString,"%d",timeGetTime());
+	sprintf(tmpString,"%u",timeGetTime());
 
 	FullPathFileName tmpName;
 	tmpName.init(savePath,tmpString,".fti");
@@ -393,7 +393,7 @@ void Mission::save (const char *saveFileName)
 	loadProgress = 75.0f;
 
 	//ABL
-	sprintf(tmpString,"%d",timeGetTime());
+	sprintf(tmpString,"%u",timeGetTime());
 
 	tmpName.init(savePath,tmpString,".abl");
 
@@ -689,7 +689,7 @@ void Mission::load (const char *loadFileName)
 	loadProgress = 1.0f;
 
 	char tmpString[2048];
-	sprintf(tmpString,"%d",timeGetTime());
+	sprintf(tmpString,"%u",timeGetTime());
 
 	//-------------------------------------------
 	//Relationships saved with TEAMs!

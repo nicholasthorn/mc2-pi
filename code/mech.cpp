@@ -1736,7 +1736,7 @@ long BattleMech::init (DWORD variantNum)
 			body[curLocation].criticalSpaces[curSpace].inventoryID = spaceData;
 			body[curLocation].criticalSpaces[curSpace].hit = false;				//Everything always repaired now.
 			
-			if (spaceData < 255)
+			if (spaceData < MAX_MOVER_INVENTORY_ITEMS)
 			{
 				if (spaceData >= numOther+numWeapons+numAmmos)            
 					//Just ignore this space.  Sage has filled them all in now.
@@ -2517,7 +2517,7 @@ void BattleMech::resetComponents (long totalComponents, long *componentList)
 			body[curLocation].criticalSpaces[curSpace].inventoryID = spaceData;
 			body[curLocation].criticalSpaces[curSpace].hit = false;				//Everything always repaired now.
 			
-			if (spaceData < 255)
+			if (spaceData < MAX_MOVER_INVENTORY_ITEMS)
 			{
 				if (spaceData >= numOther+numWeapons+numAmmos)
 					//Just ignore this space.  Sage has filled them all in now.
@@ -3132,7 +3132,7 @@ long BattleMech::init (FitIniFile* mechFile) {
 			body[curLocation].criticalSpaces[curSpace].hit = spaceData[1] ? true : false;
 
 
-			if (spaceData[0] < 255)
+			if (spaceData[0] < MAX_MOVER_INVENTORY_ITEMS)
 			{
 #ifdef _DEBUG
 			char msg[256];
@@ -7089,7 +7089,7 @@ void BattleMech::calcCriticalHit (long hitLocation) {
 			{
 				numSpaces = 0;
 				unsigned char inv_id = body[bodyLocation].criticalSpaces[hitSpace].inventoryID;
-				if (inv_id < 255)
+				if (inv_id < MAX_MOVER_INVENTORY_ITEMS)
 				{
 					gosASSERT(inv_id < MAX_MOVER_INVENTORY_ITEMS);
 					numSpaces = MasterComponent::masterList[inventory[inv_id].masterID].getSize();

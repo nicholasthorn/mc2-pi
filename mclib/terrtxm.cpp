@@ -1120,7 +1120,7 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 		if (quickLoad)
 		{
 			char nameData[256];
-			sprintf(nameData,"%08d.%08d.txm",typeInfo,overlayInfo);
+			sprintf(nameData,"%08u.%08u.txm",typeInfo,overlayInfo);
 
 			FullPathFileName testPath;
 			testPath.init(texturePath,nameData,"");
@@ -1322,7 +1322,7 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			// for all of the textures...
 			//
 			char nameData[256];
-			sprintf(nameData,"%08d.%08d.txm",typeInfo,overlayInfo);
+			sprintf(nameData,"%08u.%08u.txm",typeInfo,overlayInfo);
 
 			FullPathFileName testPath;
 			testPath.init(texturePath,nameData,"");

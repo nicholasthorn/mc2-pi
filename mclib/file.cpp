@@ -329,7 +329,7 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 						}
 
 						char msg[300];
-						sprintf(msg,"CFHandle  Length: %010ld    File: %s",fileSize(),fileName);
+						sprintf(msg,"CFHandle  Length: %010lu    File: %s",fileSize(),fileName);
 						fileTrafficLog->writeLine(msg);
 					}
 
@@ -373,7 +373,7 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 				}
 	
 				char msg[300];
-				sprintf(msg,"FASTF     Length: %010ld    File: %s",fileSize(),fileName);
+				sprintf(msg,"FASTF     Length: %010lu    File: %s",fileSize(),fileName);
 				fileTrafficLog->writeLine(msg);
 			}
 
@@ -409,7 +409,7 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 				}
 	
 				char msg[300];
-				sprintf(msg,"CFHandle  Length: %010ld    File: %s",fileSize(),fileName);
+				sprintf(msg,"CFHandle  Length: %010lu    File: %s",fileSize(),fileName);
 				fileTrafficLog->writeLine(msg);
 			}
 
@@ -477,7 +477,7 @@ long File::open (FilePtr _parent, unsigned long fileSize, long numChild)
 			}
 		
 			char msg[300];
-			sprintf(msg,"CHILD     Length: %010ld    File: %s",fileSize,_parent->getFilename());
+			sprintf(msg,"CHILD     Length: %010lu    File: %s",fileSize,_parent->getFilename());
 			fileTrafficLog->writeLine(msg);
 		}
 
