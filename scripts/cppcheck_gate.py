@@ -28,6 +28,22 @@ SEP = "\x1f"  # unit separator: never appears in cppcheck output
 TEMPLATE = SEP.join(["{file}", "{severity}", "{id}", "{message}"])
 EXCLUDE = ["tests", "thirdparty", "3rdparty"]
 
+# Microsoft's "Stuff" class registration: every class in mclib/stuff, mlr,
+# gosfx and the object types declares its own static InitializeClass /
+# TerminateClass / DefaultData / Make / TestInstance, hiding the parent's on
+# purpose. duplInheritedMember stays on for every other name, where hiding a
+# parent's member is a likely bug.
+DELIBERATE_HIDING = {"InitializeClass", "TerminateClass", "DefaultData",
+                     "Make", "TestInstance"}
+HIDDEN_NAME = re.compile(r"with name '([^']+)' also defined in its parent class")
+
+
+def ignored(check, message):
+    if check == "duplInheritedMember":
+        m = HIDDEN_NAME.search(message)
+        return bool(m) and m.group(1) in DELIBERATE_HIDING
+    return False
+
 
 def run_cppcheck(build_dir, files, jobs):
     cmd = ["cppcheck", "--project=" + os.path.join(build_dir, "compile_commands.json"),
@@ -48,6 +64,8 @@ def run_cppcheck(build_dir, files, jobs):
         if path.split("/", 1)[0] in EXCLUDE:
             continue  # -i is not honoured in --project mode by every version
         if severity in ("information", "debug"):
+            continue
+        if ignored(check, message):
             continue
         findings[SEP.join([path, severity, check, message])] += 1
     return findings
