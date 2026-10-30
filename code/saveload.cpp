@@ -1105,8 +1105,12 @@ void Mission::load (const char *loadFileName)
 		if (loadFile.getPacketSize() != 0)
 		{
 			currentPacket += MOVE_readData(&loadFile, currentPacket);
-			if (GlobalMoveMap[0]->badLoad)
+			if (GlobalMoveMap[0]->badLoad) {
+				// STOP only logs; the half-loaded move map would crash later
 				STOP((" Mission.Load: old version of move data In-Mission Save Obsolete."));
+				fprintf(stderr, "Mission.Load: cannot load the movement data of this save, exiting\n");
+				exit(EXIT_FAILURE);
+			}
 
 			GameMap->placeMoversCallback = PlaceMovers;
 			GlobalMoveMap[0]->isGateDisabledCallback = IsGateDisabled;

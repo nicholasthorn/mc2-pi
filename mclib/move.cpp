@@ -16,6 +16,8 @@
 #include"move.h"
 #endif
 
+#include"globalmapio.h"
+
 #define	MOVELOG
 
 #ifdef MOVELOG
@@ -712,7 +714,16 @@ long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 		if (!GlobalMoveMap[2])
 			Fatal(0, " MOVE_Init: Cannot initialize GlobalMoveMap2 ");
 		GlobalMoveMap[2]->blank = true;
+		if (GlobalMoveMap[1]->badLoad) {
+			// Map 0 carries the flag the mission loader checks
+			GlobalMoveMap[0]->badLoad = true;
+			return(numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets);
+		}
 		numGlobalMap2Packets = GlobalMoveMap[2]->init(packetFile, whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets);
+		if (GlobalMoveMap[2]->badLoad) {
+			GlobalMoveMap[0]->badLoad = true;
+			return(numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets);
+		}
 		//------------------------------------------------------------------
 		// Delete the pathExistsTable for this one, since we don't use it...
 		systemHeap->Free(GlobalMoveMap[2]->pathExistsTable);
@@ -1493,6 +1504,21 @@ void GlobalMap::init (long w, long h) {
 
 #define	GLOBALMAP_VERSION_NUMBER	0x022523	// My 51st birthday:)
 
+// The stock on-disk layouts globalmapio.h converts into (packed, 32-bit
+// legacy pointer fields).
+static_assert(sizeof(GlobalMapArea) == 25, "stock GlobalMapArea layout");
+static_assert(sizeof(DoorInfo) == 3, "stock DoorInfo layout");
+static_assert(sizeof(DoorLink) == 11, "stock DoorLink layout");
+static_assert(sizeof(GlobalMapDoor) == 57, "stock GlobalMapDoor layout");
+
+// Logs why a pathing packet was rejected (packet number, size, records).
+static void reportBadPathPacket (PacketFilePtr packetFile, long packet, const char* what, long index, long count) {
+	long size = -1;
+	if ((packet < packetFile->getNumPackets()) && (packetFile->seekPacket(packet) == NO_ERR))
+		size = packetFile->getPacketSize();
+	STOP(("GlobalMap.init: %s %ld: packet %ld of %d holds %ld bytes, expected %ld records", what, index, packet, packetFile->getNumPackets(), size, count));
+}
+
 long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 
 	long startPacket = whichPacket;
@@ -1546,11 +1572,23 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 #endif
 	}
 
+	//------------------------------------------------------------------
+	// Records may be in the stock or the Omnitech (wide) layout; see
+	// globalmapio.h. On any mismatch mark the map bad and stop reading:
+	// the caller treats badLoad as an unloadable mission.
+	if ((height <= 0) || (width <= 0) || (numAreas < 0) || (numDoors < 0) || (numDoorInfos < 0) || (numDoorLinks < 0)) {
+		STOP(("GlobalMap.init: bad header (%d x %d, %d areas, %d doors)", height, width, numAreas, numDoors));
+		badLoad = true;
+		return(whichPacket - startPacket);
+	}
+
 	areaMap = (short*)systemHeap->Malloc(sizeof(short) * height * width);
 	gosASSERT(areaMap != NULL);
-	result = packetFile->readPacket(whichPacket++, (unsigned char*)areaMap);
-	if (result == 0)
-		Fatal(result, " GlobalMap.init: unable to read areaMap packet ");
+	if (!readPathRecords(packetFile, whichPacket++, areaMap, (long)height * width, narrowAreaMapCell)) {
+		reportBadPathPacket(packetFile, whichPacket - 1, "areaMap", 0, (long)height * width);
+		badLoad = true;
+		return(whichPacket - startPacket);
+	}
 
 	areas = (GlobalMapAreaPtr)systemHeap->Malloc(sizeof(GlobalMapArea) * numAreas);
 	areas_cellsCovered = (short**)systemHeap->Malloc(sizeof(short*) * numAreas);
@@ -1558,18 +1596,24 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 	gosASSERT(areas != NULL);
 	gosASSERT(areas_cellsCovered != NULL);
 	gosASSERT(areas_doors != NULL);
-	result = packetFile->readPacket(whichPacket++, (unsigned char*)areas);
-	if (result == 0)
-		Fatal(result, " GlobalMap.init: unable to read areas packet ");
+	if (!readPathRecords(packetFile, whichPacket++, areas, numAreas, narrowGlobalMapArea<GlobalMapArea>)) {
+		reportBadPathPacket(packetFile, whichPacket - 1, "areas", 0, numAreas);
+		badLoad = true;
+		return(whichPacket - startPacket);
+	}
 
 	doorInfos = (DoorInfoPtr)systemHeap->Malloc(sizeof(DoorInfo) * numDoorInfos);
 	gosASSERT(doorInfos != NULL);
 	long curDoorInfo = 0;
 	for (long i = 0; i < numAreas; i++)
 		if (areas[i].numDoors) {
-			result = packetFile->readPacket(whichPacket++, (unsigned char*)&doorInfos[curDoorInfo]);
-			if (result == 0)
-				Fatal(result, " GlobalMap.init: unable to read doorInfos packet ");
+			long packet = whichPacket++;
+			if ((curDoorInfo + areas[i].numDoors > numDoorInfos) ||
+				!readPathRecords(packetFile, packet, &doorInfos[curDoorInfo], areas[i].numDoors, narrowDoorInfo<DoorInfo>)) {
+				reportBadPathPacket(packetFile, packet, "doorInfos of area", i, areas[i].numDoors);
+				badLoad = true;
+				return(whichPacket - startPacket);
+			}
 			curDoorInfo += areas[i].numDoors;
 		}
 	Assert(numDoorInfos == curDoorInfo, 0, " GlobalMap.init: bad doorInfo count ");
@@ -1586,9 +1630,11 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 	doors = (GlobalMapDoorPtr)systemHeap->Malloc(sizeof(GlobalMapDoor) * (numDoors + NUM_DOOR_OFFSETS));
 	doors_links = (DoorInfoLinksPtr*)systemHeap->Malloc(sizeof(DoorInfoLinksPtr) * (numDoors + NUM_DOOR_OFFSETS));
 	gosASSERT(doors != NULL);
-	result = packetFile->readPacket(whichPacket++, (unsigned char*)doors);
-	if (result == 0)
-		Fatal(result, " GlobalMap.init: unable to read doors packet ");
+	if (!readPathRecords(packetFile, whichPacket++, doors, numDoors + NUM_DOOR_OFFSETS, narrowGlobalMapDoor<GlobalMapDoor>)) {
+		reportBadPathPacket(packetFile, whichPacket - 1, "doors", 0, numDoors + NUM_DOOR_OFFSETS);
+		badLoad = true;
+		return(whichPacket - startPacket);
+	}
 
 	//--------------
 	// Door Links...
@@ -1596,21 +1642,19 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 	gosASSERT(doorLinks != NULL);
 	long numLinksRead = 0;
 	for (int i = 0; i < (numDoors + NUM_DOOR_OFFSETS); i++) {
-		long numLinks = doors[i].numLinks[0] + NUM_EXTRA_DOOR_LINKS;
-		gosASSERT(numLinks >= 2);
-		result = packetFile->readPacket(whichPacket++, (unsigned char*)&doorLinks[numLinksRead]);
-		if (result <= 0)
-			Fatal(result, " GlobalMap.init: Unable to write doorLinks packet ");
-		doors_links[i][0] = &doorLinks[numLinksRead];
-		numLinksRead += numLinks;
-
-		numLinks = doors[i].numLinks[1] + NUM_EXTRA_DOOR_LINKS;
-		gosASSERT(numLinks >= 2);
-		result = packetFile->readPacket(whichPacket++, (unsigned char*)&doorLinks[numLinksRead]);
-		if (result <= 0)
-			Fatal(result, " GlobalMap.init: Unable to write doorLinks packet ");
-		doors_links[i][1] = &doorLinks[numLinksRead];
-		numLinksRead += numLinks;
+		for (long side = 0; side < 2; side++) {
+			long numLinks = doors[i].numLinks[side] + NUM_EXTRA_DOOR_LINKS;
+			gosASSERT(numLinks >= 2);
+			long packet = whichPacket++;
+			if ((numLinksRead + numLinks > numDoorLinks) ||
+				!readPathRecords(packetFile, packet, &doorLinks[numLinksRead], numLinks, narrowDoorLink<DoorLink>, doors[i].numLinks[side])) {
+				reportBadPathPacket(packetFile, packet, "doorLinks of door", i, numLinks);
+				badLoad = true;
+				return(whichPacket - startPacket);
+			}
+			doors_links[i][side] = &doorLinks[numLinksRead];
+			numLinksRead += numLinks;
+		}
 	}
 	Assert(numLinksRead == numDoorLinks, 0, " GlobalMap.init: Incorrect Links count ");
 

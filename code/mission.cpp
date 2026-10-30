@@ -2229,8 +2229,13 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 		if (pakFile.getPacketSize() != 0)
 		{
 			MOVE_readData(&pakFile, 4);
-			if (GlobalMoveMap[0]->badLoad)
-				Fatal(0, " Mission.init: old version of move data (re-save map) ");
+			if (GlobalMoveMap[0]->badLoad) {
+				// Fatal() only logs in this port, and every later path query
+				// would read the half-loaded move map: stop here instead
+				Fatal(0, " Mission.init: unreadable move data (old version or unknown layout; re-save map) ");
+				fprintf(stderr, "Mission.init: cannot load the movement data of this mission, exiting\n");
+				exit(EXIT_FAILURE);
+			}
 			GameMap->placeMoversCallback = PlaceMovers;
 			GlobalMoveMap[0]->isGateDisabledCallback = IsGateDisabled;
 			GlobalMoveMap[1]->isGateDisabledCallback = IsGateDisabled;
