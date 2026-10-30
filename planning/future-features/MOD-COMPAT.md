@@ -109,6 +109,42 @@ About 700 source files differ. The parts that decide whether a campaign loads:
    behaviour, camera. Several backup files are checked in (`mech_old.cpp`,
    `contact_m1.cpp`, `terrtxm_*nogood.cpp`) and are not built.
 
+## Test load: Clan Wars (2026-10-30)
+
+`ClanWarsForMCOsetup.exe` (ModDB, 11.5 MB, MD5
+`1282f28b441a67f7b75f116afd747cf4`, nicosuave, May 2016) is an Inno Setup 5.3
+installer; unpacked with `innoextract`, not run. It holds only campaign data:
+`data/campaign/clan wars.fit`, 28 missions (`innersphere1..28` `.fit` + `.pak`),
+188 warrior brains (`data/missions/warriors/*.abl`) and 28
+`data/textures/<mission>.burnin.jpg` colour maps. It installs over an
+Omnitech 6.28 game and depends on it.
+
+Findings:
+
+- **ABL: no blocker.** The brains call none of the 18 MCO-only functions;
+  everything they call is stock or defined in the stock brain library.
+- **Unit data: blocker.** 2107 mission parts name 172 distinct `CSVFile` unit
+  tables; only 30 exist in stock `misc.fst` (`data/objects/*.csv`). The other
+  ~140 (Elemental, SalamanderArmor, Huntsman, Phantom, Goblin, copters...)
+  ship with the Omnitech 6.28 base install (434 MB), as do the matching
+  objects: `ObjectNumber` goes up to 2075.
+- **Pathing format: blocker, fixable.** Loading `innersphere1` on stock data
+  plus the campaign aborts in `GlobalMap::init` ("bad doorInfo count", then
+  heap corruption). MCO change `//magic 07032012` widened `GlobalMapArea`,
+  `GlobalMapDoor` and `DoorInfo` fields from `short` to `long`, and campaigns
+  saved by its editor use the wide layout. MCO reads both by comparing the
+  packet size with `sizeof(...Old)`; we read only the old layout and
+  `readPacket` writes past the buffer. Size-checking the packet (and failing
+  cleanly) is worth doing anyway: a bad map should not corrupt the heap.
+- **Colour map: small.** MCO accepts `<mission>.burnin.jpg` as well as
+  `.tga` / `.burnin.tga`; we look for `.tga` only. Needs a JPEG decoder
+  (stb_image or SDL2_image).
+
+So Clan Wars cannot run on stock data whatever the engine does: it needs the
+Omnitech base data. Running it means the user installing Omnitech 6.28 (or
+extracting its data) and pointing this port at that data, then working
+through the engine list above.
+
 ## Scope if we do this
 
 In: load and play Omnitech-era single-player campaigns on stock-format data,

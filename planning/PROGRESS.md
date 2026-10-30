@@ -99,6 +99,7 @@ Candidates:
 
 ## Known issues
 
+- `GlobalMap::init` (`mclib/move.cpp`) trusts mission `.pak` packet sizes: a map saved by Omnitech's editor (wide `long` pathing structs) asserts "bad doorInfo count" and corrupts the heap. Fix: compare packet size with the struct size and fail cleanly (or convert, as MCO does). See `planning/future-features/MOD-COMPAT.md`.
 - Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
 - Sound: panning/doppler not implemented (alariq README).
 - Some files may still be written outside the user config directory (alariq README TODO).
@@ -113,6 +114,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-30: Clan Wars (MCO campaign) test load: needs Omnitech base data (~140 unit tables) and MCO's widened pathing format; ABL fine. `GlobalMap::init` corrupts the heap on a wide-format map (recorded in Known issues).
 - 2026-10-30: fan mod compatibility study (`planning/future-features/MOD-COMPAT.md`): Omnitech 2013 source snapshot vs Microsoft base: 18 extra ABL functions, `CSVFile` per mission part, new logistics/save keys, most fixed limits doubled; MC2X has no public source.
 - 2026-10-29: `MC2_VSYNC=0` env switch to run without vsync; startup logs `vsync: on/off` (Xvfb smoke checked both).
 - 2026-10-29: confirmed on real Pi 400 hardware: GPU build mc2_01 58.5 fps (vsync-capped), software rendering mc2_01 50.4 / mc2_03 67.1 fps (user test).
