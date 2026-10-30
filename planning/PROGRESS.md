@@ -113,6 +113,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-30: fan mod compatibility study (`planning/future-features/MOD-COMPAT.md`): Omnitech 2013 source snapshot vs Microsoft base: 18 extra ABL functions, `CSVFile` per mission part, new logistics/save keys, most fixed limits doubled; MC2X has no public source.
 - 2026-10-29: `MC2_VSYNC=0` env switch to run without vsync; startup logs `vsync: on/off` (Xvfb smoke checked both).
 - 2026-10-29: confirmed on real Pi 400 hardware: GPU build mc2_01 58.5 fps (vsync-capped), software rendering mc2_01 50.4 / mc2_03 67.1 fps (user test).
 - 2026-10-29: `uninitMemberVar` tail: 35 constructors given zero/neutral defaults (screens, movie, font, image, input, file/packet streams, MLR sorter/lights, gate ids, tactical order, radio, weather, objectives) (`afb57ff`); baseline 592 -> 523.

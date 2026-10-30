@@ -16,7 +16,7 @@ Each file covers:
 When a feature is built, delete its file here and record it in `planning/PROGRESS.md`.
 
 Studies written so far: `VR-TABLETOP.md`, `SOUND-POSITIONAL.md`,
-`NETWORKING.md`.
+`NETWORKING.md`, `MOD-COMPAT.md`.
 
 Candidates mentioned so far (no files yet): movie playback, compressed TGA
 loading (alariq `TODO` item 4), and a performance benchmark mode (frame-time
