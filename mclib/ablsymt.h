@@ -160,7 +160,9 @@ typedef enum {
 	NUM_RETURN_TYPES
 } FunctionReturnType;
 
-#define	MAX_STANDARD_FUNCTIONS	256
+// Was 256: the Omnitech commands took the table past it. The routine key is
+// an int in the symbol table, not a byte in the code, so it can grow.
+#define	MAX_STANDARD_FUNCTIONS	512
 #define	MAX_FUNCTION_PARAMS		20
 
 typedef struct {
