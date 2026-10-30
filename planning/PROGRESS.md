@@ -113,6 +113,8 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-30: GPU benchmark specced (`future-features/GPU-BENCHMARK.md`): deterministic `-bench` mode, scripted camera and combat in segments, per-frame CPU/GPU split and draw counters, checkpoint screenshots. Not built.
+- 2026-10-30: 10 Omnitech ABL commands its base brains need (`code/ablmc2.cpp`); builds and unit tests only, Clan Wars load not re-run yet.
 - 2026-10-30: global pathing packets size-checked; Omnitech's wide layout read and narrowed (`mclib/globalmapio.h`, unit tested); a bad move map now stops the mission with a message instead of corrupting the heap (`43ba20a`). Clan Wars mission 1 on 6.28 data gets past pathing; next blocker is Omnitech ABL commands in its base brains.
 - 2026-10-30: Omnitech 6.28 install surveyed (not run): changelog documents every new ABL command, debug symbols give 6.28 struct layouts (pathing 31/5/73-byte packed) and ~50 MCO-only ABL commands; data is stock-format with ~9800 new files (`MOD-COMPAT.md`).
 - 2026-10-30: Clan Wars (MCO campaign) test load: needs Omnitech base data (~140 unit tables) and MCO's widened pathing format; ABL fine. `GlobalMap::init` corrupts the heap on a wide-format map (recorded in Known issues).

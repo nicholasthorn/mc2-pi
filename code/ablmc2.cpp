@@ -6652,6 +6652,304 @@ void ablEndlessStateCallback (UserFile* log) {
 }
 
 //*****************************************************************************
+// MechCommander Omnitech commands
+//
+// The base brains Omnitech ships (corebrain.abx, warriors/pbrain.abl), which
+// every Omnitech mission loads, call these. Written from the descriptions
+// in the 6.28 changelog (version.txt) and how the brains use them; see
+// planning/future-features/MOD-COMPAT.md. Stock missions never call them.
+//*****************************************************************************
+
+// Movers of other teams within radiusMeters of obj that are still fighting.
+static long countEnemiesWithin (GameObjectPtr obj, float radiusMeters) {
+
+	long count = 0;
+	Stuff::Vector3D pos = obj->getPosition();
+	for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
+		MoverPtr mover = ObjectManager->getMover(i);
+		if (!mover || (mover == obj) || !mover->getExistsAndAwake() || mover->isDisabled() || mover->isDestroyed())
+			continue;
+		if (!mover->getTeam() || !obj->isEnemy(mover->getTeam()))
+			continue;
+		if (mover->distanceFrom(pos) <= radiusMeters)
+			count++;
+	}
+	return(count);
+}
+
+//*****************************************************************************
+
+void execGetTargetRelativePosition (void) {
+
+	//-----------------------------------------------------
+	//	GET TARGET RELATIVE POSITION function (Omnitech):
+	//		Like getcontactrelativeposition, for a given object.
+	//		PARAMS:	integer				target id
+	//				@real				set to the range (meters)
+	//				@real				set to the angle (degrees)
+	//		RETURN: integer				error code
+	//-----------------------------------------------------
+
+	long targetId = ABLi_popInteger();
+	float* range = ABLi_popRealPtr();
+	float* angle = ABLi_popRealPtr();
+
+	*range = -1.0;
+	*angle = 0.0;
+
+	long result = 1;
+	GameObjectPtr target = getObject(targetId);
+	if (target && CurObject) {
+		*range = CurObject->distanceFrom(target->getPosition());
+		*angle = CurObject->relFacingTo(target->getPosition());
+		result = NO_ERR;
+	}
+
+	ABLi_pushInteger(result);
+}
+
+//*****************************************************************************
+
+void execGetRelativePositionToTarget (void) {
+
+	//-----------------------------------------------------
+	//	GET RELATIVE POSITION TO TARGET function (Omnitech):
+	//		A point on the line from the current object to the
+	//		target, distance meters from the target, found the way
+	//		Mover::relativePosition finds a passable cell.
+	//		PARAMS:	integer				target id
+	//				real				distance from target (meters)
+	//				integer				relativePosition flags
+	//				real[3]				new point
+	//		RETURN: NONE (point untouched if there is no answer)
+	//-----------------------------------------------------
+
+	long targetId = ABLi_popInteger();
+	float distance = ABLi_popReal();
+	long flags = ABLi_popInteger();
+	float* newPoint = ABLi_popRealPtr();
+
+	GameObjectPtr target = getObject(targetId);
+	if (target && CurObject && CurObject->isMover()) {
+		Stuff::Vector3D targetPos = target->getPosition();
+		float range = CurObject->distanceFrom(targetPos);
+		float angle = CurObject->relFacingTo(targetPos);
+		Stuff::Vector3D pos = ((MoverPtr)CurObject)->relativePosition(angle, range - distance, flags);
+		newPoint[0] = pos.x;
+		newPoint[1] = pos.y;
+		newPoint[2] = pos.z;
+	}
+}
+
+//*****************************************************************************
+
+void execNewDistanceToPosition (void) {
+
+	//-----------------------------------------------------
+	//	NEW DISTANCE TO POSITION function (Omnitech):
+	//		distancetoposition for a single object (x/y only).
+	//		Omnitech does not document how it differs; the brains
+	//		compare the result with meters, as here.
+	//		PARAMS:	integer				object id (-1 = self)
+	//				real[3]				position
+	//		RETURN: real				distance (meters), -1 if none
+	//-----------------------------------------------------
+
+	long objectId = ABLi_popInteger();
+	float* coordList = ABLi_popRealPtr();
+
+	float result = -1.0;
+	GameObjectPtr obj = getObject(objectId);
+	if (obj) {
+		Stuff::Vector3D position1 = obj->getPosition();
+		Stuff::Vector3D position2(position1);
+		if (!isnan(coordList[0]))
+			position2.x = coordList[0];
+		if (!isnan(coordList[1]))
+			position2.y = coordList[1];
+		Stuff::Vector3D resultVector;
+		resultVector.Subtract(position2, position1);
+		result = resultVector.GetLength() * metersPerWorldUnit;
+	}
+	ABLi_pushReal(result);
+}
+
+//*****************************************************************************
+
+void execNumEnemiesWithinRadius (void) {
+
+	//-----------------------------------------------------
+	//	NUM ENEMIES WITHIN RADIUS function (Omnitech):
+	//		PARAMS:	integer				object id (-1 = self)
+	//				integer or real		radius (meters)
+	//		RETURN: integer				enemy movers within radius
+	//-----------------------------------------------------
+
+	long objectId = ABLi_popInteger();
+	float radius = ABLi_popIntegerReal();
+
+	long result = 0;
+	GameObjectPtr obj = getObject(objectId);
+	if (obj)
+		result = countEnemiesWithin(obj, radius);
+	ABLi_pushInteger(result);
+}
+
+//*****************************************************************************
+
+void execNeedsRefit (void) {
+
+	// NEEDS REFIT function (Omnitech): true if the current mover needs refit.
+	bool result = false;
+	if (CurObject && CurObject->isMover())
+		result = ((MoverPtr)CurObject)->needsRefit();
+	ABLi_pushBoolean(result);
+}
+
+//*****************************************************************************
+
+void execIsRefit (void) {
+
+	// IS REFIT function (Omnitech): true if the current mover is a refit vehicle.
+	bool result = false;
+	if (CurObject && CurObject->isMover())
+		result = ((MoverPtr)CurObject)->isRefit();
+	ABLi_pushBoolean(result);
+}
+
+//*****************************************************************************
+
+void execHasOrderFromPlayer (void) {
+
+	// HAS ORDER FROM PLAYER function (Omnitech): true if the current
+	// warrior's tactical order was given by the player.
+	bool result = false;
+	if (CurWarrior) {
+		TacticalOrderPtr order = CurWarrior->getCurTacOrder();
+		result = order && (order->code != TACTICAL_ORDER_NONE) && (order->origin == ORDER_ORIGIN_PLAYER);
+	}
+	ABLi_pushBoolean(result);
+}
+
+//*****************************************************************************
+
+void execScanAreaCapture (void) {
+
+	//-----------------------------------------------------
+	//	SCAN AREA CAPTURE function (Omnitech):
+	//		The current mech is ordered to capture the nearest
+	//		captureable building within radius.
+	//		PARAMS:	integer or real		radius (meters)
+	//		RETURN: integer				1 if an order was given, else 0
+	//-----------------------------------------------------
+
+	float radius = ABLi_popIntegerReal();
+
+	long result = 0;
+	if (CurObject && CurObject->isMover() && CurWarrior) {
+		BuildingPtr best = NULL;
+		float bestDistance = radius;
+		for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
+			BuildingPtr bldg = ObjectManager->getBuilding(i);
+			if (!bldg || !bldg->isCaptureable(CurObject->getTeamId()))
+				continue;
+			float distance = CurObject->distanceFrom(bldg->getPosition());
+			if (distance <= bestDistance) {
+				bestDistance = distance;
+				best = bldg;
+			}
+		}
+		if (best) {
+			CurWarrior->orderCapture(ORDER_ORIGIN_SELF, best);
+			result = 1;
+		}
+	}
+	ABLi_pushInteger(result);
+}
+
+//*****************************************************************************
+
+void execScanAreaRepair (void) {
+
+	//-----------------------------------------------------
+	//	SCAN AREA REPAIR function (Omnitech):
+	//		The current mover is ordered to the nearest friendly
+	//		repair bay within radius that has refit points left.
+	//		PARAMS:	integer or real		radius (meters)
+	//		RETURN: integer				1 if an order was given, else 0
+	//-----------------------------------------------------
+
+	float radius = ABLi_popIntegerReal();
+
+	long result = 0;
+	if (CurObject && CurObject->isMover() && CurWarrior && ((MoverPtr)CurObject)->needsRefit()) {
+		BuildingPtr best = NULL;
+		float bestDistance = radius;
+		for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
+			BuildingPtr bldg = ObjectManager->getBuilding(i);
+			if (!bldg || bldg->isDestroyed() || !bldg->getFlag(OBJECT_FLAG_CANREFIT) || !bldg->getFlag(OBJECT_FLAG_MECHBAY))
+				continue;
+			if (!bldg->getTeam() || !CurObject->isFriendly(bldg->getTeam()) || (bldg->getRefitPoints() <= 0.0))
+				continue;
+			float distance = CurObject->distanceFrom(bldg->getPosition());
+			if (distance <= bestDistance) {
+				bestDistance = distance;
+				best = bldg;
+			}
+		}
+		if (best) {
+			CurWarrior->orderGetFixed(ORDER_ORIGIN_SELF, best);
+			result = 1;
+		}
+	}
+	ABLi_pushInteger(result);
+}
+
+//*****************************************************************************
+
+void execAutoRepairWithinRadius (void) {
+
+	//-----------------------------------------------------
+	//	AUTO REPAIR WITHIN RADIUS function (Omnitech):
+	//		If no enemies are within radius, the refit vehicle is
+	//		ordered to refit the nearest friendly mech within radius
+	//		that needs it. Does nothing while it is already refitting.
+	//		PARAMS:	integer				refit vehicle id (-1 = self)
+	//				integer or real		radius (meters)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long objectId = ABLi_popInteger();
+	float radius = ABLi_popIntegerReal();
+
+	GameObjectPtr obj = getObject(objectId);
+	if (!obj || !obj->isMover() || !((MoverPtr)obj)->isRefit())
+		return;
+	MechWarriorPtr pilot = obj->getPilot();
+	if (!pilot || (pilot->getCurTacOrder()->code == TACTICAL_ORDER_REFIT))
+		return;
+	if (countEnemiesWithin(obj, radius) > 0)
+		return;
+
+	MoverPtr best = NULL;
+	float bestDistance = radius;
+	for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
+		MoverPtr mover = ObjectManager->getMover(i);
+		if (!mover || (mover == obj) || (mover->getObjectClass() != BATTLEMECH) || !mover->getExistsAndAwake() || mover->isDestroyed())
+			continue;
+		if (!mover->getTeam() || !obj->isFriendly(mover->getTeam()) || !mover->needsRefit())
+			continue;
+		float distance = obj->distanceFrom(mover->getPosition());
+		if (distance <= bestDistance) {
+			bestDistance = distance;
+			best = mover;
+		}
+	}
+	if (best)
+		pilot->orderRefit(ORDER_ORIGIN_SELF, best);
+}
+
+//*****************************************************************************
 
 void initABL (void) {
 
@@ -6953,6 +7251,18 @@ void initABL (void) {
 	ABLi_addFunction("incallout", false, NULL, "b", execInCallout);
 	ABLi_addFunction("setinvulnerable", false, "b", NULL, execSetInvulnerable);
 	ABLi_addFunction("freezegui", false, "b", NULL, execFreezeGUI);
+
+	// MechCommander Omnitech commands used by its base brains
+	ABLi_addFunction("gettargetrelativeposition", false, "irr", "i", execGetTargetRelativePosition);
+	ABLi_addFunction("getrelativepositiontotarget", false, "iriR", NULL, execGetRelativePositionToTarget);
+	ABLi_addFunction("newdistancetoposition", false, "iR", "r", execNewDistanceToPosition);
+	ABLi_addFunction("numenemieswithinradius", false, "i*", "i", execNumEnemiesWithinRadius);
+	ABLi_addFunction("needsrefit", false, NULL, "b", execNeedsRefit);
+	ABLi_addFunction("isrefit", false, NULL, "b", execIsRefit);
+	ABLi_addFunction("hasorderfromplayer", false, NULL, "b", execHasOrderFromPlayer);
+	ABLi_addFunction("scanareacapture", false, "*", "i", execScanAreaCapture);
+	ABLi_addFunction("scanarearepair", false, "*", "i", execScanAreaRepair);
+	ABLi_addFunction("autorepairwithinradius", false, "i*", NULL, execAutoRepairWithinRadius);
 	
 	//static long Godzilla = 120;
 	//static long GodzillaList[5] = {10, 20, 30, 40, 50};

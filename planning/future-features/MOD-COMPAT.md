@@ -224,12 +224,27 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    `NUM_EXTRA_DOOR_LINKS` scratch slots of each door-link list with leftover
    memory (door index 725537101 in `innersphere1`); they are zeroed. All
    three maps of `innersphere1` load.
-2. **ABL: next blocker.** Omnitech's own base brains, not the campaign's,
-   call MCO commands: `corebrain.abx` uses `gettargetrelativeposition`;
-   `warriors/pbrain.abl` uses `needsrefit`, `scanareacapture`,
-   `scanarearepair`, `hasorderfromplayer`. ABL aborts after too many syntax
-   errors and the game then segfaults. Implement those (spec in 6.28
-   `version.txt`), or make an ABL compile failure stop the mission cleanly.
+2. **ABL base-brain commands: added, not yet run** (`code/ablmc2.cpp`,
+   "MechCommander Omnitech commands"). Omnitech's own base brains, which
+   every MCO mission loads, need 10 commands; the first error list showed
+   only 5 because ABL stops after too many errors. A scan of all 6.28
+   scripts against our registered commands found the full set:
+   `corebrain.abx`: `gettargetrelativeposition`,
+   `getrelativepositiontotarget`, `newdistancetoposition`;
+   `warriors/pbrain.abl`: `needsrefit`, `isrefit`, `hasorderfromplayer`,
+   `numenemieswithinradius`, `scanareacapture`, `scanarearepair`,
+   `autorepairwithinradius`. Written from the changelog and the brains'
+   usage on stock APIs (no MCO code). Assumptions: `newdistancetoposition`
+   is undocumented and treated as single-object `distancetoposition` in
+   meters; scan/auto-repair orders use `ORDER_ORIGIN_SELF` so
+   `hasorderfromplayer` stays false for them. Still open: a failed ABL
+   compile is followed by a segfault instead of a clean stop.
+   Commands used only by MCO's own campaigns (not Clan Wars), still
+   missing: `addmoney`, `addmovertoplayer`, `addresourcepoints`,
+   `damagemecharmor`, `destroymechbodylocation`, `removemoverfromplayer`,
+   `setbrain`, `setmechgesture`, `setobjectivetype`,
+   `setsalvagecraftenabled`, `settextmsg`, `settxtbuildingname`,
+   `togglesalvagecraft`.
 3. `.burnin.jpg` colour maps (logged, not yet fatal).
 4. A separate `STOP: requested packet number 125 is bigger than number of
    packets: 125` appears earlier in the log, from another packet file
