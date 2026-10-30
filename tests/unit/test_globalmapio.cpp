@@ -117,14 +117,14 @@ TEST_CASE("globalmapio: Omnitech wide areas, doors and links are narrowed")
 		OnePacket f("wide_area.pak", &area, sizeof(area));
 		StockArea out = {};
 		REQUIRE(readPathRecords(&f.in, 0, &out, 1, narrowGlobalMapArea<StockArea>));
-		CHECK(out.sectorR == 12);
-		CHECK(out.sectorC == 34);
-		CHECK(out.type == 2);
-		CHECK(out.numDoors == 3);
-		CHECK(out.ownerWID == 500);
-		CHECK(out.teamID == 1);
-		CHECK(out.open);
-		CHECK_FALSE(out.offMap);
+		CHECK(+(out.sectorR) == 12);
+		CHECK(+(out.sectorC) == 34);
+		CHECK(+(out.type) == 2);
+		CHECK(+(out.numDoors) == 3);
+		CHECK(+(out.ownerWID) == 500);
+		CHECK(+(out.teamID) == 1);
+		CHECK(bool(out.open));
+		CHECK_FALSE(bool(out.offMap));
 	}
 
 	WideGlobalMapDoor door = {};
@@ -136,18 +136,18 @@ TEST_CASE("globalmapio: Omnitech wide areas, doors and links are narrowed")
 		OnePacket f("wide_door.pak", &door, sizeof(door));
 		StockDoor out = {};
 		REQUIRE(readPathRecords(&f.in, 0, &out, 1, narrowGlobalMapDoor<StockDoor>));
-		CHECK(out.row == 100);
-		CHECK(out.col == 200);
-		CHECK(out.length == 4);
-		CHECK(out.teamID == -1);
-		CHECK(out.area[0] == 7);
-		CHECK(out.area[1] == 9);
-		CHECK(out.areaCost[1] == 3);
-		CHECK(out.direction[0] == 2);
-		CHECK(out.numLinks[0] == 5);
-		CHECK(out.numLinks[1] == 6);
-		CHECK(out.cost == 1000);
-		CHECK(out.fPrime == -4);
+		CHECK(+(out.row) == 100);
+		CHECK(+(out.col) == 200);
+		CHECK(+(out.length) == 4);
+		CHECK(+(out.teamID) == -1);
+		CHECK(+(out.area[0]) == 7);
+		CHECK(+(out.area[1]) == 9);
+		CHECK(+(out.areaCost[1]) == 3);
+		CHECK(+(out.direction[0]) == 2);
+		CHECK(+(out.numLinks[0]) == 5);
+		CHECK(+(out.numLinks[1]) == 6);
+		CHECK(+(out.cost) == 1000);
+		CHECK(+(out.fPrime) == -4);
 	}
 
 	WideDoorLink links[2] = {};
@@ -157,11 +157,11 @@ TEST_CASE("globalmapio: Omnitech wide areas, doors and links are narrowed")
 		OnePacket f("wide_links.pak", links, sizeof(links));
 		StockDoorLink out[2] = {};
 		REQUIRE(readPathRecords(&f.in, 0, out, 2, narrowDoorLink<StockDoorLink>));
-		CHECK(out[0].doorIndex == 1);
-		CHECK(out[0].doorSide == 1);
-		CHECK(out[0].cost == 10);
-		CHECK(out[0].openCost == 20);
-		CHECK(out[1].doorIndex == 4000);
+		CHECK(+(out[0].doorIndex) == 1);
+		CHECK(+(out[0].doorSide) == 1);
+		CHECK(+(out[0].cost) == 10);
+		CHECK(+(out[0].openCost) == 20);
+		CHECK(+(out[1].doorIndex) == 4000);
 	}
 
 	WideDoorInfo info = {};
@@ -170,8 +170,8 @@ TEST_CASE("globalmapio: Omnitech wide areas, doors and links are narrowed")
 		OnePacket f("wide_info.pak", &info, sizeof(info));
 		StockDoorInfo out = {};
 		REQUIRE(readPathRecords(&f.in, 0, &out, 1, narrowDoorInfo<StockDoorInfo>));
-		CHECK(out.doorIndex == 321);
-		CHECK(out.doorSide == 1);
+		CHECK(+(out.doorIndex) == 321);
+		CHECK(+(out.doorSide) == 1);
 	}
 
 	const int32_t cells[4] = {0, 1, -1, 30000};
@@ -227,11 +227,11 @@ TEST_CASE("globalmapio: trailing door-link scratch slots are zeroed, not checked
 	StockDoorLink out[3];
 	std::memset(out, 0x5A, sizeof(out));
 	REQUIRE(readPathRecords(&f.in, 0, out, 3, narrowDoorLink<StockDoorLink>, 1));
-	CHECK(out[0].doorIndex == 12);
-	CHECK(out[0].cost == 5);
-	CHECK(out[1].doorIndex == 0);
-	CHECK(out[1].cost == 0);
-	CHECK(out[2].doorIndex == 0);
+	CHECK(+(out[0].doorIndex) == 12);
+	CHECK(+(out[0].cost) == 5);
+	CHECK(+(out[1].doorIndex) == 0);
+	CHECK(+(out[1].cost) == 0);
+	CHECK(+(out[2].doorIndex) == 0);
 
 	// without the scratch hint the garbage index is rejected
 	CHECK_FALSE(readPathRecords(&f.in, 0, out, 3, narrowDoorLink<StockDoorLink>));

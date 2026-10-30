@@ -212,6 +212,29 @@ With this data a test is possible: point a copy of our game at the 6.28 data
 plus Clan Wars, then fix the loader issues in order (pathing size check and
 conversion, `.burnin.jpg`, limits, string ids, ABL commands).
 
+## Progress
+
+Test setup (local only): `~/gd-mco` = stock game dir, then the 6.28
+`art.fst`/`tgl.fst` and `data/`, then Clan Wars `data/`, all paths
+lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
+
+1. **Pathing: done** (`43ba20a`). `mclib/globalmapio.h` reads the stock or
+   wide layout by packet size and rejects anything else before reading.
+   Found on the way: Omnitech's editor saves the trailing
+   `NUM_EXTRA_DOOR_LINKS` scratch slots of each door-link list with leftover
+   memory (door index 725537101 in `innersphere1`); they are zeroed. All
+   three maps of `innersphere1` load.
+2. **ABL: next blocker.** Omnitech's own base brains, not the campaign's,
+   call MCO commands: `corebrain.abx` uses `gettargetrelativeposition`;
+   `warriors/pbrain.abl` uses `needsrefit`, `scanareacapture`,
+   `scanarearepair`, `hasorderfromplayer`. ABL aborts after too many syntax
+   errors and the game then segfaults. Implement those (spec in 6.28
+   `version.txt`), or make an ABL compile failure stop the mission cleanly.
+3. `.burnin.jpg` colour maps (logged, not yet fatal).
+4. A separate `STOP: requested packet number 125 is bigger than number of
+   packets: 125` appears earlier in the log, from another packet file
+   (probably `object2.pak` or a unit `.fit`); not investigated.
+
 ## Scope if we do this
 
 In: load and play Omnitech-era single-player campaigns on stock-format data,

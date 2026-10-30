@@ -73,11 +73,10 @@ static_assert(sizeof(WideDoorInfo) == 5, "Omnitech _DoorInfo is 5 bytes");
 static_assert(sizeof(WideDoorLink) == 13, "Omnitech _DoorLink is 13 bytes");
 static_assert(sizeof(WideGlobalMapDoor) == 73, "Omnitech _GlobalMapDoor is 73 bytes");
 
-inline bool narrowToShort (int32_t v, short& out) {
-	if (v < SHRT_MIN || v > SHRT_MAX)
-		return false;
-	out = (short)v;
-	return true;
+// The structs are packed, so their fields are unaligned: check values and
+// assign them, never bind a reference to a field (undefined behaviour).
+inline bool fitsShort (int32_t v) {
+	return (v >= SHRT_MIN) && (v <= SHRT_MAX);
 }
 
 //---------------------------------------------------------------------------
@@ -114,11 +113,19 @@ bool readPathRecords (Packet* packetFile, long packet, Stock* out, long count,
 // Cell-to-area map: short per cell in stock, 32-bit in Omnitech.
 
 inline bool narrowAreaMapCell (short& out, const int32_t& in) {
-	return narrowToShort(in, out);
+	if (!fitsShort(in))
+		return false;
+	out = (short)in;
+	return true;
 }
 
 template <class Area>
 bool narrowGlobalMapArea (Area& out, const WideGlobalMapArea& in) {
+	if (!fitsShort(in.sectorR) || !fitsShort(in.sectorC) || !fitsShort(in.numDoors) || (in.numDoors < 0))
+		return false;
+	out.sectorR = (short)in.sectorR;
+	out.sectorC = (short)in.sectorC;
+	out.numDoors = (short)in.numDoors;
 	out.doors_Legacy32bitPtr = in.doors_Legacy32bitPtr;
 	out.type = (decltype(out.type))in.type;
 	out.ownerWID = in.ownerWID;
@@ -126,27 +133,38 @@ bool narrowGlobalMapArea (Area& out, const WideGlobalMapArea& in) {
 	out.offMap = in.offMap;
 	out.open = in.open;
 	out.cellsCovered_Legacy32bitPtr = in.cellsCovered_Legacy32bitPtr;
-	return narrowToShort(in.sectorR, out.sectorR) &&
-		   narrowToShort(in.sectorC, out.sectorC) &&
-		   narrowToShort(in.numDoors, out.numDoors) && out.numDoors >= 0;
+	return true;
 }
 
 template <class Info>
 bool narrowDoorInfo (Info& out, const WideDoorInfo& in) {
+	if (!fitsShort(in.doorIndex))
+		return false;
+	out.doorIndex = (short)in.doorIndex;
 	out.doorSide = in.doorSide;
-	return narrowToShort(in.doorIndex, out.doorIndex);
+	return true;
 }
 
 template <class Link>
 bool narrowDoorLink (Link& out, const WideDoorLink& in) {
+	if (!fitsShort(in.doorIndex))
+		return false;
+	out.doorIndex = (short)in.doorIndex;
 	out.doorSide = in.doorSide;
 	out.cost = in.cost;
 	out.openCost = in.openCost;
-	return narrowToShort(in.doorIndex, out.doorIndex);
+	return true;
 }
 
 template <class Door>
 bool narrowGlobalMapDoor (Door& out, const WideGlobalMapDoor& in) {
+	if (!fitsShort(in.row) || !fitsShort(in.col))
+		return false;
+	for (int s = 0; s < 2; s++)
+		if (!fitsShort(in.area[s]) || !fitsShort(in.areaCost[s]) || !fitsShort(in.numLinks[s]) || (in.numLinks[s] < 0))
+			return false;
+	out.row = (short)in.row;
+	out.col = (short)in.col;
 	out.length = in.length;
 	out.open = in.open;
 	out.teamID = in.teamID;
@@ -157,15 +175,14 @@ bool narrowGlobalMapDoor (Door& out, const WideGlobalMapDoor& in) {
 	out.g = in.g;
 	out.hPrime = in.hPrime;
 	out.fPrime = in.fPrime;
-	bool ok = narrowToShort(in.row, out.row) && narrowToShort(in.col, out.col);
-	for (int s = 0; ok && s < 2; s++) {
+	for (int s = 0; s < 2; s++) {
+		out.area[s] = (short)in.area[s];
+		out.areaCost[s] = (short)in.areaCost[s];
 		out.direction[s] = in.direction[s];
+		out.numLinks[s] = (short)in.numLinks[s];
 		out.links_Legacy32bitPtr[s] = in.links_Legacy32bitPtr[s];
-		ok = narrowToShort(in.area[s], out.area[s]) &&
-			 narrowToShort(in.areaCost[s], out.areaCost[s]) &&
-			 narrowToShort(in.numLinks[s], out.numLinks[s]) && out.numLinks[s] >= 0;
 	}
-	return ok;
+	return true;
 }
 
 #endif
