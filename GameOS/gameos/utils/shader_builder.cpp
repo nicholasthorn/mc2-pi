@@ -38,6 +38,18 @@ const int constantSizes[] = {
     16*sizeof(float),
 };
 
+// The program keeps the last uploaded value, so mark a uniform dirty (and
+// re-upload it in apply()) only when the value actually changed
+static void setUniformData(glsl_uniform* puni, const void* v)
+{
+    const size_t size = constantSizes[puni->type_] * puni->num_el_;
+    if(memcmp(puni->data_, v, size) != 0)
+    {
+        memcpy(puni->data_, v, size);
+        puni->is_dirty_ = true;
+    }
+}
+
 void init_func_ptrs(UNIFORM_FUNC (&uniformFuncs)[15])
 {
 	// changed fromARB variants, to work with CORE profile as well (because *ARB variants are not initialized in case of CORE profile)
@@ -776,8 +788,7 @@ bool glsl_program::setFloat(const char* name, const float v)
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_FLOAT)
     {
-        memcpy(it->second->data_, &v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, &v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -788,8 +799,7 @@ bool glsl_program::setFloat2(const char* name, const float v[2])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_VEC2)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -800,8 +810,7 @@ bool glsl_program::setFloat3(const char* name, const float v[3])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_VEC3)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -813,8 +822,7 @@ bool glsl_program::setFloat4(const std::string& name, const float v[4])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_VEC4)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name.c_str());
@@ -832,8 +840,7 @@ bool glsl_program::setInt(const char* name, const int v)
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_INT)
     {
-        memcpy(it->second->data_, &v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, &v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -844,8 +851,7 @@ bool glsl_program::setInt2(const char* name, const int v[2])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_IVEC2)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -856,8 +862,7 @@ bool glsl_program::setInt3(const char* name, const int v[3])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_IVEC3)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -868,8 +873,7 @@ bool glsl_program::setInt4(const char* name, const int v[4])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_IVEC4)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -881,8 +885,7 @@ bool glsl_program::setMat2(const char* name, const float v[4])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_MAT2)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -893,8 +896,7 @@ bool glsl_program::setMat3(const char* name, const float v[9])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_MAT3)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -905,8 +907,7 @@ bool glsl_program::setMat4(const char* name, const float v[16])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_MAT4)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name);
@@ -918,8 +919,7 @@ bool glsl_program::setMat4(const std::string& name , const float v[16])
     UniArr_t::iterator it = uniforms_.find(name);
     if(it!=uniforms_.end() && it->second->type_ == CONSTANT_MAT4)
     {
-        memcpy(it->second->data_, v, constantSizes[it->second->type_] * it->second->num_el_);
-        it->second->is_dirty_ = true;
+        setUniformData(it->second, v);
         return true;
     }
 	log_error("Type mismatch: %s\n", name.c_str());
