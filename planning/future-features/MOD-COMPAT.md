@@ -145,6 +145,73 @@ Omnitech base data. Running it means the user installing Omnitech 6.28 (or
 extracting its data) and pointing this port at that data, then working
 through the engine list above.
 
+## Omnitech 6.28 install (2026-10-30)
+
+`MCOsetup628.exe` (ModDB, 434.5 MB, MD5 `0c9fc1e191013ac01c8d36e40afe7068`,
+Mar 2017), Inno Setup 5.3, unpacked with `innoextract` (not run) to 1.2 GB,
+11046 files. Kept outside the repo (`~/mco628` in WSL); not redistributable
+(MCO EULA plus Microsoft/WizKids assets).
+
+What is in it, and what it is good for:
+
+- **`version.txt`: full changelog**, 604 entries from MCO 0.030 (Jan 2011)
+  to 0.628 (Mar 2017), written by magicX. Every new ABL command is documented
+  with syntax, parameters and an example (`setTextMsg`, `objectchangesides`,
+  `addmovertoplayer`...). This is the spec for re-implementing them.
+- **`MCORel.pdb` / `EditRel.pdb`**: debug symbols for the 6.28 game and
+  editor. `llvm-pdbutil-14 dump -types` gives exact struct layouts and every
+  function name for the version whose source is not public. Examples:
+  - ABL handlers: 35 `exec*` game commands beyond both stock and the 2013
+    snapshot, so 6.28 has about 50 MCO-only commands in all. New since 2013:
+    AddNewPilotToMover/ToPlayer, HirePilot, AutoRepairWithinRadius,
+    RechargeRepairBay, IsRepairBay, IsRefit, NeedsRefit,
+    ScanBuildingsForRepair/ForCapture, SetBuildingResourcePoints,
+    Get/SetCampaignGlobal, ClearMoveOrder, HasPlayerOrder,
+    IsCurTacOrderMoveOrder, GetCurTacOrderTime, GetTimeOfLastStep,
+    GetAttackRange, NewDistanceToPosition, NumEnemies/FriendsWithinRadius,
+    DamageMechArmor, DestroyMechBodyLocation, IsSelectedByPlayer,
+    IsEnterPressed, SetLargeMsg, SetHelpMoveToPoint, SetMechGesture,
+    SetMissionTuneId, SetRepairTruckEnabled, SetSalvageCraftEnabled,
+    SetUnitForceGroup, SetBrainNew, ABLPrint. (`magicattack` from the
+    snapshot is gone.)
+  - On-disk pathing layouts (byte-packed): `_GlobalMapArea` 31 bytes
+    (`sectorR`, `sectorC`, `numDoors` are `long`), `_DoorInfo` 5 bytes
+    (`long doorIndex`), `_GlobalMapDoor` 73 bytes (`row`, `col`, `area[2]`,
+    `areaCost[2]`, `numLinks[2]` are `long`). The stock layouts are smaller,
+    so the packet size identifies the format.
+- **Game data, mostly loose files** (only `art.fst` and `tgl.fst` are
+  archives). Compared with stock source data (`mc2srcdata`) by path:
+
+  | dir | new | changed | same |
+  |---|---|---|---|
+  | tgl (models, `.tgl`/`.agl`) | 6352 | 620 | 56 |
+  | textures | 1684 | 8 | 49 |
+  | missions (+ brains) | 871 | 81 | 21 |
+  | objects (unit tables, `.fit`) | 357 | 72 | 2 |
+  | art | 276 | 52 | 12 |
+  | movies (`.bik`) | 163 | 30 | 2 |
+  | sound | 68 | 6 | 32 |
+
+  Formats are the stock ones: unit CSVs have the same layout as stock
+  (`atlas.csv`: same rows and columns, rebalanced numbers, more variants, new
+  `DescIndex` string ids); `.tgl` has the stock `0xBAFDECAF` header; `.agl`
+  is the stock binary animation format. So the base data should load through
+  our existing readers once ids, limits and pathing are handled.
+- **`mc2res.dll`** (string table, ~3900 strings in the DLL) and
+  `Script1.res`: the unit/weapon names the new `DescIndex` ids point at. We
+  compile strings into `strings.res`; these would need extracting.
+- **`data/missions/std.h`, `warriors/orders.h`, `*.abx`**: ABL headers and
+  compiled brain libraries; `ablt.exe` (ABL compiler).
+- **`How to create purchase and salvage files for MCO.txt`**: format of the
+  per-mission purchase files (`[Components]` with optional `CompCountN`,
+  `[Mechs]` with optional `MechVariantN`, `[Pilots]`); old files still read.
+- Tools: `EditRel.exe` (editor), `viewRel.exe`, `AseConv.exe`, a purchase
+  file editor.
+
+With this data a test is possible: point a copy of our game at the 6.28 data
+plus Clan Wars, then fix the loader issues in order (pathing size check and
+conversion, `.burnin.jpg`, limits, string ids, ABL commands).
+
 ## Scope if we do this
 
 In: load and play Omnitech-era single-player campaigns on stock-format data,

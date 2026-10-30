@@ -114,6 +114,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-30: Omnitech 6.28 install surveyed (not run): changelog documents every new ABL command, debug symbols give 6.28 struct layouts (pathing 31/5/73-byte packed) and ~50 MCO-only ABL commands; data is stock-format with ~9800 new files (`MOD-COMPAT.md`).
 - 2026-10-30: Clan Wars (MCO campaign) test load: needs Omnitech base data (~140 unit tables) and MCO's widened pathing format; ABL fine. `GlobalMap::init` corrupts the heap on a wide-format map (recorded in Known issues).
 - 2026-10-30: fan mod compatibility study (`planning/future-features/MOD-COMPAT.md`): Omnitech 2013 source snapshot vs Microsoft base: 18 extra ABL functions, `CSVFile` per mission part, new logistics/save keys, most fixed limits doubled; MC2X has no public source.
 - 2026-10-29: `MC2_VSYNC=0` env switch to run without vsync; startup logs `vsync: on/off` (Xvfb smoke checked both).
