@@ -85,6 +85,8 @@ into it):
   the smoke runs).
 - `MC2_VSYNC=0` turns vsync off (on by default), to measure frame rate past
   the display refresh rate.
+- `MC2_SHADER_HOT_RELOAD=1` reloads shaders when their files change (off by
+  default: it polls the shader files twice a second).
 - Workflows: [ci.yml](.github/workflows/ci.yml),
   [smoke.yml](.github/workflows/smoke.yml),
   [static.yml](.github/workflows/static.yml).

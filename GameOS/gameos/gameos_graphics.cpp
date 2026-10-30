@@ -1633,16 +1633,33 @@ void gosRenderer::beginFrame()
     num_draw_calls_ = 0;
 }
 
+// Shader hot reload stats every shader file, so it is opt-in:
+// MC2_SHADER_HOT_RELOAD=1 while editing shaders.
+static bool shaderHotReloadEnabled()
+{
+    static const bool enabled = []() {
+        const char* v = getenv("MC2_SHADER_HOT_RELOAD");
+        return v && v[0] == '1' && v[1] == '\0';
+    }();
+    return enabled;
+}
+
 void gosRenderer::endFrame()
 {
-    // check for file changes every half second
+    if(!shaderHotReloadEnabled())
+        return;
+
+    // check for file changes every half second (last_check_time used to never
+    // be updated, so after the first 500 ms this ran every frame)
     static uint64_t last_check_time = timing::get_wall_time_ms();
-    if(timing::get_wall_time_ms() - last_check_time > 500)
+    const uint64_t now = timing::get_wall_time_ms();
+    if(now - last_check_time > 500)
     {
         for(int i=0; i< materialList_.size(); ++i)
         {
             materialList_[i]->checkReload();
         }
+        last_check_time = now;
     }
 }
 
