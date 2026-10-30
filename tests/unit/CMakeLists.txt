@@ -23,6 +23,7 @@ add_executable(mc2_tests
     test_routines.cpp
     test_audio_pan.cpp
     test_globalmapio.cpp
+    test_frame_stats.cpp
 
     # Real engine TUs: the file / ini / packet / FST / CSV stack. This is the
     # whole link frontier; nothing else from mclib or GameOS is needed.
@@ -41,6 +42,7 @@ add_executable(mc2_tests
     # GL- and SDL-free GameOS helpers
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
 )
 
 # Engine headers are legacy code: include them as SYSTEM headers (replacing the
@@ -60,9 +62,10 @@ target_include_directories(mc2_tests SYSTEM PRIVATE
 set_source_files_properties(
     test_main.cpp heap_shim.cpp test_file_inifile.cpp test_csvfile.cpp
     test_fst_roundtrip.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
-    test_audio_pan.cpp test_globalmapio.cpp
+    test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 
 # Fixtures are copied next to the tests and opened by RELATIVE path:

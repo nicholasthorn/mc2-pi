@@ -2,8 +2,17 @@
 # Benchmark: run missions for a fixed number of gameplay frames on the GPU
 # and/or Mesa's software rasterizer (llvmpipe), vsync off by default, and
 # record the frame rate the game reports ([AUTOEXIT]) together with the SoC
-# temperature and throttle state during the run. Every run appends a row to
-# results.csv, so runs on different commits, settings or days can be compared.
+# temperature and throttle state during the run.
+#
+# Missions run with -bench: a fixed game step and random seed and no player
+# input, so every run (and every commit) renders the same frames. The game
+# writes each run's per-frame timings (game logic / render / swap ms, draw
+# calls, triangles) to logs/*.frames.csv and prints a [BENCH] summary with
+# percentiles, which goes into results.csv. Same machine, same frames: the
+# draws and tris columns of two runs should match frame for frame.
+#
+# Every run appends a row to results.csv, so runs on different commits,
+# settings or days can be compared.
 #
 # Unlike smoke.sh this is for real performance numbers: run it on the Pi, on
 # its own display, with nothing else busy. The GPU renderer needs a real
@@ -59,7 +68,7 @@ while [ $# -gt 0 ]; do
         --timeout)   TIMEOUT="$2"; shift 2 ;;
         --out)       OUT_DIR="$2"; shift 2 ;;
         --label)     LABEL="$2"; shift 2 ;;
-        -h|--help)   sed -n '2,32p' "$0"; exit 0 ;;
+        -h|--help)   sed -n '2,41p' "$0"; exit 0 ;;
         *) echo "bench: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -91,7 +100,13 @@ CFG_HASH=$(md5sum "$GAME_DIR/options.cfg" | cut -c1-8)
 mkdir -p "$OUT_DIR/logs"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 RESULTS="$OUT_DIR/results.csv"
-[ -f "$RESULTS" ] || echo "date,commit,label,host,mission,renderer,display,vsync,run,frames,seconds,fps,gl_renderer,options_cfg,governor,max_temp_c,throttle_flags,status" > "$RESULTS"
+HEADER="date,commit,label,host,mission,renderer,display,vsync,run,frames,seconds,fps,gl_renderer,options_cfg,governor,max_temp_c,throttle_flags,status,avg_ms,p50_ms,p95_ms,p99_ms,max_ms,logic_ms,render_ms,swap_ms,draws,tris"
+# Results from before -bench (no timing columns) are not comparable: set them aside.
+if [ -f "$RESULTS" ] && [ "$(head -1 "$RESULTS")" != "$HEADER" ]; then
+    mv "$RESULTS" "$OUT_DIR/results-old-$(date +%Y%m%d-%H%M%S).csv"
+    echo "bench: results.csv had other columns; moved it aside"
+fi
+[ -f "$RESULTS" ] || echo "$HEADER" > "$RESULTS"
 
 COMMIT=$(git -C "$SRC_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)
 git -C "$SRC_DIR" diff --quiet HEAD -- 2>/dev/null || COMMIT="$COMMIT-dirty"
@@ -187,16 +202,20 @@ for run in $(seq 1 "$RUNS"); do
             base="$OUT_DIR/logs/${STAMP}_${m}_${r}_run${run}"
             log="$base.log"
             soc="$base.soc.csv"
+            frames_csv="$base.frames.csv"
 
             sample_soc > "$soc" &
             sampler=$!
-            ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" ) > "$log" 2>&1
+            ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" -bench "$frames_csv" ) > "$log" 2>&1
             rc=$?
             kill $sampler 2>/dev/null
             wait $sampler 2>/dev/null
 
             # [AUTOEXIT] 3000 gameplay frames in 64.3 s (46.7 fps)
             read -r frames secs fps < <(sed -n 's/^\[AUTOEXIT\] \([0-9]*\) gameplay frames in \([0-9.]*\) s (\([0-9.]*\) fps).*/\1 \2 \3/p' "$log" | head -1)
+            # [BENCH] segment=all frames=3000 fps=46.7 avg_ms=21.41 p50_ms=... (key=value)
+            bench=$(grep -m1 '^\[BENCH\] segment=all ' "$log")
+            bench_field() { sed -n "s/.* $1=\([0-9.]*\).*/\1/p" <<< "$bench"; }
             glr=$(grep -m1 '^Renderer *:' "$log" | sed 's/^Renderer *: *//')
             max_temp=$(awk -F, '$2 != "" && (m == "" || $2 + 0 > m + 0) { m = $2 } END { print m }' "$soc")
             # bash, not awk: Pi OS ships mawk, which has no bitwise operators
@@ -209,6 +228,7 @@ for run in $(seq 1 "$RUNS"); do
             [ $rc -eq 137 ] && reasons+=("hung (killed after ${TIMEOUT}s)")
             [ $rc -ne 0 ] && [ $rc -ne 137 ] && reasons+=("exit status $rc")
             [ -z "${fps:-}" ] && reasons+=("no [AUTOEXIT] line")
+            [ -z "$bench" ] && reasons+=("no [BENCH] line")
             mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
             aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
             if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
@@ -226,7 +246,11 @@ for run in $(seq 1 "$RUNS"); do
                 csv_quote "$HOST"; printf ','
                 printf '%s,%s,%s,%s,%s,%s,%s,%s,' "$m" "$r" "$display" "$VSYNC" "$run" "${frames:-}" "${secs:-}" "${fps:-}"
                 csv_quote "$glr"; printf ','
-                printf '%s,%s,%s,%s,%s\n' "$CFG_HASH" "$GOVERNOR" "$max_temp" "$flags" "$status"
+                printf '%s,%s,%s,%s,%s' "$CFG_HASH" "$GOVERNOR" "$max_temp" "$flags" "$status"
+                for k in avg_ms p50_ms p95_ms p99_ms max_ms logic_ms render_ms swap_ms draws tris; do
+                    printf ',%s' "$(bench_field $k)"
+                done
+                printf '\n'
             } >> "$RESULTS"
 
             note=""

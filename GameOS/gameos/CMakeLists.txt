@@ -29,7 +29,9 @@ set(SOURCES ${SOURCES}
     utils/file_utils.cpp
     )
 
-set(MAIN_SRC gameosmain.cpp)
+# frame_stats is only used by the main loop (-bench). The link line lists
+# gameos before gameos_main, so in gameos it would never be pulled in.
+set(MAIN_SRC gameosmain.cpp utils/frame_stats.cpp)
 
 #find_package(SDL2 REQUIRED PATHS "/opt" NO_DEFAULT_PATH)
 #include_directories("${SDL2_PREFIX}/include")
@@ -41,6 +43,6 @@ add_library(gameos ${SOURCES})
 add_library(gameos_main ${MAIN_SRC})
 
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
-set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp
+set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 
