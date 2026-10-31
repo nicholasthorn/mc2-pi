@@ -59,7 +59,7 @@ while [ $# -gt 0 ]; do
         --timeout)   TIMEOUT="$2"; shift 2 ;;
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
         --display)   USE_DISPLAY=1; shift ;;
-        -h|--help)   sed -n '2,30p' "$0"; exit 0 ;;
+        -h|--help)   sed -n '2,/^$/p' "$0"; exit 0 ;;
         *) echo "smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -169,15 +169,22 @@ done
 # and quits. Each walk gets a fresh config directory (XDG_CONFIG_HOME) holding
 # only tests/smoke/campaign-save.fit, so the "Single Mission" list has a
 # mission in it, and nothing the walk saves reaches the real one.
+# The path must be lower case: the game lowercases the save path
+# (FullPathFileName), so a TMPDIR with capitals falls back to /tmp.
+CFG_BASE="${TMPDIR:-/tmp}"
+case "$CFG_BASE" in *[A-Z]*) CFG_BASE=/tmp ;; esac
 n=0
 for w in $UI_WALKS; do
     n=$((n + 1))
     log="$LOG_DIR/ui$n.log"
-    # lower case only: the game lowercases the save path (FullPathFileName)
-    cfg="/tmp/mc2-uismoke-$$-$n"
+    cfg="$CFG_BASE/mc2-uismoke-$$-$n"
     rm -rf "$cfg"
-    mkdir -p "$cfg/.mechcommander2/savegame" || exit 2
-    cp "$SRC_DIR/tests/smoke/campaign-save.fit" "$cfg/.mechcommander2/savegame/" || exit 2
+    if ! mkdir -p "$cfg/.mechcommander2/savegame" \
+            || ! cp "$SRC_DIR/tests/smoke/campaign-save.fit" "$cfg/.mechcommander2/savegame/"; then
+        failed=1
+        echo "FAIL ui$n: cannot set up a config directory in $CFG_BASE"
+        continue
+    fi
     XDG_CONFIG_HOME="$cfg" run_game "$log" -uismoke "$w"
     rm -rf "$cfg"
     why=$(grep -m1 '^\[UISMOKE\] FAIL' "$log" | sed 's/^\[UISMOKE\] FAIL: //')

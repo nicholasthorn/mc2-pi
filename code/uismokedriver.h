@@ -3,6 +3,9 @@
 
 #include "uismokewalk.h"
 
+class LogisticsScreen;
+class MissionBegin;
+
 // Walks the front end for a UI smoke run ("-uismoke <walk>", scripts/smoke.sh):
 // each frame it works out which screen has settled, prints
 // "[SCREEN] <name> shown" when the walk's next screen appears, holds it, then
@@ -18,6 +21,7 @@ public:
 	static void update ();
 
 private:
+	static LogisticsScreen* gridScreen (MissionBegin* begin);
 	static UiScreen currentScreen ();
 	static const char* press (UiAction action);
 };

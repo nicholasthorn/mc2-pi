@@ -77,19 +77,22 @@ public:
 		Shown,		// screen() just settled: print its marker
 		Act,		// press action()
 		Done,		// every screen was shown and held
-		Timeout		// screen() did not appear in time
+		Timeout,	// screen() did not appear in time
+		Lost		// screen() went away before its hold ended
 	};
 
 	struct Result {
 		Event event;
-		UiScreen screen;	// Shown / Timeout: the screen; Act: the one it leads to
+		UiScreen screen;	// Shown / Timeout / Lost: the screen; Act: the one it leads to
 		UiAction action;	// Act only
 	};
 
 	// Called once per frame with the settled screen (or Unknown) and the
-	// frame's game time in seconds. Each screen is held for holdFrames frames
-	// once it settles; a screen that does not settle within timeoutSeconds of
-	// the action that asked for it ends the walk with Timeout.
+	// seconds since the last call (real time, so the timeout means the same on
+	// a slow sanitized run). Each screen is held for holdFrames frames once it
+	// settles, and must stay current all that time (else Lost); a screen that
+	// does not settle within timeoutSeconds of the action that asked for it
+	// ends the walk with Timeout.
 	Result update(UiScreen current, float dt);
 
 	long holdFrames = DEFAULT_HOLD_FRAMES;
@@ -102,7 +105,7 @@ private:
 	bool holding = false;
 	long held = 0;			// frames held so far
 	float waited = 0.0f;	// seconds waited so far
-	enum class State { Running, Done, TimedOut } state = State::Running;
+	enum class State { Running, Done, TimedOut, Lost } state = State::Running;
 };
 
 #endif // UISMOKEWALK_H

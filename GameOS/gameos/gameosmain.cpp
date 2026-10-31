@@ -70,6 +70,14 @@ const char* __stdcall gos_GetUiSmokeWalk()
     return g_uismoke_walk;
 }
 
+// main()'s exit status after a clean shutdown (a failed -uismoke walk)
+static int g_exit_code = 0;
+
+void __stdcall gos_SetExitCode(int code)
+{
+    g_exit_code = code;
+}
+
 const char* __stdcall gos_GetBenchScenario()
 {
     return g_bench ? g_bench_scenario : NULL;
@@ -537,6 +545,6 @@ int main(int argc, char** argv)
 
     Environment.TerminateGameEngine();
 
-    return 0;
+    return g_exit_code;
 }
 #endif // DISABLE_GAMEOS_MAIN

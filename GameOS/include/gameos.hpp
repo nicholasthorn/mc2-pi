@@ -1941,6 +1941,11 @@ bool __stdcall gos_IsAutomatedRun();
 //
 const char* __stdcall gos_GetUiSmokeWalk();
 //
+// The process exit status once the game shuts down normally (default 0):
+// a failed -uismoke walk sets 1, so it fails without reading the log.
+//
+void __stdcall gos_SetExitCode( int code );
+//
 // "-benchscenario <fit>" (with -bench): the scripted scenario file, or NULL.
 // The game's bench director (code/benchdirector.cpp) plays it, and reports:
 //   gos_BenchSegment(name): frames from now on belong to this segment; each

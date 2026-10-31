@@ -169,6 +169,8 @@ UiSmokeWalk::Result UiSmokeWalk::update(UiScreen current, float dt)
 		return { Event::Done, UiScreen::Unknown, UiAction::None };
 	if (state == State::TimedOut)
 		return { Event::Timeout, steps[index], UiAction::None };
+	if (state == State::Lost)
+		return { Event::Lost, steps[index], UiAction::None };
 
 	const UiScreen target = steps[index];
 	if (!holding) {
@@ -185,6 +187,12 @@ UiSmokeWalk::Result UiSmokeWalk::update(UiScreen current, float dt)
 		return { Event::Waiting, target, UiAction::None };
 	}
 
+	// the button at the end of the hold belongs to this screen: if something
+	// else took over meanwhile, pressing it would act on the wrong screen
+	if (current != target) {
+		state = State::Lost;
+		return { Event::Lost, target, UiAction::None };
+	}
 	if (++held < holdFrames)
 		return { Event::Waiting, target, UiAction::None };
 

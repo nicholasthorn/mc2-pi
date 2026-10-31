@@ -165,6 +165,20 @@ TEST_CASE("a screen that never settles times out") {
 	CHECK(r.walk.update(UiScreen::CampaignSelect, 0.1f).event == UiSmokeWalk::Event::Timeout);
 }
 
+TEST_CASE("a screen that leaves during its hold fails the walk") {
+	Run r;
+	REQUIRE(r.walk.parse("mainmenu,options-graphics", r.err, sizeof(r.err)));
+	r.walk.holdFrames = 3;
+	CHECK(r.walk.update(UiScreen::MainMenu, 0.1f).event == UiSmokeWalk::Event::Shown);
+	CHECK(r.walk.update(UiScreen::MainMenu, 0.1f).event == UiSmokeWalk::Event::Waiting);
+	// a transition (or anything else) takes over: no button press follows
+	UiSmokeWalk::Result res = r.walk.update(UiScreen::Unknown, 0.1f);
+	CHECK(res.event == UiSmokeWalk::Event::Lost);
+	CHECK(res.screen == UiScreen::MainMenu);
+	// and stays failed
+	CHECK(r.walk.update(UiScreen::MainMenu, 0.1f).event == UiSmokeWalk::Event::Lost);
+}
+
 TEST_CASE("the first screen times out too") {
 	Run r;
 	REQUIRE(r.walk.parse("mainmenu", r.err, sizeof(r.err)));

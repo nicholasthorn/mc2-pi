@@ -80,8 +80,10 @@ Out:
   of neighbours has a button between them (`uiRoute()`), and per frame, given
   the screen that has settled, says: wait, "shown", press this, done, or
   timeout. Each screen is held for 60 frames (so it updates and renders for a
-  while, transition animation included); a screen that does not settle within
-  60 s of game time after the press that should open it fails the walk.
+  while, transition animation included) and must stay up all that time; a
+  screen that does not settle within 60 s (real time) after the press that
+  should open it fails the walk. A failed walk also exits with status 1
+  (`gos_SetExitCode()`).
 - **The driver** (`code/uismokedriver.cpp`, game glue like
   `benchdirector.cpp`): called once per frame from `DoGameLogic()`. Works out
   the settled screen from `MissionBegin`/`MainMenu`/`OptionsXScreen` state

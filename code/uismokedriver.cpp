@@ -6,32 +6,29 @@
 
 #include "uismokedriver.h"
 
-#include "logistics.h"
-#include "mission.h"
-#include "missionbegin.h"
-#include "mploadmap.h"
-#include "mainmenu.h"
-#include "optionsscreenwrapper.h"
-#include "optionsarea.h"
-#include "logisticsdialog.h"
-#include "missionselectionscreen.h"
-#include "missionbriefingscreen.h"
-#include "mechbayscreen.h"
-#include "mechlabscreen.h"
-#include "mechpurchasescreen.h"
-#include "pilotreadyscreen.h"
-#include "abutton.h"
-#include "timing.h"
+// Engine headers in <>: found through the -isystem dirs CMakeLists.txt adds
+// for this file, so -Wall -Wextra -Werror applies to this file only.
+#include <logistics.h>
+#include <mission.h>
+#include <missionbegin.h>
+#include <mploadmap.h>
+#include <mainmenu.h>
+#include <optionsscreenwrapper.h>
+#include <optionsarea.h>
+#include <logisticsdialog.h>
+#include <missionselectionscreen.h>
+#include <missionbriefingscreen.h>
+#include <mechbayscreen.h>
+#include <mechlabscreen.h>
+#include <mechpurchasescreen.h>
+#include <pilotreadyscreen.h>
+#include <abutton.h>
 
 #include <gameos.hpp>
 
 #include <stdio.h>
 
-// Button ids that only exist as #defines in the screens' .cpp files
-static const long MM_MSG_NEW_CAMPAIGN = 90;		// mainmenu.cpp
-static const long MM_MSG_OPTIONS = 95;			// mainmenu.cpp
-static const long MM_MSG_SINGLE_MISSION = 98;	// mainmenu.cpp
-static const long MSB_TAB0 = 200;				// optionsarea.cpp, tabs 200..203
+#include <chrono>
 
 namespace {
 
@@ -39,13 +36,16 @@ UiSmokeWalk g_walk;
 bool g_started = false;
 bool g_over = false;
 long g_frames = 0;
+std::chrono::steady_clock::time_point g_last;	// previous update()
 UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
 
-void finish(const char* line)
+void finish(const char* line, bool failed)
 {
 	printf("[UISMOKE] %s\n", line);
 	fflush(stdout);
 	g_over = true;
+	if (failed)
+		gos_SetExitCode(1);
 	gos_TerminateApplication();
 }
 
@@ -65,6 +65,17 @@ const char* pressButton(LogisticsScreen* screen, long id)
 }
 
 } // namespace
+
+// The logistics screen MissionBegin shows now, or NULL (main menu up, or
+// curScreenX/Y off the grid).
+LogisticsScreen* UiSmokeDriver::gridScreen(MissionBegin* begin)
+{
+	if (begin->bSplash
+			|| begin->curScreenX < 0 || begin->curScreenX >= MissionBegin::DIM_SCREEN_X
+			|| begin->curScreenY < 0 || begin->curScreenY >= MissionBegin::DIM_SCREEN_Y)
+		return NULL;
+	return begin->screens[begin->curScreenX][begin->curScreenY];
+}
 
 UiScreen UiSmokeDriver::currentScreen()
 {
@@ -110,10 +121,7 @@ UiScreen UiSmokeDriver::currentScreen()
 		return UiScreen::MainMenu;
 	}
 
-	if (begin->curScreenX < 0 || begin->curScreenX >= MissionBegin::DIM_SCREEN_X
-			|| begin->curScreenY < 0 || begin->curScreenY >= MissionBegin::DIM_SCREEN_Y)
-		return UiScreen::Unknown;
-	LogisticsScreen* screen = begin->screens[begin->curScreenX][begin->curScreenY];
+	LogisticsScreen* screen = gridScreen(begin);
 	if (!screen || screen->getStatus() != LogisticsScreen::RUNNING)
 		return UiScreen::Unknown;
 	if (dynamic_cast<MissionSelectionScreen*>(screen))
@@ -140,9 +148,7 @@ const char* UiSmokeDriver::press(UiAction action)
 	MainMenu* menu = begin->mainMenu;
 	OptionsXScreen* options = (menu && menu->optionsScreenWrapper) ?
 		menu->optionsScreenWrapper->pOptionsScreen : NULL;
-	LogisticsScreen* screen = NULL;
-	if (!begin->bSplash && begin->curScreenX >= 0 && begin->curScreenY >= 0)
-		screen = begin->screens[begin->curScreenX][begin->curScreenY];
+	LogisticsScreen* screen = gridScreen(begin);
 
 	switch (action) {
 	case UiAction::OpenOptions:
@@ -205,16 +211,23 @@ void UiSmokeDriver::update()
 		char err[128];
 		if (!g_walk.parse(text, err, sizeof(err))) {
 			snprintf(line, sizeof(line), "FAIL: bad walk \"%s\": %s", text, err);
-			finish(line);
+			finish(line, true);
 			return;
 		}
 		printf("[UISMOKE] walk of %ld screens: %s\n", g_walk.numSteps(), text);
 		fflush(stdout);
+		g_last = std::chrono::steady_clock::now();
 	}
+
+	// real time, not frameLength: the game caps that at 0.25 s a frame, so on
+	// a slow (sanitized) run the walk's timeout would come after smoke.sh's
+	const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+	const float dt = std::chrono::duration<float>(now - g_last).count();
+	g_last = now;
 
 	++g_frames;
 	const UiScreen current = currentScreen();
-	const UiSmokeWalk::Result r = g_walk.update(current, frameLength);
+	const UiSmokeWalk::Result r = g_walk.update(current, dt);
 	switch (r.event) {
 	case UiSmokeWalk::Event::Waiting:
 		break;
@@ -228,18 +241,23 @@ void UiSmokeDriver::update()
 		if (const char* why = press(r.action)) {
 			snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
 					uiScreenName(g_from), uiScreenName(r.screen), why);
-			finish(line);
+			finish(line, true);
 		}
 		break;
 	case UiSmokeWalk::Event::Done:
 		snprintf(line, sizeof(line), "done: %ld screens in %ld frames",
 				g_walk.numSteps(), g_frames);
-		finish(line);
+		finish(line, false);
 		break;
 	case UiSmokeWalk::Event::Timeout:
 		snprintf(line, sizeof(line), "FAIL: %s did not appear within %.0f s (on %s)",
 				uiScreenName(r.screen), g_walk.timeoutSeconds, uiScreenName(current));
-		finish(line);
+		finish(line, true);
+		break;
+	case UiSmokeWalk::Event::Lost:
+		snprintf(line, sizeof(line), "FAIL: %s went away before its hold ended (now on %s)",
+				uiScreenName(r.screen), uiScreenName(current));
+		finish(line, true);
 		break;
 	}
 }

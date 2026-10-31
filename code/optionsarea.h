@@ -23,6 +23,11 @@ class aButton;
 
 class CPrefs;
 
+// options screen tab button ids (mcl_options.fit); also pressed by -uismoke
+#define MSB_TAB0 200
+#define MSB_TAB1 201
+#define MSB_TAB2 202
+#define MSB_TAB3 203
 
 class OptionsXScreen : public LogisticsScreen
 {
