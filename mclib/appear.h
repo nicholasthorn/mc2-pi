@@ -52,8 +52,11 @@ extern unsigned long currentFloatHelp;
 #define DRAW_COLORED					0x08
 
 
+#include"render_heuristics.h"		// LODSwitchDistance
+
 struct _ScenarioMapCellInfo;
 struct _GameObjectFootPrint;
+
 //---------------------------------------------------------------------------
 // Class definitions
 class Appearance

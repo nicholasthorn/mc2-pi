@@ -48,6 +48,7 @@
 #include<mlr/mlr.hpp>
 #include<gosfx/gosfxheaders.hpp>
 #include <utils/gl_utils.h>
+#include "render_heuristics.h"
 
 //---------------------------------------------------------------------------
 // static globals
@@ -424,6 +425,13 @@ void MC_TextureManager::removeTexture (DWORD gosHandle)
 }
 
 #define cache_Threshold		150
+
+// lastUsed is a turn (frame) number, and the turn counts below and in update()
+// were tuned for about 30 fps: at 180 fps they are a sixth of the time, so
+// textures were freed and loaded again (decompressed and uploaded) as the
+// view moved. They are now times converted to turns at the measured frame
+// rate, with the old counts as the minimum.
+static TurnRate s_turnRate;
 //----------------------------------------------------------------------
 bool MC_TextureManager::flushCache (void)
 {
@@ -452,7 +460,7 @@ bool MC_TextureManager::flushCache (void)
 			(masterTextureNodes[i].gosTextureHandle != 0xffffffff) &&
 			(!masterTextureNodes[i].uniqueInstance))
 		{
-			if (masterTextureNodes[i].lastUsed <= (turn-cache_Threshold))
+			if (masterTextureNodes[i].lastUsed <= (turn - s_turnRate.turnsFor(5000, cache_Threshold)))
 			{
 				//----------------------------------------------------------------
 				// Cache this badboy out.  Textures don't change.  Just Destroy!
@@ -475,7 +483,7 @@ bool MC_TextureManager::flushCache (void)
 			(masterTextureNodes[i].gosTextureHandle) &&
 			(!masterTextureNodes[i].uniqueInstance))
 		{
-			if (masterTextureNodes[i].lastUsed <= (turn-30))
+			if (masterTextureNodes[i].lastUsed <= (turn - s_turnRate.turnsFor(1000, 30)))
 			{
 				//----------------------------------------------------------------
 				// Cache this badboy out.  Textures don't change.  Just Destroy!
@@ -1672,12 +1680,15 @@ void MC_TextureManager::renderLists (void)
 	gos_SetRenderState( gos_State_ZCompare, 1 );
 }
 
-//----------------------------------------------------------------------
 DWORD MC_TextureManager::update (void)
 {
 	DWORD numTexturesFreed = 0;
 	currentUsedTextures = 0;
-	
+
+	// free textures unused for 2 seconds (60 turns at the old ~30 fps)
+	s_turnRate.update((uint32_t)timeGetTime(), turn);
+	const long idleTurn = turn - s_turnRate.turnsFor(2000, 60);
+
 	for (long i=0;i<MC_MAXTEXTURES;i++)
 	{
 		if ((masterTextureNodes[i].gosTextureHandle != CACHED_OUT_HANDLE) &&
@@ -1686,7 +1697,7 @@ DWORD MC_TextureManager::update (void)
 			if (!masterTextureNodes[i].uniqueInstance &&
 				!(masterTextureNodes[i].neverFLUSH & 1))		//Only uncachable if BIT 1 is set, otherwise, cache 'em out!
 			{
-				if (masterTextureNodes[i].lastUsed <= (turn-60))
+				if (masterTextureNodes[i].lastUsed <= idleTurn)
 				{
 					//----------------------------------------------------------------
 					// Cache this badboy out.  Textures don't change.  Just Destroy!
