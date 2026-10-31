@@ -42,8 +42,14 @@ static void logmsg(const char* header, const char* fmt, va_list ap)
     snprintf(text, MAX_LOG_LINE, "%s: ", header);
 	vsnprintf(text + header_len, MAX_LOG_LINE - header_len - 1, fmt, ap);
 
+	// End each message with a newline (most format strings have none), so
+	// the next STOP/PAUSE starts its own line in the log. The vsnprintf
+	// limit above leaves room for it.
 	size_t len = strlen(text);
-	text[len] = '\0';
+	if (text[len - 1] != '\n') {
+		text[len] = '\n';
+		text[len + 1] = '\0';
+	}
     output_debug_text(text);
 }
 

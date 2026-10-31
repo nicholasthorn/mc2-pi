@@ -2,10 +2,12 @@
 # Smoke test: launch missions, let each run a fixed number of frames, and fail
 # on a crash, a hang, a non-zero exit, GL errors, shader errors or STOP lines.
 #
-# Runs headless (Xvfb) when there is no display, with Mesa's software
-# rasterizer (llvmpipe), which supports desktop GL 4.5 and GLES 3.2, so the
-# same script covers MC2_GLES=OFF and =ON builds. Frame times from llvmpipe
-# say nothing about the Pi: this checks "does it run", not "how fast".
+# Runs headless (Xvfb) even when a display is available: WSLg sets one, and
+# a run there opens a window that takes the desktop's mouse and keyboard.
+# Rendering is Mesa's software rasterizer (llvmpipe), which supports desktop
+# GL 4.5 and GLES 3.2, so the same script covers MC2_GLES=OFF and =ON builds.
+# Frame times from llvmpipe say nothing about the Pi: this checks "does it
+# run", not "how fast".
 #
 # usage: scripts/smoke.sh --game-dir DIR [options]
 #   --game-dir DIR    built game data (data/, assets/, *.fst, *.cfg); required
@@ -15,6 +17,7 @@
 #   --frames N        frames per mission before -autoexit (default: 600)
 #   --timeout S       seconds before a run counts as hung (default: 300)
 #   --log-dir DIR     where to keep per-mission logs (default: ./smoke-logs)
+#   --display         run on the current display instead of Xvfb (to watch)
 #
 # Exit status: 0 if every mission passed, 1 otherwise.
 
@@ -26,6 +29,7 @@ MISSIONS="mc2_01 mc2_03"
 FRAMES=600
 TIMEOUT=300
 LOG_DIR="$PWD/smoke-logs"
+USE_DISPLAY=0
 SRC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 while [ $# -gt 0 ]; do
@@ -36,7 +40,8 @@ while [ $# -gt 0 ]; do
         --frames)    FRAMES="$2"; shift 2 ;;
         --timeout)   TIMEOUT="$2"; shift 2 ;;
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
-        -h|--help)   sed -n '2,21p' "$0"; exit 0 ;;
+        --display)   USE_DISPLAY=1; shift ;;
+        -h|--help)   sed -n '2,22p' "$0"; exit 0 ;;
         *) echo "smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -67,19 +72,30 @@ export LIBGL_ALWAYS_SOFTWARE=1
 export SDL_AUDIODRIVER=dummy
 
 RUN=()
-if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
-    if ! command -v xvfb-run >/dev/null; then
-        echo "smoke: no display and xvfb-run not installed" >&2
+if [ "$USE_DISPLAY" = 1 ]; then
+    if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+        echo "smoke: --display given but there is no display" >&2
         exit 2
     fi
-    # The screen must match the game's resolution (800x600, minprefs.cfg):
-    # FullScreen sizes the viewport to the screen, but with no window manager
-    # the window stays 800x600, so a bigger screen draws a cropped, scaled frame.
+else
+    if ! command -v xvfb-run >/dev/null; then
+        echo "smoke: xvfb-run not installed (or pass --display to use the current display)" >&2
+        exit 2
+    fi
+    # xvfb-run sets DISPLAY; drop a Wayland session (WSLg) so SDL cannot
+    # pick it instead of the X server
+    unset WAYLAND_DISPLAY
+    export SDL_VIDEODRIVER=x11
+    # The game's resolution (800x600, minprefs.cfg). -autoexit runs are
+    # windowed at that size anyway (FullScreen is ignored), so the screen
+    # size only has to be big enough.
     RUN=(xvfb-run -a -s "-screen 0 800x600x24")
 fi
 
 # Log lines that mean something went wrong even if the game kept running.
-BAD='OpenGL Error|: ERROR: |^STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
+# STOP is not anchored: stderr is unbuffered and stdout is not, so a STOP
+# can land in the middle of a line of buffered stdout output.
+BAD='OpenGL Error|: ERROR: |STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
 
 failed=0
 for m in $MISSIONS; do

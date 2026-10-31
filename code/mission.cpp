@@ -324,11 +324,10 @@ long Mission::update (void)
 
 		// Tell GameOS gameplay has begun: "-autoexit" counts frames from here
 		// and scripts/smoke.sh checks for the marker it prints.
-		static const Mission* reportedMission = NULL;
-		if (reportedMission != this)
+		if (!gameplayMarked)
 		{
 			gos_MarkGameplayStarted(missionFileName);
-			reportedMission = this;
+			gameplayMarked = true;
 		}
 
 		memset(ObjectManager->moverLineOfSightTable, -1, ObjectManager->maxMovers*ObjectManager->maxMovers);
@@ -1712,6 +1711,8 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	// Always reset turn at scenario start
 	turn = 0;
 	terminationCounterStarted = 0;
+	// one Mission object is reused for every mission (destroy() then init())
+	gameplayMarked = false;
 
 	#ifdef LAB_ONLY
 	x=GetCycles();

@@ -53,6 +53,7 @@ static const unsigned int BENCH_SEED = 1;
 static bool g_bench = false;
 
 void gos_SetFixedFrameLength(float seconds);	// gameos.cpp
+void gos_SetAutomatedRun(bool automated);	// gameos.cpp
 
 // -benchscenario <fit>: the scripted scenario code/benchdirector.cpp plays.
 // It names segments (timed separately) and asks for screenshots.
@@ -263,9 +264,10 @@ static void process_events( void ) {
             }
         }
 
-        // -bench: a stray key or the cursor at a screen edge (camera scroll)
-        // would change what is drawn; only quit and window events get through
-        if(g_bench) {
+        // -autoexit / -bench: a stray key or the cursor at a screen edge
+        // (camera scroll) would change what is drawn; only quit and window
+        // events get through
+        if(gos_IsAutomatedRun()) {
             switch( event.type ) {
             case SDL_KEYDOWN: case SDL_KEYUP: case SDL_MOUSEMOTION:
             case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: case SDL_MOUSEWHEEL:
@@ -316,10 +318,11 @@ static void process_events( void ) {
         }
     }
 
-    // -bench: the polled SDL state would let the Pi's own keyboard and mouse
-    // in. Keys and buttons stay released and the cursor sits at the centre
-    // (at 0, 0 the game would edge-scroll up and left every frame).
-    if(g_bench) {
+    // -autoexit / -bench: the polled SDL state would let the desktop's (or
+    // the Pi's) keyboard and mouse in. Keys and buttons stay released and the
+    // cursor sits at the centre (at 0, 0 the game would edge-scroll up and
+    // left every frame).
+    if(gos_IsAutomatedRun()) {
         input::pinMouse(0.5f * (float)Environment.drawableWidth, 0.5f * (float)Environment.drawableHeight);
         return;
     }
@@ -394,6 +397,7 @@ int main(int argc, char** argv)
     }
     g_bench = bench_csv != NULL;
     gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
+    gos_SetAutomatedRun(g_bench || autoexit_frames > 0);
     g_bench_csv = bench_csv;
     perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;

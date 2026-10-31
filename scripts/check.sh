@@ -135,8 +135,15 @@ if [ -n "$CPP" ] && command -v cppcheck >/dev/null; then
     gate=$?
     local_ver=$(cppcheck --version | awk '{print $2}')
     base_ver=$(sed -n 's/.*with Cppcheck \([0-9.]*\).*/\1/p' scripts/cppcheck-baseline.txt)
+    # A gate that ran to the end prints its "cppcheck (...)" summary line.
+    # Exit 2 (cppcheck failed) or a Python error (exit 1, no summary) means
+    # nothing was checked, whatever the cppcheck versions.
+    gate_ran() { grep -q '^cppcheck (' "$1"; }
     if [ $gate -eq 0 ]; then
         ok "cppcheck: $(grep -m1 '^cppcheck' "$after")"
+    elif [ $gate -eq 2 ] || ! gate_ran "$after"; then
+        fail "cppcheck gate failed: changed files not checked"
+        tail -n 15 "$after" | sed 's/^/      /'
     elif [ "$local_ver" = "$base_ver" ]; then
         fail "cppcheck: $(grep -m1 '^cppcheck' "$after")"
         grep '^NEW' "$after" | sed 's/^/      /'
@@ -166,12 +173,25 @@ if [ -n "$CPP" ] && command -v cppcheck >/dev/null; then
         fi
         restore
         trap - EXIT INT TERM
-        added=$(comm -13 <(grep '^NEW' "$before" | sort) <(grep '^NEW' "$after" | sort))
-        if [ -z "$added" ]; then
-            ok "cppcheck: nothing new compared with $($GIT rev-parse --short "$REF") (local cppcheck $local_ver, baseline $base_ver)"
+        if [ -n "$BEFORE_CPP" ] && ! gate_ran "$before"; then
+            fail "cppcheck gate failed on the files at $($GIT rev-parse --short "$REF"): nothing to compare with"
+            tail -n 15 "$before" | sed 's/^/      /'
         else
-            fail "cppcheck: findings added compared with $($GIT rev-parse --short "$REF")"
-            echo "$added" | sed 's/^/      /'
+            # Compare per-finding counts: the gate prints a surplus over the
+            # baseline as "NEW ... (xN)", so going from x2 to x1 is not "added".
+            added=$(awk '
+                { n = 1; k = $0
+                  if (match(k, / \(x[0-9]+\)$/)) { n = substr(k, RSTART + 3, RLENGTH - 4) + 0; k = substr(k, 1, RSTART - 1) } }
+                FILENAME == ARGV[1] { before[k] += n; next }
+                { after[k] += n }
+                END { for (k in after) { d = after[k] - before[k]; if (d > 0) print k (d > 1 ? " (x" d ")" : "") } }
+            ' <(grep '^NEW' "$before") <(grep '^NEW' "$after"))
+            if [ -z "$added" ]; then
+                ok "cppcheck: nothing new compared with $($GIT rev-parse --short "$REF") (local cppcheck $local_ver, baseline $base_ver)"
+            else
+                fail "cppcheck: findings added compared with $($GIT rev-parse --short "$REF")"
+                echo "$added" | sed 's/^/      /'
+            fi
         fi
         rm -f "$before"
     fi

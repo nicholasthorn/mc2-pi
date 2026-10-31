@@ -249,6 +249,19 @@ float __stdcall gos_GetFixedFrameLength()
     return g_fixed_frame_length;
 }
 
+// -autoexit / -bench: set by gameosmain.cpp, here for the same reason
+static bool g_automated_run = false;
+
+void gos_SetAutomatedRun(bool automated)
+{
+    g_automated_run = automated;
+}
+
+bool __stdcall gos_IsAutomatedRun()
+{
+    return g_automated_run;
+}
+
 void __stdcall gos_srand(unsigned int seed)
 {
     return srand(seed);

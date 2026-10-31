@@ -21,6 +21,10 @@ HEADERS = {
              "precision highp sampler2DArray;\nprecision highp sampler3D;\n"
              "precision highp sampler2DShadow;\n",
     "gl420": "#version 420\n",
+    # GLSL 3.30..4.10 drivers with 420pack (e.g. WSLg's GL 4.1): the engine
+    # emits the driver's own version; 330 is the lowest it accepts.
+    "gl330_420pack": "#version 330\n"
+                     "#extension GL_ARB_shading_language_420pack : require\n",
 }
 # material variants compiled by gosRenderer::init()
 VARIANTS = [[], ["ALPHA_TEST"]]
