@@ -296,6 +296,14 @@ static void process_events( void ) {
         }
     }
 
+    // -bench: the polled SDL state would let the Pi's own keyboard and mouse
+    // in. Keys and buttons stay released and the cursor sits at the centre
+    // (at 0, 0 the game would edge-scroll up and left every frame).
+    if(g_bench) {
+        input::pinMouse(0.5f * (float)Environment.drawableWidth, 0.5f * (float)Environment.drawableHeight);
+        return;
+    }
+
     input::updateMouseState();
     input::updateKeyboardState();
 }

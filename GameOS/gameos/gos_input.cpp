@@ -89,6 +89,14 @@ void beginUpdateMouseState() {
     mi->wheel_hor_ = mi->wheel_vert_ = 0.0f;
 }
 
+void pinMouse(float x, float y) {
+    MouseInfo* mi = &g_mouse_info;
+    mi->x_ = x;
+    mi->y_ = y;
+    mi->rel_x_ = mi->rel_y_ = 0.0f;
+    mi->wheel_hor_ = mi->wheel_vert_ = 0.0f;
+}
+
 void updateMouseState() {
     MouseInfo* mi = &g_mouse_info;
 
