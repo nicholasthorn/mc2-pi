@@ -19,6 +19,13 @@
 #include <string>
 #include <vector>
 
+#ifndef PLATFORM_WINDOWS
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <unistd.h>
+#endif
+
 extern graphics::RenderContextHandle gos_GetRenderContext();
 extern void gos_DestroyRenderer();
 extern void gos_RendererBeginFrame();
@@ -115,37 +122,71 @@ static void bench_capture(const std::string& name)
 // "perf record --control fd:... --delay=-1" (scripts/bench.sh --perf).
 // Sampling is switched on at the first gameplay frame and off when gameplay
 // ends, so loading never lands in the profile. Unset: nothing happens.
-static FILE* g_perf_ctl = NULL;
-static FILE* g_perf_ack = NULL;
+// perf is Linux only; on Windows both functions do nothing.
+#ifndef PLATFORM_WINDOWS
+static int g_perf_ctl = -1;
+static int g_perf_ack = -1;
 static bool g_perf_enabled = false;
+#endif
 
 static void perf_control(bool enable)
 {
-    if(!g_perf_ctl || g_perf_enabled == enable)
+#ifndef PLATFORM_WINDOWS
+    if(g_perf_ctl < 0 || g_perf_enabled == enable)
         return;
-    fprintf(g_perf_ctl, "%s\n", enable ? "enable" : "disable");
-    fflush(g_perf_ctl);
-    // wait for perf to act on it, so the first frames are not missed
-    char ack[16];
-    if(g_perf_ack && !fgets(ack, sizeof(ack), g_perf_ack))
-        printf("[PERF] no ack from perf\n");
+    // drop acks left from an earlier command that timed out
+    char buf[64];
+    if(g_perf_ack >= 0)
+        while(read(g_perf_ack, buf, sizeof(buf)) > 0) {}
+    const char* cmd = enable ? "enable\n" : "disable\n";
+    const ssize_t len = (ssize_t)strlen(cmd);
+    if(write(g_perf_ctl, cmd, (size_t)len) != len) {
+        printf("[PERF] ERROR: cannot write to the control FIFO (%s)\n", strerror(errno));
+        fflush(stdout);
+        return;
+    }
+    // wait for perf to act on it, so the first frames are not missed; but
+    // not forever: a perf that never answers costs 2 s, not the whole run
+    if(g_perf_ack >= 0) {
+        struct pollfd p;
+        p.fd = g_perf_ack;
+        p.events = POLLIN;
+        p.revents = 0;
+        const bool acked = poll(&p, 1, 2000) > 0 && (p.revents & POLLIN) &&
+                read(g_perf_ack, buf, sizeof(buf)) > 0;
+        if(!acked)
+            printf("[PERF] no ack from perf within 2 s\n");
+    }
     g_perf_enabled = enable;
     printf("[PERF] sampling %s\n", enable ? "on" : "off");
     fflush(stdout);
+#else
+    (void)enable;
+#endif
 }
 
 static void perf_open_control()
 {
+#ifndef PLATFORM_WINDOWS
     const char* ctl = getenv("MC2_PERF_CTL");
     if(!ctl || !*ctl)
         return;
-    // the launcher holds both FIFOs open read-write, so neither open blocks
-    g_perf_ctl = fopen(ctl, "w");
+    // Non-blocking opens: the launcher normally holds both FIFOs open
+    // read-write, but without it a plain open would block forever. A control
+    // FIFO with no reader fails (ENXIO) and perf control is switched off.
+    g_perf_ctl = open(ctl, O_WRONLY | O_NONBLOCK);
+    if(g_perf_ctl < 0) {
+        printf("[PERF] ERROR: cannot open %s (%s); perf control off\n", ctl, strerror(errno));
+        fflush(stdout);
+        return;
+    }
     const char* ack = getenv("MC2_PERF_ACK");
-    if(g_perf_ctl && ack && *ack)
-        g_perf_ack = fopen(ack, "r");
-    if(!g_perf_ctl)
-        printf("[PERF] ERROR: cannot open %s\n", ctl);
+    if(ack && *ack) {
+        g_perf_ack = open(ack, O_RDONLY | O_NONBLOCK);
+        if(g_perf_ack < 0)
+            printf("[PERF] cannot open %s (%s); not waiting for acks\n", ack, strerror(errno));
+    }
+#endif
 }
 
 void __stdcall gos_MarkGameplayStarted(const char* missionName)
