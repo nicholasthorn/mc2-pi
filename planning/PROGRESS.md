@@ -124,7 +124,7 @@ on 2026-10-31.
       Findings (missing scenario keys read as 0, `segments.csv` without a
       status, plain `-bench` edge-scrolling the camera because the mouse sits
       at (0,0), keys and clicks leaking into bench runs, perf ack FIFO that
-      can hang, and smaller ones) are being fixed on `fix/bench-review`.
+      can hang, and smaller ones) fixed in PR #12 (`fix/bench-review`).
 - [ ] The last three-config rebuild in the Omnitech session exited 1 and was
       never looked at; WSL Clang had been removed by another session's
       cleanup, so it may only be that. (10-31)
@@ -156,6 +156,10 @@ on 2026-10-31.
 - [ ] `mission.cpp`: `revealTacMap` is shadowed by a local (~1836) so the
       global is never set; `godMode` does nothing since `markSeen` was
       stubbed; `Team::noPain` is not reset by `Mission::init`. (10-31)
+- [ ] `FitIniFile::readId*` (`mclib/inifile.cpp`) treats a key on the last
+      line of a block as missing (the end-of-block test runs after the line
+      is read); files that end each block with a blank line get away with it.
+      Seen in the PR #12 review. (10-31)
 - [ ] `shaders/object_tex.frag` / `.vert`: unused, carry their own `#version`
       and use `texture2D` (won't compile on GLES). Delete. (10-29)
 
