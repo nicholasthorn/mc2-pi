@@ -371,7 +371,7 @@ void applyTexture(glsl_program* program, int unit, const char* name, GLuint texi
 	{
 		glActiveTexture(GL_TEXTURE0 + unit);
 		glBindTexture(GL_TEXTURE_2D, texid);
-		glUniform1i(program->samplers_[ name ]->index_, unit);
+		program->samplers_[ name ]->setUnit(unit);
         CHECK_GL_ERROR
 	}
 }
@@ -385,7 +385,7 @@ void applyPBO(glsl_program* program, int unit, const char* name, const Texture p
 		glBindTexture(GL_TEXTURE_2D, tex.id);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo.id);
 		glTexImage2D(GL_TEXTURE_2D, 0, pbo.format, pbo.w, pbo.h, 0, pbo.format, GL_UNSIGNED_BYTE, 0);
-		glUniform1i(program->samplers_[ name ]->index_, unit);
+		program->samplers_[ name ]->setUnit(unit);
 	}
 }
 

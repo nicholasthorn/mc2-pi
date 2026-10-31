@@ -1305,6 +1305,38 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
     shadowOrigin.BuildRotation(Stuff::EulerAngles(-angles.pitch,0.0f,0.0f));
     shadowOrigin.BuildTranslation(*pos);
 
+    //-----------------------------------------------------------------
+    // Callers pass every light in the world, and lighting and shadows
+    // loop over all of them per vertex. Drop point and spot lights that
+    // cannot reach any part of this shape: their falloff is measured from
+    // each node's position (horizontally), and every node lies within
+    // extentRadius of pos. Twice the radius leaves room for animated limbs.
+    // The order of the remaining lights is kept, so results are identical.
+    TG_LightPtr* allLights = TG_Shape::s_listOfLights;
+    DWORD numAllLights = TG_Shape::s_numLights;
+    static TG_LightPtr nearLights[MAX_LIGHTS_IN_WORLD];
+    if (allLights && (myMultiType->extentRadius > 0.0f))
+    {
+        const float reach = 2.0f * myMultiType->extentRadius;
+        DWORD numNear = 0;
+        for (DWORD iLight = 0; iLight < numAllLights; iLight++)
+        {
+            TG_LightPtr light = allLights[iLight];
+            if (light && light->active &&
+                ((light->lightType == TG_LIGHT_POINT) || (light->lightType == TG_LIGHT_SPOT)))
+            {
+                const float dx = pos->x - light->direction.x;
+                const float dz = pos->z - light->direction.z;
+                const float maxDist = light->farDistance + reach;
+                if ((dx * dx + dz * dz) >= (maxDist * maxDist))
+                    continue;
+            }
+            nearLights[numNear++] = light;
+        }
+        TG_Shape::s_listOfLights = nearLights;
+        TG_Shape::s_numLights = numNear;
+    }
+
     long i=0;
     Stuff::Point3D camPosition;
     camPosition = *TG_Shape::s_cameraOrigin;
@@ -1656,8 +1688,12 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
 #ifdef LAB_ONLY
     MCTimeTransformandLight = MCTimeAnimationandMatrix + MCTimePerShapeTransform;
 #endif
+
+    // the caller's list stays in effect for anything drawn after this shape
+    TG_Shape::s_listOfLights = allLights;
+    TG_Shape::s_numLights = numAllLights;
     return(0);
-}	
+}
 
 //-------------------------------------------------------------------------------
 //This function takes the current listOfVisibleFaces and draws them using

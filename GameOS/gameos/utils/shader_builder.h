@@ -61,6 +61,15 @@ struct glsl_sampler
 	SamplerType type_;
 	std::string name_;
 	GLint index_;
+	GLint unit_ = -1; // last unit set; the program keeps it, so skip repeats
+
+	// program must be current
+	void setUnit(GLint unit) {
+		if(unit_ != unit) {
+			glUniform1i(index_, unit);
+			unit_ = unit;
+		}
+	}
 };
 
 struct glsl_shader

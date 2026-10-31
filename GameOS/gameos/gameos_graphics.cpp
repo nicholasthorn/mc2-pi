@@ -279,46 +279,48 @@ class gosRenderMaterial {
             }
         }
 
-        void applyVertexDeclaration() {
-            
+        // base: byte offset of the first vertex in the bound buffer
+        void applyVertexDeclaration(size_t base = 0) {
+
             const int stride = sizeof(gos_VERTEX);
-            
+
             // gos_VERTEX structure
 	        //float x,y;
 	        //float z;
 	        //float rhw;
 	        //DWORD argb;
 	        //DWORD frgb;
-	        //float u,v;	
+	        //float u,v;
 
             gosASSERT(pos_loc >= 0);
             glEnableVertexAttribArray(pos_loc);
-            glVertexAttribPointer(pos_loc, 4, GL_FLOAT, GL_FALSE, stride, (void*)0);
+            glVertexAttribPointer(pos_loc, 4, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(base));
 
             if(color_loc != -1) {
                 glEnableVertexAttribArray(color_loc);
-                glVertexAttribPointer(color_loc, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, 
-                        BUFFER_OFFSET(4*sizeof(float)));
+                glVertexAttribPointer(color_loc, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride,
+                        BUFFER_OFFSET(base + 4*sizeof(float)));
             }
 
             if(spec_color_and_fog_loc != -1) {
                 glEnableVertexAttribArray(spec_color_and_fog_loc);
                 glVertexAttribPointer(spec_color_and_fog_loc, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride,
-                        BUFFER_OFFSET(4*sizeof(float) + sizeof(uint32_t)));
+                        BUFFER_OFFSET(base + 4*sizeof(float) + sizeof(uint32_t)));
             }
 
             if(texcoord_loc != -1) {
                 glEnableVertexAttribArray(texcoord_loc);
-                glVertexAttribPointer(texcoord_loc, 2, GL_FLOAT, GL_FALSE, stride, 
-                        BUFFER_OFFSET(4*sizeof(float) + 2*sizeof(uint32_t)));
+                glVertexAttribPointer(texcoord_loc, 2, GL_FLOAT, GL_FALSE, stride,
+                        BUFFER_OFFSET(base + 4*sizeof(float) + 2*sizeof(uint32_t)));
             }
         }
 
         bool setSamplerUnit(const std::string& sampler_name, uint32_t unit) {
             gosASSERT(!sampler_name.empty());
             // TODO: may also check that current program is equal to our program
-            if(program_->samplers_.count(sampler_name)) {
-                glUniform1i(program_->samplers_[sampler_name]->index_, unit);
+            auto it = program_->samplers_.find(sampler_name);
+            if(it != program_->samplers_.end()) {
+                it->second->setUnit(unit);
                 return true;
             }
             return false;
@@ -402,13 +404,16 @@ class gosMesh {
         typedef WORD INDEX_TYPE;
 
         static gosMesh* makeMesh(gosPRIMITIVETYPE prim_type, int vertex_capacity, int index_capacity = 0) {
-            GLuint vb = makeBuffer(GL_ARRAY_BUFFER, 0, sizeof(gos_VERTEX)*vertex_capacity, GL_DYNAMIC_DRAW);
+            // GPU buffers hold several draws' worth, see streamToBuffer()
+            const size_t vb_size = STREAM_BUFFER_DRAWS * sizeof(gos_VERTEX) * vertex_capacity;
+            GLuint vb = makeBuffer(GL_ARRAY_BUFFER, 0, vb_size, GL_DYNAMIC_DRAW);
             if(!vb)
                 return NULL;
 
             GLuint ib = 0;
+            const size_t ib_size = STREAM_BUFFER_DRAWS * sizeof(INDEX_TYPE) * index_capacity;
             if(index_capacity > 0) {
-                ib = makeBuffer(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(INDEX_TYPE)*index_capacity, GL_DYNAMIC_DRAW);
+                ib = makeBuffer(GL_ELEMENT_ARRAY_BUFFER, 0, ib_size, GL_DYNAMIC_DRAW);
                 if(!ib)
                     return NULL;
             }
@@ -416,6 +421,8 @@ class gosMesh {
             gosMesh* mesh = new gosMesh(prim_type, vertex_capacity, index_capacity);
             mesh->vb_ = vb;
             mesh->ib_ = ib;
+            mesh->vb_size_ = vb_size;
+            mesh->ib_size_ = ib_size;
             mesh->pvertex_data_ = new gos_VERTEX[vertex_capacity];
             mesh->pindex_data_ = new INDEX_TYPE[index_capacity];
             return mesh;
@@ -473,6 +480,12 @@ class gosMesh {
 
     private:
 
+        // GPU buffer size, in full CPU-side meshes
+        static const int STREAM_BUFFER_DRAWS = 4;
+
+        static size_t streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
+                size_t* offset, const void* data, size_t bytes);
+
         gosMesh(gosPRIMITIVETYPE prim_type, int vertex_capacity, int index_capacity)
             : vertex_capacity_(vertex_capacity)
             , index_capacity_(index_capacity)
@@ -496,7 +509,43 @@ class gosMesh {
 
         GLuint vb_;
         GLuint ib_;
+        size_t vb_size_ = 0;
+        size_t ib_size_ = 0;
+        // next free byte in vb_ / ib_
+        mutable size_t vb_offset_ = 0;
+        mutable size_t ib_offset_ = 0;
 };
+
+// Copies data into the next unused part of buf and returns its byte offset.
+// Parts are not reused: when the buffer is full it is orphaned (the driver
+// gives it new storage while draws in flight keep the old one), so a write
+// never waits for the GPU or forces it to finish the frame early. Replaces a
+// glBufferData per draw, which made the driver allocate new storage for every
+// draw call.
+size_t gosMesh::streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
+        size_t* offset, const void* data, size_t bytes)
+{
+    gosASSERT(bytes <= buf_size);
+
+    GLbitfield access = GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_INVALIDATE_RANGE_BIT;
+    if(*offset + bytes > buf_size) {
+        *offset = 0;
+        access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
+    }
+
+    glBindBuffer(target, buf);
+    void* p = glMapBufferRange(target, (GLintptr)*offset, (GLsizeiptr)bytes, access);
+    gosASSERT(p);
+    if(p) {
+        memcpy(p, data, bytes);
+        glUnmapBuffer(target);
+    }
+    CHECK_GL_ERROR;
+
+    const size_t at = *offset;
+    *offset += bytes;
+    return at;
+}
 
 const std::string gosMesh::s_tex1 = std::string("tex1");
 const std::string gosMesh::s_tex2 = std::string("tex2");
@@ -509,7 +558,8 @@ void gosMesh::draw(gosRenderMaterial* material) const
     if(num_vertices_ == 0)
         return;
 
-    updateBuffer(vb_, GL_ARRAY_BUFFER, pvertex_data_, num_vertices_*sizeof(gos_VERTEX), GL_DYNAMIC_DRAW_ARB);
+    const size_t vb_at = streamToBuffer(vb_, GL_ARRAY_BUFFER, vb_size_, &vb_offset_,
+            pvertex_data_, num_vertices_*sizeof(gos_VERTEX));
 
     material->apply();
 
@@ -518,7 +568,7 @@ void gosMesh::draw(gosRenderMaterial* material) const
 	glBindBuffer(GL_ARRAY_BUFFER, vb_);
     CHECK_GL_ERROR;
 
-    material->applyVertexDeclaration();
+    material->applyVertexDeclaration(vb_at);
     CHECK_GL_ERROR;
 
     GLenum pt = GL_TRIANGLES;
@@ -552,8 +602,10 @@ void gosMesh::drawIndexed(gosRenderMaterial* material) const
     if(num_vertices_ == 0)
         return;
 
-    updateBuffer(vb_, GL_ARRAY_BUFFER, pvertex_data_, num_vertices_*sizeof(gos_VERTEX), GL_DYNAMIC_DRAW);
-    updateBuffer(ib_, GL_ELEMENT_ARRAY_BUFFER, pindex_data_, num_indices_*sizeof(INDEX_TYPE), GL_DYNAMIC_DRAW);
+    const size_t vb_at = streamToBuffer(vb_, GL_ARRAY_BUFFER, vb_size_, &vb_offset_,
+            pvertex_data_, num_vertices_*sizeof(gos_VERTEX));
+    const size_t ib_at = streamToBuffer(ib_, GL_ELEMENT_ARRAY_BUFFER, ib_size_, &ib_offset_,
+            pindex_data_, num_indices_*sizeof(INDEX_TYPE));
 
     material->apply();
 
@@ -563,7 +615,8 @@ void gosMesh::drawIndexed(gosRenderMaterial* material) const
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib_);
     CHECK_GL_ERROR;
 
-    material->applyVertexDeclaration();
+    // indices are relative to the first vertex, so offset the attributes
+    material->applyVertexDeclaration(vb_at);
     CHECK_GL_ERROR;
 
     GLenum pt = GL_TRIANGLES;
@@ -581,7 +634,7 @@ void gosMesh::drawIndexed(gosRenderMaterial* material) const
             gosASSERT(0 && "Wrong primitive type");
     }
 
-    glDrawElements(pt, num_indices_, getIndexSizeBytes()==2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, NULL);
+    glDrawElements(pt, num_indices_, getIndexSizeBytes()==2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, BUFFER_OFFSET(ib_at));
 
     material->endVertexDeclaration();
     material->end();
@@ -810,11 +863,30 @@ class gosTexture {
             updateTexture(tex_, data, TF_COUNT/*tex_.fmt_*/);
         }
 
+        // Sampler state belongs to the texture object, so only set it when it
+        // changes. The texture must be bound.
+        void applySamplerParams(TexAddressMode address_mode, TexFilterMode filter) {
+            if(sampler_address_ != address_mode || sampler_filter_ != filter) {
+                setSamplerParams(tex_.type_, address_mode, filter);
+                sampler_address_ = address_mode;
+                sampler_filter_ = filter;
+            }
+        }
+
     private:
+        void setTexture(const Texture& t) {
+            tex_ = t;
+            // a new GL texture object starts with its own sampler state
+            sampler_address_ = -1;
+            sampler_filter_ = -1;
+        }
+
         BYTE* pcompdata_;
         BYTE* plocked_area_;
         DWORD size_;
         Texture tex_;
+        int sampler_address_ = -1;
+        int sampler_filter_ = -1;
 
         gos_TextureFormat format_;
         char* filename_;
@@ -901,7 +973,7 @@ bool gosTexture::createHardwareTexture() {
 
         format_ = convertIfNecessary(img, format_);
 
-        tex_ = create2DTexture(img.getWidth(), img.getHeight(), tf, img.getPixels());
+        setTexture(create2DTexture(img.getWidth(), img.getHeight(), tf, img.getPixels()));
         return tex_.isValid();
 
     } else if(pcompdata_ && size_ > 0) {
@@ -924,7 +996,7 @@ bool gosTexture::createHardwareTexture() {
 
         format_ = convertIfNecessary(img, format_);
 
-        tex_ = create2DTexture(img.getWidth(), img.getHeight(), tf, img.getPixels());
+        setTexture(create2DTexture(img.getWidth(), img.getHeight(), tf, img.getPixels()));
         return tex_.isValid();
     } else {
         gosASSERT(tex_.w >0 && tex_.h > 0);
@@ -938,7 +1010,7 @@ bool gosTexture::createHardwareTexture() {
             for(int i=0;i<tex_.w*tex_.h;++i)
                 pdata[i] = 0xFF00FFFF;
         }
-        tex_ = create2DTexture(tex_.w, tex_.h, tf, (const uint8_t*)pdata);
+        setTexture(create2DTexture(tex_.w, tex_.h, tf, (const uint8_t*)pdata));
         delete[] pdata;
         return tex_.isValid();
     }
@@ -1269,6 +1341,15 @@ class gosRenderer {
         RenderState curStates_;
         RenderState renderStates_;
 
+        // Values last sent to GL for the fixed-function states, so
+        // applyRenderStates() skips calls that would change nothing. -1 means
+        // unknown; reset every frame because draw_screen() sets cull face and
+        // depth mask directly.
+        int glCulling_ = -1;
+        int glZWrite_ = -1;
+        int glZCompare_ = -1;
+        int glAlphaMode_ = -1;
+
         static const int RENDER_STATES_STACK_SIZE = 16;
         int renderStatesStackPointer;
         RenderState statesStack_[RENDER_STATES_STACK_SIZE];
@@ -1509,15 +1590,18 @@ void gosRenderer::popRenderStates()
 void gosRenderer::applyRenderStates() {
 
 	////////////////////////////////////////////////////////////////////////////////
-	switch (renderStates_[gos_State_Culling]) {
-		case gos_Cull_None: glDisable(GL_CULL_FACE); break;
-		case gos_Cull_CW:	
-		case gos_Cull_CCW:
-			glEnable(GL_CULL_FACE);
-			// by default in OpenGL front face is CCW (could be changed by glFrontFace)
-			glCullFace(renderStates_[gos_State_Culling] == gos_Cull_CW ? GL_BACK : GL_FRONT);
-			break;
-		default: gosASSERT(0 && "Wrong cull face value");
+	if (glCulling_ != (int)renderStates_[gos_State_Culling]) {
+		switch (renderStates_[gos_State_Culling]) {
+			case gos_Cull_None: glDisable(GL_CULL_FACE); break;
+			case gos_Cull_CW:
+			case gos_Cull_CCW:
+				glEnable(GL_CULL_FACE);
+				// by default in OpenGL front face is CCW (could be changed by glFrontFace)
+				glCullFace(renderStates_[gos_State_Culling] == gos_Cull_CW ? GL_BACK : GL_FRONT);
+				break;
+			default: gosASSERT(0 && "Wrong cull face value");
+		}
+		glCulling_ = renderStates_[gos_State_Culling];
 	}
 	curStates_[gos_State_Culling] = renderStates_[gos_State_Culling];
 
@@ -1528,41 +1612,50 @@ void gosRenderer::applyRenderStates() {
 	curStates_[gos_State_Fog] = renderStates_[gos_State_Fog];
 
    ////////////////////////////////////////////////////////////////////////////////
-   switch(renderStates_[gos_State_ZWrite]) {
-       case 0: glDepthMask(GL_FALSE); break;
-       case 1: glDepthMask(GL_TRUE); break;
-       default: gosASSERT(0 && "Wrong depth write value");
+   if(glZWrite_ != (int)renderStates_[gos_State_ZWrite]) {
+       switch(renderStates_[gos_State_ZWrite]) {
+           case 0: glDepthMask(GL_FALSE); break;
+           case 1: glDepthMask(GL_TRUE); break;
+           default: gosASSERT(0 && "Wrong depth write value");
+       }
+       glZWrite_ = renderStates_[gos_State_ZWrite];
    }
    curStates_[gos_State_ZWrite] = renderStates_[gos_State_ZWrite];
 
    ////////////////////////////////////////////////////////////////////////////////
-   if(0 == renderStates_[gos_State_ZCompare]) {
-       glDisable(GL_DEPTH_TEST);
-   } else {
-       glEnable(GL_DEPTH_TEST);
-   }
-   switch(renderStates_[gos_State_ZCompare]) {
-       case 0: glDepthFunc(GL_ALWAYS); break;
-       case 1: glDepthFunc(GL_LEQUAL); break;
-       case 2: glDepthFunc(GL_LESS); break;
-       default: gosASSERT(0 && "Wrong depth test value");
+   if(glZCompare_ != (int)renderStates_[gos_State_ZCompare]) {
+       if(0 == renderStates_[gos_State_ZCompare]) {
+           glDisable(GL_DEPTH_TEST);
+       } else {
+           glEnable(GL_DEPTH_TEST);
+       }
+       switch(renderStates_[gos_State_ZCompare]) {
+           case 0: glDepthFunc(GL_ALWAYS); break;
+           case 1: glDepthFunc(GL_LEQUAL); break;
+           case 2: glDepthFunc(GL_LESS); break;
+           default: gosASSERT(0 && "Wrong depth test value");
+       }
+       glZCompare_ = renderStates_[gos_State_ZCompare];
    }
    curStates_[gos_State_ZCompare] = renderStates_[gos_State_ZCompare];
 
    ////////////////////////////////////////////////////////////////////////////////
-   bool disable_blending = renderStates_[gos_State_AlphaMode] == gos_Alpha_OneZero;
-   if(disable_blending) {
-       glDisable(GL_BLEND);
-   } else {
-       glEnable(GL_BLEND);
-   }
-   switch(renderStates_[gos_State_AlphaMode]) {
-       case gos_Alpha_OneZero:          glBlendFunc(GL_ONE, GL_ZERO); break;
-       case gos_Alpha_OneOne:           glBlendFunc(GL_ONE, GL_ONE); break;
-       case gos_Alpha_AlphaInvAlpha:    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); break;
-       case gos_Alpha_OneInvAlpha:      glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); break;
-       case gos_Alpha_AlphaOne:         glBlendFunc(GL_SRC_ALPHA, GL_ONE); break;
-       default: gosASSERT(0 && "Wrong alpha mode value");
+   if(glAlphaMode_ != (int)renderStates_[gos_State_AlphaMode]) {
+       bool disable_blending = renderStates_[gos_State_AlphaMode] == gos_Alpha_OneZero;
+       if(disable_blending) {
+           glDisable(GL_BLEND);
+       } else {
+           glEnable(GL_BLEND);
+       }
+       switch(renderStates_[gos_State_AlphaMode]) {
+           case gos_Alpha_OneZero:          glBlendFunc(GL_ONE, GL_ZERO); break;
+           case gos_Alpha_OneOne:           glBlendFunc(GL_ONE, GL_ONE); break;
+           case gos_Alpha_AlphaInvAlpha:    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); break;
+           case gos_Alpha_OneInvAlpha:      glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); break;
+           case gos_Alpha_AlphaOne:         glBlendFunc(GL_SRC_ALPHA, GL_ONE); break;
+           default: gosASSERT(0 && "Wrong alpha mode value");
+       }
+       glAlphaMode_ = renderStates_[gos_State_AlphaMode];
    }
    curStates_[gos_State_AlphaMode] = renderStates_[gos_State_AlphaMode];
 
@@ -1610,7 +1703,7 @@ void gosRenderer::applyRenderStates() {
        gosTexture* tex = gosTextureHandle == INVALID_TEXTURE_ID ? 0 : this->getTexture(gosTextureHandle);
        if(tex) {
            glBindTexture(GL_TEXTURE_2D, tex->getTextureId());
-           setSamplerParams(tex->getTextureType(), address_mode, filter);
+           tex->applySamplerParams(address_mode, filter);
 
            gosTextureInfo texinfo;
            tex->getTextureInfo(&texinfo);
@@ -1631,18 +1724,38 @@ void gosRenderer::beginFrame()
 {
     glBindVertexArray(gVAO);
     num_draw_calls_ = 0;
+
+    // draw_screen() changes cull face and depth mask outside the renderer
+    glCulling_ = glZWrite_ = glZCompare_ = glAlphaMode_ = -1;
+}
+
+// Shader hot reload stats every shader file, so it is opt-in:
+// MC2_SHADER_HOT_RELOAD=1 while editing shaders.
+static bool shaderHotReloadEnabled()
+{
+    static const bool enabled = []() {
+        const char* v = getenv("MC2_SHADER_HOT_RELOAD");
+        return v && v[0] == '1' && v[1] == '\0';
+    }();
+    return enabled;
 }
 
 void gosRenderer::endFrame()
 {
-    // check for file changes every half second
+    if(!shaderHotReloadEnabled())
+        return;
+
+    // check for file changes every half second (last_check_time used to never
+    // be updated, so after the first 500 ms this ran every frame)
     static uint64_t last_check_time = timing::get_wall_time_ms();
-    if(timing::get_wall_time_ms() - last_check_time > 500)
+    const uint64_t now = timing::get_wall_time_ms();
+    if(now - last_check_time > 500)
     {
         for(int i=0; i< materialList_.size(); ++i)
         {
             materialList_[i]->checkReload();
         }
+        last_check_time = now;
     }
 }
 

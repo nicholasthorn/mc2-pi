@@ -586,25 +586,51 @@ void
 
 			Stop_Timer(Alpha_Sorting_Time);
 
+			// Consecutive triangles that share a state go down in one draw
+			// call instead of one call each. The back-to-front order is
+			// unchanged, so the result is the same.
+			const int maxBatchTriangles = 256;
+			static GOSVertex batch[maxBatchTriangles*3];
+			int batched = 0;
+
 			for(ii=0;ii<alphaToSort;ii++)
 			{
 				if(theCurrentState != *alphaSort[ii]->state)
 				{
+					if(batched)
+					{
+						Start_Timer(GOS_Draw_Time);
+						gos_DrawTriangles(batch, batched*3);
+						Stop_Timer(GOS_Draw_Time);
+						batched = 0;
+					}
 					SetDifferences(theCurrentState, *alphaSort[ii]->state);
 					theCurrentState = *alphaSort[ii]->state;
 				}
-				Start_Timer(GOS_Draw_Time);
-	
+
 				if ((alphaSort[ii]->triangle[0].z >= 0.0f) &&
 					(alphaSort[ii]->triangle[0].z < 1.0f) &&
-					(alphaSort[ii]->triangle[1].z >= 0.0f) &&  
-					(alphaSort[ii]->triangle[1].z < 1.0f) && 
-					(alphaSort[ii]->triangle[2].z >= 0.0f) &&  
+					(alphaSort[ii]->triangle[1].z >= 0.0f) &&
+					(alphaSort[ii]->triangle[1].z < 1.0f) &&
+					(alphaSort[ii]->triangle[2].z >= 0.0f) &&
 					(alphaSort[ii]->triangle[2].z < 1.0f))
 				{
-					gos_DrawTriangles( &(alphaSort[ii]->triangle[0]), 3);
+					batch[batched*3+0] = alphaSort[ii]->triangle[0];
+					batch[batched*3+1] = alphaSort[ii]->triangle[1];
+					batch[batched*3+2] = alphaSort[ii]->triangle[2];
+					if(++batched == maxBatchTriangles)
+					{
+						Start_Timer(GOS_Draw_Time);
+						gos_DrawTriangles(batch, batched*3);
+						Stop_Timer(GOS_Draw_Time);
+						batched = 0;
+					}
 				}
-
+			}
+			if(batched)
+			{
+				Start_Timer(GOS_Draw_Time);
+				gos_DrawTriangles(batch, batched*3);
 				Stop_Timer(GOS_Draw_Time);
 			}
 			Set_Statistic(NumberOfAlphaSortedTriangles, NumberOfAlphaSortedTriangles+alphaToSort);
