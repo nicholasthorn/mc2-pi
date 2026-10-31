@@ -226,6 +226,20 @@ void __stdcall gos_Free(void* ptr)
 }
 ////////////////////////////////////////////////////////////////////////////////
 
+// -bench: the fixed game step (0 = real time). Set by gameosmain.cpp; lives
+// here so mclib callers also link into the data tools, which have no main loop.
+static float g_fixed_frame_length = 0.0f;
+
+void gos_SetFixedFrameLength(float seconds)
+{
+    g_fixed_frame_length = seconds;
+}
+
+float __stdcall gos_GetFixedFrameLength()
+{
+    return g_fixed_frame_length;
+}
+
 void __stdcall gos_srand(unsigned int seed)
 {
     return srand(seed);

@@ -45,10 +45,7 @@ static const float BENCH_FRAME_LENGTH = 1.0f / 30.0f;
 static const unsigned int BENCH_SEED = 1;
 static bool g_bench = false;
 
-float __stdcall gos_GetFixedFrameLength()
-{
-    return g_bench ? BENCH_FRAME_LENGTH : 0.0f;
-}
+void gos_SetFixedFrameLength(float seconds);	// gameos.cpp
 
 // -benchscenario <fit>: the scripted scenario code/benchdirector.cpp plays.
 // It names segments (timed separately) and asks for screenshots.
@@ -327,6 +324,7 @@ int main(int argc, char** argv)
             g_bench_scenario = argv[i+1];
     }
     g_bench = bench_csv != NULL;
+    gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
     g_bench_csv = bench_csv;
     perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;
