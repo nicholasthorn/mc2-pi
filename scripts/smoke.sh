@@ -93,7 +93,9 @@ else
 fi
 
 # Log lines that mean something went wrong even if the game kept running.
-BAD='OpenGL Error|: ERROR: |^STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
+# STOP is not anchored: stderr is unbuffered and stdout is not, so a STOP
+# can land in the middle of a line of buffered stdout output.
+BAD='OpenGL Error|: ERROR: |STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
 
 failed=0
 for m in $MISSIONS; do
