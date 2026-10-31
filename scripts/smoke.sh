@@ -1,6 +1,8 @@
 #!/bin/bash
 # Smoke test: launch missions, let each run a fixed number of frames, and fail
 # on a crash, a hang, a non-zero exit, GL errors, shader errors or STOP lines.
+# Then walk the front-end screens (main menu, options, campaign logistics)
+# with -uismoke, under the same failure rules.
 #
 # Runs headless (Xvfb) even when a display is available: WSLg sets one, and
 # a run there opens a window that takes the desktop's mouse and keyboard.
@@ -15,17 +17,32 @@
 #                     into the game dir first (default: use what is there)
 #   --missions "..."  missions to run (default: mc2_01 mc2_03)
 #   --frames N        frames per mission before -autoexit (default: 600)
+#   --ui "..."        front-end walks to run, space separated; each is a
+#                     comma-separated list of screens for -uismoke (names in
+#                     code/uismokewalk.cpp). "" skips them. Default: the two
+#                     walks in $UI_WALKS below
 #   --timeout S       seconds before a run counts as hung (default: 300)
-#   --log-dir DIR     where to keep per-mission logs (default: ./smoke-logs)
+#   --log-dir DIR     where to keep per-run logs (default: ./smoke-logs)
 #   --display         run on the current display instead of Xvfb (to watch)
 #
-# Exit status: 0 if every mission passed, 1 otherwise.
+# Exit status: 0 if every run passed, 1 otherwise.
 
 set -u
+
+# 1: the four options tabs, then a new campaign (its first mission, mc2_01,
+#    skips logistics and loads at once).
+# 2: a single mission (mc2_02) through its logistics screens and back. It
+#    starts with no mechs, so the mech lab and "Launch" stay disabled until
+#    the walk can buy one (planning/future-features/UI-SMOKE.md, slice 2).
+UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
+UI_OPTIONS="$UI_OPTIONS,campaign,mission"
+UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase,mechbay,pilotready"
+UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing"
 
 GAME_DIR=""
 BUILD_DIR=""
 MISSIONS="mc2_01 mc2_03"
+UI_WALKS="$UI_OPTIONS $UI_LOGISTICS"
 FRAMES=600
 TIMEOUT=300
 LOG_DIR="$PWD/smoke-logs"
@@ -38,10 +55,11 @@ while [ $# -gt 0 ]; do
         --build-dir) BUILD_DIR="$2"; shift 2 ;;
         --missions)  MISSIONS="$2"; shift 2 ;;
         --frames)    FRAMES="$2"; shift 2 ;;
+        --ui)        UI_WALKS="$2"; shift 2 ;;
         --timeout)   TIMEOUT="$2"; shift 2 ;;
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
         --display)   USE_DISPLAY=1; shift ;;
-        -h|--help)   sed -n '2,22p' "$0"; exit 0 ;;
+        -h|--help)   sed -n '2,/^$/p' "$0"; exit 0 ;;
         *) echo "smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -100,16 +118,41 @@ fi
 BAD='OpenGL Error|: ERROR: |STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
 
 failed=0
-for m in $MISSIONS; do
-    log="$LOG_DIR/$m.log"
-    start=$(date +%s)
-    ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" ) > "$log" 2>&1
-    rc=$?
-    secs=$(( $(date +%s) - start ))
 
+# run_game LOG ARGS...: run ./mc2 ARGS in the game dir, output to LOG. Sets
+# secs, and starts reasons (why the run failed) with the exit status.
+run_game() {
+    local log="$1"; shift
+    local start
+    start=$(date +%s)
+    ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "$@" ) > "$log" 2>&1
+    local rc=$?
+    secs=$(( $(date +%s) - start ))
     reasons=()
     [ $rc -eq 137 ] && reasons+=("hung (killed after ${TIMEOUT}s)")
     [ $rc -ne 0 ] && [ $rc -ne 137 ] && reasons+=("exit status $rc")
+}
+
+# report NAME LOG SUMMARY: add error lines to reasons, print PASS or FAIL
+report() {
+    local name="$1" log="$2" summary="$3"
+    local nbad
+    nbad=$(grep -cE "$BAD" "$log")
+    [ "$nbad" -gt 0 ] && reasons+=("$nbad error line(s)")
+
+    if [ ${#reasons[@]} -eq 0 ]; then
+        echo "PASS $name (${secs}s) $summary"
+    else
+        failed=1
+        echo "FAIL $name (${secs}s): $(printf '%s; ' "${reasons[@]}")"
+        grep -E "$BAD" "$log" | sort | uniq -c | sort -rn | head -10 | sed 's/^/    /'
+        echo "    log: $log"
+    fi
+}
+
+for m in $MISSIONS; do
+    log="$LOG_DIR/$m.log"
+    run_game "$log" -mission "$m" -autoexit "$FRAMES"
     grep -q '^\[AUTOEXIT\]' "$log" || reasons+=("never reached $FRAMES frames")
     # code/mission.cpp prints [MISSION] on the mission's first frame; it must
     # come before [AUTOEXIT] or the frames were spent in menus / loading.
@@ -118,17 +161,39 @@ for m in $MISSIONS; do
     if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
         reasons+=("mission never started")
     fi
-    nbad=$(grep -cE "$BAD" "$log")
-    [ "$nbad" -gt 0 ] && reasons+=("$nbad error line(s)")
+    report "$m" "$log" "$(grep -m1 '^\[AUTOEXIT\]' "$log")"
+done
 
-    if [ ${#reasons[@]} -eq 0 ]; then
-        echo "PASS $m (${secs}s) $(grep -m1 '^\[AUTOEXIT\]' "$log")"
-    else
+# Front-end walks: code/uismokedriver.cpp prints "[SCREEN] <name> shown" as
+# each screen settles, then "[UISMOKE] done" (or "[UISMOKE] FAIL: <why>")
+# and quits. Each walk gets a fresh config directory (XDG_CONFIG_HOME) holding
+# only tests/smoke/campaign-save.fit, so the "Single Mission" list has a
+# mission in it, and nothing the walk saves reaches the real one.
+# The path must be lower case: the game lowercases the save path
+# (FullPathFileName), so a TMPDIR with capitals falls back to /tmp.
+CFG_BASE="${TMPDIR:-/tmp}"
+case "$CFG_BASE" in *[A-Z]*) CFG_BASE=/tmp ;; esac
+n=0
+for w in $UI_WALKS; do
+    n=$((n + 1))
+    log="$LOG_DIR/ui$n.log"
+    cfg="$CFG_BASE/mc2-uismoke-$$-$n"
+    rm -rf "$cfg"
+    if ! mkdir -p "$cfg/.mechcommander2/savegame" \
+            || ! cp "$SRC_DIR/tests/smoke/campaign-save.fit" "$cfg/.mechcommander2/savegame/"; then
         failed=1
-        echo "FAIL $m (${secs}s): $(printf '%s; ' "${reasons[@]}")"
-        grep -E "$BAD" "$log" | sort | uniq -c | sort -rn | head -10 | sed 's/^/    /'
-        echo "    log: $log"
+        echo "FAIL ui$n: cannot set up a config directory in $CFG_BASE"
+        continue
     fi
+    XDG_CONFIG_HOME="$cfg" run_game "$log" -uismoke "$w"
+    rm -rf "$cfg"
+    why=$(grep -m1 '^\[UISMOKE\] FAIL' "$log" | sed 's/^\[UISMOKE\] FAIL: //')
+    [ -n "$why" ] && reasons+=("$why")
+    grep -q '^\[UISMOKE\] done' "$log" || [ -n "$why" ] || reasons+=("walk never finished")
+    # every screen of the walk, in order
+    shown=$(sed -n 's/^\[SCREEN\] \(.*\) shown$/\1/p' "$log" | paste -sd, -)
+    [ "$shown" = "$w" ] || reasons+=("screens shown: ${shown:-none}")
+    report "ui$n" "$log" "$(grep -m1 '^\[UISMOKE\] done' "$log")"
 done
 
 exit $failed

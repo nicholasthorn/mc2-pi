@@ -18,7 +18,7 @@ belongs in commit messages and PRs.
 - [x] CI: Linux x64 GCC, Linux x64 Clang, Linux arm64 GLES, Windows MSVC, shader validation (GLSL ES 3.10 + GLSL 4.20); Dependabot
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings (82 cases)
-- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); smoke and bench set `MC2_STOP_EXITS=1`, so a `STOP` ends the run (#22)
+- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); smoke and bench set `MC2_STOP_EXITS=1`, so a `STOP` ends the run (#22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, pilot ready)
 - [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
 - [x] Mods: MechCommander Omnitech data (object types past `object2.pak`, wide map packets, `.burnin.jpg` colour maps, `mc2res.dll` strings, 512 object textures) loads and plays; Clan Wars mission 1 checked in play (PR 17, `future-features/MOD-COMPAT.md`)
@@ -38,7 +38,7 @@ belongs in commit messages and PRs.
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
-- [ ] UI smoke tests: a scripted player for the menu screens (main menu, purchase, mech lab, pilot ready, Mechlopedia, options, load/save) and a `smoke.sh` `ui` tier, on stock and mod data (`future-features/UI-SMOKE.md`). Also step 2 of the `STOP` plan below, and the only way to see Omnitech's units in logistics. (10-31)
+- [ ] UI smoke tests: a scripted player for the menu screens (main menu, purchase, mech lab, pilot ready, Mechlopedia, options, load/save) and a `smoke.sh` `ui` tier, on stock and mod data (`future-features/UI-SMOKE.md`). Also step 2 of the `STOP` plan below, and the only way to see Omnitech's units in logistics. (10-31) Slice 1 built (`-uismoke`, two walks in `smoke.sh`); next: in-screen actions (buy a mech, so the mech lab and Launch open), tutorial, mission results / salvage.
 - [ ] CI benchmark regression job: `-bench` on base and PR, fail when draw calls or triangles grow > ~10%, frame times informational. User said "not now". (10-31)
 
 ## To do: process and housekeeping
@@ -88,10 +88,19 @@ Added 2026-10-31.
     reasons. The one real bug: `ABLModule::orderCallFlags` is now `NULL` in
     `ABLModule::init()`, so a module without order calls skips the flag test
     instead of reading and writing through a garbage pointer.
-  - Next: the error-level `nullPointer` (87) and `invalidLifetime` (11), then
-    `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: better after
-    the STOP/Fatal work below), `arrayIndexOutOfBoundsCond` (10),
-    `pointerSize` (7) and the rest.
+  - [x] `nullPointer` (87), `invalidLifetime` (11) and `uninitvar` (6)
+    (branch `fix/cppcheck-null-lifetime`): `TG_TypeNode`/`TG_TypeShape::
+    CreateFrom` check the TGL heap allocation before placement `new` (53),
+    the multiplayer stubs return a blank player record, an empty name and a
+    zero player count instead of NULL / an unset count (about 30),
+    `Camera::getClosestVertex` copes with no vertices, a load error printed
+    an unset buffer (`LogisticsMissionInfo::load`), `MechWarrior` checks and
+    uses one `getGroup()` result; the effect `drawInfo` lifetimes (11) and
+    the bounded `qsort` of player lists (4) are suppressed inline as false
+    positives with the reason.
+  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
+    better after the STOP/Fatal work below), `arrayIndexOutOfBoundsCond`
+    (10), `pointerSize` (7) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
@@ -212,7 +221,11 @@ on 2026-10-31.
 - [ ] Logistics, mech lab, options and tutorial screens: smoke never opens
       them, yet many cppcheck fixes landed there (`LogisticsScreen` copy /
       assign, `OptionsXScreen`, mech lab, tutorial button, `logisticsdata`).
-      Needs a plan for smoke coverage. (10-29 on)
+      Needs a plan for smoke coverage. (10-29 on) Partly covered since
+      10-31 (`-uismoke`): main menu, options, campaign and single-mission
+      dialogs, briefing, mech bay, mech purchase, pilot ready run in smoke.
+      Still not: mech lab, mission selection, salvage, tutorial
+      (`future-features/UI-SMOKE.md`, slices 2-4).
 - [ ] Loading a saved game through the size-checked pathing reader
       (`saveload.cpp` now also exits on `badLoad`). (10-30)
 - [ ] PR #9 fixes in game: `isInfantry`, font texture, MemoryStream; air-strike
@@ -360,7 +373,7 @@ Candidates:
 
 ## Known issues
 
-- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
+- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -378,6 +391,9 @@ Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-10-31: MechCommander Omnitech front-end screens (branch `omnitech-ui`): the UI smoke walks crashed at the main menu on Omnitech data. 1024x1024 art fits the texture manager's LZ buffers, `gos_LockTexture` handles texture 0, and the briefing, loading and pilot ready screens take their fixed statics from Omnitech's layouts as its code does (pilot ready wrote past its 40 statics). Its mech lab layout is not supported yet, so the mech bay keeps "change loadout" off for it. Desert Fox (5 missions) installed and smoke-tested. Details in `MOD-COMPAT.md` items 12 and 13.
 
+- 2026-10-31: Five sanitizer findings in the menu code, found by the new UI smoke walks under ASan + UBSan (branch `test/ui-smoke`): a heap-buffer-overflow in `SoundSystem::update()` (a pending music stream started with `currentMusicId == -1`; each stream now uses its own tune id), an int shift by 32 in the FIT hex parsers (at most 8 digits now, unit tested), `playLogistics` never set for single missions (uninitialised bool read), `memcpy` from an empty string's NULL data in `EString`, and `-1 << 24` in `LogisticsMech`. Unit tests, both UI walks and the five smoke missions (600 frames) run clean sanitized on Ubuntu 26.04; GL and GLES batch checks pass.
+- 2026-10-31: UI smoke, slice 1 (branch `test/ui-smoke`, `future-features/UI-SMOKE.md`): `-uismoke <walk>` walks named front-end screens, pressing the buttons a player would (the same `handleMessage` a click sends, only if the button is enabled), printing `[SCREEN] <name> shown` and `[UISMOKE] done` / `FAIL`. Walk logic is game-free and unit tested (`code/uismokewalk.cpp`); the driver is game glue (`code/uismokedriver.cpp`). `smoke.sh` runs two walks by default after the missions, each with a temporary `XDG_CONFIG_HOME` holding a campaign-save fixture: options tabs then new campaign into mc2_01; single mission mc2_02 through briefing, mech bay, purchase, pilot ready and back. Found: a new campaign skips logistics (mc2_01), single missions are listed only from campaign saves, a single mission starts with no mechs (mech lab and Launch disabled until slice 2). Both walks pass on GL and GLES on Ubuntu 26.04 (llvmpipe); MSVC, Clang, arm64 and sanitized runs left to CI; not run on the Pi.
+- 2026-10-31: cppcheck `nullPointer`, `invalidLifetime` and `uninitvar` cleared (branch `fix/cppcheck-null-lifetime`, 104 baseline entries): real fixes in `TG_*::CreateFrom` (no placement `new` on a failed TGL heap allocation), the multiplayer stubs (blank record, empty name, zero count instead of NULL), `Camera::getClosestVertex` (no vertices), `LogisticsMissionInfo::load` (error text from an unset buffer) and `MechWarrior` (one `getGroup()` result); effect draw-info lifetimes and bounded player `qsort`s suppressed inline as false positives.
 - 2026-10-31: MechCommander Omnitech's other campaigns (branch `omnitech-campaigns`): 13 Omnitech-only ABL commands (`addmovertoplayer`, `setbrain`, `settextmsg`, `addresourcepoints`, salvage craft, building name and capture RP, mech damage and gesture, ...) from its changelog, brain changes queued to the start of the next frame; colour-mapped TGAs load (Omnitech's sky 12); weapon damage over 255 allowed outside multiplayer; `MAX_OFFMAP_AREAS` 60 -> 120 with the fill bounded (ASan: it overran the `GlobalMap` object). Details in `MOD-COMPAT.md` item 11.
 
 - 2026-10-31: Back-port of the remaster's original LZ decoder (branch `fix/backport-lz-decoder`): `LZDecomp` reads Microsoft's original LZW (the 2001 asm format) as well as zlib, picked from the first two bytes, every write bounded by `destLen`; `FastFile::readFast` copies raw entries (`size == realSize`) when decoding fails, so uncompressed 0xCADDECAF archives read too. Test-first: `test_lzdecomp.cpp` (a test-only encoder that follows the asm compressor, hand-built streams, multi-block, truncated, over-limit, corrupt, zlib, FSTs through `File::open`; no third-party data). Omnitech's `tgl.fst`: all 4667 entries decode to their exact size, 1947 identical to the stock ones and the rest differ only in float last bits and padding bytes (built by different tools); mc2_01 and mc2_03 smoke-run with it. Built and tested on WSL Ubuntu 26.04 (GCC, desktop GL and GLES); MSVC, Clang, arm64 and the Pi left to CI.

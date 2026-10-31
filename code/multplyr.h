@@ -1536,7 +1536,11 @@ class MultiPlayer : public MultiPlayerState {
 		// for write purposes....
 		MC2Player* getPlayerInfo( long commanderID )
 		{
-			return NULL;
+			// Networking is stubbed: the multiplayer screens read and write
+			// player info unchecked, so hand them a blank record, not NULL.
+			static MC2Player blankPlayer;
+			memset(&blankPlayer, 0, sizeof(blankPlayer));
+			return &blankPlayer;
 		}
 
 		bool hostSession(char* sessionName, char* playerName, long mxPlayers);
@@ -1612,7 +1616,9 @@ class MultiPlayer : public MultiPlayerState {
 		void initSpecialBuildings (char commandersToLoad[8][3]);
 
 		char* getPlayerName (void) {
-			return(NULL);
+			// networking is stubbed; callers print it with %s
+			static char noName[] = "";
+			return(noName);
 		}
 
 		void addToLocalMovers (MoverPtr mover);

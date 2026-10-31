@@ -52,6 +52,7 @@ public:
 
 
 private:
+	friend class UiSmokeDriver;	// -uismoke picks a mission from the list
 	int indexOfButtonWithID(int id);
 	void seedDialog( bool bSeedSingle );
 	void seedFromCampaign();

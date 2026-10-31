@@ -1,0 +1,17 @@
+FITini
+// A campaign save for UI smoke runs (scripts/smoke.sh copies it into a
+// temporary config directory's savegame/). Only [General] is filled in: it
+// is all the main menu's "Single Mission" list reads
+// (MPLoadMap::seedFromCampaign). Group 2 with no missions completed in it
+// means groups 0 and 1 are done, so mc2_01 and mc2_02 are offered as single
+// missions; the UI smoke driver picks the last, mc2_02 (logistics, purchasing).
+// Not loadable as a game: the load dialog would need the other blocks.
+
+[General]
+st CampaignFile = "data\campaign\campaign.fit"
+st CampaignName = "UI smoke"
+st PlayerName = "smoke"
+l CBills = 80000
+l Group = 2
+l CompletedMissions = 0
+FITend

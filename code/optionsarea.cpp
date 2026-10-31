@@ -38,10 +38,7 @@ CPrefs originalSettings;
 
 extern SoundSystem *sndSystem;
 
-#define MSB_TAB0 200
-#define MSB_TAB1 201
-#define MSB_TAB2 202
-#define MSB_TAB3 203
+// MSB_TAB0..3 tab button ids: optionsarea.h
 
 #define MSG_NEAR 101
 #define MSG_FAR	102
