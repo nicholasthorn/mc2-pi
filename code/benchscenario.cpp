@@ -27,7 +27,10 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 	fit.readIdLong("ReorderEvery", reorderEvery);
 	fit.readIdFloat("StrikeRadius", strikeRadius);
 	fit.readIdBoolean("Follow", follow);
-	fit.readIdFloat("Lift", lift);
+	fit.readIdFloat("ScreenX", screenX);
+	fit.readIdFloat("ScreenY", screenY);
+	if (screenX < 0.0f || screenX > 1.0f || screenY < 0.0f || screenY > 1.0f)
+		return fail(err, errSize, "ScreenX / ScreenY outside 0..1 in", "[Bench]");
 	if (fit.readIdLong("NumSegments", numSegments) != 0 || numSegments < 1 || numSegments > MAX_SEGMENTS)
 		return fail(err, errSize, "NumSegments missing or out of range in", "[Bench]");
 
@@ -130,4 +133,19 @@ void BenchScenario::strikeOffset(long i, float radius, float& x, float& y)
 	const float a = goldenAngle * (float)i;
 	x = r * std::cos(a);
 	y = r * std::sin(a);
+}
+
+bool BenchScenario::frameStep(const float s[2], const float t[2], const float jx[2],
+		const float jy[2], float gain, float& dx, float& dy)
+{
+	// moving the aim by a moves the point on screen by -J a, J = [jx jy]
+	dx = dy = 0.0f;
+	const float det = jx[0] * jy[1] - jy[0] * jx[1];
+	if (std::fabs(det) < 1e-6f)
+		return false;
+	const float ex = (t[0] - s[0]) * gain;
+	const float ey = (t[1] - s[1]) * gain;
+	dx = -(jy[1] * ex - jy[0] * ey) / det;
+	dy = -(jx[0] * ey - jx[1] * ex) / det;
+	return true;
 }

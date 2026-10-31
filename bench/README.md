@@ -39,7 +39,8 @@ f Spacing = 90.0
 l ReorderEvery = 90
 f StrikeRadius = 350.0    ; artillery lands within this of the arena centre
 b Follow = TRUE           ; camera keys relative to the fight's centre
-f Lift = 400.0            ; aim this far short of it, raising it above the HUD
+f ScreenX = 0.5           ; hold that centre here on screen (fractions from
+f ScreenY = 0.4           ;   the top left; default 0.5, 0.5)
 l NumSegments = 2
 
 [Segment0]
@@ -58,6 +59,14 @@ The camera moves linearly between keys (yaw the short way round) and holds
 before the first and after the last. Tilt is 10 to 88 degrees above the
 horizon; the game caps altitude at 1500 to 1600 depending on tilt.
 
+The camera turns about its aim point. Each frame the director projects the
+fight's centre with the last frame's camera and moves the aim point a little
+towards putting it at `ScreenX`, `ScreenY`, so a key that only changes yaw
+circles the fight and keeps it in shot at any tilt or height. For a steady
+circle, step yaw by the same amount per frame across keys and segments, with
+keys at most 180 degrees apart (`mc2_19.fit` turns 120 degrees every 600
+frames).
+
 ## Writing one
 
 Run it once and read the log and the screenshots:
@@ -66,8 +75,9 @@ Run it once and read the log and the screenshots:
 - At each segment start, `[BENCH] frame F: n of N fighting, centre ..., mean
   spread ...` and the camera's position, tilt and yaw. A large spread means
   units wandered off; fewer fighting means some were disabled anyway.
-- `logs/*.frames_<segment>.tga`: what the segment looked at. If the fight
-  is under the HUD, raise `Lift`; if it is off the top, lower it.
+- `logs/*.frames_<segment>.tga`: what the segment looked at, the whole
+  window. If the fight is too small or too big, change the altitude; if it
+  sits behind the HUD, lower `ScreenY`.
 
 `MC2_BENCH_DUMP=<frame>[,<count>]` prints every unit's exact state for
 `count` frames (default 300) from `frame`, to find the first unit that
@@ -77,5 +87,6 @@ differs between two runs whose `state` columns disagree.
 
 - `mc2_19.fit`: mc2_19 has the most enemies of any campaign mission (82).
   The player's lance and the 20 nearest enemies fight at the player's start.
-  Segments: `overview` (high, panning), `engage` (medium, circling),
-  `closeup` (low), `effects` (artillery every 20 frames).
+  The camera circles the fight the whole run (one turn a minute). Segments
+  change its height: `overview` (high, 600 frames), `engage` (medium, 1200),
+  `closeup` (low, 600), `effects` (artillery every 20 frames, 1200).

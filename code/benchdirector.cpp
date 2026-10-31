@@ -44,6 +44,7 @@ long segment = -1;
 long strikes = 0;
 Stuff::Vector3D arena;
 float viewX = 0.0f, viewY = 0.0f;	// what the camera keys are relative to
+float aimX = 0.0f, aimY = 0.0f;		// framing offset of the aim point from it
 std::vector<MoverPtr> fighters;		// both sides, in the arena
 
 // Exists, is on a team, and can still fight.
@@ -303,22 +304,39 @@ void moveCamera (void) {
 		}
 	}
 
-	// Lift: aim short of the fight (towards the viewer), so the fight sits in
-	// the upper part of the screen, clear of the HUD. (fx, fy) is the camera's
-	// heading on the ground, away from the viewer, from the look vector of the
-	// last camera update (so it only depends on earlier frames). The mapping
-	// from the engine's axes was settled by screenshots (bench/mc2_19.fit).
+	// Framing: the camera turns about its aim point, which the engine puts at
+	// the centre of the screen, under the HUD. So project the fight's centre
+	// with the last camera update (earlier frames only) and move the aim a
+	// little each frame until the fight sits at ScreenX, ScreenY, clear of
+	// the HUD at any yaw, tilt or altitude.
 	const BenchCameraKey key = scenario.cameraAt(frame);
-	const Stuff::Vector3D look = eye->getLookVector();
-	float fx = look.x, fy = -look.z;
-	const float len = sqrtf(fx * fx + fy * fy);
-	if (len > 0.001f) {
-		fx /= len;
-		fy /= len;
+	if (frame >= 2) {
+		const float d = 100.0f;
+		Stuff::Vector3D p = onGround(viewX + key.dx, viewY + key.dy);
+		Stuff::Vector3D px = p, py = p;
+		px.x += d;
+		py.y += d;
+		Stuff::Vector4D s0, sx, sy;
+		eye->projectZ(p, s0);
+		eye->projectZ(px, sx);
+		eye->projectZ(py, sy);
+		const float s[2] = { s0.x, s0.y };
+		const float t[2] = { scenario.screenX * eye->fgetScreenResX(), scenario.screenY * eye->fgetScreenResY() };
+		const float jx[2] = { (sx.x - s0.x) / d, (sx.y - s0.y) / d };
+		const float jy[2] = { (sy.x - s0.x) / d, (sy.y - s0.y) / d };
+		float dx, dy;
+		if (BenchScenario::frameStep(s, t, jx, jy, 0.1f, dx, dy)) {
+			aimX += dx;
+			aimY += dy;
+			// never more than a screen's worth away, whatever the projection did
+			const float r = sqrtf(aimX * aimX + aimY * aimY), most = 2.0f * key.altitude;
+			if (r > most) {
+				aimX *= most / r;
+				aimY *= most / r;
+			}
+		}
 	}
-	else
-		fx = fy = 0.0f;
-	eye->setPosition(onGround(viewX + key.dx - fx * scenario.lift, viewY + key.dy - fy * scenario.lift), false);
+	eye->setPosition(onGround(viewX + key.dx + aimX, viewY + key.dy + aimY), false);
 	Stuff::Vector3D rot;
 	rot.x = key.tilt;
 	rot.y = key.yaw;

@@ -42,7 +42,8 @@ TEST_CASE("reads the [Bench] block and every segment")
 	CHECK(s.reorderEvery == 60);
 	CHECK(s.strikeRadius == doctest::Approx(300.0f));
 	CHECK_FALSE(s.follow);	// the fixture turns following off
-	CHECK(s.lift == doctest::Approx(250.0f));
+	CHECK(s.screenX == doctest::Approx(0.7f));
+	CHECK(s.screenY == doctest::Approx(0.25f));
 
 	REQUIRE(s.numSegments == 2);
 	CHECK(std::strcmp(s.segments[0].name, "overview") == 0);
@@ -121,6 +122,47 @@ TEST_CASE("strike offsets are fixed, spread out and inside the radius")
 	BenchScenario::strikeOffset(0, 300.0f, ax, ay);
 	BenchScenario::strikeOffset(1, 300.0f, bx, by);
 	CHECK(std::fabs(ax - bx) + std::fabs(ay - by) > 50.0f);
+}
+
+TEST_CASE("framing moves the aim so the fight lands on the screen target")
+{
+	// screen = s0 - J * aim (moving the aim moves the world the other way);
+	// a rotated, mirrored and scaled J, as a camera at some yaw gives
+	const float jx[2] = { 0.3f, -0.4f };	// d(screen) / d(world x)
+	const float jy[2] = { -0.5f, -0.2f };	// d(screen) / d(world y)
+	const float target[2] = { 560.0f, 150.0f };
+	float screen[2] = { 400.0f, 300.0f };
+	float aimX = 0.0f, aimY = 0.0f;
+
+	for (int i = 0; i < 60; i++) {
+		float dx = 0.0f, dy = 0.0f;
+		REQUIRE(BenchScenario::frameStep(screen, target, jx, jy, 0.2f, dx, dy));
+		aimX += dx;
+		aimY += dy;
+		screen[0] = 400.0f - (jx[0] * aimX + jy[0] * aimY);
+		screen[1] = 300.0f - (jx[1] * aimX + jy[1] * aimY);
+	}
+	CHECK(screen[0] == doctest::Approx(560.0f).epsilon(0.001));
+	CHECK(screen[1] == doctest::Approx(150.0f).epsilon(0.001));
+
+	// one full-gain step lands exactly on a linear target
+	float dx = 0.0f, dy = 0.0f;
+	const float start[2] = { 400.0f, 300.0f };
+	REQUIRE(BenchScenario::frameStep(start, target, jx, jy, 1.0f, dx, dy));
+	CHECK(400.0f - (jx[0] * dx + jy[0] * dy) == doctest::Approx(560.0f));
+	CHECK(300.0f - (jx[1] * dx + jy[1] * dy) == doctest::Approx(150.0f));
+}
+
+TEST_CASE("framing refuses a degenerate projection")
+{
+	const float jx[2] = { 1.0f, 2.0f };
+	const float jy[2] = { 2.0f, 4.0f };	// parallel to jx: no inverse
+	const float s[2] = { 0.0f, 0.0f };
+	const float t[2] = { 10.0f, 10.0f };
+	float dx = 5.0f, dy = 5.0f;
+	CHECK_FALSE(BenchScenario::frameStep(s, t, jx, jy, 0.2f, dx, dy));
+	CHECK(dx == 0.0f);
+	CHECK(dy == 0.0f);
 }
 
 TEST_CASE("a file without a [Bench] block is refused with a reason")

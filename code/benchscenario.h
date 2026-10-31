@@ -43,8 +43,8 @@ struct BenchScenario {
 	long reorderEvery = 90;		// re-issue attack orders every N frames
 	float strikeRadius = 300.0f;	// artillery lands within this of the centre
 	bool follow = true;			// camera keys relative to the fight, not the arena
-	float lift = 0.0f;			// aim this far in front of it (towards the viewer),
-								// raising it on screen above the HUD
+	float screenX = 0.5f;		// where on screen to hold the fight's centre,
+	float screenY = 0.5f;		// fractions from the top left (clear of the HUD)
 
 	long numSegments = 0;
 	BenchSegment segments[MAX_SEGMENTS];
@@ -65,6 +65,14 @@ struct BenchScenario {
 	// Offset of the i-th artillery strike from the arena centre: a fixed
 	// spiral that spreads strikes over the disc of the given radius.
 	static void strikeOffset(long i, float radius, float& x, float& y);
+
+	// One framing step: how far to move the camera's aim point on the ground
+	// so a world point now at screen position s moves a fraction gain of the
+	// way to target t. jx and jy are the point's screen motion per world unit
+	// in x and y (from projecting nearby points), so no axis or handedness
+	// conventions are assumed. False, with no move, if they are degenerate.
+	static bool frameStep(const float s[2], const float t[2], const float jx[2],
+			const float jy[2], float gain, float& dx, float& dy);
 };
 
 #endif // BENCHSCENARIO_H

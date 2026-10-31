@@ -229,14 +229,18 @@ the Pi; not needed for the numbers.
    - Damage is off through `Team::noPain` (all teams, mechs and vehicles),
      not `invulnerableON` (player mechs only); `neverEndingStory` keeps the
      mission running. With both, all 25 units fight the whole 3600 frames.
-   - The camera follows the fight's centre (smoothed) and aims `Lift` short
-     of it: at 800x600 the HUD covers the lower half of the screen.
+   - The camera follows the fight's centre (smoothed) and circles it. The
+     director projects that centre each frame and nudges the aim point until
+     it sits at `ScreenX`, `ScreenY`, so it stays in shot at any yaw.
+   - Screenshots are the whole drawable. Headless runs use an 800x600 Xvfb
+     screen (`bench.sh`, `smoke.sh`): with FullScreen on, a bigger screen
+     sized the viewport to it while the window stayed 800x600, so only a
+     scaled corner of each frame was drawn.
    - `-bench` turns sound off: radio chatter decided whether
      `Radio::playMessage` reached `RandomNumber()` by whether the previous
      message had finished playing (real time), so combat runs drifted apart.
    - A `state` column (checksum of every unit) separates logic divergence
      from rendering differences; `MC2_BENCH_DUMP` dumps per-unit state.
-   - Screenshots crop to the game's resolution (the Xvfb drawable is bigger).
    `bench.sh --scenario` writes `segments.csv` and a per-segment summary.
    Verified in WSL (llvmpipe): GL, GLES and Clang build; mc2_19 at 3600
    frames, two runs identical in game state on every frame and in all four
