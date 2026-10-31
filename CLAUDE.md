@@ -134,6 +134,19 @@ in CI. Still to come (sanitizers, coverage, benchmarks):
 `planning/QUALITY-ROADMAP.md`. How to write and run tests:
 `.claude/rules/testing-conventions.md`.
 
+## Workflow: worktrees and three tiers of checks
+
+Details in `.claude/rules/agent-workflow.md`. In short:
+
+- **One worktree per session or feature**, off the latest `pi-port`, with its
+  own build directories.
+- **Every commit:** `scripts/check.sh --build-dir <dir>`: incremental build,
+  unit tests, shader validation, cppcheck on changed files, diff hygiene.
+- **Every 3 to 5 commits and before a push:** `scripts/check.sh --level batch`
+  (both renderers, short smoke), then `/simplify` and `/code-review`.
+- **At the PR:** `/code-review high` on the branch; CI runs the full build
+  matrix and the five-mission smoke on the PR.
+
 Once coverage is measured, the threshold is a **ratchet**:
 
 - **Never lower a threshold to make a red build green.** Add the tests.
