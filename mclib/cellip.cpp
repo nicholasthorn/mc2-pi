@@ -28,6 +28,8 @@ unsigned long EllipseElement::s_textureHandle = 0;
 //---------------------------------------------------------------------------
 EllipseElement::EllipseElement (Stuff::Vector2DOf<long> &cntr, Stuff::Vector2DOf<long> &ortho, long clr, long depth) : Element(depth)
 {
+	memset( &clip, 0, sizeof( clip ) );
+
 	for ( int i = 0; i < 5; ++i )
 	{
 		location[i].argb = clr;

@@ -55,6 +55,9 @@ struct PolyElementData
 		
 	PolyElementData (void)
 	{
+		memset(vertices, 0, sizeof(vertices));
+		BarWidth = 0;
+		BarColor = 0;
 		init();
 	}
 };

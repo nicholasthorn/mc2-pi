@@ -126,6 +126,11 @@ class Vertex
 
 		Vertex (void)
 		{
+			vx = vy = 0.0f;
+			blockVertex = 0;
+			clipInfo = 0;
+			wAlpha = 0.0f;
+			hazeFactor = 0.0f;
 			init();
 		}
 

@@ -589,6 +589,7 @@ class TG_TypeShape : public TG_TypeNode
 		
 		TG_TypeShape (void)
 		{
+			nodeId[0] = parentId[0] = '\0';
 			init();
 		}
 
@@ -810,6 +811,7 @@ class TG_Shape
 		
 		TG_Shape (void)
 		{
+			cur_viewport[0] = cur_viewport[1] = cur_viewport[2] = cur_viewport[3] = 0.0f;
 			init();
 		}
 
