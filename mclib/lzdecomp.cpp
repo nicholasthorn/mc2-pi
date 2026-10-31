@@ -267,8 +267,9 @@ eof:
 //-------------------------------------------------------------------------------
 // LZ DeCompress Routine
 // Takes a pointer to dest buffer, a pointer to source buffer and len of source.
-// returns length of decompressed image.
-size_t LZDecomp (MemoryPtr dest, MemoryPtr src, size_t srcLen)
+// returns length of decompressed image, or 0 if it is corrupt or would
+// exceed destLen.
+size_t LZDecomp (MemoryPtr dest, MemoryPtr src, size_t srcLen, size_t destLen)
 {
     const int CHUNK = 16384;
     int ret;
@@ -317,6 +318,10 @@ size_t LZDecomp (MemoryPtr dest, MemoryPtr src, size_t srcLen)
             }
 
             have = CHUNK - strm.avail_out;
+            if (have > destLen - out_size) {
+                (void)inflateEnd(&strm);
+                return 0;
+            }
             memcpy(dest, out, have);
             dest += have;
             out_size += have;

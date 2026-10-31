@@ -311,9 +311,21 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      `readPathRecords` (`narrowGameObjectFootPrint`), so a size matching
      neither layout is refused, and the count packet is size-checked.
      Clan Wars mission 1 now runs 300 frames and exits cleanly, ASan
-     clean. The smoke script still flags it for the logged `STOP:` lines:
-     the packet noise below and "Texture not correct size!" (not yet
-     looked at).
+     clean. The smoke script still flags it for the logged `STOP:` lines
+     of the packet noise below.
+   - "Texture not correct size!" (28 per load): the cached terrain
+     transitions (`<type>.<overlay>.txm` in `data/textures`, one
+     TERRAIN_TXM_SIZE square each) are named without their size and shared
+     by every mission, so stock's 64 caches sit beside Omnitech's 256 ones.
+     A quick load (all caches on the mission's `.lst` present) never loads
+     the source tiles, so it cannot rebuild one. The old code STOPped and
+     drew a part-filled buffer; a cache larger than the current size would
+     have overflowed it (`LZDecomp` had no output bound). **Fixed on the
+     branch:** `LZDecomp` takes an optional output limit; `TerrainTextures::
+     init` turns quick load off if a listed cache has the wrong size (the
+     full load rebuilds and rewrites them); an unlisted one of another size
+     is resampled (nearest) to the current size. Clan Wars mission 1 now
+     logs no STOP besides the packet noise.
 6. **Mission editor import (idea, 2026-10-31).** When a mission editor
    lands (look at the Remaster and Omnitech editors for inspiration), an
    import step can convert mod data that the engine cannot read in a

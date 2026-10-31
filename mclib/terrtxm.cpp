@@ -58,6 +58,57 @@ long TerrainTextures::nextAvailable = 0;
 long TerrainTextures::numTxms = 0;
 
 extern bool InEditor;
+
+//---------------------------------------------------------------------------
+// A cached transition (.txm) holds one TERRAIN_TXM_SIZE square of DWORDs.
+// Its name does not include the size and is shared by every mission, so the
+// stock 64 caches and ones built at MechCommander Omnitech's 256 end up side
+// by side. A quick load cannot rebuild a transition (the source tiles are not
+// in RAM then), so a cache of the wrong size must turn quick load off.
+static bool txmCacheMatchesSize (const char *txmName)
+{
+	File txmFile;
+	if (txmFile.open(txmName) != NO_ERR)
+		return false;
+	const size_t expected = (size_t)TERRAIN_TXM_SIZE * TERRAIN_TXM_SIZE * sizeof(DWORD);
+	const long fileSize = txmFile.fileSize();
+	bool matches = false;
+	if (fileSize > 0)
+	{
+		MemoryPtr fileRAM = (MemoryPtr)malloc(fileSize);
+		MemoryPtr txm = (MemoryPtr)malloc(expected);
+		if (fileRAM && txm && (txmFile.read(fileRAM,fileSize) == fileSize))
+			matches = (LZDecomp(txm,fileRAM,fileSize,expected) == expected);
+		free(fileRAM);
+		free(txm);
+	}
+	txmFile.close();
+	return matches;
+}
+
+// largest TerrainTextureRes (prefs.cfg: 16 to 256)
+#define MAX_CACHED_TXM_SIZE		256
+
+// Side of a square DWORD image of `bytes` bytes, or 0 if it is not one.
+static long squareTxmSize (size_t bytes)
+{
+	if (!bytes || (bytes % sizeof(DWORD)))
+		return 0;
+	const size_t pixels = bytes / sizeof(DWORD);
+	for (long side = 1; side <= MAX_CACHED_TXM_SIZE; side *= 2)
+		if ((size_t)side * side == pixels)
+			return side;
+	return 0;
+}
+
+// Nearest-neighbour resample of a square DWORD image.
+static void resampleTxm (const DWORD *src, long srcSize, DWORD *dst, long dstSize)
+{
+	for (long y = 0; y < dstSize; y++)
+		for (long x = 0; x < dstSize; x++)
+			dst[y * dstSize + x] = src[(y * srcSize / dstSize) * srcSize + (x * srcSize / dstSize)];
+}
+
 //---------------------------------------------------------------------------
 // Class TerrainTextures
 //
@@ -84,7 +135,7 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 			{
 				char listName[1024];
 				listFile.readString((MemoryPtr)listName);
-				if (!fileExists(listName))
+				if (!fileExists(listName) || !txmCacheMatchesSize(listName))
 				{
 					quickLoad = false;
 					break;
@@ -1136,25 +1187,51 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 				if (result != fileSize)
 					STOP(("Read Error with Texture %s",(const char*)testPath));
 
-				MemoryPtr lzBuffer = (MemoryPtr)malloc(mipSize * mipSize * sizeof(DWORD));
-				long bufferSize = LZDecomp(lzBuffer,fileRAM,fileSize);
-				if (bufferSize != (mipSize * mipSize * sizeof(DWORD)))
-					STOP(("Texture not correct size!"));
+				// Room for a cache built at up to MAX_CACHED_TXM_SIZE: the
+				// names are shared by every mission, so one built at another
+				// TerrainTextureRes (stock .txm are 64, Omnitech runs at 256)
+				// is resampled. init() turns quick load off when a cache on
+				// the mission's .lst has the wrong size, so the full load
+				// rebuilds those; this catches the unlisted ones, which a quick
+				// load cannot rebuild. This used to STOP and use a part-filled
+				// buffer, and a larger cache would have overflowed it.
+				const size_t txmBytes = mipSize * mipSize * sizeof(DWORD);
+				const size_t maxBytes = (size_t)MAX_CACHED_TXM_SIZE * MAX_CACHED_TXM_SIZE * sizeof(DWORD);
+				const size_t lzBytes = (txmBytes > maxBytes) ? txmBytes : maxBytes;
+				MemoryPtr lzBuffer = (MemoryPtr)malloc(lzBytes);
+				size_t bufferSize = LZDecomp(lzBuffer,fileRAM,fileSize,lzBytes);
 
 				txmFile.close();
-
-				result = textureFromMemoryAlpha(lzBuffer,mipSize);
-				txmResult = result;
-
 				free(fileRAM);
+
+				long cachedSize = squareTxmSize(bufferSize);
+				if (cachedSize && (cachedSize != mipSize))
+				{
+					MemoryPtr scaled = (MemoryPtr)malloc(txmBytes);
+					resampleTxm((const DWORD*)lzBuffer,cachedSize,(DWORD*)scaled,mipSize);
+					free(lzBuffer);
+					lzBuffer = scaled;
+					bufferSize = txmBytes;
+				}
+
+				if (bufferSize == txmBytes)
+				{
+					result = textureFromMemoryAlpha(lzBuffer,mipSize);
+					txmResult = result;
+				}
+
 				free(lzBuffer);
 
-				transitions[nextTransition].transitionIndex = typeInfo;
-				transitions[nextTransition].baseTXMIndex = txmResult;
-				transitions[nextTransition].overlayIndex = overlayInfo;
-				nextTransition++;
+				// corrupt: fall through, as for a missing cache
+				if (bufferSize == txmBytes)
+				{
+					transitions[nextTransition].transitionIndex = typeInfo;
+					transitions[nextTransition].baseTXMIndex = txmResult;
+					transitions[nextTransition].overlayIndex = overlayInfo;
+					nextTransition++;
 
-				return (txmResult);
+					return (txmResult);
+				}
 			}
 		}
 

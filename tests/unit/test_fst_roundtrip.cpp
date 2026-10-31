@@ -22,6 +22,7 @@
 #include "file.h"
 #include "ffile.h"
 #include "fastfile.h"
+#include "lz.h"
 
 #include <cstdio>
 #include <cstring>
@@ -204,6 +205,30 @@ TEST_CASE("fileExists reports loose (1) vs FST (2) tiers")
 
 	remove(kFstEntryName);
 	remove(fstPath.c_str());
+}
+
+TEST_CASE("LZDecomp stops at destLen instead of overflowing")
+{
+	// A cached terrain .txm built at TerrainTextureRes 256 (256 KB) decoded
+	// into a buffer for 64 (16 KB) used to overflow it.
+	std::string src(40000, 'x');
+	for (size_t i = 0; i < src.size(); i += 7)
+		src[i] = (char)('a' + (i % 26));
+	std::string packed(src.size() * 2 + 64, '\0');
+	const size_t packedLen = LZCompress((MemoryPtr)&packed[0], (MemoryPtr)&src[0], src.size());
+	REQUIRE(packedLen > 0);
+
+	std::string out(src.size() + 16, '#');
+	CHECK(LZDecomp((MemoryPtr)&out[0], (MemoryPtr)&packed[0], packedLen, src.size()) == src.size());
+	CHECK(out.compare(0, src.size(), src) == 0);
+
+	std::string small(20016, '#');
+	CHECK(LZDecomp((MemoryPtr)&small[0], (MemoryPtr)&packed[0], packedLen, 20000) == 0);
+	for (size_t i = 20000; i < small.size(); i++)
+		REQUIRE(small[i] == '#');
+
+	// no limit given: the old behaviour
+	CHECK(LZDecomp((MemoryPtr)&out[0], (MemoryPtr)&packed[0], packedLen) == src.size());
 }
 
 } // TEST_SUITE("FstRoundtrip")
