@@ -278,15 +278,16 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
 4. **FST archives built on Windows.** Omnitech's `tgl.fst` and `art.fst`
    name entries `data\tgl\x`; `FastFile::open` now normalises to `/` and
    rehashes (branch). Separately, Omnitech's `tgl.fst` uses Microsoft's
-   original LZ compression (version 0xFADDECAF, not zlib); this port's
-   `LZDecomp` is zlib (the original is x86 inline asm, `#ifndef
-   LINUX_BUILD`), so it cannot read it. Its 4667 entries are the stock
-   ones, so the test setup keeps the stock `tgl.fst`; Omnitech's new
-   models are loose files. Its `art.fst` is zlib and reads. The remaster
-   already has a C port of Microsoft's LZ decoder (`7d6f9bc6`, with raw
-   entries where `size == realSize` in `3b5f87ca` and bounds fixes
-   `adbf3c9a`, `69ee9782`): back-porting it would read Omnitech's `tgl.fst`
-   and stop retail-format FSTs decompressing to zeros without an error.
+   original LZ compression (version 0xFADDECAF, not zlib). **Decoder in
+   (branch `fix/backport-lz-decoder`, back-port of the remaster's
+   `7d6f9bc6` and `3b5f87ca`):** `LZDecomp` reads the original LZ as well
+   as zlib, picked from the first two bytes, and raw entries
+   (`size == realSize`) read. Omnitech's own `tgl.fst` now reads: all 4667
+   entries decode to their exact size, 1947 byte for byte the stock ones,
+   the rest differing only in float last bits and padding bytes, and
+   mc2_01/mc2_03 run with it. The test setup still uses the stock
+   `tgl.fst`, with Omnitech's new models as loose files; switching it is a
+   separate step. Its `art.fst` is zlib and reads.
 5. **`.burnin.jpg` colour maps. Done on branch `omnitech-objtypes`.** Clan
    Wars ships only `textures/<mission>.burnin.jpg` (100 maps, all square,
    baseline, 768 to 4096 px). The original engine already had the JPG branch
