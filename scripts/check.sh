@@ -169,7 +169,15 @@ if [ -n "$CPP" ] && command -v cppcheck >/dev/null; then
         fi
         restore
         trap - EXIT INT TERM
-        added=$(comm -13 <(grep '^NEW' "$before" | sort) <(grep '^NEW' "$after" | sort))
+        # Compare per-finding counts: the gate prints a surplus over the
+        # baseline as "NEW ... (xN)", so going from x2 to x1 is not "added".
+        added=$(awk '
+            { n = 1; k = $0
+              if (match(k, / \(x[0-9]+\)$/)) { n = substr(k, RSTART + 3, RLENGTH - 4) + 0; k = substr(k, 1, RSTART - 1) } }
+            FILENAME == ARGV[1] { before[k] += n; next }
+            { after[k] += n }
+            END { for (k in after) { d = after[k] - before[k]; if (d > 0) print k (d > 1 ? " (x" d ")" : "") } }
+        ' <(grep '^NEW' "$before") <(grep '^NEW' "$after"))
         if [ -z "$added" ]; then
             ok "cppcheck: nothing new compared with $($GIT rev-parse --short "$REF") (local cppcheck $local_ver, baseline $base_ver)"
         else
