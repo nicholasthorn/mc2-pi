@@ -423,7 +423,10 @@ int main(int argc, char** argv)
         draw_screen();
 		uint64_t capture_ticks = 0;
         if(!g_bench_shot.empty()) {
-            // not part of the frame: its time is taken off the timings below
+            // not part of the frame: its time is taken off the timings below.
+            // Finish the frame's GPU work first, or glReadPixels waits for it
+            // inside the capture span and the shot frame looks too fast.
+            glFinish();
             uint64_t capture_tick = timing::gettickcount();
             bench_capture(g_bench_shot);
             g_bench_shot.clear();
