@@ -1,0 +1,61 @@
+FITini
+// Scripted benchmark on mc2_19 (82 enemy units, the most of any campaign
+// mission). Played by code/benchdirector.cpp under
+//   mc2 -mission mc2_19 -autoexit 3600 -bench <csv> -benchscenario <this>
+// or scripts/bench.sh --scenario bench/mc2_19.fit
+//
+// The player's lance and the 20 nearest enemies are moved into two lines at
+// the player's start, everyone is ordered to attack and nobody takes damage.
+// Distances are world units, angles degrees, frames gameplay frames (30 per
+// game second). Camera keys: frame, x and y from the arena centre, tilt above
+// horizontal, yaw, altitude.
+
+[Bench]
+st Mission = "mc2_19"
+l Frames = 3600
+l Gather = 20
+f LineGap = 600.0
+f Spacing = 90.0
+l ReorderEvery = 90
+f StrikeRadius = 350.0
+b Follow = TRUE
+f Lift = 400.0
+l NumSegments = 4
+
+[Segment0]
+st Name = "overview"
+l Start = 0
+l Shot = 450
+l StrikeEvery = 0
+l NumKeys = 2
+f[6] Key0 = 0, 0, 0, 50, 0, 1600
+f[6] Key1 = 599, 0, 0, 50, 120, 1600
+
+[Segment1]
+st Name = "engage"
+l Start = 600
+l Shot = 1500
+l StrikeEvery = 0
+l NumKeys = 2
+f[6] Key0 = 600, 0, 0, 35, 120, 1200
+f[6] Key1 = 1799, 0, 0, 35, -60, 1200
+
+[Segment2]
+st Name = "closeup"
+l Start = 1800
+l Shot = 2400
+l StrikeEvery = 0
+l NumKeys = 2
+f[6] Key0 = 1800, -150, 0, 25, -60, 800
+f[6] Key1 = 2699, 150, 0, 25, 30, 800
+
+[Segment3]
+st Name = "effects"
+l Start = 2700
+l Shot = 3300
+l StrikeEvery = 20
+l NumKeys = 2
+f[6] Key0 = 2700, 0, 0, 40, 30, 1300
+f[6] Key1 = 3599, 0, 0, 40, 150, 1300
+
+FITend

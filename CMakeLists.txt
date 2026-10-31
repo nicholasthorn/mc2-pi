@@ -177,6 +177,8 @@ set(SOURCES
     "code/gamecam.cpp"
     "code/mission.cpp"
     "code/mission2.cpp"
+    "code/benchscenario.cpp"
+    "code/benchdirector.cpp"
     "code/objective.cpp"
     "code/saveload.cpp"
     "code/trigger.cpp"
@@ -255,6 +257,15 @@ endif()
 
 
 add_executable(mc2 ${SOURCES} ${MAIN_SRC})
+# new, game-free code: strict warnings. benchdirector.cpp stays on the legacy
+# flags: it is glue that includes most of the game's 2001 headers.
+# benchscenario.cpp includes inifile.h, whose dstd.h has MSVC-only
+# "#pragma warning" lines; the unit tests see it as a SYSTEM header, the game
+# target cannot, so only that warning is relaxed here.
+if(MC2_STRICT_WARNINGS)
+    set_source_files_properties(code/benchscenario.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
+endif()
 target_link_libraries(mc2 mclib gosfx mlr stuff gui gameos gameos_main windows ZLIB::ZLIB ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer ${ADDITIONAL_LIBS} ${MC2_GL_LIBS})
 
 add_subdirectory("./res" "./out/res")

@@ -18,6 +18,8 @@ struct FrameSample {
 	double swap_ms = 0.0;    // swap_window(): where a GPU-bound frame waits
 	uint32_t draws = 0;      // GL draw calls issued this frame
 	uint32_t tris = 0;       // triangles in those draw calls
+	uint32_t segment = 0;    // scripted-scenario segment (gos_BenchSegment)
+	uint32_t state = 0;      // game-state checksum (gos_BenchStateHash), 0 = none
 };
 
 struct Summary {

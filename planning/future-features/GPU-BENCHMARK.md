@@ -219,7 +219,32 @@ the Pi; not needed for the numbers.
    **Also built** (2026-10-31): `bench.sh --perf`, a `perf record -g` run
    per mission that samples gameplay frames only (the game drives perf's
    control FIFO), with a `MC2_FRAME_POINTERS` build option for call stacks.
-2. Bench director, scenario file, segments, screenshots.
+2. **Built** (2026-10-31): `-benchscenario <fit>` played by
+   `code/benchdirector.cpp` (logic in `code/benchscenario.cpp`, unit
+   tested); format and tuning in `bench/README.md`. Differences from the
+   plan above:
+   - No stock mission starts with forces close together (median 1.5 to 6 km
+     to the nearest enemy), so the director teleports the player's units and
+     the nearest enemies into two lines instead of waiting for a fight.
+   - Damage is off through `Team::noPain` (all teams, mechs and vehicles),
+     not `invulnerableON` (player mechs only); `neverEndingStory` keeps the
+     mission running. With both, all 25 units fight the whole 3600 frames.
+   - The camera follows the fight's centre (smoothed) and aims `Lift` short
+     of it: at 800x600 the HUD covers the lower half of the screen.
+   - `-bench` turns sound off: radio chatter decided whether
+     `Radio::playMessage` reached `RandomNumber()` by whether the previous
+     message had finished playing (real time), so combat runs drifted apart.
+   - A `state` column (checksum of every unit) separates logic divergence
+     from rendering differences; `MC2_BENCH_DUMP` dumps per-unit state.
+   - Screenshots crop to the game's resolution (the Xvfb drawable is bigger).
+   `bench.sh --scenario` writes `segments.csv` and a per-segment summary.
+   Verified in WSL (llvmpipe): GL, GLES and Clang build; mc2_19 at 3600
+   frames, two runs identical in game state on every frame and in all four
+   screenshots; per-segment fps within 1 to 3 percent between runs; GLES
+   gives the same state and correct screenshots. Known gap: in the effects
+   segment the draw-call count can differ by about 0.3% between runs
+   (triangles, state and images identical), probably how the alpha-sorted
+   effect batching (PR #5) splits; not chased.
 3. GPU timer queries and `bench.sh` / `bench_compare.py`.
 4. HUD (optional).
 
@@ -235,12 +260,11 @@ the Pi; not needed for the numbers.
 
 ## Open questions
 
-- Which stock missions have the biggest fights within one map region? Needs a
-  survey of mission unit counts and starting positions.
+- Answered (phase 2): no stock mission has forces close together, so the
+  director gathers them; all-team noPain keeps the AI fighting with orders
+  repeated every 90 frames; neverEndingStory and clearing camera goals and
+  movie mode each frame stop mission scripts interfering.
+- A second scenario on a different map (daylight, buildings) would cover
+  terrain and lighting cases mc2_19 (night, forest) does not.
 - Does V3D on Pi OS expose `GL_EXT_disjoint_timer_query`? If not, is the
   `glFinish` mode enough, or should we rely on apitrace replays?
-- Does `Invulnerable` for all teams keep AI fighting, or do they need
-  re-ordering every few hundred frames (the director can repeat
-  `attack_nearest`)?
-- Do cinematics or mission scripts (ABL objectives, end triggers) interfere?
-  The director may need to suppress mission end and scripted camera moves.

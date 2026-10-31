@@ -45,6 +45,14 @@ split per run. Run it on the Pi's own display with nothing else busy:
 scripts/bench.sh --game-dir ~/mc2exe --build-dir build64 --renderers gpu
 ```
 
+Stock missions open quietly. For a frame with real load (25 units fighting,
+artillery, a moving camera), play a scripted scenario; each of its segments
+is timed separately and screenshotted (`bench/README.md`):
+
+```
+scripts/bench.sh --game-dir ~/mc2exe --build-dir build64 --renderers gpu --scenario bench/mc2_19.fit
+```
+
 For CPU profiles, add `--perf` (one extra sampled run per mission, gameplay
 frames only). It needs `perf` and, for readable call stacks, a build with
 frame pointers in its own directory, so timed numbers still come from a

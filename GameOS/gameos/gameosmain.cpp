@@ -13,8 +13,11 @@
 #include "utils/gl_utils.h"
 #include "utils/timing.h"
 #include "utils/frame_stats.h"
+#include "utils/tga_writer.h"
 
 #include <signal.h>
+#include <algorithm>
+#include <string>
 #include <vector>
 
 extern graphics::RenderContextHandle gos_GetRenderContext();
@@ -46,6 +49,70 @@ static bool g_bench = false;
 float __stdcall gos_GetFixedFrameLength()
 {
     return g_bench ? BENCH_FRAME_LENGTH : 0.0f;
+}
+
+// -benchscenario <fit>: the scripted scenario code/benchdirector.cpp plays.
+// It names segments (timed separately) and asks for screenshots.
+static const char* g_bench_csv = NULL;
+static const char* g_bench_scenario = NULL;
+static std::vector<std::string> g_bench_segments;   // index = FrameSample::segment
+static std::string g_bench_shot;                    // screenshot for this frame
+
+const char* __stdcall gos_GetBenchScenario()
+{
+    return g_bench ? g_bench_scenario : NULL;
+}
+
+void __stdcall gos_BenchSegment(const char* name)
+{
+    if(g_bench && name)
+        g_bench_segments.push_back(name);
+}
+
+void __stdcall gos_BenchScreenshot(const char* name)
+{
+    if(g_bench && name)
+        g_bench_shot = name;
+}
+
+static uint32_t g_bench_state = 0;      // this frame's gos_BenchStateHash
+
+void __stdcall gos_BenchStateHash(unsigned int hash)
+{
+    g_bench_state = hash;
+}
+
+// <csv without .csv>_<name>.tga, so shots sit next to the run's frame CSV
+static std::string bench_output_path(const char* name, const char* ext)
+{
+    std::string base = g_bench_csv;
+    const size_t dot = base.rfind(".csv");
+    if(dot != std::string::npos && dot + 4 == base.size())
+        base.resize(dot);
+    return base + "_" + name + ext;
+}
+
+// Reads back the frame just drawn (before swap) and writes it as a TGA.
+static void bench_capture(const std::string& name)
+{
+    // The game draws at its own resolution from the bottom-left corner; the
+    // drawable can be bigger (e.g. a full Xvfb screen), so crop to the game.
+    const int w = std::min(Environment.drawableWidth, Environment.screenWidth);
+    const int h = std::min(Environment.drawableHeight, Environment.screenHeight);
+    if(w <= 0 || h <= 0)
+        return;
+    std::vector<uint8_t> px((size_t)w * h * 4);
+    GLint pack = 4;
+    glGetIntegerv(GL_PACK_ALIGNMENT, &pack);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+    glPixelStorei(GL_PACK_ALIGNMENT, pack);
+    const std::string path = bench_output_path(name.c_str(), ".tga");
+    if(writeTGA24(path.c_str(), w, h, px.data()))
+        printf("[BENCH] screenshot %s\n", path.c_str());
+    else
+        printf("[BENCH] ERROR: cannot write %s\n", path.c_str());
+    fflush(stdout);
 }
 
 // MC2_PERF_CTL / MC2_PERF_ACK: paths of the control and ack FIFOs given to
@@ -257,8 +324,11 @@ int main(int argc, char** argv)
             autoexit_frames = atol(argv[i+1]);
         if(0 == strcmp(argv[i], "-bench"))
             bench_csv = argv[i+1];
+        if(0 == strcmp(argv[i], "-benchscenario"))
+            g_bench_scenario = argv[i+1];
     }
     g_bench = bench_csv != NULL;
+    g_bench_csv = bench_csv;
     perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;
     if(g_bench) {
@@ -305,6 +375,14 @@ int main(int argc, char** argv)
         graphics::make_current_context(ctx);
 		uint64_t render_tick = timing::gettickcount();
         draw_screen();
+		uint64_t capture_ticks = 0;
+        if(!g_bench_shot.empty()) {
+            // not part of the frame: its time is taken off the timings below
+            uint64_t capture_tick = timing::gettickcount();
+            bench_capture(g_bench_shot);
+            g_bench_shot.clear();
+            capture_ticks = timing::gettickcount() - capture_tick;
+        }
 		uint64_t swap_tick = timing::gettickcount();
         graphics::swap_window(win);
 		uint64_t swapped_tick = timing::gettickcount();
@@ -312,7 +390,7 @@ int main(int argc, char** argv)
         g_exit |= gosExitGameOS();
 
 		uint64_t end_tick = timing::gettickcount();
-		double dt_sec = timing::ticks2sec(end_tick - start_tick);
+		double dt_sec = timing::ticks2sec(end_tick - start_tick - capture_ticks);
 		frameRate = (float)(1.0 / dt_sec);
 
         uint32_t draws = 0, tris = 0;
@@ -325,10 +403,13 @@ int main(int argc, char** argv)
                 frame_stats::FrameSample s;
                 s.total_ms = dt_sec * 1000.0;
                 s.logic_ms = timing::ticks2ms(render_tick - logic_tick);
-                s.render_ms = timing::ticks2ms(swap_tick - render_tick);
+                s.render_ms = timing::ticks2ms(swap_tick - render_tick - capture_ticks);
                 s.swap_ms = timing::ticks2ms(swapped_tick - swap_tick);
                 s.draws = draws;
                 s.tris = tris;
+                s.segment = g_bench_segments.empty() ? 0 : (uint32_t)(g_bench_segments.size() - 1);
+                s.state = g_bench_state;
+                g_bench_state = 0;
                 bench_frames.push_back(s);
             }
         }
@@ -346,6 +427,15 @@ int main(int argc, char** argv)
 
     // written after the loop so file IO never lands inside a measured frame
     if(g_bench) {
+        // one line per scenario segment, then the whole run
+        for(size_t seg = 0; seg < g_bench_segments.size(); ++seg) {
+            std::vector<frame_stats::FrameSample> part;
+            for(size_t i = 0; i < bench_frames.size(); ++i)
+                if(bench_frames[i].segment == seg)
+                    part.push_back(bench_frames[i]);
+            printf("%s\n", frame_stats::summaryLine(g_bench_segments[seg].c_str(),
+                        frame_stats::summarize(part)).c_str());
+        }
         printf("%s\n", frame_stats::summaryLine("all", frame_stats::summarize(bench_frames)).c_str());
         FILE* f = fopen(bench_csv, "w");
         if(f) {

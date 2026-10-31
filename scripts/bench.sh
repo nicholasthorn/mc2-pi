@@ -32,7 +32,14 @@
 #   --timeout S        seconds before a run counts as hung (default: 600)
 #   --out DIR          logs and results.csv (default: ./bench-results)
 #   --label TEXT       note stored with every row, e.g. "fan on, 1080p"
-#   --perf             after the timed runs, one extra run per mission and
+#   --scenario FILE    play a scripted battle (bench/*.fit) instead of the
+#                      mission as it stands: units gathered into an arena and
+#                      fighting, a camera path, artillery, named segments. Its
+#                      Mission and Frames are the defaults for --missions and
+#                      --frames. Each segment gets a row per run in
+#                      segments.csv, and the screenshots it asks for are saved
+#                      as logs/*.frames_<segment>.tga.
+#   --perf            after the timed runs, one extra run per mission and
 #                      renderer under "perf record -g", sampling gameplay
 #                      frames only (the game switches it on and off). Its fps
 #                      is not recorded: sampling slows the game. Writes
@@ -74,15 +81,19 @@ LABEL=""
 PERF=0
 PERF_FREQ=999
 CALL_GRAPH=fp
+SCENARIO=""
+MISSIONS_SET=0
+FRAMES_SET=0
 SRC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --game-dir)  GAME_DIR="$2"; shift 2 ;;
         --build-dir) BUILD_DIR="$2"; shift 2 ;;
-        --missions)  MISSIONS="$2"; shift 2 ;;
+        --missions)  MISSIONS="$2"; MISSIONS_SET=1; shift 2 ;;
         --renderers) RENDERERS="$2"; shift 2 ;;
-        --frames)    FRAMES="$2"; shift 2 ;;
+        --frames)    FRAMES="$2"; FRAMES_SET=1; shift 2 ;;
+        --scenario)  SCENARIO="$2"; shift 2 ;;
         --runs)      RUNS="$2"; shift 2 ;;
         --vsync)     VSYNC="$2"; shift 2 ;;
         --cool-to)   COOL_TO="$2"; shift 2 ;;
@@ -133,6 +144,25 @@ if [ -n "$BUILD_DIR" ]; then
     rm -rf "$GAME_DIR/shaders" && cp -r "$SRC_DIR/shaders" "$GAME_DIR/" || exit 2
 fi
 
+# The scenario is copied into the game dir under a fixed lower-case name and
+# passed relative: File::open lower-cases the whole path, so an absolute one
+# with upper-case directories would not open on Linux.
+SCENARIO_ARGS=()
+SCENARIO_NAME=""
+if [ -n "$SCENARIO" ]; then
+    if [ ! -f "$SCENARIO" ]; then
+        echo "bench: no scenario file '$SCENARIO'" >&2
+        exit 2
+    fi
+    cp "$SCENARIO" "$GAME_DIR/bench_scenario.fit" || exit 2
+    SCENARIO_ARGS=(-benchscenario bench_scenario.fit)
+    SCENARIO_NAME=$(basename "$SCENARIO" .fit)
+    m=$(sed -n 's/^st Mission = "\(.*\)".*/\1/p' "$SCENARIO" | head -1)
+    f=$(sed -n 's/^l Frames = \([0-9]*\).*/\1/p' "$SCENARIO" | head -1)
+    [ $MISSIONS_SET = 0 ] && [ -n "$m" ] && MISSIONS="$m"
+    [ $FRAMES_SET = 0 ] && [ -n "$f" ] && FRAMES="$f"
+fi
+
 # Same first-launch config step as smoke.sh (see there). The settings in
 # options.cfg change the numbers, so its hash goes into every result row.
 if [ ! -f "$GAME_DIR/options.cfg" ]; then
@@ -151,6 +181,9 @@ if [ -f "$RESULTS" ] && [ "$(head -1 "$RESULTS")" != "$HEADER" ]; then
     echo "bench: results.csv had other columns; moved it aside"
 fi
 [ -f "$RESULTS" ] || echo "$HEADER" > "$RESULTS"
+SEGMENTS="$OUT_DIR/segments.csv"
+BENCH_KEYS="frames fps avg_ms p50_ms p95_ms p99_ms max_ms logic_ms render_ms swap_ms draws tris"
+[ -f "$SEGMENTS" ] || echo "date,commit,label,host,scenario,mission,renderer,run,segment,${BENCH_KEYS// /,}" > "$SEGMENTS"
 
 COMMIT=$(git -C "$SRC_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)
 git -C "$SRC_DIR" diff --quiet HEAD -- 2>/dev/null || COMMIT="$COMMIT-dirty"
@@ -237,6 +270,7 @@ export MC2_VSYNC="$VSYNC"
 
 echo "bench: $HOST, commit $COMMIT, governor $GOVERNOR, options.cfg $CFG_HASH, vsync $VSYNC"
 echo "bench: $RUNS run(s) x {$MISSIONS} x {$RENDERERS}, $FRAMES frames each; results: $RESULTS"
+[ -n "$SCENARIO" ] && echo "bench: scenario $SCENARIO; per-segment results: $SEGMENTS"
 
 SUMMARY=$(mktemp)
 trap 'rm -f "$SUMMARY"' EXIT
@@ -261,7 +295,7 @@ for run in $(seq 1 "$RUNS"); do
 
             sample_soc > "$soc" &
             sampler=$!
-            ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" -bench "$frames_csv" ) > "$log" 2>&1
+            ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" -bench "$frames_csv" "${SCENARIO_ARGS[@]}" ) > "$log" 2>&1
             rc=$?
             kill $sampler 2>/dev/null
             wait $sampler 2>/dev/null
@@ -284,6 +318,7 @@ for run in $(seq 1 "$RUNS"); do
             [ $rc -ne 0 ] && [ $rc -ne 137 ] && reasons+=("exit status $rc")
             [ -z "${fps:-}" ] && reasons+=("no [AUTOEXIT] line")
             [ -z "$bench" ] && reasons+=("no [BENCH] line")
+            [ -n "$SCENARIO" ] && grep -q '^\[BENCH\] ERROR' "$log" && reasons+=("scenario error: $(grep -m1 '^\[BENCH\] ERROR' "$log" | cut -c17-)")
             mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
             aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
             if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
@@ -308,12 +343,28 @@ for run in $(seq 1 "$RUNS"); do
                 printf '\n'
             } >> "$RESULTS"
 
+            # one row per scenario segment ([BENCH] segment=<name> ...)
+            while read -r line; do
+                seg=$(sed -n 's/^\[BENCH\] segment=\([^ ]*\) .*/\1/p' <<< "$line")
+                {
+                    printf '%s,%s,' "$(date -Iseconds)" "$COMMIT"
+                    csv_quote "$LABEL"; printf ','
+                    csv_quote "$HOST"; printf ','
+                    printf '%s,%s,%s,%s,%s' "$SCENARIO_NAME" "$m" "$r" "$run" "$seg"
+                    for k in $BENCH_KEYS; do
+                        printf ',%s' "$(sed -n "s/.* $k=\([0-9.]*\).*/\1/p" <<< "$line")"
+                    done
+                    printf '\n'
+                } >> "$SEGMENTS"
+                [ $status = PASS ] && echo "$m $r $seg $(sed -n 's/.* fps=\([0-9.]*\).*/\1/p' <<< "$line")" >> "$SUMMARY"
+            done < <(grep '^\[BENCH\] segment=' "$log" | grep -v '^\[BENCH\] segment=all ')
+
             note=""
             [ -n "$flags" ] && [ "$flags" != 0 ] && note=" THROTTLED (flags $flags)"
             if [ $status = PASS ]; then
                 [ -n "$max_temp" ] && note=", max ${max_temp}C$note"
                 echo "PASS $m $r run $run: ${fps} fps (${frames} frames in ${secs} s)$note"
-                echo "$m $r $fps" >> "$SUMMARY"
+                echo "$m $r all $fps" >> "$SUMMARY"
             else
                 echo "FAIL $m $r run $run: $(printf '%s; ' "${reasons[@]}")"
                 echo "    log: $log"
@@ -323,19 +374,20 @@ for run in $(seq 1 "$RUNS"); do
     done
 done
 
-# Median, min and max fps per mission and renderer for this invocation.
+# Median, min and max fps per mission, renderer and segment ("all" = the
+# whole run) for this invocation.
 if [ -s "$SUMMARY" ]; then
     echo
-    printf '%-10s %-4s %5s %8s %8s %8s\n' mission rend runs median min max
-    sort -k1,1 -k2,2 -k3,3n "$SUMMARY" | awk '
+    printf '%-10s %-4s %-12s %5s %8s %8s %8s\n' mission rend segment runs median min max
+    sort -k1,1 -k2,2 -k3,3 -k4,4n "$SUMMARY" | awk '
         function flush() {
             if (n == 0) return
             med = (n % 2) ? v[(n + 1) / 2] : (v[n / 2] + v[n / 2 + 1]) / 2
-            printf "%-10s %-4s %5d %8.1f %8.1f %8.1f\n", key1, key2, n, med, v[1], v[n]
+            printf "%-10s %-4s %-12s %5d %8.1f %8.1f %8.1f\n", key1, key2, key3, n, med, v[1], v[n]
             n = 0
         }
-        $1 != key1 || $2 != key2 { flush(); key1 = $1; key2 = $2 }
-        { v[++n] = $3 }
+        $1 != key1 || $2 != key2 || $3 != key3 { flush(); key1 = $1; key2 = $2; key3 = $3 }
+        { v[++n] = $4 }
         END { flush() }'
 fi
 
@@ -366,7 +418,7 @@ if [ $PERF = 1 ]; then
             ( cd "$GAME_DIR" && MC2_PERF_CTL="$ctl" MC2_PERF_ACK="$ack" "${RUN[@]}" \
                 perf record -F "$PERF_FREQ" --call-graph "$cg" --delay=-1 \
                     --control "fd:$ctl_fd,$ack_fd" -o "$base.perf.data" -- \
-                    timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" -bench "$base.frames.csv" ) > "$base.log" 2>&1
+                    timeout -s KILL "$TIMEOUT" ./mc2 -mission "$m" -autoexit "$FRAMES" -bench "$base.frames.csv" "${SCENARIO_ARGS[@]}" ) > "$base.log" 2>&1
             rc=$?
             exec {ctl_fd}>&- {ack_fd}>&-
             rm -f "$ctl" "$ack"

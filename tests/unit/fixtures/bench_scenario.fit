@@ -1,0 +1,34 @@
+FITini
+
+[Bench]
+st Mission = "mc2_23"
+l Frames = 900
+f ArenaX = 1000.0
+f ArenaY = -2000.0
+l Gather = 12
+f LineGap = 800.0
+f Spacing = 120.0
+l ReorderEvery = 60
+f StrikeRadius = 300.0
+b Follow = FALSE
+f Lift = 250.0
+l NumSegments = 2
+
+[Segment0]
+st Name = "overview"
+l Start = 0
+l Shot = 100
+l StrikeEvery = 0
+l NumKeys = 2
+f[6] Key0 = 0, 0, 0, 30, 0, 1600
+f[6] Key1 = 300, 400, 0, 30, 90, 1600
+
+[Segment1]
+st Name = "effects"
+l Start = 300
+l Shot = -1
+l StrikeEvery = 30
+l NumKeys = 1
+f[6] Key0 = 600, 0, 200, 60, -170, 800
+
+FITend
