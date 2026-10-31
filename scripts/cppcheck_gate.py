@@ -99,7 +99,8 @@ def run_cppcheck(build_dir, files, jobs):
     # itself (no file matched the filter, bad project file, crash). Its
     # findings would then be missing, not zero. Exit 2 (1 means new findings).
     if r.returncode != 0 and not findings:
-        tail = "\n".join((r.stderr or r.stdout).strip().splitlines()[-5:])
+        # the error can be on either stream (--quiet sends some to stdout)
+        tail = "\n".join((r.stdout + "\n" + r.stderr).strip().splitlines()[-5:])
         print("cppcheck failed (exit %d):\n%s" % (r.returncode, tail))
         sys.exit(2)
     return findings

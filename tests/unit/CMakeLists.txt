@@ -90,9 +90,10 @@ set_source_files_properties(
 # Fixtures are copied next to the tests and opened by RELATIVE path:
 # File::open lowercases the whole name, so an absolute path with upper-case
 # directories (e.g. /mnt/c/Users/...) would not resolve on Linux.
-# Copied on every build (not at configure time), so an edited fixture is
-# never tested from a stale copy.
+# Copied afresh on every build (not at configure time), so an edited,
+# renamed or deleted fixture is never tested from a stale copy.
 add_custom_target(mc2_test_fixtures ALL
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/fixtures
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_CURRENT_SOURCE_DIR}/fixtures ${CMAKE_CURRENT_BINARY_DIR}/fixtures)
 add_dependencies(mc2_tests mc2_test_fixtures)
