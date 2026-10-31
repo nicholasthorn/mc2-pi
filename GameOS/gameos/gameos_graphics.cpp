@@ -501,6 +501,9 @@ class gosMesh {
         // GPU buffer size, in full CPU-side meshes
         static const int STREAM_BUFFER_DRAWS = 4;
 
+        // streamToBuffer() result when the buffer could not be written
+        static const size_t STREAM_FAILED = (size_t)-1;
+
         static size_t streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
                 size_t* offset, const void* data, size_t bytes);
 
@@ -539,7 +542,8 @@ class gosMesh {
 // gives it new storage while draws in flight keep the old one), so a write
 // never waits for the GPU or forces it to finish the frame early. Replaces a
 // glBufferData per draw, which made the driver allocate new storage for every
-// draw call.
+// draw call. Returns STREAM_FAILED if the map or unmap fails; the caller must
+// skip the draw, since that part of the buffer holds stale data.
 size_t gosMesh::streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
         size_t* offset, const void* data, size_t bytes)
 {
@@ -554,11 +558,16 @@ size_t gosMesh::streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
     glBindBuffer(target, buf);
     void* p = glMapBufferRange(target, (GLintptr)*offset, (GLsizeiptr)bytes, access);
     gosASSERT(p);
-    if(p) {
-        memcpy(p, data, bytes);
-        glUnmapBuffer(target);
+    if(!p) {
+        CHECK_GL_ERROR;
+        return STREAM_FAILED;
     }
+    memcpy(p, data, bytes);
+    // GL_FALSE means the data store was lost (e.g. a mode switch)
+    const GLboolean unmapped = glUnmapBuffer(target);
     CHECK_GL_ERROR;
+    if(!unmapped)
+        return STREAM_FAILED;
 
     const size_t at = *offset;
     *offset += bytes;
@@ -578,6 +587,8 @@ void gosMesh::draw(gosRenderMaterial* material) const
 
     const size_t vb_at = streamToBuffer(vb_, GL_ARRAY_BUFFER, vb_size_, &vb_offset_,
             pvertex_data_, num_vertices_*sizeof(gos_VERTEX));
+    if(vb_at == STREAM_FAILED)
+        return;
 
     material->apply();
 
@@ -625,6 +636,8 @@ void gosMesh::drawIndexed(gosRenderMaterial* material) const
             pvertex_data_, num_vertices_*sizeof(gos_VERTEX));
     const size_t ib_at = streamToBuffer(ib_, GL_ELEMENT_ARRAY_BUFFER, ib_size_, &ib_offset_,
             pindex_data_, num_indices_*sizeof(INDEX_TYPE));
+    if(vb_at == STREAM_FAILED || ib_at == STREAM_FAILED)
+        return;
 
     material->apply();
 
