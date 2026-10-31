@@ -56,8 +56,8 @@ Added 2026-10-31. Not started.
       already had reviewed.
   - 2026-10-31: review done (88 commits, six areas). Findings and their
     status: `planning/REVIEW-PI-PORT.md`. Fixed so far: G1 (#13), P1, T2,
-    T4 and most of T3 (#12), B1-B6 (`fix/review-ci`). Still open: T1, the
-    rest of T3, T5, B7, R1, P2, E1.
+    T4 and most of T3 (#12), B1-B6 (#18), R1, P2, E1 (#20); B7 (mc2_17
+    smoke flake) gone since #19. Still open: T1, the rest of T3, T5.
 - [ ] **Move all agents onto the updated agent process**: workflows, the
       three-tier process, and PRs into `pi-port` instead of merging or pushing to
       it directly. Update `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` to

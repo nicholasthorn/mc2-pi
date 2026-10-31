@@ -51,7 +51,7 @@ land and note the PR.
     park the mouse at the centre of the window.
   - Check `fix/bench-review` first: another session has uncommitted edits to
     these files.
-- [x] **B1. Smoke runs can miss `STOP` lines** (fixed on `fix/review-ci`) (`scripts/smoke.sh:82`; from
+- [x] **B1. Smoke runs can miss `STOP` lines** (fixed in #18) (`scripts/smoke.sh:82`; from
       `b36ea54`).
   - The pattern is anchored (`^STOP: `), but `logmsg()` adds no newline, and
     369 of 387 `STOP` format strings and about 102 `PAUSE` strings have none
@@ -70,24 +70,31 @@ land and note the PR.
 
 **Build, CI and scripts**
 
-- [x] **B2.** (fixed on `fix/review-ci`) `smoke.yml:56` game-data cache key misses the code the data tools
+- [x] **B2.** (fixed in #18) `smoke.yml:56` game-data cache key misses the code the data tools
       link (`mclib/file.cpp`, `mclib/mlr`, `mclib/msl*`, `stuff`,
       `GameOS/src`), so data-tool changes there test stale data. Hash
       `mclib/**` and `GameOS/src/**` too. (`d772bdc`)
-- [x] **B3.** (fixed on `fix/review-ci`) `scripts/cppcheck_gate.py:79-96` ignores cppcheck's return code,
+- [x] **B3.** (fixed in #18) `scripts/cppcheck_gate.py:79-96` ignores cppcheck's return code,
       so a cppcheck that fails without printing findings reports "0 new" and
       passes. Fail on a non-zero return code with no findings parsed.
-- [x] **B4.** (fixed on `fix/review-ci`) `scripts/check.sh:169` compares the gate's `NEW ... (xN)` lines as
+- [x] **B4.** (fixed in #18) `scripts/check.sh:169` compares the gate's `NEW ... (xN)` lines as
       text when the local and baseline cppcheck versions differ, so going from
       x2 to x1 counts as a new finding. Compare per-key counts. (`ea07d53`)
-- [x] **B5.** (fixed on `fix/review-ci`) `scripts/validate_shaders.py:19-24` does not validate the
+- [x] **B5.** (fixed in #18) `scripts/validate_shaders.py:19-24` does not validate the
       `#version 330..410` + `GL_ARB_shading_language_420pack` header that
       `buildShaderHeader()` emits (the WSLg path). Add that variant.
-- [x] **B6.** (fixed on `fix/review-ci`) `tests/unit/CMakeLists.txt:85` copies fixtures only at configure
+- [x] **B6.** (fixed in #18) `tests/unit/CMakeLists.txt:85` copies fixtures only at configure
       time, so incremental local runs test stale fixtures. Copy them with a
       build-time dependency.
-- [ ] **B7. mc2_17 smoke at 3000 frames is flaky** (found while verifying
-      B1, not by the review).
+- [x] **B7. mc2_17 smoke at 3000 frames is flaky** (found while verifying
+      B1, not by the review). Gone since #19: 3 of 3 runs pass on `f5232bc`
+      (desktop GL, llvmpipe, Ubuntu 26.04).
+  - Cause (most likely): before #19, local smoke runs on WSLg used the real
+    desktop display, full screen, with the real mouse. With the pointer
+    outside the window the cursor sat at 0,0 and the camera edge-scrolled
+    up and left all mission. CI always ran under Xvfb, so it was not hit.
+    #19 runs smoke under Xvfb everywhere and ignores input in `-autoexit`
+    runs.
   - On llvmpipe (Ubuntu 26.04, desktop GL), mc2_17 failed in 3 of 4 runs.
   - Each failure exits with status 0, with no `[AUTOEXIT]` and no error
     line, after `[MISSION] mc2_17 started`.
@@ -99,7 +106,7 @@ land and note the PR.
 
 **Renderer**
 
-- [ ] **R1.** `shaders/gos_vertex.vert` never writes `gl_PointSize`, but
+- [x] **R1.** (fixed in #20) `shaders/gos_vertex.vert` never writes `gl_PointSize`, but
       `gosRenderer::drawPoints` draws `GL_POINTS` with it. GLES leaves the
       size undefined, so the planet point (`mclib/genactor.cpp:821`) may vanish
       on the Pi. Add `gl_PointSize = 1.0;` (ignored by desktop core). Upstream
@@ -107,7 +114,7 @@ land and note the PR.
 
 **Platform**
 
-- [ ] **P2.** `code/mission.cpp:325-331`: the "first frame of this mission"
+- [x] **P2.** (fixed in #20) `code/mission.cpp:325-331`: the "first frame of this mission"
       latch compares the `Mission` pointer, but one `Mission` object is reused
       for every mission. `[MISSION] started`, the bench reseed and
       `perf_control` therefore fire once per process. Harmless for smoke and
@@ -116,7 +123,7 @@ land and note the PR.
 
 **Engine**
 
-- [ ] **E1.** `mclib/move.cpp:1589,1633`: the new `badLoad` early returns in
+- [x] **E1.** (fixed in #20) `mclib/move.cpp:1589,1633`: the new `badLoad` early returns in
       `GlobalMap::init(PacketFile*)` leave `areas_cellsCovered`, `areas_doors`
       or `doors_links` as raw `Malloc` memory, and `destroy()` would free
       those garbage pointers. Not reachable today because both callers
