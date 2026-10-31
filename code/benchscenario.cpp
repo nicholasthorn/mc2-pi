@@ -62,7 +62,10 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 		return fail(err, errSize, "no", "[Bench] block");
 
 	// optional values keep their defaults when missing
-	fit.readIdString("Mission", mission, sizeof(mission));
+	// readIdString leaves the buffer unterminated when the value does not fit
+	const long missionResult = fit.readIdString("Mission", mission, sizeof(mission));
+	if (missionResult != NO_ERR && missionResult != (long)VARIABLE_NOT_FOUND)
+		return fail(err, errSize, "Mission too long or malformed in", "[Bench]");
 	readOptional(fit, "Frames", frames);
 	float ax = 0.0f, ay = 0.0f;
 	hasArena = readOptional(fit, "ArenaX", ax) && readOptional(fit, "ArenaY", ay);
@@ -93,8 +96,11 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 			return fail(err, errSize, "missing block", block);
 
 		BenchSegment& seg = segments[i];
-		if (fit.readIdString("Name", seg.name, sizeof(seg.name)) != NO_ERR)
+		const long nameResult = fit.readIdString("Name", seg.name, sizeof(seg.name));
+		if (nameResult == (long)VARIABLE_NOT_FOUND)
 			snprintf(seg.name, sizeof(seg.name), "seg%ld", i);
+		else if (nameResult != NO_ERR)
+			return fail(err, errSize, "Name too long or malformed in", block);
 		if (!validSegmentName(seg.name))
 			return fail(err, errSize, "Name is empty or not [A-Za-z0-9_-] in", block);
 		if (strcmp(seg.name, "all") == 0)

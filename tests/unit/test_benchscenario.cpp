@@ -280,6 +280,24 @@ TEST_CASE("bad segment names, negative Gather and repeated shots are refused")
 				"st Name = \"b\"\nl Shot = 150", err, sizeof(err)));
 		CHECK(std::strstr(err, "Shot") != nullptr);
 	}
+	SUBCASE("name too long for its buffer is refused, not renamed")
+	{
+		// 32 characters: no room for the terminator in BenchSegment::name
+		CHECK_FALSE(loadScratch("", a, "st Name = \"abcdefghijklmnopqrstuvwxyz012345\"",
+				err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment1") != nullptr);
+	}
+	SUBCASE("name of 31 characters fits")
+	{
+		CHECK(loadScratch("", a, "st Name = \"abcdefghijklmnopqrstuvwxyz01234\"",
+				err, sizeof(err)));
+	}
+	SUBCASE("mission too long for its buffer is refused")
+	{
+		CHECK_FALSE(loadScratch("st Mission = \"m1234567890123456789012345678901234567890123456789012345678901234\"",
+				a, b, err, sizeof(err)));
+		CHECK(std::strstr(err, "Mission") != nullptr);
+	}
 	SUBCASE("two segments without a shot are fine")
 	{
 		CHECK(loadScratch("", "st Name = \"a\"\nl Shot = -1",
