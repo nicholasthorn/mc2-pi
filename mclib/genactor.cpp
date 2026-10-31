@@ -291,7 +291,7 @@ void GenericAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				genShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 	
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -399,7 +399,7 @@ void GenericAppearance::setObjStatus (long oStatus)
 					genShape->GetTextureName(i,txmName,256);
 					
 					char texturePath[1024];
-					sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+					objectTexturePath(texturePath,txmName);
 			
 					FullPathFileName textureName;
 					textureName.init(texturePath,txmName,"");
@@ -516,14 +516,14 @@ void GenericAppearance::setSkyNumber (long skyNum)
 		else
 			genShape->GetTextureName(i,txmName,256);
 
-		char texturePath[1024];
-		sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
-
 		//Make txmName into a SKY%02d texture and load it!!
 		skyNumber = skyNum;
-		
+
 		changeSkyToSkyNum(txmName,newName);
-		
+
+		char texturePath[1024];
+		objectTexturePath(texturePath,newName);
+
 		FullPathFileName textureName;
 		textureName.init(texturePath,newName,"");
 

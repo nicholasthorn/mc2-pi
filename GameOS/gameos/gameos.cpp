@@ -27,6 +27,7 @@
 #endif
 
 #include "strres.h"
+#include "utils/jpeg_decode.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 void __stdcall AddDebuggerMenuItem(char const*, bool (__stdcall *)(), void (__stdcall *)(), bool (__stdcall *)(), DWORD (__stdcall *)(char const*, DWORD))
@@ -44,9 +45,17 @@ void __stdcall StatisticFormat(char const* s)
 }
 ////////////////////////////////////////////////////////////////////////////////
 
+// Only the colour-map path calls this (TextureLoad false, no surface): returns
+// a BGRA buffer the caller frees with gos_Free, or NULL.
 void* DecodeJPG( const char* FileName, BYTE* Data, DWORD DataSize, DWORD* TextureWidth, DWORD* TextureHeight, bool TextureLoad, void *pDestSurf )
 {
-    return NULL;
+    int w = 0, h = 0;
+    uint8_t* pixels = decodeJpegBGRA(Data, DataSize, &w, &h, 16384);
+    if(!pixels)
+        fprintf(stderr, "DecodeJPG: cannot decode %s\n", FileName ? FileName : "(memory)");
+    *TextureWidth = (DWORD)w;
+    *TextureHeight = (DWORD)h;
+    return pixels;
 }
 
 gosEnvironment Environment;

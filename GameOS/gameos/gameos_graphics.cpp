@@ -1652,7 +1652,12 @@ void gosRenderer::applyRenderStates() {
 	////////////////////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////////////////////////////////////////////////
-	fog_color_ = uint32_to_vec4(renderStates_[gos_State_Fog]);
+	// The fog state is a D3D colour, 0xAARRGGBB, so its low byte is blue;
+	// the shaders use fog_color.rgb as is (vertex colours get .bgra there).
+	// Unswapped, a mission's fog showed with red and blue exchanged: barely
+	// visible on stock missions' greys, pink for Omnitech's light blues.
+	// (txmmgr.cpp swaps the scene block's fog colour the same way.)
+	fog_color_ = uint32_to_vec4(renderStates_[gos_State_Fog]).zyxw();
 	curStates_[gos_State_Fog] = renderStates_[gos_State_Fog];
 
    ////////////////////////////////////////////////////////////////////////////////

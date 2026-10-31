@@ -22,6 +22,8 @@
 #include "file.h"
 #include "ffile.h"
 #include "fastfile.h"
+#include "inifile.h"
+#include "lz.h"
 
 #include <cstdio>
 #include <cstring>
@@ -162,6 +164,55 @@ TEST_CASE("packed serves when loose absent; loose overrides packed")
 	remove(kFstEntryName);
 }
 
+TEST_CASE("an FST written on Windows (backslash names) is found with '/' paths")
+{
+	// Omnitech's (and Windows-built) archives store "data\\tgl\\x.tgl";
+	// FastFile::open normalises entry names so '/' lookups find them.
+	// Mixed case too: lookups hash the lowercased path.
+	const std::string fstPath = scratchPath("archive_bs.fst");
+	authorFst(fstPath, "MVH_Scratch_Dir\\Fst_Entry.txt", kFstPayload, (int)strlen(kFstPayload));
+	{
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		long h = -1;
+		CHECK(FastFileFind("mvh_scratch_dir/fst_entry.txt", h) != nullptr);
+
+		File f;
+		REQUIRE(f.open("mvh_scratch_dir/fst_entry.txt") == NO_ERR);
+		CHECK(readAll(f) == kFstPayload);
+		f.close();
+	}
+	remove(fstPath.c_str());
+}
+
+TEST_CASE("a FIT stored in an FST opens through a FitIniFile parent")
+{
+	// How ObjectTypeManager hands a mod's type .fit to ObjectType::init when
+	// the .fit came from an archive: the FST entry is the parent.
+	static const char fit[] =
+		"FITini\r\n\r\n[ObjectClass]\r\nl ObjectTypeNum = 3\r\n\r\nFITend\r\n";
+	const std::string fstPath = scratchPath("archive_fit.fst");
+	authorFst(fstPath, "mvh_scratch_type.fit", fit, (int)strlen(fit));
+	{
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		File f;
+		REQUIRE(f.open("mvh_scratch_type.fit") == NO_ERR);
+		REQUIRE((f.getMemoryView() != NULL));
+
+		FitIniFile ini;
+		// a size past the image is clamped to it
+		REQUIRE(ini.open(&f, (unsigned long)f.getLength() + 100) == NO_ERR);
+		REQUIRE(ini.seekBlock("ObjectClass") == NO_ERR);
+		long typeNum = 0;
+		CHECK(ini.readIdLong("ObjectTypeNum", typeNum) == NO_ERR);
+		CHECK(typeNum == 3);
+		ini.close();
+		f.close();
+	}
+	remove(fstPath.c_str());
+}
+
 TEST_CASE("fileExists reports loose (1) vs FST (2) tiers")
 {
 	// fileExists() encodes the same ladder as a destination bitmask:
@@ -184,6 +235,30 @@ TEST_CASE("fileExists reports loose (1) vs FST (2) tiers")
 
 	remove(kFstEntryName);
 	remove(fstPath.c_str());
+}
+
+TEST_CASE("LZDecomp stops at destLen instead of overflowing")
+{
+	// A cached terrain .txm built at TerrainTextureRes 256 (256 KB) decoded
+	// into a buffer for 64 (16 KB) used to overflow it.
+	std::string src(40000, 'x');
+	for (size_t i = 0; i < src.size(); i += 7)
+		src[i] = (char)('a' + (i % 26));
+	std::string packed(src.size() * 2 + 64, '\0');
+	const size_t packedLen = LZCompress((MemoryPtr)&packed[0], (MemoryPtr)&src[0], src.size());
+	REQUIRE(packedLen > 0);
+
+	std::string out(src.size() + 16, '#');
+	CHECK(LZDecomp((MemoryPtr)&out[0], (MemoryPtr)&packed[0], packedLen, src.size()) == src.size());
+	CHECK(out.compare(0, src.size(), src) == 0);
+
+	std::string tooSmall(20016, '#');
+	CHECK(LZDecomp((MemoryPtr)&tooSmall[0], (MemoryPtr)&packed[0], packedLen, 20000) == 0);
+	for (size_t i = 20000; i < tooSmall.size(); i++)
+		REQUIRE(tooSmall[i] == '#');
+
+	// no limit given: the old behaviour
+	CHECK(LZDecomp((MemoryPtr)&out[0], (MemoryPtr)&packed[0], packedLen) == src.size());
 }
 
 } // TEST_SUITE("FstRoundtrip")

@@ -638,13 +638,15 @@ long MOVE_saveData (PacketFile* packetFile, long whichPacket) {
 	long numGlobalMap1Packets = GlobalMoveMap[1]->write(packetFile, whichPacket + numMissionMapPackets + numGlobalMap0Packets);
 	long numGlobalMap2Packets = GlobalMoveMap[2]->write(packetFile, whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets);
 
-	long result = packetFile->writePacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets, (unsigned char*)&tempNumSpecialAreas, sizeof(long));
+	// 4 bytes as on Windows (a Linux long is 8), so the map reads anywhere
+	int32_t numSpecialAreas32 = (int32_t)tempNumSpecialAreas;
+	long result = packetFile->writePacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets, (unsigned char*)&numSpecialAreas32, sizeof(numSpecialAreas32));
 	if (result <= 0)
 		Fatal(result, " MOVE_saveData: Unable to write num special area ");
 	//-------------------------------------------------------------------------------------------------
 	// If there are no special areas, we just write the specialArea count as a filler for the packet...
 	if (tempNumSpecialAreas == 0)
-		result = packetFile->writePacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 1, (unsigned char*)&tempNumSpecialAreas, sizeof(long));
+		result = packetFile->writePacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 1, (unsigned char*)&numSpecialAreas32, sizeof(numSpecialAreas32));
 	else
 		result = packetFile->writePacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 1, (unsigned char*)tempSpecialAreaFootPrints, sizeof(GameObjectFootPrint) * tempNumSpecialAreas);
 	if (result <= 0)
@@ -654,6 +656,8 @@ long MOVE_saveData (PacketFile* packetFile, long whichPacket) {
 }
 
 //---------------------------------------------------------------------------
+
+static void reportBadPathPacket (PacketFilePtr packetFile, long packet, const char* what, long index, long count);
 
 long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 
@@ -729,18 +733,42 @@ long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 		systemHeap->Free(GlobalMoveMap[2]->pathExistsTable);
 		GlobalMoveMap[2]->pathExistsTable = NULL;
 
-		long numBytes = packetFile->readPacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets, (unsigned char*)&tempNumSpecialAreas);
-		if (numBytes <= 0)
-			Fatal(numBytes, " MOVE_readData: Unable to read num special areas ");
+		// The count is a long: 4 bytes in maps written on Windows, 8 in ones
+		// saved on Linux (little-endian, so the low 4 bytes are the value).
+		// Fatal only logs on this port, so a bad packet fails the load.
+		const long countPacket = whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets;
+		const long numPacketsRead = numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 2;
+		unsigned char countBytes[8] = {0};
+		long countSize = -1;
+		if ((countPacket < packetFile->getNumPackets()) && (packetFile->seekPacket(countPacket) == NO_ERR))
+			countSize = packetFile->getPacketSize();
+		if (((countSize != 4) && (countSize != 8)) || (packetFile->readPacket(countPacket, countBytes) <= 0)) {
+			reportBadPathPacket(packetFile, countPacket, "special area count", 0, 1);
+			GlobalMoveMap[0]->badLoad = true;
+			return(numPacketsRead);
+		}
+		tempNumSpecialAreas = (int32_t)((uint32_t)countBytes[0] | ((uint32_t)countBytes[1] << 8) |
+										((uint32_t)countBytes[2] << 16) | ((uint32_t)countBytes[3] << 24));
 		if (tempSpecialAreaFootPrints) {
 			systemHeap->Free(tempSpecialAreaFootPrints);
 			tempSpecialAreaFootPrints = NULL;
 		}
+		if ((tempNumSpecialAreas < 0) || (tempNumSpecialAreas > MAX_SPECIAL_AREAS)) {
+			reportBadPathPacket(packetFile, countPacket, "special area count", tempNumSpecialAreas, MAX_SPECIAL_AREAS);
+			tempNumSpecialAreas = 0;
+			GlobalMoveMap[0]->badLoad = true;
+			return(numPacketsRead);
+		}
 		if (tempNumSpecialAreas > 0) {
+			// Stock or Omnitech wide footprints (528 bytes each, Clan Wars);
+			// reading the wide ones raw used to overflow this buffer.
 			tempSpecialAreaFootPrints = (GameObjectFootPrint*)systemHeap->Malloc(sizeof(GameObjectFootPrint) * tempNumSpecialAreas);
-			numBytes = packetFile->readPacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 1, (unsigned char*)tempSpecialAreaFootPrints);
-			if (numBytes <= 0)
-				Fatal(numBytes, " MOVE_readData: Unable to read num special areas ");
+			gosASSERT(tempSpecialAreaFootPrints != NULL);
+			if (!readPathRecords(packetFile, countPacket + 1, tempSpecialAreaFootPrints, tempNumSpecialAreas, narrowGameObjectFootPrint<GameObjectFootPrint>)) {
+				reportBadPathPacket(packetFile, countPacket + 1, "special area footprints", 0, tempNumSpecialAreas);
+				GlobalMoveMap[0]->badLoad = true;
+				return(numPacketsRead);
+			}
 		}
 
 	}
@@ -1510,6 +1538,7 @@ static_assert(sizeof(GlobalMapArea) == 25, "stock GlobalMapArea layout");
 static_assert(sizeof(DoorInfo) == 3, "stock DoorInfo layout");
 static_assert(sizeof(DoorLink) == 11, "stock DoorLink layout");
 static_assert(sizeof(GlobalMapDoor) == 57, "stock GlobalMapDoor layout");
+static_assert(sizeof(GameObjectFootPrint) == 264, "stock GameObjectFootPrint layout");
 
 // Logs why a pathing packet was rejected (packet number, size, records).
 static void reportBadPathPacket (PacketFilePtr packetFile, long packet, const char* what, long index, long count) {

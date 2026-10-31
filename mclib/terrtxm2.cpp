@@ -1671,16 +1671,38 @@ long TerrainColorMap::init (char *fileName)
 		DWORD jpgColorMapWidth = 0;
 		DWORD jpgColorMapHeight = 0;
 
+		// MechCommander Omnitech ships .burnin.jpg colour maps (DecodeJPG is
+		// stb_image); a missing or undecodable JPG falls through to the TGAs.
+		MemoryPtr jpgColorMap = NULL;
 		File colorMapFile;
 		long result = colorMapFile.open(burnInJpg);
-		// sebi :-)
-		if (result == NO_ERR && false)
+		if (result == NO_ERR)
 		{
 			long fileSize = colorMapFile.fileSize();
 			MemoryPtr jpgData = (MemoryPtr)malloc(fileSize);
+			gosASSERT(jpgData != NULL);
 			colorMapFile.read(jpgData,fileSize);
+			colorMapFile.close();
 
-			ColorMap = (MemoryPtr)DecodeJPG(burnInJpg, jpgData, fileSize, &jpgColorMapWidth, &jpgColorMapHeight, false, NULL);
+			jpgColorMap = (MemoryPtr)DecodeJPG(burnInJpg, jpgData, fileSize, &jpgColorMapWidth, &jpgColorMapHeight, false, NULL);
+			free(jpgData);
+			jpgData = NULL;
+
+			// The tiling below needs a square, whole number of
+			// COLOR_MAP_TEXTURE_SIZE tiles (STOP only logs): else use the TGAs
+			if (jpgColorMap && ((jpgColorMapWidth != jpgColorMapHeight) ||
+				(jpgColorMapWidth < COLOR_MAP_TEXTURE_SIZE) || (jpgColorMapWidth % COLOR_MAP_TEXTURE_SIZE)))
+			{
+				STOP(("Color Map %s is %ux%u, not a square of %d pixel tiles", (const char*)burnInJpg,
+					(unsigned)jpgColorMapWidth, (unsigned)jpgColorMapHeight, COLOR_MAP_TEXTURE_SIZE));
+				gos_Free(jpgColorMap);
+				jpgColorMap = NULL;
+			}
+		}
+
+		if (jpgColorMap)
+		{
+			ColorMap = jpgColorMap;
 
 			DWORD numTextures = jpgColorMapWidth / COLOR_MAP_TEXTURE_SIZE;
 			numTexturesAcross = numTextures;
@@ -1709,8 +1731,6 @@ long TerrainColorMap::init (char *fileName)
 				textures[i].mcTextureNodeIndex = mcTextureManager->textureFromMemory((DWORD *)txmRAM[i].ourRAM,gos_Texture_Solid,gosHint_DontShrink,COLOR_MAP_TEXTURE_SIZE);
 			}
 		
-			free(jpgData);
-			jpgData = NULL;
 			colorMapStarted = true;
 			usedJPG = true;
 		}

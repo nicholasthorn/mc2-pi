@@ -14,6 +14,7 @@
 
 #ifndef OBJTYPE_H
 #include"objtype.h"
+#include"movobj.h"
 #endif
 
 #ifndef DOBJNUM_H
@@ -218,6 +219,89 @@ bool ObjectType::handleDestruction (GameObjectPtr collidee, GameObjectPtr collid
 //* GAMEOBJECT TYPE MANAGER class
 //***************************************************************************
 
+//---------------------------------------------------------------------------
+// MechCommander Omnitech numbers its new object types from 1200, past the
+// end of object2.pak, and lists them in data/objects/movobj.fit:
+//
+//		[1318]
+//		l ObjectTypeNum = 2;		// 2 mech, 3 vehicle, 1 building, 21 turret, 22 gate
+//		st CSVname = "uziel"		// the mech's CSV, or the type's .fit
+//
+// Anything but a mech is a loose objects/<CSVname>.fit in the stock type
+// format. A mech has only its CSV, so its type FIT is built here the way
+// every stock mech type reads: names from CSVname, explosion object 41,
+// destroyed object 101, extent 12, explosion radius 80, destruct and
+// explosion damage by weight class. Absent file: stock behaviour. The
+// movobj.fit lookup itself is in movobj.cpp.
+
+static void buildMechTypeFit (char* fit, size_t fitSize, const char* name, long tonnage) {
+
+	long destructDamage = 65, explosionDamage = 30;
+	if (tonnage < 40) {
+		destructDamage = 35;
+		explosionDamage = 15;
+		}
+	else if (tonnage < 60) {
+		destructDamage = 45;
+		explosionDamage = 20;
+		}
+	else if (tonnage < 80) {
+		destructDamage = 55;
+		explosionDamage = 25;
+	}
+	snprintf(fit, fitSize,
+		"FITini\r\n\r\n"
+		"[ObjectClass]\r\nl ObjectTypeNum = %d\r\n\r\n"
+		"[ObjectType]\r\nst Name = \"%s\"\r\nl ExplosionObject = 41\r\nl DestroyedObject = 101\r\n"
+		"f ExtentRadius = 12\r\nst AppearanceName = \"%s\"\r\n\r\n"
+		"[MechProfile]\r\nst ProfileName = \"%s\"\r\nf destructdamage = %ld\r\n"
+		"f explosiondamage = %ld\r\nf explosionradius = 80\r\n\r\nFITend\r\n",
+		BATTLEMECH_TYPE, name, name, name, destructDamage, explosionDamage);
+}
+
+// Opens the type file for an Omnitech type number: a loose .fit in
+// looseFile, or a mech FIT built into fit[] and opened as builtFile.
+static bool openMovObjType (long objTypeNum, long& typeClass, File& looseFile,
+							char* fit, size_t fitSize, File& builtFile,
+							FilePtr& typeFile, unsigned long& typeFileSize) {
+
+	char name[64];
+	if (!findMovObjType(objTypeNum, typeClass, name, sizeof(name)))
+		return(false);
+
+	if (typeClass == BATTLEMECH_TYPE) {
+		FullPathFileName csvName;
+		csvName.init(objectPath, name, ".csv");
+		CSVFile csvFile;
+		if (csvFile.open(csvName) != NO_ERR)
+			return(false);
+		float tonnage = 50.0;
+		csvFile.readFloat(3, 5, tonnage);		// as BattleMechType::init reads it
+		csvFile.close();
+		buildMechTypeFit(fit, fitSize, name, (long)tonnage);
+		if (builtFile.open(fit, (int)strlen(fit)) != NO_ERR)
+			return(false);
+		typeFile = &builtFile;
+		typeFileSize = strlen(fit);
+		}
+	else {
+		FullPathFileName fitName;
+		fitName.init(objectPath, name, ".fit");
+		if (looseFile.open(fitName) != NO_ERR)
+			return(false);
+		typeFile = &looseFile;
+		typeFileSize = looseFile.fileSize();
+	}
+	return(true);
+}
+
+//---------------------------------------------------------------------------
+long ObjectTypeManager::openProfile (long objTypeNum, FitIniFile& profile) {
+
+	return(openTypeProfile(objTypeNum, profile, objectFile));
+}
+
+//---------------------------------------------------------------------------
 long ObjectTypeManager::init (const char* objectFileName, long objectTypeCacheSize, long objectCacheSize, long maxObjectTypes) {
 
 	FullPathFileName objectName;
@@ -254,17 +338,21 @@ long ObjectTypeManager::init (const char* objectFileName, long objectTypeCacheSi
 	for (long i = 0; i < numObjectTypes; i++)
 		table[i] = NULL;
 
+	// a fresh look at movobj.fit for this mission (movobj.cpp)
+	closeMovObjFile();
+
 	//---------------------------------------------------------------------------
 	// Since MC1 handled all of these MiscTerrainObjectTypes with one ObjectType,
 	// we set aside 5 separate typeHandles so they can be more logically
 	// managed. If we never have to load MC1/MCX missions, we can simply init
 	// the objectType packfile with 5 sep. types to begin with and avoid this
 	// hack-like "fix"...
-	bridgeTypeHandle = numObjectTypes - 5;
-	forestTypeHandle = numObjectTypes - 4;
-	wallHeavyTypeHandle = numObjectTypes - 3;
-	wallMediumTypeHandle = numObjectTypes - 2;
-	wallLightTypeHandle = numObjectTypes - 1;
+	// Kept at their stock numbers (1019-1023) however large the table is
+	bridgeTypeHandle = MC1_TYPE_HANDLE_END - 5;
+	forestTypeHandle = MC1_TYPE_HANDLE_END - 4;
+	wallHeavyTypeHandle = MC1_TYPE_HANDLE_END - 3;
+	wallMediumTypeHandle = MC1_TYPE_HANDLE_END - 2;
+	wallLightTypeHandle = MC1_TYPE_HANDLE_END - 1;
 
 	return(NO_ERR);
 }
@@ -286,7 +374,9 @@ void ObjectTypeManager::destroy(void)
 		delete objectFile;
 		objectFile = NULL;
 	}
-	
+
+	closeMovObjFile();
+
 	if (objectTypeCache) 
 	{
 		delete objectTypeCache;
@@ -330,6 +420,14 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 	bool isMiscTerrObj = false;
 	long objectTypeNum = -1;
 	ObjectTypePtr objType = NULL;
+
+	// Where the type's FIT comes from: object2.pak, or (Omnitech) a loose
+	// .fit or a built mech FIT; fit[] outlives builtFile
+	FilePtr typeFile = objectFile;
+	unsigned long typeFileSize = 0;
+	File looseFile;
+	char fit[1024];
+	File builtFile;
 	if ((objTypeNum == bridgeTypeHandle) ||
 		(objTypeNum == forestTypeHandle) ||
 		(objTypeNum == wallHeavyTypeHandle) ||
@@ -340,7 +438,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		objectTypeNum = TERRAINOBJECT_TYPE;
 		isMiscTerrObj = true;
 		}
-	else if (objectFile->seekPacket(objTypeNum) == NO_ERR) {
+	else if ((objTypeNum < objectFile->getNumPackets()) && (objectFile->seekPacket(objTypeNum) == NO_ERR)) {
 		if (objTypeNum == 268) {
 			gosASSERT(objTypeNum == 268);
 		}
@@ -364,9 +462,14 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		objTypeFile.close();
 
 		objectFile->seekPacket(objTypeNum);
+		typeFileSize = objectFile->getPacketSize();
 		}
-	else
+	else if (!openMovObjType(objTypeNum, objectTypeNum, looseFile, fit, sizeof(fit), builtFile, typeFile, typeFileSize)) {
+		// Fatal only logs on this port: never go on to init a type from
+		// nothing (it would read a stale object2.pak packet into 0 bytes)
 		Fatal(objTypeNum, " ObjectTypeManager.load: can't create object ");
+		return(NULL);
+	}
 
 	//-----------------------------------------------------
 	// Now that we know what type it is, let's create it...
@@ -380,14 +483,14 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case BATTLEMECH_TYPE: {
 			objType = new BattleMechType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Mech type ");
 			}
 			break;
 		case VEHICLE_TYPE: {
 			objType = new GroundVehicleType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Vehicle type ");
 			}
 			break;			
@@ -395,14 +498,14 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case BUILDING_TYPE: {
 			objType = new BuildingType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Building type ");
 			}
 			break;
 		case TREE_TYPE: {
 			objType = new TerrainObjectType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init TerrainObject:Tree type ");
 			}
 			break;
@@ -411,7 +514,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 			objType->setObjTypeNum(objTypeNum);
 			if (isMiscTerrObj)
 				((TerrainObjectTypePtr)objType)->initMiscTerrObj(objTypeNum);
-			else if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			else if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init TerrainObject type ");
 			}
 			break;
@@ -419,7 +522,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		{
 			objType = new WeaponBoltType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init WeaponBolt type ");
 		}
 		break;
@@ -427,7 +530,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case TURRET_TYPE: {
 			objType = new TurretType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Turret type ");
 			}
 			break;
@@ -435,7 +538,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case EXPLOSION_TYPE: {
 			objType = new ExplosionType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Explosion type ");
 			}
 			break;
@@ -443,7 +546,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case FIRE_TYPE: {
 			objType = new FireType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Fire type ");
 			}
 			break;
@@ -451,7 +554,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case GATE_TYPE: {
 			objType = new GateType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Gate type ");
 			}
 			break;
@@ -459,7 +562,7 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		case ARTILLERY_TYPE: {
 			objType = new ArtilleryType;
 			objType->setObjTypeNum(objTypeNum);
-			if (objType->init(objectFile,objectFile->getPacketSize()) != NO_ERR)
+			if (objType->init(typeFile, typeFileSize) != NO_ERR)
 				Fatal(objectTypeNum, " ObjectTypeManager.load: unable to init Artillery type ");
 			}
 			break;

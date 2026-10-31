@@ -6830,6 +6830,18 @@ void execIsRefit (void) {
 
 //*****************************************************************************
 
+void execIsSelected (void) {
+
+	// IS SELECTED function (Omnitech): true if the player has the current
+	// unit selected; pbrain leaves selected units to the player.
+	bool result = false;
+	if (CurObject)
+		result = CurObject->isSelected();
+	ABLi_pushBoolean(result);
+}
+
+//*****************************************************************************
+
 void execHasOrderFromPlayer (void) {
 
 	// HAS ORDER FROM PLAYER function (Omnitech): true if the current
@@ -7271,6 +7283,7 @@ void initABL (void) {
 	ABLi_addFunction("needsrefit", false, NULL, "b", execNeedsRefit);
 	ABLi_addFunction("isrefit", false, NULL, "b", execIsRefit);
 	ABLi_addFunction("hasorderfromplayer", false, NULL, "b", execHasOrderFromPlayer);
+	ABLi_addFunction("isselected", false, NULL, "b", execIsSelected);
 	ABLi_addFunction("scanareacapture", false, "*", "i", execScanAreaCapture);
 	ABLi_addFunction("scanarearepair", false, "*", "i", execScanAreaRepair);
 	ABLi_addFunction("autorepairwithinradius", false, "i*", NULL, execAutoRepairWithinRadius);
