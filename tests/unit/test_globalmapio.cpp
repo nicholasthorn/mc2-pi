@@ -283,6 +283,17 @@ TEST_CASE("globalmapio: special-area footprints, stock and Omnitech wide")
 		CHECK(out.cells[3][0] == 0);
 	}
 
+	// preNumCells is never read: Omnitech's editor leaves it unset (Clan Wars
+	// mission 5), so a value that does not fit is stored as 0, not refused
+	wide.preNumCells = -976879616;
+	{
+		StockFootPrint fp;
+		REQUIRE(narrowGameObjectFootPrint(fp, wide));
+		CHECK(fp.preNumCells == 0);
+		CHECK(fp.numCells == 3);
+	}
+	wide.preNumCells = 3;
+
 	wide.numCells = 65;
 	StockFootPrint out = {};
 	CHECK_FALSE(narrowGameObjectFootPrint(out, wide));

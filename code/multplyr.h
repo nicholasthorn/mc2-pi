@@ -815,6 +815,7 @@ class MCMSG_PlayerInsignia {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_PlayerInsignia (void) {
 			init();
 		}
@@ -1029,6 +1030,7 @@ class MCMSG_MoverUpdate {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_MoverUpdate (void) {
 			init();
 		}
@@ -1080,6 +1082,7 @@ class MCMSG_MoverWeaponFireUpdate {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_MoverWeaponFireUpdate (void) {
 			init();
 		}
@@ -1104,6 +1107,7 @@ class MCMSG_TurretWeaponFireUpdate {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_TurretWeaponFireUpdate (void) {
 			init();
 		}
@@ -1129,6 +1133,7 @@ class MCMSG_MoverCriticalUpdate {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_MoverCriticalUpdate (void) {
 			init();
 		}
@@ -1156,6 +1161,7 @@ class MCMSG_WeaponHitUpdate {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_WeaponHitUpdate (void) {
 			init();
 		}
@@ -1181,6 +1187,7 @@ class MCMSG_WorldUpdate {
 
 	public:
 
+		// cppcheck-suppress uninitMemberVar ; flexible array member: no storage in the object, the sender fills the bytes after it
 		MCMSG_WorldUpdate (void) {
 			init();
 		}

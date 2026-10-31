@@ -131,6 +131,7 @@ void HeapManager::destroy (void)
 }
 		
 //---------------------------------------------------------------------------
+// cppcheck-suppress uninitMemberVar ; false positive: init() sets totalSize, cppcheck takes it for the global of the same name
 HeapManager::HeapManager (void)
 {
 	init();

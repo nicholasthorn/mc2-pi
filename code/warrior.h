@@ -87,7 +87,9 @@ class BldgAppearance;
 
 //***************************************************************************
 
-#define	MAX_WARRIORS				120
+// 160 as in MechCommander Omnitech (stock 120; slot 0 is never used): Clan
+// Wars mission 21 has 126 parts. Only sizes the static warriorList.
+#define	MAX_WARRIORS				160
 
 #define	MOVEGOAL_NONE				0xFFFFFFFF
 #define	MOVEGOAL_LOCATION			0x00000000
@@ -378,6 +380,7 @@ class TargetPriorityList {
 		void init (void);
 
 		TargetPriorityList (void) {
+			memset(list, 0, sizeof(list));
 			init ();
 		}
 
@@ -973,6 +976,11 @@ class MechWarrior {
 			paintScheme = -1;
 			memset(skills, 0, sizeof(skills));
 			warriorBrainHandle = -1;
+			for (long i = 0; i < MAX_ATTACKERS; i++) {
+				attackers[i].WID = 0;
+				attackers[i].lastTime = 0.0;
+			}
+			memset(lastGoalPath, 0, sizeof(lastGoalPath));
 			init(true);
 		}
 

@@ -34,6 +34,7 @@ gosFX::EffectCloud__Specification::EffectCloud__Specification():
 	Verify(gos_GetCurrentHeap() == Heap);
 	m_totalParticleSize = gosFX::EffectCloud::ParticleSize;
 	m_particleClassSize = sizeof(gosFX::EffectCloud::Particle);
+	m_particleEffectID = 0;
 }
 
 //------------------------------------------------------------------------------

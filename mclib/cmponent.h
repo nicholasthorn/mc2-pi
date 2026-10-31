@@ -207,6 +207,7 @@ class MasterComponent {
 		}
 
 		MasterComponent (void) {
+			stats = ComponentStats();
 			init();
 		}
 		

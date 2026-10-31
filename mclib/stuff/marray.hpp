@@ -99,7 +99,9 @@ namespace Stuff {
 	{ 
 	}
 
+	// AssignData() copies data; cppcheck does not follow it
 	template<class T, size_t N> inline
+		// cppcheck-suppress uninitMemberVar
 		StaticArrayOf<T, N>::StaticArrayOf(const StaticArrayOf<T, N> &array) 
 	{
 		AssignData(array.data, N);

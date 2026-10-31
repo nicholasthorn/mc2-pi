@@ -547,6 +547,8 @@ class MissionMap {
 		}
 		
 		MissionMap (void) {
+			memset(preservedCells, 0, sizeof(preservedCells));
+			memset(debugCells, 0, sizeof(debugCells));
 			init();
 		}
 		
@@ -939,6 +941,7 @@ class MovePath {
 
 		long crossesClosedGate (long start, long range);
 
+		// cppcheck-suppress uninitMemberVar ; stepList entries are only read below numSteps, which the path finder fills
 		MovePath (void) {
 			init();
 		}

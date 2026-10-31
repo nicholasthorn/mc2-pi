@@ -186,6 +186,7 @@ class Terrain
 
 		Terrain (void)
 		{
+			terrainHeapSize = 0;
 			init();
 		}
 

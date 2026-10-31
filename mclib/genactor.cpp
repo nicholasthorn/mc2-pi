@@ -290,13 +290,8 @@ void GenericAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			else
 				genShape->GetTextureName(i,txmName,256);
 
-			char texturePath[1024];
-			objectTexturePath(texturePath,txmName);
-	
 			FullPathFileName textureName;
-			textureName.init(texturePath,txmName,"");
-	
-			if (fileExists(textureName))
+			if (objectTextureName(textureName,txmName))
 			{
 				if (S_strnicmp(txmName,"a_",2) == 0)
 				{
@@ -398,13 +393,8 @@ void GenericAppearance::setObjStatus (long oStatus)
 					char txmName[1024];
 					genShape->GetTextureName(i,txmName,256);
 					
-					char texturePath[1024];
-					objectTexturePath(texturePath,txmName);
-			
 					FullPathFileName textureName;
-					textureName.init(texturePath,txmName,"");
-					
-					if (fileExists(textureName))
+					if (objectTextureName(textureName,txmName))
 					{
 						DWORD gosTextureHandle = mcTextureManager->loadTexture(textureName,gos_Texture_Solid,gosHint_DisableMipmap | gosHint_DontShrink);
 						genShape->SetTextureHandle(i,gosTextureHandle);
@@ -521,13 +511,8 @@ void GenericAppearance::setSkyNumber (long skyNum)
 
 		changeSkyToSkyNum(txmName,newName);
 
-		char texturePath[1024];
-		objectTexturePath(texturePath,newName);
-
 		FullPathFileName textureName;
-		textureName.init(texturePath,newName,"");
-
-		if (fileExists(textureName))
+		if (objectTextureName(textureName,newName))
 		{
 			if (S_strnicmp(newName,"a_",2) == 0)
 			{

@@ -175,6 +175,7 @@ File::File (void)
 	fileImage = NULL;
 
 	fastFile = NULL;
+	fastFileHandle = -1;
 }
 			
 //---------------------------------------------------------------------------

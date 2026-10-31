@@ -28,6 +28,7 @@ gosFileStream::gosFileStream( const char *FileName, gosEnum_FileWriteStatus fwst
 
     // ???
     pNext = 0;
+    BytesTransfered = 0;
 
     const char* mode = 0;
     switch(fwstatus) {

@@ -32,6 +32,7 @@ static const int ZONE_PANEL_FIRST_BUTTON_ID = 1000100;
 class aZonePanel : public aObject
 {
 public:
+	aZonePanel() : pParentScreen(0), bShowWarning(false) {}
 	void init(FitIniFile* pFile, LogisticsScreen* pParent);
 	virtual int			handleMessage( unsigned long, unsigned long );
 	virtual void		update();

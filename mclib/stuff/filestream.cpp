@@ -22,6 +22,7 @@ Directory::Directory(
 	folderEntries(NULL,false)
 {
 	Check_Pointer(find_files);
+	fileOk = 0;
 
 	//
 	//------------------------------------------------

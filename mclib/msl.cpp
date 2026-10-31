@@ -635,12 +635,9 @@ long TG_TypeMultiShape::LoadTGMultiShapeFromASE (const char *fileName, bool forc
 				char txmName[1024];
 				GetTextureName(i,txmName,256);
 		
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-			
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-			
+				objectTextureName(textureName,txmName);
+
 				if( fileExists(textureName) == 1 )
 				{
 					File *touchTexture = new File();

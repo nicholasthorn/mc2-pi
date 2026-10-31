@@ -61,8 +61,9 @@ keeps its default: `Frames` 3600, `Gather` 16, `LineGap` 600, `Spacing` 100,
 0.5, `Shot` -1, `StrikeEvery` 0, `Name` `seg<i>`. The game refuses a
 scenario (`[BENCH] ERROR: ...`, and bench.sh fails the run) with a negative
 `Gather`, a bad, repeated or too long segment name (31 characters at most),
-a `Mission` over 63 characters, or two segments that screenshot the same
-frame.
+a `Mission` over 63 characters, a camera key without exactly 6 values, or a
+`Shot` outside its own segment (from its `Start` up to the next segment's,
+or up to `Frames` for the last one).
 
 The camera moves linearly between keys (yaw the short way round) and holds
 before the first and after the last. Tilt is 10 to 88 degrees above the

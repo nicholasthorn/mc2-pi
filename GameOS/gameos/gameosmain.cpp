@@ -130,6 +130,26 @@ static int g_perf_ack = -1;
 static bool g_perf_enabled = false;
 #endif
 
+// Peak resident memory (Linux VmHWM) in MB, or -1 where unknown: printed at
+// autoexit, the number that matters on a 4 GB Pi.
+static long peak_resident_mb()
+{
+#ifdef __linux__
+    FILE* f = fopen("/proc/self/status", "r");
+    if(!f)
+        return -1;
+    char line[256];
+    long kb = -1;
+    while(fgets(line, sizeof(line), f))
+        if(sscanf(line, "VmHWM: %ld kB", &kb) == 1)
+            break;
+    fclose(f);
+    return kb < 0 ? -1 : kb / 1024;
+#else
+    return -1;
+#endif
+}
+
 static void perf_control(bool enable)
 {
 #ifndef PLATFORM_WINDOWS
@@ -470,6 +490,9 @@ int main(int argc, char** argv)
             // scripts/smoke.sh treats a missing [AUTOEXIT] line as a failure
             printf("[AUTOEXIT] %ld gameplay frames in %.1f s (%.1f fps)\n", frame_count,
                     total_sec, total_sec > 0.0 ? frame_count / total_sec : 0.0);
+            const long peak_mb = peak_resident_mb();
+            if(peak_mb >= 0)
+                printf("[MEM] peak resident %ld MB\n", peak_mb);
             fflush(stdout);
             g_exit = true;
         }

@@ -9,7 +9,7 @@ belongs in commit messages and PRs.
 
 **Built**
 
-- [x] Linux build on Ubuntu 22.04 / GCC 11 (pkg-config fallbacks for SDL2_mixer/ttf)
+- [x] Linux build on Ubuntu 22.04 / GCC 11 (pkg-config fallbacks for SDL2_mixer/ttf) through 26.04 / GCC 15
 - [x] OpenGL ES 3.1 renderer behind `-DMC2_GLES=ON` (Raspberry Pi 4/400); desktop GL unchanged
 - [x] GLES texture upload repacking for 8-bit channel-count mismatches
 - [x] arm64: `-fsigned-char`, portable heap caller capture, GCC 12 fixes
@@ -21,7 +21,8 @@ belongs in commit messages and PRs.
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
 - [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
-- [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`
+- [x] Mods: MechCommander Omnitech data (object types past `object2.pak`, wide map packets, `.burnin.jpg` colour maps, `mc2res.dll` strings, 512 object textures) loads and plays; Clan Wars mission 1 checked in play (PR 17, `future-features/MOD-COMPAT.md`)
+- [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`; 413 after every `uninitMemberVar` was initialised or suppressed with a reason (#23, #24)
 
 **Not verified / unknown**
 
@@ -37,17 +38,24 @@ belongs in commit messages and PRs.
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
+- [ ] UI smoke tests: a scripted player for the menu screens (main menu, purchase, mech lab, pilot ready, Mechlopedia, options, load/save) and a `smoke.sh` `ui` tier, on stock and mod data (`future-features/UI-SMOKE.md`). Also step 2 of the `STOP` plan below, and the only way to see Omnitech's units in logistics. (10-31)
+- [ ] CI benchmark regression job: `-bench` on base and PR, fail when draw calls or triangles grow > ~10%, frame times informational. User said "not now". (10-31)
 
 ## To do: process and housekeeping
 
 Added 2026-10-31. Not started.
 
-- [ ] **Upgrade Ubuntu on WSL to the current LTS** instead of working around
+- [x] **Upgrade Ubuntu on WSL to the current LTS** instead of working around
       what 22.04 lacks (GCC 11, older Mesa, `perf` without libelf, missing
       CMake config files for SDL2_mixer/ttf). Afterwards, check which
       workarounds can go (the `cmake/FindSDL2_*.cmake` pkg-config fallbacks stay:
       other distros need them) and update `BUILD-LINUX.md`.
-- [ ] **Code-review everything on `pi-port` so far** (83 commits ahead of
+  - 2026-10-31: WSL `Ubuntu-26.04` (GCC 15, Clang 21, cppcheck 2.19) is the
+    development environment; `BUILD-LINUX.md` lists the tested setups. No
+    code workaround was 22.04-only: the pkg-config fallbacks stay. The old
+    `Ubuntu` (22.04) distro still holds about 9 GB of mod and remaster data
+    (see Housekeeping).
+- [x] **Code-review everything on `pi-port` so far** (83 commits ahead of
       `origin/master` as of 2026-10-31). One diff that size reviews badly, so
       review it in batches by area, oldest first: build/CI, GLES renderer and
       shaders, platform layer, engine (`mclib/`), game (`code/`), tests and
@@ -56,33 +64,37 @@ Added 2026-10-31. Not started.
       already had reviewed.
   - 2026-10-31: review done (88 commits, six areas). Findings and their
     status: `planning/REVIEW-PI-PORT.md`. Fixed so far: G1 (#13), P1, T2,
-    T4 and most of T3 (#12), B1-B6 (`fix/review-ci`). Still open: T1, the
-    rest of T3, T5, B7, R1, P2, E1.
-- [ ] **Move all agents onto the updated agent process**: workflows, the
+    T4 and most of T3 (#12), B1-B6 (#18), R1, P2, E1 (#20); B7 (mc2_17
+    smoke flake) gone since #19; T1, the rest of T3, T5 (`review/followup`).
+    All 18 findings closed.
+- [x] **Move all agents onto the updated agent process**: workflows, the
       three-tier process, and PRs into `pi-port` instead of merging or pushing to
       it directly. Update `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` to
       match, so new sessions pick it up.
+  - 2026-10-31: `CLAUDE.md` ("Workflow") and `.claude/rules/agent-workflow.md`
+    carry it (#8), and every change since #10 went in by PR. The area skills
+    need no change: `CLAUDE.md` is loaded in every session.
 - [x] **Sweep past session transcripts for dropped ideas** (2026-10-31: the
       six mc2 and mc2-opengl-remastered transcripts on this machine; results in
       "Tidy up" below).
 - [ ] **Work through the cppcheck baseline** (`scripts/cppcheck-baseline.txt`,
-      523 findings). We got bitten by an `uninitMemberVar` that was already in
-      it, so the baseline is a list of known bugs, not noise to ignore.
-      Triage every finding: fix it, mark it a false positive with an inline
-      `// cppcheck-suppress` and a reason, or record why it is safe.
-  - `uninitMemberVar` (100) was triaged in #9, but only the four real bugs
-    were changed: the "set before any read" verdicts live in the PR text and
-    an off-repo note, so the baseline still counts all 100. Initialise them or
-    suppress inline with the reason, so the count drops. Exception:
-    `ABLModule::orderCallFlags` is genuinely read uninitialised and was left
-    alone because setting it could change script behaviour; decide and record.
-  - Then `uninitDerivedMemberVar` (7), the error-level `nullPointer` (87) and
-    `invalidLifetime` (11), then `arrayIndexOutOfBoundsCond` (10),
+      523 findings before #23/#24, 413 after: regenerated by CI 2026-10-31). We got bitten by an `uninitMemberVar` that
+      was already in it, so the baseline is a list of known bugs, not noise to
+      ignore. Triage every finding: fix it, mark it a false positive with an
+      inline `// cppcheck-suppress` and a reason, or record why it is safe.
+  - [x] `uninitMemberVar` / `uninitDerivedMemberVar` (115): done in #23
+    (gosfx, mlr, stuff) and #24 (code, gui, the rest of mclib, GameOS).
+    Members initialised in their constructors, 12 inline suppressions with
+    reasons. The one real bug: `ABLModule::orderCallFlags` is now `NULL` in
+    `ABLModule::init()`, so a module without order calls skips the flag test
+    instead of reading and writing through a garbage pointer.
+  - Next: the error-level `nullPointer` (87) and `invalidLifetime` (11), then
+    `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: better after
+    the STOP/Fatal work below), `arrayIndexOutOfBoundsCond` (10),
     `pointerSize` (7) and the rest.
-  - Version gap: CI's cppcheck 2.13 misses findings local 2.7 reports (19
-    `uninitMemberVar`, including the `GVAppearance` one that bit us, plus the
-    `1<<bit`, `vertices.rhw` and `terrtxm2.h` ones). Consider a second
-    cppcheck version in the nightly run, or clang-tidy's init checks.
+  - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
+    (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
+    a second cppcheck version in the nightly run, or clang-tidy's init checks.
   - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
     each batch, so the count only goes down.
 - [ ] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
@@ -96,7 +108,8 @@ Added 2026-10-31. Not started.
      and `bench.sh` set it. Done 2026-10-31 without the message box (under
      Xvfb it would block until the smoke timeout): add it in step 4.
   2. Widen smoke coverage to the screens it never opens (logistics, mech lab,
-     options, save/load) so more `STOP`s get exercised.
+     options, save/load) so more `STOP`s get exercised
+     (`future-features/UI-SMOKE.md`).
   3. Every `STOP` that fires but is not really fatal (e.g. "Move to order
      location is Not a Number" in `ablmc2.cpp`) becomes a warning: `PAUSE`
      or a log line, with any needed bail-out.
@@ -113,7 +126,7 @@ on 2026-10-31.
 **Work at risk or blocked before merge**
 
 - [x] `release-plan` branch: rebased and merged as PR #10 (`0f1c6ee`).
-- [ ] `omnitech-objtypes` (7 commits, pushed, no PR): its code review found 8
+- [x] `omnitech-objtypes` (7 commits, pushed, no PR): its code review found 8
       problems and none were fixed or written down. Two corrupt memory because
       `Fatal` returns: `objtype.cpp` `load()` overflows the heap when a
       `movobj.fit` entry's file is missing; `MOVE_readData` reads the
@@ -125,15 +138,18 @@ on 2026-10-31.
       view doesn't clamp its length. Suggested: pass `destLen` to `LZDecomp`
       in `readPacket`, stop decompressing each `.txm` twice at load,
       de-duplicate the `movobj` lookup. Its work has no PROGRESS log lines. (10-31)
+      Fixed in `22797e8` before it merged as #17 (`readPacket` bounds
+      `LZDecomp` too), with follow-ups in #21.
 - [x] PR 7 (`bench-phase2`, merged as `2d44620`) and bench phase 1
       (`066ec5d`, `34c5d59`, landed without a PR) code-reviewed 2026-10-31.
       Findings (missing scenario keys read as 0, `segments.csv` without a
       status, plain `-bench` edge-scrolling the camera because the mouse sits
       at (0,0), keys and clicks leaking into bench runs, perf ack FIFO that
       can hang, and smaller ones) fixed in PR #12 (`82bbf18`).
-- [ ] The last three-config rebuild in the Omnitech session exited 1 and was
+- [x] The last three-config rebuild in the Omnitech session exited 1 and was
       never looked at; WSL Clang had been removed by another session's
-      cleanup, so it may only be that. (10-31)
+      cleanup, so it may only be that. (10-31) Superseded: #17 and #21 went
+      through CI's four-configuration build.
 
 **Bugs noticed in passing**
 
@@ -210,7 +226,9 @@ on 2026-10-31.
 - [ ] Original LZ decoder in C (`7d6f9bc6`), raw FST entries when
       `size == realSize` (`3b5f87ca`), bounds fixes `adbf3c9a`, `69ee9782`.
       Omnitech's `tgl.fst` is unreadable without it, and retail FSTs
-      decompress to zeros with no error today. (10-29, 10-31)
+      decompress to zeros with no error today. (10-29, 10-31) Still open after
+      #17/#21: Omnitech runs with the stock `tgl.fst` (same 4667 entries) and
+      its new models as loose files (`MOD-COMPAT.md` item 4).
 - [x] Mission / ABL hardening (10-31): ported `b71702ba` (no commanders:
       team 0 and commander 0 are created, since STOP only logs), the
       `Team::home` / `Commander::home` reset and the commander re-init leak
@@ -238,25 +256,30 @@ on 2026-10-31.
 - [x] PR #6 (`01bfcb3`) has no log line.
 - [x] MSVC's `small` macro (fixed in `4b98eee`) belongs in "Portability traps"
       in `build-conventions.md`.
-- [ ] `MOD-COMPAT.md`: name Dark Gray: Borderworlds as the MC2X test load,
-      and note the remaster's LZ decoder against the LZ gap. Left for the
-      Omnitech session: it is editing `MOD-COMPAT.md` on
-      `omnitech-objtypes`.
+- [x] `MOD-COMPAT.md`: name Dark Gray: Borderworlds as the MC2X test load,
+      and note the remaster's LZ decoder against the LZ gap. (Done
+      2026-10-31, after the Omnitech branch landed.)
 
 **Housekeeping**
 
-- [ ] Stale branches and worktrees: `fix/uninit-members` (rebased copy),
+- [x] Stale branches and worktrees: `fix/uninit-members` (rebased copy),
       `claude/nostalgic-brahmagupta-fb1902`, the `bench-phase2` worktree,
       `C:\Users\Dell\Documents\GitHub\mc2-wt-cw`. `.claude/worktrees/` was
-      added to the local `.git/info/exclude` only.
+      added to the local `.git/info/exclude` only. 2026-10-31: worktrees and
+      local branches of merged PRs removed (#4, #6, #7, #8, #9, #10); the
+      `nostalgic-brahmagupta-fb1902` folder was locked, so it is unregistered
+      but still on disk. Worktrees in use by other sessions were left.
 - [ ] WSL disk: `~/remaster-data` (~7 GB), `/srv/bookworm-arm64`, `~/mco628`
       (1.2 GB), `~/gd-mco`, `~/gd-cw`, `~/wt-cw-*`, `~/mc2r-build`,
       `~/mc2r-shim`; Downloads `MCOsetup628 (1).exe`, `ClanWarsForMCOsetup.exe`.
-- [ ] `uninitMemberVar-triage.md` lives outside the repo; bring its verdicts in
-      (see the cppcheck item).
-- [ ] Windows has no Python on the PATH for agents, so `scripts/*.py` only run
+- [x] `uninitMemberVar-triage.md` lives outside the repo; bring its verdicts in
+      (see the cppcheck item). Superseded: the note is gone, and #23/#24 put
+      every verdict in the code (initialised, or suppressed with a reason).
+- [x] Windows has no Python on the PATH for agents, so `scripts/*.py` only run
       in WSL. (Python 3.12 is installed as `python`; check what the agent
-      sessions actually hit.)
+      sessions actually hit.) Stale: `python` (3.12) works from the agents'
+      Git Bash; the scripts are still run in WSL, where the tools they call
+      are.
 
 **For the remaster repo** (its own docs, not this one)
 
@@ -347,10 +370,19 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-10-31: mc2_15 segfault fixed (branch `fix/mc2-15-nan-location`): ABL `getRelativePositionToObject` wrote nothing unless the object was a mover, and `coreEscort` passes it an unset local array (ABL local arrays come from `malloc`, unzeroed). `mc2_15_E2_TCD_Mech2` escorts a building (part id 141696), so it ordered a move to leftover heap bytes (glibc free-list pointers, e.g. x = 1.7e18), and `GlobalMap::calcArea` read off the map. The native now always writes its result and uses the virtual `GameObject::relativePosition` for any object (a building returns its own position; no object gives 0,0,0). GLES mc2_15 at 3000 frames: 6/6 pass on Ubuntu 26.04 WSL (before: 1 crash in 8 runs here, most runs in the earlier sweep); desktop GL mc2_15 also run.
+- 2026-10-31: backlog tidy: to-do and tidy-up items done elsewhere ticked (review #26, STOP step 1 #22, agent workflow #8, Omnitech review fixes #17/#21, WSL on Ubuntu 26.04, uninit triage #23/#24); cppcheck baseline regenerated by CI (`static.yml` run 41209792050): 523 -> 413, every `uninitMemberVar`/`uninitDerivedMemberVar` gone; `BUILD-LINUX.md` lists the tested setups; `MOD-COMPAT.md` names the MC2X test campaign and the remaster's LZ decoder; stale worktrees and local branches of merged PRs removed.
+- 2026-10-31: last review findings (branch `review/followup`): bench scenarios refuse a `Shot` outside its own segment and a camera key without exactly 6 values (mc2_19's closeup shot moved from 2400, the next segment's first frame, to 2250); the key-sort test now fails without the sort; a unit test loads the shipped `bench/mc2_19.fit`. mc2_17 smoke passes 3 of 3 since #19 (B7 closed). Batch checks (GL and GLES, smoke) on Ubuntu 26.04; not run on the Pi.
+
+- 2026-10-31: cppcheck `uninitMemberVar` / `uninitDerivedMemberVar` cleared in `code/`, `gui/` and `mclib/` outside gosfx/mlr/stuff (branch `fix/uninit-game-engine`): 59 baseline entries, members zeroed in their constructors (`aListItem` gets a constructor, so its five derived-class findings go together), 9 suppressed inline with a reason (7 flexible array members in `multplyr.h`, `MovePath::stepList`, a `HeapManager` false positive), plus three that only cppcheck 2.19 reports (`MoverControl`, `MoverDynamics`, `MasterComponent`). `ABLModule::orderCallFlags` now starts `NULL`, and `WatchManager::init()` sets `numWatches` (it set `maxWatches` twice). Batch checks (GL and GLES, smoke) on Ubuntu 26.04.
+- 2026-10-31: cppcheck `uninitMemberVar` cleared in `mclib/gosfx`, `mlr` and `stuff` (branch `fix/uninit-ms-libs`): of the 45 baseline entries, 42 fixed by initialising the members (gosFX events, seeded curves, effect cloud and singleton specs; MLR effect, card cloud, shape, terrain, triangle meshes, screen quads; `AverageOf`, `Directory`, `MemoryStream`, the `MinMaxHolderOf` test helper; one `MemoryStream` entry was already fixed on `pi-port`), 3 suppressed inline as false positives (`StaticArrayOf` copy constructor and `Matrix4D(int)` fill through helpers cppcheck does not follow; `Record` gets its variable-length tail by `memcpy`). Local cppcheck 2.19: 44 findings in these directories before, 0 after. Batch checks on Ubuntu 26.04.
+- 2026-10-31: All 28 Clan Wars missions (`innersphere1`-`28`) pass a 300-frame headless smoke at Omnitech's texture settings (branch `omnitech-followups`). 10 failed first: Omnitech's editor saves an unset `preNumCells` in special-area footprints (never read; now stored as 0) and leftover memory in the pathfinder's start/goal door links (now treated as scratch, like the trailing slots), and 3 missions have more than 119 pilots (`MAX_WARRIORS` 120 -> 160, as in Omnitech; team rosters stay at 120 and are now bounded). Review also found the start/goal door link lists sized from the map's stored count, which a path search could overrun: `GlobalMap::init` now grows them to the largest area's door count. New `[TXMCACHE]` (compressed textures held) and `[MEM]` (peak resident) log lines: Clan Wars peaks at 72-92 MB of compressed textures against 12 MB for stock missions; peak resident 360-860 MB under llvmpipe (varies run to run) against 290-375 MB stock. Not measured on the Pi.
+- 2026-10-31: Tidy-ups after PR 17: object texture lookups check each file once (`objectTextureName()`); the remaining `LZDecomp` calls in the FST reader and logistics are bounded. Decompressing each listed terrain-transition cache twice at load was measured (about 64 ms for mc2_01's 100 caches on a desktop) and left. UI smoke tests designed, not built (`future-features/UI-SMOKE.md`).
 - 2026-10-31: review findings R1, P2, E1 (branch `fix/review-small`): `gos_vertex.vert` writes `gl_PointSize` so `GL_POINTS` have a size on GLES; `gos_MarkGameplayStarted()` fires on every mission (a member cleared in `Mission::init`, not a static pointer to the reused `Mission`); `GlobalMap::init` allocates `doorInfos` / `doorLinks` before the reads that can fail, so `destroy()` never frees uninitialised pointers from a half-loaded map. Batch checks (GL and GLES, shaders, smoke) on Ubuntu 26.04; planet point not looked at on the Pi.
 - 2026-10-31: `MC2_STOP_EXITS=1` makes `STOP` (so `Fatal`, `Assert`, `ABL_Fatal`) log and `_Exit(1)`; `smoke.sh` and `bench.sh` set it, default unchanged (step 1 of the STOP plan). Also ABL `concat()` overflowed a 20-byte buffer and the script's `char[40]` on a huge real (`cpl0101a.abl`; mc2_15 aborted under GCC 15's `_FORTIFY_SOURCE` on every GLES run): now bounded. All built and run on Ubuntu 26.04 WSL (GCC 15, Clang); MSVC not built locally. Smoke with the switch on, 28 missions (campaign, tutorials, e3demo) at 600 frames: GL 28/28, GLES 27/28, no `STOP` fired; the failure is an mc2_15 GLES segfault found here and not fixed (Known issues).
 - 2026-10-31: unattended runs behave the same on any display: `scripts/smoke.sh` always uses Xvfb (WSLg's display made local smoke and batch checks open a full-screen window on the desktop; `--display` opts out), and every `-autoexit` run, like `-bench`, ignores the keyboard and mouse, holds the cursor at the screen centre and runs windowed at the game resolution (`gos_IsAutomatedRun()`). Checked under a 1600x1200 Xvfb with FullScreen on: drawable 800x600, cursor at 400,300.
 - 2026-10-31: code review of all of `pi-port` (`planning/REVIEW-PI-PORT.md`): 1 high, 3 medium, 13 low findings, plus a flaky mc2_17 smoke found while verifying (B7). Build/CI fixes (branch `fix/review-ci`): smoke catches `STOP` lines that land mid-line and `logmsg` ends each message with a newline; the smoke game-data cache key hashes all of `mclib` and `GameOS`; the cppcheck gate exits 2 when cppcheck or the gate itself fails, and `check.sh` reports it instead of passing; `check.sh` compares cppcheck findings by count; the shader validator also checks the GLSL 3.30 + 420pack header; unit-test fixtures are copied afresh on every build. Batch checks (GL and GLES builds, unit tests, smoke) on Ubuntu 26.04; MSVC, Clang and arm64 left to CI.
+- 2026-10-31: MechCommander Omnitech content loads and plays (PR 17, branch `omnitech-objtypes`): object types past `object2.pak` from `movobj.fit` (mech type FITs built from the CSV), vehicle and building profiles in missions and logistics, wide pathing records and special-area footprints, `.burnin.jpg` colour maps (stb_image, the original engine's disabled JPG branch), strings from a game-folder `mc2res.dll` for ids the stock table lacks, object textures from another `ObjectTextureRes` folder, cached terrain transitions built at another `TerrainTextureRes`. Clan Wars mission 1 plays (checked by `-bench` screenshots), exits clean, ASan clean. `MOD-COMPAT.md` has the details.
+- 2026-10-31: Loader and renderer bugs found on the way (PR 17), most hidden because `gosASSERT` compiles out and `STOP` only logs: texture LZ buffers overrun by 512 textures, a heap overflow from Omnitech's 528-byte special-area footprints, a missing texture crashing release builds, unbounded `LZDecomp` (now takes an output bound), unchecked special-area count; fog colour reached the shaders with red and blue swapped on every mission (stock fogs are near-grey, so it hardly showed).
 - 2026-10-31: Back-ports from the remaster (branch `fix/backport-mech-save`): `BattleMech` checks `sensorSystem` before every write (a mech with no sensor component, or whose profile load bailed early, has none); `.mdf` component ids past `masterList` are dropped like empty slots and crit-space bytes past `ItemLocationToInvLocation` mark the space empty; `.fit` mech profiles with too many items or an out-of-range `MasterID` are rejected (`Fatal()` only logged, then wrote past `inventory[]`) and crit spaces past the populated inventory are empty; the campaign dialog no longer scans every save game first, each save is version-checked once, and rejected list entries are freed. Not ported: `a03e13a2` (stub mech types do not exist here), `aa20a308` (a `badLoad` move map already exits at mission load), `84e1774a` (Omnitech work).
 - 2026-10-31: back-ported the mission / ABL hardening group from the remaster: a mission with no parts still gets team 0 and commander 0, `Mission::destroy` clears `Team::home` / `Commander::home`, `Mission::init` frees every old commander, a missing or invalid ABL file makes `ABLi_preProcess` return -1 (and `ABLi_loadLibrary` treats any negative handle as a failure), and `execExpression` no longer dereferences a NULL operand type (branch `fix/backport-mission-abl`).
 - 2026-10-31: quick fixes from the tidy-up list: `FitIniFile` finds a key (scalar, string or array) on the last line of a file without `FITend` (no stock file has that shape); unused `object_tex` shaders deleted and the shader validator fails on `#version`; stale docs fixed (vsync-off numbers, panning, #6 log line, MSVC `small` trap); `mission.cpp` item closed with no change needed.
