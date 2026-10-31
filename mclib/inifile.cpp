@@ -302,17 +302,17 @@ int FitIniFile::textToInt (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		int power = 0;
-		for (int count = numDigits;count >= 0;count--,power++)
+		for (int count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -353,17 +353,17 @@ long FitIniFile::textToLong (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		int power = 0;
-		for (int count = numDigits;count >= 0;count--,power++)
+		for (int count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -406,17 +406,17 @@ short FitIniFile::textToShort (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -458,17 +458,17 @@ char FitIniFile::textToChar (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -509,17 +509,17 @@ unsigned long FitIniFile::textToULong (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -561,17 +561,17 @@ unsigned short FitIniFile::textToUShort (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -613,17 +613,17 @@ unsigned char FitIniFile::textToUChar (const char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{

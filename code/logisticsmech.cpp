@@ -12,7 +12,9 @@ LogisticsMech.cpp			: Implementation of the LogisticsMech component.
 
 LogisticsMech::LogisticsMech( LogisticsVariant* pVar, int Count ) : pVariant( pVar )
 {
-	ID = (Count << 24 | pVar->getID() );
+	// Count is -1 for the purchase screen's catalogue mechs: shift it unsigned
+	// (a negative left shift is UB), same bits as before
+	ID = (int)( ((unsigned int)Count << 24) | (unsigned int)pVar->getID() );
 	pilot = 0;
 	forceGroup = 0;
 	pilotID = 0;
