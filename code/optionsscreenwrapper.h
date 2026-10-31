@@ -44,6 +44,7 @@ class OptionsScreenWrapper
 		bool isDone() { return (!isActive); }
 
 	private:
+		friend class UiSmokeDriver;	// -uismoke reads which screen is up
 
 		OptionsXScreen*		pOptionsScreen;
 		bool		isActive;

@@ -2435,6 +2435,7 @@ long Mech3DAppearance::render (long depthFixup)
 							shapeOrigin.BuildRotation(Stuff::EulerAngles(0.0f,0.0f,0.0f));
 							shapeOrigin.BuildTranslation(lFootPosition[i]);
 							
+							// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
 							drawInfo.m_parentToWorld = &shapeOrigin;
 					 
 							if (!MLRVertexLimitReached)
@@ -2494,6 +2495,7 @@ long Mech3DAppearance::render (long depthFixup)
 					localToWorld.Multiply(gosFX::Effect_Against_Motion,effectRot);
 					localResult.Multiply(localToWorld,shapeOrigin);
 					
+ 					// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
  					drawInfo.m_parentToWorld = &localResult;
 					if (!MLRVertexLimitReached)
 						leftShoulderBoom->Draw(&drawInfo);
@@ -2521,6 +2523,7 @@ long Mech3DAppearance::render (long depthFixup)
 					localToWorld.Multiply(gosFX::Effect_Against_Motion,effectRot);
 					localResult.Multiply(localToWorld,shapeOrigin);
 					
+ 					// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
  					drawInfo.m_parentToWorld = &localResult;
 					if (!MLRVertexLimitReached)
 						rightShoulderBoom->Draw(&drawInfo);
@@ -2542,6 +2545,7 @@ long Mech3DAppearance::render (long depthFixup)
 					shapeOrigin.BuildRotation(Stuff::EulerAngles(0.0f,0.0f,0.0f));
 					shapeOrigin.BuildTranslation(smokePos);
 							
+					// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
 					drawInfo.m_parentToWorld = &shapeOrigin;
 					if (isSmoking > 0)
 					{
@@ -2606,6 +2610,7 @@ long Mech3DAppearance::render (long depthFixup)
 					localResult.Multiply(localToWorld,shapeOrigin);
 					*/
 		
+ 					// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
  					drawInfo.m_parentToWorld = &shapeOrigin;
 					if (!MLRVertexLimitReached)
 						helicopterDustCloud->Draw(&drawInfo);

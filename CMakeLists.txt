@@ -180,6 +180,8 @@ set(SOURCES
     "code/mission2.cpp"
     "code/benchscenario.cpp"
     "code/benchdirector.cpp"
+    "code/uismokewalk.cpp"
+    "code/uismokedriver.cpp"
     "code/objective.cpp"
     "code/saveload.cpp"
     "code/trigger.cpp"
@@ -266,6 +268,19 @@ add_executable(mc2 ${SOURCES} ${MAIN_SRC})
 if(MC2_STRICT_WARNINGS)
     set_source_files_properties(code/benchscenario.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
+    set_source_files_properties(code/uismokewalk.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+    # uismokedriver.cpp is game glue (like benchdirector.cpp) but new code:
+    # the engine's include directories are passed again as -isystem (GCC and
+    # Clang then drop the -I), so the strict set reports the driver, not the
+    # 2001 headers it includes.
+    set(_mc2_legacy_isystem "")
+    foreach(_dir GameOS/include GameOS/gameos mclib gui code netlib thirdparty)
+        list(APPEND _mc2_legacy_isystem "-isystem" "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}")
+    endforeach()
+    set_source_files_properties(code/uismokedriver.cpp
+        PROPERTIES COMPILE_OPTIONS
+        "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas;${_mc2_legacy_isystem}")
 endif()
 target_link_libraries(mc2 mclib gosfx mlr stuff gui gameos gameos_main windows ZLIB::ZLIB ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer ${ADDITIONAL_LIBS} ${MC2_GL_LIBS})
 
