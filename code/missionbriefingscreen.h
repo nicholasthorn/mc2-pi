@@ -71,6 +71,9 @@ class MissionBriefingScreen: public LogisticsScreen
 	void		setupDropZone( float fX, float fY, float mapWidth, float mapHeight );
 
 
+	// indexes into statics, set from the layout in init
+	long		mapIndex, videoScreen, buttonText, videoCover;
+
 	float		runTime;
 	bool		bClicked;
 

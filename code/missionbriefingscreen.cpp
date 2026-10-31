@@ -15,9 +15,6 @@
 #include"gamesound.h"
 
 
-#define MAP_INDEX 32
-#define BUTTON_TEXT 34
-#define VIDEO_SCREEN 33
 #define RP_INDEX 1
 
 #define MN_MSG_PLAY 80
@@ -28,6 +25,10 @@
 MissionBriefingScreen::MissionBriefingScreen(  )
 {
 	status = RUNNING;
+	mapIndex = 32;
+	videoScreen = 33;
+	buttonText = 34;
+	videoCover = 35;
 	LogisticsScreen::helpTextArrayID = 4;
 
 	for ( int i = 0; i < MAX_OBJECTIVES; i++ )
@@ -61,6 +62,20 @@ MissionBriefingScreen::~MissionBriefingScreen()
 void MissionBriefingScreen::init( FitIniFile* file )
 {
 	LogisticsScreen::init( *file, "Static", "Text", "Rect", "Button" );
+	// The map, video window, objective icon strip and video cover are the
+	// last four statics: 32-35 in stock mcl_mn.fit (after the 32 objective
+	// icons), 0-3 in MechCommander Omnitech's, which has only those four
+	const long first = (staticCount >= 36) ? 32 : 0;
+	if (staticCount < first + 4)
+	{
+		STOP(("mcl_mn.fit has %ld statics, the briefing needs at least 4", staticCount));
+		return;
+	}
+	mapIndex = first;
+	videoScreen = first + 1;
+	buttonText = first + 2;
+	videoCover = first + 3;
+
 	for ( int i= 0; i < buttonCount; i++ )
 		buttons[i].setMessageOnRelease();
 
@@ -74,8 +89,8 @@ void MissionBriefingScreen::init( FitIniFile* file )
 	getButton( MN_MSG_PLAY )->showGUIWindow( 0 );
 	getButton( MN_MSG_STOP )->showGUIWindow( 0 );
 	getButton( MN_MSG_PAUSE )->showGUIWindow( 0 );
-	camera.init( statics[VIDEO_SCREEN].left(), statics[VIDEO_SCREEN].top(), 
-		statics[VIDEO_SCREEN].right(), statics[VIDEO_SCREEN].bottom() );
+	camera.init( statics[videoScreen].left(), statics[videoScreen].top(), 
+		statics[videoScreen].right(), statics[videoScreen].bottom() );
 
 
 }
@@ -177,13 +192,13 @@ void MissionBriefingScreen::update()
 
 				camera.setScale( modelScales[ID] );
 				soundSystem->playDigitalSample( LOG_VIDEOBUTTONS );
-				statics[35].showGUIWindow( 0 );
+				statics[videoCover].showGUIWindow( 0 );
 			}
 			else
 			{
 				camera.setObject( NULL, -1 );
 
-				statics[35].showGUIWindow( true );
+				statics[videoCover].showGUIWindow( true );
 			}
 		
 			missionListBox.GetItem( selItem )->setColor( 0xffff0000 );
@@ -244,15 +259,15 @@ void MissionBriefingScreen::update()
 					modelColors[ID][1], modelColors[ID][2]);
 				camera.setScale( modelScales[ID] );
 				if ( objectiveModels[ID].Length() )
-					statics[35].showGUIWindow( 0 );
+					statics[videoCover].showGUIWindow( 0 );
 				else
-					statics[35].showGUIWindow( 1 );
+					statics[videoCover].showGUIWindow( 1 );
 			}
 			else
 			{
 				camera.setObject( NULL, -1 );
 
-				statics[35].showGUIWindow( 1 );
+				statics[videoCover].showGUIWindow( 1 );
 			}
 		}
 	}
@@ -341,7 +356,7 @@ void MissionBriefingScreen::begin()
 	runTime = 0;
 	bClicked = 0;
 
-	statics[VIDEO_SCREEN].setColor( 0 );
+	statics[videoScreen].setColor( 0 );
 
 	memset( objectiveButtons, 0, sizeof ( aObject* ) * MAX_OBJECTIVES );
 	// need to set up all pertinent mission info
@@ -349,9 +364,9 @@ void MissionBriefingScreen::begin()
 
 
 	long tmpMapTextureHandle = getMissionTGA( missionName );
-	statics[MAP_INDEX].setTexture( tmpMapTextureHandle );
-	statics[MAP_INDEX].setUVs( 0, 127, 127, 0 );
-	statics[MAP_INDEX].setColor( 0xffffffff );
+	statics[mapIndex].setTexture( tmpMapTextureHandle );
+	statics[mapIndex].setUVs( 0, 127, 127, 0 );
+	statics[mapIndex].setColor( 0xffffffff );
 
 
 	// need to get all the objectives and stuff
@@ -511,25 +526,25 @@ void MissionBriefingScreen::begin()
 		}
 	}
 
-	statics[BUTTON_TEXT].showGUIWindow( 0 );
+	statics[buttonText].showGUIWindow( 0 );
 	status = RUNNING;
 
 }
 
 void MissionBriefingScreen::setupDropZone( float fX, float fY, float mapWidth, float mapHeight )
 {
-	dropZoneButton = statics[BUTTON_TEXT];
+	dropZoneButton = statics[buttonText];
 
-	float bmpX = statics[MAP_INDEX].width();
-	float bmpY = statics[MAP_INDEX].height();
+	float bmpX = statics[mapIndex].width();
+	float bmpY = statics[mapIndex].height();
 
 	// in terms of map, this is where the button goes
 	float xLoc = fX/mapWidth * bmpX/2.f;
 	float yLoc = -fY/mapHeight * bmpY/2.f;
 
 	// offset by the map...
-	xLoc += statics[MAP_INDEX].globalX() + bmpX/2.f;
-	yLoc += statics[MAP_INDEX].globalY() + bmpY/2.f;
+	xLoc += statics[mapIndex].globalX() + bmpX/2.f;
+	yLoc += statics[mapIndex].globalY() + bmpY/2.f;
 
 	dropZoneButton.resize( 18, 18 );
 	dropZoneButton.setUVs( 100, 100, 118, 118);
@@ -551,19 +566,19 @@ void MissionBriefingScreen::addObjectiveButton( float fX, float fY, int count, i
 
 
 
-	float bmpX = statics[MAP_INDEX].width();
-	float bmpY = statics[MAP_INDEX].height();
+	float bmpX = statics[mapIndex].width();
+	float bmpY = statics[mapIndex].height();
 
 	// in terms of map, this is where the button goes
 	float xLoc = fX/mapWidth * bmpX/2.f;
 	float yLoc = -fY/mapHeight * bmpY/2.f;
 
 	// offset by the map...
-	xLoc += statics[MAP_INDEX].globalX() + bmpX/2.f;
-	yLoc += statics[MAP_INDEX].globalY() + bmpY/2.f;
+	xLoc += statics[mapIndex].globalX() + bmpX/2.f;
+	yLoc += statics[mapIndex].globalY() + bmpY/2.f;
 
 	aObject* pButtonText = new aObject;
-	*pButtonText = statics[BUTTON_TEXT];
+	*pButtonText = statics[buttonText];
 	if (display)
 		pButtonText->showGUIWindow( true );
 	else
@@ -639,8 +654,8 @@ int  MissionBriefingScreen::addItem( int ID, unsigned long color, int LBid)
 
 void MissionBriefingScreen::end()
 {
-//	statics[MAP_INDEX].setTexture( (long)0 );
-// 	statics[MAP_INDEX].setColor( 0 );
+//	statics[mapIndex].setTexture( (long)0 );
+// 	statics[mapIndex].setColor( 0 );
 
 	camera.setMech( NULL );
 

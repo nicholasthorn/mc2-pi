@@ -100,6 +100,9 @@ int MechLabScreen::init( FitIniFile& file )
 	ComponentListItem::init( file );
 
 	LogisticsScreen::init( file, "Static", "Text", "Rect", "Button" );
+	if ( !layoutSupported() )
+		fprintf( stderr, "mechlab: mcl_mc.fit has %ld statics, this mech lab needs %d: the mech lab is off\n",
+			staticCount, MAX_STATIC_USED + 1 );
 
 	componentListBox.init( rects[2].left(), rects[2].top(),
 							rects[2].width(), rects[2].height() );

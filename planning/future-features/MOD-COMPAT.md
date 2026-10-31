@@ -457,6 +457,43 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      Omnitech, and the fill is bounded.
    The test folder now uses Omnitech's own `tgl.fst` (readable since #31).
 
+12. **Front-end screens (2026-10-31, branch `omnitech-ui`).** Mission
+   smokes start in the mission, so no Omnitech screen had been opened; the
+   UI smoke walks (#30 / #32) crashed at the main menu on Omnitech data.
+   Omnitech ships its own `data/art/mcl_*.fit` layouts, and its code moved
+   the fixed indexes to match (its "magic 19092011" changes):
+   - **1024x1024 art.** `mcl_mm_o.tga` (main menu) is 1024x1024; the LZ
+     buffers held 512x512, so it was refused and `aObject::init` then
+     locked texture handle 0. The buffers now take 1024x1024, and
+     `gos_LockTexture` reports an empty 0x0 texture for handle 0.
+   - **Briefing (`mcl_mn.fit`):** 4 statics, not 36. Map, video window,
+     icon strip and cover are 0-3 (Omnitech's code) or 32-35 (stock),
+     chosen from the static count.
+   - **Loading screen (`mcl_loadingscreen.fit`):** no animated panels; the
+     `AnimObject18` text is optional.
+   - **Pilot ready (`mcl_pr_layout.fit`):** 40 statics; the pilot picture is
+     28, not 67 (writing 67 overran the array and crashed at exit), and
+     the stock-only cover hack on 27 / 28 is skipped.
+   - **Mech lab (`mcl_mc.fit`): not done.** 15 statics; our code uses up to
+     55, and Omnitech's `MechLabScreen.cpp` differs by about 850 lines (new
+     layout, damage display, more). The mech bay keeps "change loadout"
+     disabled for that layout (logged once).
+   - Other layouts (main menu, mission selection, mech bay, purchase, mech
+     info) stay within their counts; whether every in-range index is the
+     same piece was not checked.
+   Walks now pass on Omnitech data, also under ASan: main menu, the four
+   options tabs, new campaign, mission selection, briefing, mech bay, pilot
+   ready, mech purchase. Open: an Omnitech campaign starts with an empty
+   mech bay, and "buy" on the purchase screen adds nothing (not looked at).
+
+13. **Omnitech campaign packs (2026-10-31).** Nine 2012-2016 packs on
+   ModDB (`moddb.com/mods/mechcommander-omnitech/downloads`), Inno Setup
+   installers holding only data, unpacked with `innoextract`. Desert Fox
+   (5 missions, `desfox1..5`): installed over the Omnitech folder with
+   lower-case names, no clashes; all 5 pass a 300-frame smoke. Not yet
+   downloaded: Carver V (both), Wolf Dragoons, Clan Eagle, Day of Heroes,
+   Laskos Legion, Volstand, Mercenaries Star.
+
 ## Scope if we do this
 
 In: load and play Omnitech-era single-player campaigns on stock-format data,
