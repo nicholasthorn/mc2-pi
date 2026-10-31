@@ -48,6 +48,7 @@
 #include<mlr/mlr.hpp>
 #include<gosfx/gosfxheaders.hpp>
 #include <utils/gl_utils.h>
+#include <limits.h>
 
 //---------------------------------------------------------------------------
 // static globals
@@ -1673,11 +1674,63 @@ void MC_TextureManager::renderLists (void)
 }
 
 //----------------------------------------------------------------------
+// lastUsed is a turn (frame) number. Freeing a texture after 60 turns unused
+// was about two seconds at the frame rates of the time, but is a third of a
+// second at 180 fps, so textures were freed and loaded again (decompressed and
+// uploaded) as the view moved. Free after TEXTURE_IDLE_MS instead, and never
+// sooner than TEXTURE_IDLE_TURNS. Returns the newest turn that counts as idle.
+static long textureIdleTurn (void)
+{
+	const DWORD TEXTURE_IDLE_MS = 2000;
+	const long TEXTURE_IDLE_TURNS = 60;
+	const DWORD SAMPLE_MS = 100;		// history: turn number every SAMPLE_MS
+	const DWORD GAP_MS = 500;			// longer between calls: paused, restart history
+	const int HISTORY = 32;				// > TEXTURE_IDLE_MS / SAMPLE_MS
+
+	static DWORD sampleTime[HISTORY];
+	static long sampleTurn[HISTORY];
+	static int numSamples = 0;
+	static int next = 0;
+	static DWORD lastCall = 0;
+
+	const DWORD now = timeGetTime();
+	const int newest = (next + HISTORY - 1) % HISTORY;
+
+	// a new mission restarts turn at 0, and while paused update() is not
+	// called at all: either way the history no longer applies
+	if (numSamples && ((turn < sampleTurn[newest]) || (now - lastCall > GAP_MS)))
+		numSamples = 0;
+	lastCall = now;
+
+	if (!numSamples || (now - sampleTime[newest] >= SAMPLE_MS))
+	{
+		sampleTime[next] = now;
+		sampleTurn[next] = turn;
+		next = (next + 1) % HISTORY;
+		if (numSamples < HISTORY)
+			numSamples++;
+	}
+
+	// the newest sample at least TEXTURE_IDLE_MS old; none yet: nothing is idle
+	for (int k=0;k<numSamples;k++)
+	{
+		const int idx = (next + HISTORY - 1 - k) % HISTORY;
+		if (now - sampleTime[idx] >= TEXTURE_IDLE_MS)
+		{
+			const long idle = turn - TEXTURE_IDLE_TURNS;
+			return (sampleTurn[idx] < idle) ? sampleTurn[idx] : idle;
+		}
+	}
+	return LONG_MIN;
+}
+
 DWORD MC_TextureManager::update (void)
 {
 	DWORD numTexturesFreed = 0;
 	currentUsedTextures = 0;
-	
+
+	const long idleTurn = textureIdleTurn();
+
 	for (long i=0;i<MC_MAXTEXTURES;i++)
 	{
 		if ((masterTextureNodes[i].gosTextureHandle != CACHED_OUT_HANDLE) &&
@@ -1686,7 +1739,7 @@ DWORD MC_TextureManager::update (void)
 			if (!masterTextureNodes[i].uniqueInstance &&
 				!(masterTextureNodes[i].neverFLUSH & 1))		//Only uncachable if BIT 1 is set, otherwise, cache 'em out!
 			{
-				if (masterTextureNodes[i].lastUsed <= (turn-60))
+				if (masterTextureNodes[i].lastUsed <= idleTurn)
 				{
 					//----------------------------------------------------------------
 					// Cache this badboy out.  Textures don't change.  Just Destroy!
