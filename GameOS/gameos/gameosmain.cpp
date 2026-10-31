@@ -48,12 +48,50 @@ float __stdcall gos_GetFixedFrameLength()
     return g_bench ? BENCH_FRAME_LENGTH : 0.0f;
 }
 
+// MC2_PERF_CTL / MC2_PERF_ACK: paths of the control and ack FIFOs given to
+// "perf record --control fd:... --delay=-1" (scripts/bench.sh --perf).
+// Sampling is switched on at the first gameplay frame and off when gameplay
+// ends, so loading never lands in the profile. Unset: nothing happens.
+static FILE* g_perf_ctl = NULL;
+static FILE* g_perf_ack = NULL;
+static bool g_perf_enabled = false;
+
+static void perf_control(bool enable)
+{
+    if(!g_perf_ctl || g_perf_enabled == enable)
+        return;
+    fprintf(g_perf_ctl, "%s\n", enable ? "enable" : "disable");
+    fflush(g_perf_ctl);
+    // wait for perf to act on it, so the first frames are not missed
+    char ack[16];
+    if(g_perf_ack && !fgets(ack, sizeof(ack), g_perf_ack))
+        printf("[PERF] no ack from perf\n");
+    g_perf_enabled = enable;
+    printf("[PERF] sampling %s\n", enable ? "on" : "off");
+    fflush(stdout);
+}
+
+static void perf_open_control()
+{
+    const char* ctl = getenv("MC2_PERF_CTL");
+    if(!ctl || !*ctl)
+        return;
+    // the launcher holds both FIFOs open read-write, so neither open blocks
+    g_perf_ctl = fopen(ctl, "w");
+    const char* ack = getenv("MC2_PERF_ACK");
+    if(g_perf_ctl && ack && *ack)
+        g_perf_ack = fopen(ack, "r");
+    if(!g_perf_ctl)
+        printf("[PERF] ERROR: cannot open %s\n", ctl);
+}
+
 void __stdcall gos_MarkGameplayStarted(const char* missionName)
 {
     // scripts/smoke.sh requires this line before [AUTOEXIT]
     printf("[MISSION] %s started\n", missionName ? missionName : "");
     fflush(stdout);
     g_gameplay_started = true;
+    perf_control(true);
     // same random sequence from the first gameplay frame, whatever loading used
     if(g_bench)
         gos_srand(BENCH_SEED);
@@ -221,6 +259,7 @@ int main(int argc, char** argv)
             bench_csv = argv[i+1];
     }
     g_bench = bench_csv != NULL;
+    perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;
     if(g_bench) {
         bench_frames.reserve(autoexit_frames > 0 ? autoexit_frames : 10000);
@@ -301,6 +340,9 @@ int main(int argc, char** argv)
             g_exit = true;
         }
     }
+
+    // stop sampling before the CSV write and shutdown
+    perf_control(false);
 
     // written after the loop so file IO never lands inside a measured frame
     if(g_bench) {

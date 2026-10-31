@@ -85,6 +85,8 @@ scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2
 
 # Benchmark (on the Pi, own display): -bench runs, results.csv with p50/p95/p99 and the CPU split
 scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --label "fan on"
+# CPU profile of gameplay frames (perf, frame-pointer build: -DMC2_FRAME_POINTERS=ON)
+scripts/bench.sh --game-dir ../mc2game --build-dir build-fp --renderers gpu --runs 0 --perf
 ```
 
 Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.

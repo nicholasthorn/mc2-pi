@@ -216,6 +216,9 @@ the Pi; not needed for the numbers.
    give identical draws/tris on every frame (mc2_01 900, mc2_03 3000). Not
    split yet: "render" is game enqueue and GL submit together. Pilot videos
    in the force group bar still depend on the measured frame rate.
+   **Also built** (2026-10-31): `bench.sh --perf`, a `perf record -g` run
+   per mission that samples gameplay frames only (the game drives perf's
+   control FIFO), with a `MC2_FRAME_POINTERS` build option for call stacks.
 2. Bench director, scenario file, segments, screenshots.
 3. GPU timer queries and `bench.sh` / `bench_compare.py`.
 4. HUD (optional).
