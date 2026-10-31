@@ -239,6 +239,8 @@ the Pi; not needed for the numbers.
    - `-bench` turns sound off: radio chatter decided whether
      `Radio::playMessage` reached `RandomNumber()` by whether the previous
      message had finished playing (real time), so combat runs drifted apart.
+     So `results.csv` rows from before 2d44620 measured a different
+     workload (sound and music on): do not compare them with later rows.
    - A `state` column (checksum of every unit) separates logic divergence
      from rendering differences; `MC2_BENCH_DUMP` dumps per-unit state.
    `bench.sh --scenario` writes `segments.csv` and a per-segment summary.
