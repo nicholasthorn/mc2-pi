@@ -1009,7 +1009,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	baseRootNodeDifference = 0.0f;
 
 	rotationalNodeIndex = -1;
-	shadowRotationalNodeIndex = -2;
+	shadowRotationalNodeIndex = -1;
 	hitLeftNodeIndex = hitRightNodeIndex = -1;
 	rootNodeIndex = lightCircleNodeIndex = -1;
 	leftArmNodeIndex = rightArmNodeIndex = -1;
@@ -1346,7 +1346,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	if (mechType && mechType->mechShadowShape)
 	{
 		mechShadowShape = mechType->mechShadowShape->CreateFrom();
-		shadowRotationalNodeIndex = -2;
+		shadowRotationalNodeIndex = -1;
 
 		//-------------------------------------------------
 		// Load the texture and store its handle.
@@ -3161,13 +3161,10 @@ void Mech3DAppearance::updateGeometry (void)
 			
 		if (mechShadowShape && useShadows)
 		{
-			if (rotationalNodeIndex == -1)
-	   			rotationalNodeIndex = mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
-
-			mechShadowShape->SetNodeRotation(rotationalNodeIndex,&torsoRot);
-
-			// by name once (a string scan over the nodes), then by index
-			if (shadowRotationalNodeIndex == -2)
+			// The shadow shape's own joint_torso: rotationalNodeIndex belongs
+			// to mechShape, whose nodes may be in a different order. Found by
+			// name (a string scan over the nodes) once, then set by index.
+			if (shadowRotationalNodeIndex == -1)
 				shadowRotationalNodeIndex = mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
 			else
 				mechShadowShape->SetNodeRotation(shadowRotationalNodeIndex,&torsoRot);
