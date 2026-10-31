@@ -245,10 +245,30 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    `setbrain`, `setmechgesture`, `setobjectivetype`,
    `setsalvagecraftenabled`, `settextmsg`, `settxtbuildingname`,
    `togglesalvagecraft`.
-3. `.burnin.jpg` colour maps (logged, not yet fatal).
-4. A separate `STOP: requested packet number 125 is bigger than number of
-   packets: 125` appears earlier in the log, from another packet file
-   (probably `object2.pak` or a unit `.fit`); not investigated.
+   Run 2026-10-31 (`4867483`, after the ABL table fix): the 10 compile.
+   Adding them overflowed the 256-entry ABL standard function table and
+   every mission, stock included, stopped at load; `MAX_STANDARD_FUNCTIONS`
+   is now 512 (Omnitech's value). Next ABL error: `isselected`
+   (`pbrain.abl` line 610), registered by 6.28 as `execIsSelectedByPlayer`,
+   so the name-based scan missed it.
+3. **Object types: next blocker, real work.** Every `ObjectNumber` in
+   Omnitech and Clan Wars missions is >= 1188 (stock never exceeds 878),
+   past the end of `object2.pak` (1188 packets in both). 6.28 defines them
+   in `data/objects/movobj.fit`, one block per number from 1200:
+   `[1318] l ObjectTypeNum = 2; st CSVname = "uziel"` (2 mech, 3 vehicle,
+   1 building, 21 turret, 22 gate). 419 entries: 166 buildings, 144 mechs,
+   82 vehicles, 19 turrets, 8 gates. CSVname is the mech CSV or the
+   vehicle/building `.fit`; mechs have no `.fit`, only the CSV, so 6.28
+   builds the mech type from the unit table (the 2013 snapshot has a
+   commented-out "Magic 89" attempt in `Mission::init`). We stop with
+   `ObjectTypeManager.load: bad objTypeNum` (1318): our table is 1024
+   entries (`ObjectTypeManager::init` default), Omnitech's 4096. Needs: a
+   larger table, `movobj.fit` lookup in `ObjectTypeManager::load` for
+   numbers past the pak, and type construction from CSV/`.fit`.
+4. `.burnin.jpg` colour maps (logged, not yet fatal).
+5. A separate `STOP: requested packet number 125 is bigger than number of
+   packets: 125` appears earlier in the log, from another packet file;
+   likely tied to item 3, not investigated.
 
 ## Scope if we do this
 
