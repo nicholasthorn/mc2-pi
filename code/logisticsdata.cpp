@@ -53,6 +53,7 @@ LogisticsData::LogisticsData()
 	oldVariant = 0;
 	missionInfo = 0;
 	rpJustAdded = false;
+	salvageCraftOverride = -1;
 
 	bNewMechs = bNewWeapons = bNewPilots = 0;
 }
@@ -2689,9 +2690,12 @@ bool	LogisticsData::isSingleMission()
 
 bool LogisticsData::canHaveSalavageCraft()
 {
+	if ( salvageCraftOverride >= 0 )
+		return salvageCraftOverride != 0;
+
 	if ( !missionInfo )
 		return true;
-		
+
 	return missionInfo->canHaveSalavageCraft();
 }
 bool LogisticsData::canHaveRepairTruck()

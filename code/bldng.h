@@ -139,10 +139,17 @@ class Building : public TerrainObject
 		float					captureTime;
 		float					scoreTime;
 
-		//PerimeterAlarms 		
+		//PerimeterAlarms
 		bool					moverInProximity;
 		float					proximityTimer;
 		long					updatedTurn;
+
+		// Set by MechCommander Omnitech's ABL setfixedbuildingrp /
+		// settxtbuildingname: this building's resource points when captured
+		// (makes it capturable; -1 = its type's) and a text name ("" = its
+		// type's). Not saved.
+		long					fixedResourcePoints;
+		char					customName[64];
 
 	public:
 
@@ -169,7 +176,20 @@ class Building : public TerrainObject
 			moverInProximity = false;
 			proximityTimer = 0.0f;
 			updatedTurn = -1;
+			fixedResourcePoints = -1;
+			customName[0] = '\0';
 		}
+
+		// resource points awarded when captured
+		long getResourcePoints (void);
+
+		// capture is gated by OBJECT_FLAG_CAPTURABLE (isCaptureable)
+		void setFixedResourcePoints (long points) {
+			fixedResourcePoints = (points < 0) ? 0 : points;
+			setFlag(OBJECT_FLAG_CAPTURABLE, true);
+		}
+
+		void setCustomName (const char* name);
 
 	   	Building (void) : TerrainObject() {
 			init(true);
@@ -316,7 +336,7 @@ class Building : public TerrainObject
 
 		virtual bool canBeCaptured (void)
 		{
-			return ((BuildingTypePtr)getObjectType())->capturable;
+			return (fixedResourcePoints >= 0) || ((BuildingTypePtr)getObjectType())->capturable;
 		}
 
 		virtual bool isSelectable()

@@ -170,7 +170,13 @@ void WeaponShotInfo::init (GameObjectWatchID _attackerWID, long _masterId, float
 		}
 	}
 
-	Assert((damage >= 0.0) && (damage <= 255.0), (long)damage, " WeaponShotInfo.init: damage out of range ");
+	// 255 is the multiplayer packing limit (damage * 4 below); MechCommander
+	// Omnitech has weapons that hit harder (mission mw2_n_0), and damage is a
+	// float everywhere else, so single player only needs it non-negative
+	if (MPlayer)
+		Assert((damage >= 0.0) && (damage <= 255.0), (long)damage, " WeaponShotInfo.init: damage out of range ");
+	else
+		Assert(damage >= 0.0, (long)damage, " WeaponShotInfo.init: damage out of range ");
 	if (MPlayer && MPlayer->isServer()) {
 		damage = (float)((unsigned long)(damage * 4.0)) * 0.25;
 		if ((entryAngle >= -45.0) && (entryAngle <= 45.0))

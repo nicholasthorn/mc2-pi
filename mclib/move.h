@@ -1078,7 +1078,7 @@ typedef GlobalPathStep* GlobalPathStepPtr;
 #define	MAX_SPECIAL_AREAS		1500
 #define	MAX_SPECIAL_SUB_AREAS	25
 #define	MAX_CELLS_PER_SUB_AREA	49
-#define	MAX_OFFMAP_AREAS		60
+#define	MAX_OFFMAP_AREAS		120		// stock 60; MechCommander Omnitech 120 (mw2_8_1 needs more than 60)
 #define	MAX_GAME_OBJECT_CELLS	64
 
 typedef struct _GameObjectFootPrint {
