@@ -1927,6 +1927,12 @@ void __stdcall gos_MarkGameplayStarted( const char* missionName );
 //
 float __stdcall gos_GetFixedFrameLength();
 //
+// True for an unattended run ("-autoexit <frames>" or "-bench <csv>": smoke
+// and bench scripts). Such a run ignores the keyboard and mouse, holds the
+// cursor at the screen centre and runs windowed, whatever display it is on.
+//
+bool __stdcall gos_IsAutomatedRun();
+//
 // "-benchscenario <fit>" (with -bench): the scripted scenario file, or NULL.
 // The game's bench director (code/benchdirector.cpp) plays it, and reports:
 //   gos_BenchSegment(name): frames from now on belong to this segment; each

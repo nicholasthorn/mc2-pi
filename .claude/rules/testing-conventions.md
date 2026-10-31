@@ -31,8 +31,12 @@ smoke missions. Sanitizers and coverage are still to come
 ## Smoke runs (`scripts/smoke.sh`)
 
 - Launches each mission with `-mission <name> -autoexit <frames>` under Mesa
-  llvmpipe (`LIBGL_ALWAYS_SOFTWARE=1`), through `xvfb-run` when there is no
-  display, with `SDL_AUDIODRIVER=dummy`. Works for both renderers.
+  llvmpipe (`LIBGL_ALWAYS_SOFTWARE=1`), always through `xvfb-run` (even
+  where WSLg provides a display; `--display` opts out to watch a run), with
+  `SDL_AUDIODRIVER=dummy`. Works for both renderers.
+- Any `-autoexit` run, like `-bench`, holds the cursor at the screen centre,
+  ignores the keyboard and mouse, and runs windowed at the game resolution
+  (`FullScreen` ignored), so a run on a real display behaves as under Xvfb.
 - `-autoexit N` counts **gameplay** frames: the game calls
   `gos_MarkGameplayStarted()` on a mission's first frame (`code/mission.cpp`),
   which prints `[MISSION] <name> started`; GameOS prints `[AUTOEXIT] ...` and
