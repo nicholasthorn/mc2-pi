@@ -449,11 +449,10 @@ void LogisticsSaveDialog::begin()
 }
 
 
-void LogisticsSaveDialog::beginLoad()
+void LogisticsSaveDialog::beginLoad(bool bSkipSaveScan)
 {
 	beginFadeIn( 0 );
 	edits[0].setFocus(true);
-	initDialog(savePath, 0);
 	status = RUNNING;
 	bPromptOverwrite = 0;
 	bDeletePrompt = 0;
@@ -470,16 +469,22 @@ void LogisticsSaveDialog::beginLoad()
 	edits[0].setEntry( "" );
 	edits[0].limitEntry( 20 );
 
-	
-	aListItem* pItem = gameListBox.GetItem( 0 );
-	if ( pItem )
+	// beginCampaign() replaces the list straight away, so it skips the
+	// scan of every save game.
+	if (!bSkipSaveScan)
 	{
-		pItem->select();
-		edits[0].setEntry( ((aTextListItem*)pItem)->getText() );
-		selectedName = ( ((aLocalizedListItem*)pItem)->getHiddenText() );
-	}
+		initDialog(savePath, 0);
 
-	updateMissionInfo();
+		aListItem* pItem = gameListBox.GetItem( 0 );
+		if ( pItem )
+		{
+			pItem->select();
+			edits[0].setEntry( ((aTextListItem*)pItem)->getText() );
+			selectedName = ( ((aLocalizedListItem*)pItem)->getHiddenText() );
+		}
+
+		updateMissionInfo();
+	}
 
 	LogisticsDialog::begin();
 
@@ -487,7 +492,7 @@ void LogisticsSaveDialog::beginLoad()
 
 void LogisticsSaveDialog::beginCampaign()
 {
-	beginLoad();
+	beginLoad(true);
 	edits[0].limitEntry( 20 );
 	bCampaign= true;
 	initDialog(campaignPath, 1);
@@ -537,11 +542,9 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 				}
 				if ( pExt )
 					*pExt = '\0';
-			
-				if (!bCampaign && isCorrectVersionSaveGame(findResult.cFileName))
-					pEntry->setText( findResult.cFileName );
-				else if (bCampaign)
-					pEntry->setText( findResult.cFileName );
+
+				// Opens the file, so check each save game once
+				bool addItem = bCampaign || isCorrectVersionSaveGame(findResult.cFileName);
 
 				if ( bCampaign )
 				{
@@ -549,13 +552,17 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 					readCampaignNameFromFile( findResult.cFileName, campaignName, 1023 );
 					pEntry->setText( campaignName );
 				}
+				else if ( addItem )
+					pEntry->setText( findResult.cFileName );
 
-				if (bCampaign || isCorrectVersionSaveGame(findResult.cFileName))
+				if ( addItem )
 				{
 					pEntry->setHiddenText( findResult.cFileName );
 					pEntry->setColor( edits[0].getColor() );
 					gameListBox.AddItem( pEntry );
 				}
+				else
+					delete pEntry;		// was leaked for every rejected save
 			}
 		} while (FindNextFile(searchHandle,&findResult) != 0);
 
