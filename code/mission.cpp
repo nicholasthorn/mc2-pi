@@ -2321,6 +2321,10 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	
 	missionScriptHandle = ABLi_preProcess(brainFileName, &numErrors, &numLinesProcessed);
 	gosASSERT(missionScriptHandle >= 0);
+	// -1: the script is missing or not ABL. The mission brain is left
+	// uninitialised, so say so here rather than fail later in its first run.
+	if (missionScriptHandle < 0)
+		STOP(("Mission::init: cannot load mission script %s", (const char*)brainFileName));
 	
 	missionBrain = new ABLModule;
 	gosASSERT(missionBrain != NULL);
