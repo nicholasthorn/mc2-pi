@@ -14,21 +14,16 @@
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	code/ablmc2.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	code/ablmc2.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'objectNum' and 'newBRValue'.
-1	code/artlry.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	code/bldng.cpp	warning	duplInheritedMember	The class 'Building' defines member function with name 'isVisible' also defined in its parent class 'TerrainObject'.
 2	code/bldng.h	warning	duplInheritedMember	The class 'Building' defines member function with name 'isVisible' also defined in its parent class 'TerrainObject'.
 1	code/bldng.h	warning	duplInheritedMember	The class 'Building' defines member variable with name 'listID' also defined in its parent class 'TerrainObject'.
 1	code/bldng.h	warning	duplInheritedMember	The struct '_BuildingData' defines member variable with name 'listID' also defined in its parent struct '_TerrainObjectData'.
-1	code/chatwindow.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
 2	code/contact.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'contactIndex<255' is redundant or the array 'contacts[200]' is accessed at index 254, which is out of bounds.
 2	code/contact.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'numEcms==50' is redundant or the array 'ecms[50]' is accessed at index 50, which is out of bounds.
 1	code/contact.cpp	warning	arrayIndexOutOfBoundsCond	Either the condition 'numSensors==255' is redundant or the array 'sensors[255]' is accessed at index 255, which is out of bounds.
-1	code/controlgui.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
-3	code/controlgui.cpp	error	nullPointer	Null pointer dereference: pInfo
 1	code/controlgui.cpp	warning	allocaCalled	Obsolete function 'alloca' called.
 1	code/controlgui.cpp	warning	noCopyConstructor	Class 'ControlGui' does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s).
 1	code/controlgui.cpp	warning	noOperatorEq	Class 'ControlGui' does not have a operator= which is recommended since it has dynamic memory/resource allocation(s).
-2	code/controlgui.cpp	warning	uninitvar	Uninitialized variables: sorted.checkedIn, sorted.player, sorted.commanderID, sorted.dropZone, sorted.stripeColor, sorted.teamSelected, sorted.team, sorted.teamSeniority, sorted.faction, sorted.cBills, sorted.resourcePointsAtStart, sorted.resourcePointsGained, sorted.resourcePoints, sorted.rank, sorted.ready, sorted.score, sorted.kills, sorted.losses, sorted.winner, sorted.leftSession, sorted.booted
 1	code/gamecam.cpp	warning	duplInheritedMember	The class 'GameCamera' defines member function with name 'destroy' also defined in its parent class 'Camera'.
 1	code/gamecam.h	warning	duplInheritedMember	The class 'GameCamera' defines member function with name 'destroy' also defined in its parent class 'Camera'.
 1	code/gameobj.cpp	warning	nullPointerRedundantCheck	Either the condition '!target' is redundant or there is possible null pointer dereference: target.
@@ -46,7 +41,6 @@
 1	code/logisticsdialog.h	warning	duplInheritedMember	The class 'LogisticsLegalDialog' defines member variable with name 's_instance' also defined in its parent class 'LogisticsOneButtonDialog'.
 1	code/logisticsmechicon.cpp	warning	operatorEqVarError	Member variable 'LogisticsMechIcon::pMech' is not assigned a value in 'LogisticsMechIcon::operator='.
 1	code/logisticsmechicon.cpp	warning	operatorEqVarError	Member variable 'LogisticsMechIcon::state' is not assigned a value in 'LogisticsMechIcon::operator='.
-1	code/logisticsmissioninfo.cpp	error	uninitvar	Uninitialized variable: path
 1	code/logisticspilot.cpp	warning	identicalConditionAfterEarlyExit	Identical condition and return expression 'skillTexts[skillID]', return value is always 0
 1	code/logisticsvariant.cpp	warning	constStatement	Unused variable value 'houseID'
 1	code/logisticsvariant.cpp	warning	identicalConditionAfterEarlyExit	Identical condition '!info', second condition is always false
@@ -70,7 +64,6 @@
 2	code/mission.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 2	code/mission.cpp	warning	nullPointerRedundantCheck	Either the condition 'missionInterface' is redundant or there is possible null pointer dereference: missionInterface.
 1	code/missionbegin.cpp	warning	negativeIndex	Either the condition 'curScreenX!=-1' is redundant or the array 'screens[5][3]' is accessed at index screens[-1][*], which is out of bounds.
-2	code/missiongui.cpp	error	nullPointer	Null pointer dereference
 1	code/missiongui.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	code/missiongui.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	code/missiongui.cpp	warning	selfAssignment	Redundant assignment of 'mouseY' to itself.
@@ -81,16 +74,8 @@
 1	code/mphostgame.h	warning	duplInheritedMember	The class 'MPHostGame' defines member function with name 'isDone' also defined in its parent class 'LogisticsDialog'.
 1	code/mploadmap.cpp	warning	duplInheritedMember	The class 'MPLoadMap' defines member function with name 'isDone' also defined in its parent class 'LogisticsDialog'.
 1	code/mploadmap.h	warning	duplInheritedMember	The class 'MPLoadMap' defines member function with name 'isDone' also defined in its parent class 'LogisticsDialog'.
-2	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: MPlayer->getPlayerInfo(MPlayer->commanderID)
-10	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: pInfo
-2	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: pWrite
-1	code/mpparameterscreen.cpp	error	nullPointer	Null pointer dereference: player
 1	code/mpparameterscreen.cpp	warning	operatorEqToSelf	'operator=' should check for assignment to self to avoid problems with dynamic memory.
-1	code/mpparameterscreen.cpp	warning	uninitvar	Uninitialized variables: sortedPlayers.checkedIn, sortedPlayers.player, sortedPlayers.commanderID, sortedPlayers.dropZone, sortedPlayers.stripeColor, sortedPlayers.teamSelected, sortedPlayers.team, sortedPlayers.teamSeniority, sortedPlayers.faction, sortedPlayers.cBills, sortedPlayers.resourcePointsAtStart, sortedPlayers.resourcePointsGained, sortedPlayers.resourcePoints, sortedPlayers.rank, sortedPlayers.ready, sortedPlayers.score, sortedPlayers.kills, sortedPlayers.losses, sortedPlayers.winner, sortedPlayers.leftSession, sortedPlayers.booted
-2	code/mpprefs.cpp	error	nullPointer	Null pointer dereference: pInfo
-7	code/mpprefs.cpp	error	nullPointer	Null pointer dereference: player
 3	code/mpstats.cpp	warning	nullPointerRedundantCheck	Either the condition 'data' is redundant or there is possible null pointer dereference: data.
-1	code/mpstats.cpp	warning	uninitvar	Uninitialized variables: sorted.checkedIn, sorted.player, sorted.commanderID, sorted.dropZone, sorted.stripeColor, sorted.teamSelected, sorted.team, sorted.teamSeniority, sorted.faction, sorted.cBills, sorted.resourcePointsAtStart, sorted.resourcePointsGained, sorted.resourcePoints, sorted.rank, sorted.ready, sorted.score, sorted.kills, sorted.losses, sorted.winner, sorted.leftSession, sorted.booted
 1	code/multplyr.cpp	warning	funcArgOrderDifferent	Function 'addArtilleryChunk' argument order different: declaration 'artilleryType, teamId, location, seconds' definition 'commanderId, artilleryType, location, seconds'
 1	code/multplyr.cpp	warning	funcArgOrderDifferent	Function 'buildArtillery' argument order different: declaration 'artilleryType, teamId, location, seconds' definition 'commanderId, artilleryType, location, seconds'
 1	code/objective.cpp	warning	duplInheritedMember	The class 'CObjective' defines member function with name 'Clear' also defined in its parent class 'EList < CObjectiveCondition * , CObjectiveCondition * >'.
@@ -128,13 +113,10 @@
 1	code/terrobj.cpp	warning	nullPointerArithmeticRedundantCheck	Either the condition 'cellsCovered' is redundant or there is pointer arithmetic with NULL pointer.
 1	code/terrobj.cpp	warning	nullPointerRedundantCheck	Either the condition 'cellsCovered' is redundant or there is possible null pointer dereference: curCoord++.
 1	code/terrobj.h	warning	duplInheritedMember	The class 'TerrainObjectType' defines member variable with name 'subType' also defined in its parent class 'ObjectType'.
-2	code/warrior.cpp	error	nullPointer	Null pointer dereference: getGroup()
 1	code/warrior.cpp	warning	negativeIndex	Either the condition 'numSteps>0' is redundant or the array 'globalPath[50]' is accessed at index -2, which is out of bounds.
 3	code/warrior.cpp	warning	nullPointerRedundantCheck	Either the condition 'myVehicle' is redundant or there is possible null pointer dereference: myVehicle.
 1	code/warrior.cpp	warning	nullPointerRedundantCheck	Either the condition 'warriorList[i]==0' is redundant or there is possible null pointer dereference: warriorList[i].
 1	code/warrior.cpp	warning	oppositeInnerCondition	Opposite inner 'if' condition leads to a dead code block.
-3	code/weaponbolt.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
-2	code/weaponbolt.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	data_tools/aseconv.cpp	warning	selfAssignment	Redundant assignment of 'CommandLine' to itself.
 1	gui/abutton.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'fXcaleX' and 'fScaleY'.
 1	gui/abutton.cpp	warning	duplInheritedMember	The class 'aButton' defines member function with name 'getID' also defined in its parent class 'aObject'.
@@ -171,7 +153,6 @@
 1	mclib/ablxstd.cpp	portability	invalidPointerCast	Casting between signed char * and float * which have an incompatible binary data representation.
 1	mclib/ablxstd.cpp	portability	memsetClassFloat	Using memset() on union which contains a floating point number.
 1	mclib/ablxstmt.cpp	warning	nullPointerRedundantCheck	Either the condition '!dest' is redundant or there is possible null pointer dereference: dest.
-1	mclib/camera.cpp	warning	nullPointer	Possible null pointer dereference: closestVertex
 1	mclib/cellip.h	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	mclib/cevfx.cpp	style	arrayIndexThenCheck	Array index 'i' is used before limits check.
 1	mclib/clouds.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
@@ -186,8 +167,6 @@
 1	mclib/mapdata.cpp	portability	shiftNegativeLHS	Shifting a negative value is technically undefined behaviour
 1	mclib/mapdata.cpp	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
 1	mclib/mapdata.h	warning	duplInheritedMember	The class 'MapData' defines member function with name 'destroy' also defined in its parent class 'HeapManager'.
-4	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'localResult' that is out of scope.
-1	mclib/mech3d.cpp	error	invalidLifetime	Using object that points to local variable 'shapeOrigin' that is out of scope.
 1	mclib/mlr/mlr_i_pmesh.cpp	warning	incorrectLogicOperator	Logical conjunction always evaluates to false: (*lightMapUVs)[k][1] < -1.5f && (*lightMapUVs)[k][1] > 1.5f.
 1	mclib/mlr/mlr_i_tmesh.hpp	style	virtualCallInConstructor	Virtual function 'GetNumPrimitives' is called from constructor 'MLR_I_TMesh(ClassData*class_data,Stuff::MemoryStream*stream,int version)' at line N. Dynamic binding is not used.
 1	mclib/mlr/mlr_terrain2.cpp	warning	invalidFunctionArg	Either the condition '(len=strlen(texName))>0' is redundant or strncpy() argument nr 3 can have invalid value. The value is -6 but the valid values are '0:'.
@@ -222,7 +201,6 @@
 1	mclib/terrtxm.cpp	warning	pointerSize	Size of pointer 'overlays' used instead of size of its data.
 2	mclib/terrtxm.cpp	warning	pointerSize	Size of pointer 'types' used instead of size of its data.
 4	mclib/terrtxm2.cpp	warning	nullPointerRedundantCheck	Either the condition 'colorMapRAMHeap' is redundant or there is possible null pointer dereference: colorMapRAMHeap.
-53	mclib/tgl.cpp	error	nullPointer	Null pointer dereference: newShape
 2	mclib/tgl.cpp	portability	memsetClassFloat	Using memset() on class which contains a floating point number.
 1	mclib/tgl.cpp	portability	memsetClassFloat	Using memset() on struct which contains a floating point number.
 1	mclib/tgl.cpp	style	duplicateAssignExpression	Same expression used in consecutive assignments of 'num_vertices' and 'num_indices'.

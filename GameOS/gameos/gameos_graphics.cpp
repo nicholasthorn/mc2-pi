@@ -2779,6 +2779,14 @@ void __stdcall gos_LockTexture( DWORD Handle, DWORD MipMapSize, bool ReadOnly, T
     gosASSERT(MipMapSize == 0);
     int mip_level = 0; //func(MipMapSize);
 
+    // No texture (the texture manager hands out 0 for one it could not
+    // load, e.g. a mod's oversized art): report an empty 0x0 one, as most
+    // callers only read the width
+    if (Handle == INVALID_TEXTURE_ID) {
+        memset(TextureInfo, 0, sizeof(*TextureInfo));
+        return;
+    }
+
     gosTextureInfo info;
     int pitch = 0;
     gosTexture* ptex = g_gos_renderer->getTexture(Handle);
@@ -2796,6 +2804,8 @@ void __stdcall gos_LockTexture( DWORD Handle, DWORD MipMapSize, bool ReadOnly, T
 
 void __stdcall gos_UnLockTexture( DWORD Handle )
 {
+    if (Handle == INVALID_TEXTURE_ID)
+        return;
     gosTexture* ptex = g_gos_renderer->getTexture(Handle);
     ptex->Unlock();
 

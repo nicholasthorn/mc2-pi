@@ -117,7 +117,7 @@ void InfoWindow::init( FitIniFile& file )
 
     // sebi: WTF??? thank you clang
 	//memset( skillInfos, 0, sizeof( skillInfos ));
-	memset( skillInfos, 0, sizeof( skillInfos ) * 7);
+	memset( skillInfos, 0, sizeof( StaticInfo ) * 7);	// skillInfos is a pointer: clear the 7 records
 
 	//sebi: ORIG BUG FIX what a reason to clear this and then iterate over it?
 	// obviously clear shoul dbe done after!
