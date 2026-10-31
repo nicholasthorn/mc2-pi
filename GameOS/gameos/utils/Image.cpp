@@ -145,6 +145,44 @@ bool Image::loadFromFile(const char *fileName){
 	return false;
 } 
 
+// Colour-mapped (paletted) TGA, type 1: expands the indices through the
+// palette into the true-colour layout of a type 2 image (palette entries are
+// stored like pixels: 16, 24 or 32 bits) and sets *out to that header, so
+// loadTGA(header, pixels) finishes it. MechCommander Omnitech ships 8-bit
+// paletted skies (tgl/512/sky12_*). Returns NULL (new[] otherwise) if the
+// data is short or not a palette this handles; out-of-range indices take the
+// first entry.
+static unsigned char* expandColorMapped(const TGAHeader* in, const unsigned char* mem, size_t len, TGAHeader* out)
+{
+	const unsigned int entryBytes = (in->cmapBits + 7) / 8;
+	const unsigned int indexBytes = in->bpp / 8;
+	if (in->cmapType != 1 || in->cmapEntries == 0 ||
+		(entryBytes != 2 && entryBytes != 3 && entryBytes != 4) || (indexBytes != 1 && indexBytes != 2))
+		return NULL;
+	const size_t paletteSize = (size_t)in->cmapEntries * entryBytes;
+	const size_t count = (size_t)in->width * in->height;
+	if (len < paletteSize || (len - paletteSize) / indexBytes < count)
+		return NULL;
+	const unsigned char* palette = mem;
+	const unsigned char* indices = mem + paletteSize;
+	unsigned char* pixels = new unsigned char[count * entryBytes];
+	for (size_t i = 0; i < count; i++) {
+		unsigned int index = indices[i * indexBytes];
+		if (indexBytes == 2)
+			index |= (unsigned int)indices[i * indexBytes + 1] << 8;
+		unsigned int entry = index - in->cmapStart;
+		if (index < in->cmapStart || entry >= in->cmapEntries)
+			entry = 0;
+		memcpy(pixels + i * entryBytes, palette + (size_t)entry * entryBytes, entryBytes);
+	}
+	*out = *in;
+	out->imageType = (unsigned char)TGADataType::kUncompressedRGB;
+	out->cmapType = 0;
+	out->cmapEntries = 0;
+	out->bpp = (unsigned char)(entryBytes * 8);
+	return pixels;
+}
+
 bool Image::loadTGA(const char *fileName){
 	clear();
 
@@ -187,6 +225,21 @@ bool Image::loadTGA(FILE* file)
 
 		rv = loadCompressedTGA(&header, readPixels, fsize);
 	}
+	else if(header.imageType == (unsigned char)TGADataType::kUncompressedColorMapped) {
+
+		size_t fpos = ftell(file);
+		fseek(file, 0, SEEK_END);
+		size_t fsize = ftell(file) - fpos;
+		fseek(file, fpos, SEEK_SET);
+
+		unsigned char* data = new unsigned char[fsize];
+		const size_t got = fread(data, 1, fsize, file);
+		TGAHeader rgb;
+		readPixels = expandColorMapped(&header, data, got, &rgb);
+		delete[] data;
+		if (readPixels)
+			rv = loadTGA(&rgb, readPixels);
+	}
 
 	fclose(file);
 	delete[] readPixels;
@@ -227,6 +280,13 @@ bool Image::loadTGA(const unsigned char* mem, size_t len)
 	}
 	else if(header.imageType == (unsigned char)TGADataType::kRLERGB) {
 		rv = loadCompressedTGA(&header, mem, len);
+	}
+	else if(header.imageType == (unsigned char)TGADataType::kUncompressedColorMapped) {
+		TGAHeader rgb;
+		readPixels = expandColorMapped(&header, mem, len, &rgb);
+		if (readPixels)
+			rv = loadTGA(&rgb, readPixels);
+		delete[] readPixels;
 	}
 
     return rv;
