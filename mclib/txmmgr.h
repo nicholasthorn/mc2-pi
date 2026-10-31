@@ -1099,9 +1099,10 @@ void GatherLightsParameters(TG_HWLightsData* lights);
 //----------------------------------------------------------------------
 extern MC_TextureManager *mcTextureManager;
 
-// The folder an object (mech, vehicle, building) texture loads from: see
-// txmmgr.cpp. texturePath must hold 1024 chars.
-void objectTexturePath (char* texturePath, const char* txmName);
+// Sets textureName to where an object (mech, vehicle, building) texture
+// loads from and says whether it exists there: see txmmgr.cpp.
+class FullPathFileName;
+bool objectTextureName (FullPathFileName& textureName, const char* txmName);
 
 //----------------------------------------------------------------------
 #endif

@@ -7,6 +7,7 @@
 #endif
 
 #include <cstdio>
+#include <cstdlib>
 #include <cassert>
 #include <cstring>
 #include "utils/string_utils.h"
@@ -53,6 +54,22 @@ static void logmsg(const char* header, const char* fmt, va_list ap)
     output_debug_text(text);
 }
 
+// STOP is documented as "can not be continued", but this port only logs it, so
+// code after a STOP (and Fatal, Assert, ABL_Fatal) runs on into what it was
+// guarding. MC2_STOP_EXITS=1 ends the process instead; smoke and bench runs
+// set it. _Exit, not exit: static destructors over a broken engine can crash
+// and hide the message. Exiting by default is a later step (PROGRESS.md).
+static void stop_exit_if_requested()
+{
+    static const char* env = getenv("MC2_STOP_EXITS");
+    if (!env || !env[0] || !strcmp(env, "0"))
+        return;
+    fprintf(stderr, "\nSTOP: exiting (MC2_STOP_EXITS)\n");
+    fflush(stdout);
+    fflush(stderr);
+    _Exit(EXIT_FAILURE);
+}
+
 // those are game specific callbacks (should move them outside to game)
 int __cdecl InternalFunctionStop( const char* fmt, ... )
 {
@@ -63,13 +80,14 @@ int __cdecl InternalFunctionStop( const char* fmt, ... )
     logmsg("STOP", fmt, ap);
     va_end(ap);
 
-    //exit(1);
+    stop_exit_if_requested();
     return enter_debugger;
 }
 
 int __cdecl InternalFunctionStop( const char* Message, const char* value)
 {
     fprintf(stderr, Message, value);
+    stop_exit_if_requested();
     return enter_debugger;
 }
 
