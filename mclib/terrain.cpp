@@ -58,6 +58,8 @@
 #include"tgainfo.h"
 #endif
 
+#include <float.h>
+
 //---------------------------------------------------------------------------
 // Static Globals
 float worldUnitsPerMeter = 5.01f;
@@ -938,11 +940,22 @@ void Terrain::geometry (void)
 	cameraPos.z = eye->getCameraOrigin().y;
 
 	float vClipConstant = eye->verticalSphereClipConstant;
-	float hClipConstant = eye->horizontalSphereClipConstant; 
-	
+	float hClipConstant = eye->horizontalSphereClipConstant;
+
+	// box around every vertex in the list, for Camera::cullTerrainLights()
+	Stuff::Vector3D boxMin(FLT_MAX, FLT_MAX, FLT_MAX);
+	Stuff::Vector3D boxMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
  	long i=0;
 	for (i=0;i<numberVertices;i++)
 	{
+		if (currentVertex->vx < boxMin.x) boxMin.x = currentVertex->vx;
+		if (currentVertex->vx > boxMax.x) boxMax.x = currentVertex->vx;
+		if (currentVertex->vy < boxMin.y) boxMin.y = currentVertex->vy;
+		if (currentVertex->vy > boxMax.y) boxMax.y = currentVertex->vy;
+		if (currentVertex->pVertex->elevation < boxMin.z) boxMin.z = currentVertex->pVertex->elevation;
+		if (currentVertex->pVertex->elevation > boxMax.z) boxMax.z = currentVertex->pVertex->elevation;
+
 		//----------------------------------------------------------------------------------------
 		// Figure out if we are in front of camera or not.  Should be faster then actual project!
 		// Should weed out VAST overwhelming majority of vertices!
@@ -1098,7 +1111,9 @@ void Terrain::geometry (void)
 
 		currentVertex++;
 	}
-	
+
+	eye->cullTerrainLights(boxMin, boxMax);
+
 	//-----------------------------------
 	// setup terrain quad textures
 	// Also sets up mine data.
