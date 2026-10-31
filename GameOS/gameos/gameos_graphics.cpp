@@ -2220,6 +2220,8 @@ void gosRenderer::drawText(const char* text) {
     const gosFont* font = ta.FontHandle;
 
     const DWORD tex_id = font->getTextureId();
+    if(tex_id == INVALID_TEXTURE_ID) // font texture failed to load
+        return;
     const gosTexture* tex = getTexture(tex_id);
     gosTextureInfo ti;
     tex->getTextureInfo(&ti);
@@ -2567,11 +2569,15 @@ gosFont* gosFont::load(const char* fontFile) {
 	gosASSERT(formatted_len <= glyphNameSize - 1);
 
     gosTexture* ptex = new gosTexture(gos_Texture_Alpha, textureName, 0, NULL, 0, false);
+    DWORD tex_id = INVALID_TEXTURE_ID;
+    // STOP only logs: do not register a texture that never got created, its
+    // Texture::type_ is unset and binding it indexes textureType[] with it
     if(!ptex || !ptex->createHardwareTexture()) {
         STOP(("Failed to create font texture: %s\n", textureName));
+        delete ptex;
+    } else {
+        tex_id = gos_GetRenderer()->addTexture(ptex);
     }
-
-    DWORD tex_id = gos_GetRenderer()->addTexture(ptex);
 
     gosFont* font = new gosFont();
     if(!gos_load_glyphs(glyphName, font->gi_)) {
