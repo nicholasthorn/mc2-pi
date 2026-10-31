@@ -6,16 +6,22 @@
 
 namespace frame_stats {
 
-double percentile(std::vector<double> values, double p)
+// percentile() of values already sorted ascending
+static double percentileSorted(const std::vector<double>& values, double p)
 {
 	if (values.empty())
 		return 0.0;
-	std::sort(values.begin(), values.end());
 	// nearest rank: the smallest value with at least p% of samples at or below it.
 	// p * n first: (p / 100) * n rounds 99% of 100 up to rank 100.
 	size_t rank = (size_t)std::ceil(p * (double)values.size() / 100.0);
 	rank = std::min(std::max(rank, (size_t)1), values.size());
 	return values[rank - 1];
+}
+
+double percentile(std::vector<double> values, double p)
+{
+	std::sort(values.begin(), values.end());
+	return percentileSorted(values, p);
 }
 
 Summary summarize(const std::vector<FrameSample>& frames)
@@ -48,10 +54,11 @@ Summary summarize(const std::vector<FrameSample>& frames)
 	s.swap_ms /= n;
 	s.draws = draws / n;
 	s.tris = tris / n;
-	s.p50_ms = percentile(totals, 50.0);
-	s.p95_ms = percentile(totals, 95.0);
-	s.p99_ms = percentile(totals, 99.0);
-	s.max_ms = *std::max_element(totals.begin(), totals.end());
+	std::sort(totals.begin(), totals.end());
+	s.p50_ms = percentileSorted(totals, 50.0);
+	s.p95_ms = percentileSorted(totals, 95.0);
+	s.p99_ms = percentileSorted(totals, 99.0);
+	s.max_ms = totals.back();
 	return s;
 }
 

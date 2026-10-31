@@ -77,7 +77,7 @@ TEST_CASE("summary averages every column and finds the worst frame")
 	CHECK(s.tris == doctest::Approx(2500.0));
 }
 
-TEST_CASE("one slow frame shows in p99 and max but barely in the average")
+TEST_CASE("one slow frame in 100 shows in max, not in p99, barely in the average")
 {
 	std::vector<FrameSample> frames(99, sample(10.0));
 	frames.push_back(sample(110.0));

@@ -44,7 +44,7 @@ f ScreenY = 0.4           ;   the top left; default 0.5, 0.5)
 l NumSegments = 2
 
 [Segment0]
-st Name = "overview"      ; no spaces
+st Name = "overview"      ; A-Z a-z 0-9 _ - only, unique, not "all"
 l Start = 0               ; segment 0 must start at 0
 l Shot = 450              ; frame to screenshot, -1 = none
 l StrikeEvery = 0         ; artillery every N frames, 0 = none
@@ -54,6 +54,15 @@ f[6] Key1 = 599, 0, 0, 50, 120, 1600
 ...
 FITend
 ```
+
+Only `NumSegments` and each segment's `Start` are required. A missing key
+keeps its default: `Frames` 3600, `Gather` 16, `LineGap` 600, `Spacing` 100,
+`ReorderEvery` 90, `StrikeRadius` 300, `Follow` TRUE, `ScreenX` / `ScreenY`
+0.5, `Shot` -1, `StrikeEvery` 0, `Name` `seg<i>`. The game refuses a
+scenario (`[BENCH] ERROR: ...`, and bench.sh fails the run) with a negative
+`Gather`, a bad, repeated or too long segment name (31 characters at most),
+a `Mission` over 63 characters, or two segments that screenshot the same
+frame.
 
 The camera moves linearly between keys (yaw the short way round) and holds
 before the first and after the last. Tilt is 10 to 88 degrees above the

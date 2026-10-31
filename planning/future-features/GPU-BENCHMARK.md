@@ -232,13 +232,30 @@ the Pi; not needed for the numbers.
    - The camera follows the fight's centre (smoothed) and circles it. The
      director projects that centre each frame and nudges the aim point until
      it sits at `ScreenX`, `ScreenY`, so it stays in shot at any yaw.
-   - Screenshots are the whole drawable. Headless runs use an 800x600 Xvfb
-     screen (`bench.sh`, `smoke.sh`): with FullScreen on, a bigger screen
-     sized the viewport to it while the window stayed 800x600, so only a
-     scaled corner of each frame was drawn.
+   - Screenshots are the whole drawable. `-bench` always runs windowed at
+     the game resolution, whatever `FullScreen` says (`gos_SetScreenMode`):
+     full screen made the pixel count depend on the desktop, and under Xvfb
+     with no window manager SDL reported the screen size as the drawable
+     while the window stayed 800x600, so frames and screenshots were a
+     cropped, scaled corner (and the fight looked out of shot). `bench.sh`
+     still uses an 800x600 Xvfb screen, as `smoke.sh` does.
    - `-bench` turns sound off: radio chatter decided whether
      `Radio::playMessage` reached `RandomNumber()` by whether the previous
      message had finished playing (real time), so combat runs drifted apart.
+     So `results.csv` rows from before 2d44620 measured a different
+     workload (sound and music on): do not compare them with later rows.
+   - Since `fix/bench-review`, `-bench` holds the cursor at the screen
+     centre (it sat at 0, 0 and edge-scrolled the camera up and left every
+     frame) and ignores the polled keyboard and mouse. Plain `-bench` runs
+     now render the mission's own opening view, and the game's cursor is
+     drawn over the fight: rows from before that change measured a different
+     scene too.
+   - Since the same change, `-bench` ignores `FullScreen`: a Pi run that
+     used to fill a 1080p desktop now draws 800x600, so its frame times are
+     not comparable with earlier full-screen rows either.
+   - A screenshot frame calls `glFinish()` before the capture, so its GPU
+     work counts in that frame but cannot overlap the next one: shot frames
+     read slightly slow. One per segment, so percentiles barely move.
    - A `state` column (checksum of every unit) separates logic divergence
      from rendering differences; `MC2_BENCH_DUMP` dumps per-unit state.
    `bench.sh --scenario` writes `segments.csv` and a per-segment summary.

@@ -37,6 +37,220 @@ belongs in commit messages and PRs.
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
 
+## To do: process and housekeeping
+
+Added 2026-10-31. Not started.
+
+- [ ] **Upgrade Ubuntu on WSL to the current LTS** instead of working around
+      what 22.04 lacks (GCC 11, older Mesa, `perf` without libelf, missing
+      CMake config files for SDL2_mixer/ttf). Afterwards, check which
+      workarounds can go (the `cmake/FindSDL2_*.cmake` pkg-config fallbacks stay:
+      other distros need them) and update `BUILD-LINUX.md`.
+- [ ] **Code-review everything on `pi-port` so far** (83 commits ahead of
+      `origin/master` as of 2026-10-31). One diff that size reviews badly, so
+      review it in batches by area, oldest first: build/CI, GLES renderer and
+      shaders, platform layer, engine (`mclib/`), game (`code/`), tests and
+      scripts. Run `/code-review` per batch, collect the confirmed findings in
+      one list, then fix them through PRs, one area per PR. Skip what PR #5
+      already had reviewed.
+- [ ] **Move all agents onto the updated agent process**: workflows, the
+      three-tier process, and PRs into `pi-port` instead of merging or pushing to
+      it directly. Update `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` to
+      match, so new sessions pick it up.
+- [x] **Sweep past session transcripts for dropped ideas** (2026-10-31: the
+      six mc2 and mc2-opengl-remastered transcripts on this machine; results in
+      "Tidy up" below).
+- [ ] **Work through the cppcheck baseline** (`scripts/cppcheck-baseline.txt`,
+      523 findings). We got bitten by an `uninitMemberVar` that was already in
+      it, so the baseline is a list of known bugs, not noise to ignore.
+      Triage every finding: fix it, mark it a false positive with an inline
+      `// cppcheck-suppress` and a reason, or record why it is safe.
+  - `uninitMemberVar` (100) was triaged in #9, but only the four real bugs
+    were changed: the "set before any read" verdicts live in the PR text and
+    an off-repo note, so the baseline still counts all 100. Initialise them or
+    suppress inline with the reason, so the count drops. Exception:
+    `ABLModule::orderCallFlags` is genuinely read uninitialised and was left
+    alone because setting it could change script behaviour; decide and record.
+  - Then `uninitDerivedMemberVar` (7), the error-level `nullPointer` (87) and
+    `invalidLifetime` (11), then `arrayIndexOutOfBoundsCond` (10),
+    `pointerSize` (7) and the rest.
+  - Version gap: CI's cppcheck 2.13 misses findings local 2.7 reports (19
+    `uninitMemberVar`, including the `GVAppearance` one that bit us, plus the
+    `1<<bit`, `vertices.rhw` and `terrtxm2.h` ones). Consider a second
+    cppcheck version in the nightly run, or clang-tidy's init checks.
+  - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
+    each batch, so the count only goes down.
+- [ ] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
+      the 2026-10-29 "leave as is"). GameOS documents `STOP` as "can not be
+      continued"; only the port's commented-out `exit(1)` in
+      `InternalFunctionStop` lets code run on into the NULL or full array a
+      fatal was guarding (~400 `Fatal` and ~400 direct `STOP` calls). Plan:
+  1. An env switch (e.g. `MC2_STOP_EXITS=1`) makes `STOP` log, show an SDL
+     message box when there is a display, and `_exit` (not `exit`: static
+     destructors over a broken engine crash). `smoke.sh`, the sanitized smoke
+     and `bench.sh` set it.
+  2. Widen smoke coverage to the screens it never opens (logistics, mech lab,
+     options, save/load) so more `STOP`s get exercised.
+  3. Every `STOP` that fires but is not really fatal (e.g. "Move to order
+     location is Not a Number" in `ablmc2.cpp`) becomes a warning: `PAUSE`
+     or a log line, with any needed bail-out.
+  4. Then make exiting the default, keep an opt-out variable for mod
+     bring-up, and mark `Fatal()` / `ABL_Fatal()` `[[noreturn]]` so cppcheck
+     and the compilers can see that code after them doesn't run.
+
+## Tidy up (from the 2026-10-31 transcript sweep)
+
+Things noted in past sessions that were not tracked anywhere. Session dates in
+brackets. Checked against this file, the roadmap, `future-features/` and git
+on 2026-10-31.
+
+**Work at risk or blocked before merge**
+
+- [x] `release-plan` branch: rebased and merged as PR #10 (`0f1c6ee`).
+- [ ] `omnitech-objtypes` (7 commits, pushed, no PR): its code review found 8
+      problems and none were fixed or written down. Two corrupt memory because
+      `Fatal` returns: `objtype.cpp` `load()` overflows the heap when a
+      `movobj.fit` entry's file is missing; `MOVE_readData` reads the
+      special-area packet after its size check fails. Also: Omnitech `.fit`
+      inside an FST can't load as a type (`getMemoryView` rejects FST files);
+      non-square `.burnin.jpg` over-reads; quick load falls through to a
+      rebuild that `memcpy`s from NULL; stock data may now pick JPG colour maps
+      over TGAs; FST entry names rehashed without lowercasing; in-memory FIT
+      view doesn't clamp its length. Suggested: pass `destLen` to `LZDecomp`
+      in `readPacket`, stop decompressing each `.txm` twice at load,
+      de-duplicate the `movobj` lookup. Its work has no PROGRESS log lines. (10-31)
+- [x] PR 7 (`bench-phase2`, merged as `2d44620`) and bench phase 1
+      (`066ec5d`, `34c5d59`, landed without a PR) code-reviewed 2026-10-31.
+      Findings (missing scenario keys read as 0, `segments.csv` without a
+      status, plain `-bench` edge-scrolling the camera because the mouse sits
+      at (0,0), keys and clicks leaking into bench runs, perf ack FIFO that
+      can hang, and smaller ones) fixed in PR #12 (`fix/bench-review`).
+- [ ] The last three-config rebuild in the Omnitech session exited 1 and was
+      never looked at; WSL Clang had been removed by another session's
+      cleanup, so it may only be that. (10-31)
+
+**Bugs noticed in passing**
+
+- [x] `streamToBuffer` (`gameos_graphics.cpp`): a failed `glMapBufferRange`
+      only `gosASSERT`s (compiled out) and draws stale data. (PR #5 review)
+      Fixed on `fix/passing-bugs`: the draw is skipped, also when
+      `glUnmapBuffer` reports a lost data store.
+- [x] `VirtualAlloc` emulation (`GameOS/src/platform_winbase.cpp:208`): the
+      unsupported-type branch only `assert`s and falls off the end without a
+      return (UB in release; GCC 15 warns). Return NULL. (10-31) Fixed on
+      `fix/passing-bugs`.
+- [x] `IfaceCallStrike` (`code/artlry.cpp` ~159-200): dereferences
+      `*strikeLoc` when only a target was passed (NULL); with both flags false
+      `commanderID` stays -1 and indexes `commanders[-1]`; ABL `callstrike`'s
+      documented ids (248, 507, ...) don't match the 0-2 enum, so those calls
+      are dropped. (10-31) Fixed on `fix/passing-bugs`: uses the resolved
+      location, drops a strike with no owning commander, and `callStrike`
+      now passes its clan flag for target strikes (`callStrikeEx` already
+      did). The ids are only a stale comment: the one stock call
+      (`mc2_17_rebel_rptruck.abl`) passes 1, `ARTILLERY_LARGE`.
+- [x] `Camera::update` (`mclib/camera.cpp` ~1584) applies velocity only when
+      all three components are non-zero (`&&`). (10-31) Fixed on
+      `fix/passing-bugs` (`||`). Only ABL `SetCameraVelocity` /
+      `SetCameraGoalVelocity` set it, and every stock use is commented out, so
+      stock missions are unchanged; mods that use them now move.
+- [ ] `mission.cpp`: `revealTacMap` is shadowed by a local (~1836) so the
+      global is never set; `godMode` does nothing since `markSeen` was
+      stubbed; `Team::noPain` is not reset by `Mission::init`. (10-31)
+- [ ] `FitIniFile::readId*` (`mclib/inifile.cpp`) treats a key on the last
+      line of a block as missing (the end-of-block test runs after the line
+      is read); files that end each block with a blank line get away with it.
+      Seen in the PR #12 review. (10-31)
+- [ ] `shaders/object_tex.frag` / `.vert`: unused, carry their own `#version`
+      and use `texture2D` (won't compile on GLES). Delete. (10-29)
+
+**Performance backlog (Pi)**
+
+- [x] Collected in `future-features/PI-RENDER-PERF.md` (2026-10-31): frame
+      spikes from mid-mission loading, LOD rebuilds, the double terrain pass,
+      static terrain mesh, GPU mechs / particles / shadows, per-draw overheads,
+      mipmaps, PR #5 review leftovers, the Pi quality tier and the deferred CI
+      benchmark job. Bench spec counters not built yet (binds, upload_kb,
+      movers/effects columns, `MC2_BENCH_FINISH`) stay in `GPU-BENCHMARK.md`.
+
+**Not verified**
+
+- [ ] On the Pi: `-bench` frame-match, `--perf` (dwarf mode not tested
+      anywhere), `--scenario`; the GLES scenario run with the circling camera
+      not even in WSL. PR #6 hitch numbers never measured. (10-31)
+- [ ] Logistics, mech lab, options and tutorial screens: smoke never opens
+      them, yet many cppcheck fixes landed there (`LogisticsScreen` copy /
+      assign, `OptionsXScreen`, mech lab, tutorial button, `logisticsdata`).
+      Needs a plan for smoke coverage. (10-29 on)
+- [ ] Loading a saved game through the size-checked pathing reader
+      (`saveload.cpp` now also exits on `badLoad`). (10-30)
+- [ ] PR #9 fixes in game: `isInfantry`, font texture, MemoryStream; air-strike
+      bombers now render light grey, not checked against the intended art. (10-31)
+- [ ] Terrain blend caches resized to the current size not checked on
+      screen; `.txm` cache names don't include their size and every mission
+      shares them. (10-31)
+- [ ] llvmpipe on the Pi dropped from 50/67 fps to 45/48 and then ~15 fps;
+      cause never confirmed from `results.csv`. Low priority. (10-31)
+
+**Back-ports from the remaster not yet done**
+
+- [ ] Original LZ decoder in C (`7d6f9bc6`), raw FST entries when
+      `size == realSize` (`3b5f87ca`), bounds fixes `adbf3c9a`, `69ee9782`.
+      Omnitech's `tgl.fst` is unreadable without it, and retail FSTs
+      decompress to zeros with no error today. (10-29, 10-31)
+- [ ] Mission / ABL hardening: `b71702ba` (no commanders), `e3dde9e4` +
+      `2da701ba` (`Team::home` dangling across missions), `a4e5db6d` (missing
+      ABL file), `e4a21257` (null operand in `ablxexpr.cpp`), the null-guard
+      half of `468991c3`. (10-29)
+- [ ] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29)
+- [ ] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
+      `84e1774a`, `d21e7855`, `1cf8c7b8`. (10-29)
+
+**Docs out of date**
+
+- [ ] "Pi: GPU frame rate with vsync off" is unticked although the #5 log has
+      the numbers (113 -> 179, 148 -> 181 fps); the "headroom unmeasured" note
+      is stale.
+- [ ] Known issues still says panning is not implemented; #4 (`fa0188e`)
+      merged stereo panning. The by-ear check was never recorded.
+- [ ] PR #6 (`01bfcb3`) has no log line.
+- [ ] MSVC's `small` macro (fixed in `4b98eee`) belongs in "Portability traps"
+      in `build-conventions.md`.
+- [ ] `MOD-COMPAT.md`: name Dark Gray: Borderworlds as the MC2X test load,
+      and note the remaster's LZ decoder against the LZ gap.
+
+**Housekeeping**
+
+- [ ] Stale branches and worktrees: `fix/uninit-members` (rebased copy),
+      `claude/nostalgic-brahmagupta-fb1902`, the `bench-phase2` worktree,
+      `C:\Users\Dell\Documents\GitHub\mc2-wt-cw`. `.claude/worktrees/` was
+      added to the local `.git/info/exclude` only.
+- [ ] WSL disk: `~/remaster-data` (~7 GB), `/srv/bookworm-arm64`, `~/mco628`
+      (1.2 GB), `~/gd-mco`, `~/gd-cw`, `~/wt-cw-*`, `~/mc2r-build`,
+      `~/mc2r-shim`; Downloads `MCOsetup628 (1).exe`, `ClanWarsForMCOsetup.exe`.
+- [ ] `uninitMemberVar-triage.md` lives outside the repo; bring its verdicts in
+      (see the cppcheck item).
+- [ ] Windows has no Python on the PATH for agents, so `scripts/*.py` only run
+      in WSL. (Python 3.12 is installed as `python`; check what the agent
+      sessions actually hit.)
+
+**For the remaster repo** (its own docs, not this one)
+
+- [ ] Classic draw path forces `gos_FilterTriLinear` to `TFM_LINEAR`
+      (`gameos_graphics.cpp` ~5361), so its generated mipmaps are unused.
+- [ ] `.claude/agents/mc2-gameos-expert.md` says `KeyboardFlush` leaves
+      `first_pressed_` live (`resetKeypress()` sets it to -1); other agent docs
+      say `STOP` halts.
+- [ ] Tooling: unit tests not under CTest, no CI, 86 check scripts never run
+      automatically, no clang-tidy / cppcheck (`testing-strategy.md` wrongly
+      says clang-tidy is in tree), MSVC at `/W3`, GCC still `-fpermissive`.
+      User said "not now".
+- [ ] Forward-port from mc2-pi: #5's effect batching (less useful there,
+      gosFX is off by default), light-range culling (its light cap is 1024),
+      uniform lookups.
+- [ ] `linux-build` branch: uncommitted CMake changes in 5 files; findings
+      (27 game files fail on Win32 code, FFmpeg 5.1 channel layout API, needs
+      GL 4.3/4.5) undocumented. Commit or discard.
+
 ## Planned: built releases on GitHub
 
 Not started. Full plan: `planning/RELEASES.md`. Two audiences: constrained
@@ -99,7 +313,7 @@ Candidates:
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
 - `-mission <name>` with a mission that does not exist crashes (SIGSEGV) instead of reporting an error.
 - Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
-- `Fatal()` / `ABL_Fatal()` return: `STOP` only logs (`InternalFunctionStop`, its `exit(1)` is commented out), so code after a fatal error carries on, usually into the NULL or full array it was guarding (`if (!p) Fatal(...); p->...`; ~35 sites, most of the remaining cppcheck `nullPointerRedundantCheck`, plus some `arrayIndexOutOfBoundsCond`). Making them abort (noreturn) would end the game cleanly instead, but any Fatal that fires harmlessly today would start quitting. Decided 2026-10-29: leave as is for now.
+- `Fatal()` / `ABL_Fatal()` return: `STOP` only logs (`InternalFunctionStop`, its `exit(1)` is commented out), so code after a fatal error carries on, usually into the NULL or full array it was guarding (`if (!p) Fatal(...); p->...`; ~35 sites, most of the remaining cppcheck `nullPointerRedundantCheck`, plus some `arrayIndexOutOfBoundsCond`). Making them abort (noreturn) would end the game cleanly instead, but any Fatal that fires harmlessly today would start quitting. Decided 2026-10-29: leave as is for now; reversed 2026-10-31, see "Make `STOP` / `Fatal()` stop again" in the to-do list.
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
 - Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects); not done, needs a decision.
 
@@ -107,6 +321,8 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: Bench review fixes (branch `fix/bench-review`): scenario `load()` keeps defaults for missing optional keys (`readId*` zeroed them) and refuses bad, repeated or `all` segment names, negative `Gather` and repeated `Shot` frames (unit tested); `-bench` pins the cursor at the centre (no more up-left edge scroll) and ignores polled keys and buttons; `glFinish()` before a screenshot so its GPU wait is not subtracted from the frame; perf control FIFOs opened non-blocking with a 2 s ack timeout, and created in a `mktemp -d` dir (DrvFS has no FIFOs); `segments.csv` gains display, vsync, options_cfg and the run's status; scenario error text no longer loses its first character. Unit tests on GL and GLES builds (WSL); not run on the Pi, MSVC not built.
+- 2026-10-31: "To do: process and housekeeping" list added: WSL Ubuntu upgrade, batched code review of `pi-port`, agents onto the updated process, transcript sweep for dropped ideas, cppcheck baseline triage. Transcript sweep done the same day (`Fatal()` decision reversed after it: `STOP` exits again, behind a CI switch first): "Tidy up" list of untracked items (branches at risk, bugs, Pi perf backlog, unverified changes, remaster back-ports, stale docs, housekeeping).
 - 2026-10-31: `-bench` keeps texture eviction off the wall clock: PR 6's 2-second window (turns scaled by a measured frame rate) stays at 30 turns per second under the fixed step, so evictions no longer depend on machine speed. `gos_GetFixedFrameLength()` moved into libgameos so mclib callers link into the data tools. Two merged mc2_19 runs identical in draws, triangles, state and screenshots. (PR 7)
 - 2026-10-31: Air strike bombers painted from uninitialised memory: `GVAppearance` never set `psRed`/`psGreen`/`psBlue`, and the bomber (no paint scheme of its own) repaints itself with them in `setObjStatus()`, so its colour, and whether two bombers shared a texture instance, came from heap garbage. Defaulted to white as `MechAppearance` does. Found as the last run-to-run difference in the bench effects segment (draw counts, ~0.3% of pixels). (PR 7)
 - 2026-10-31: Bench camera circles the fight: framing projects the fight's centre and moves the aim point to hold it at `ScreenX`/`ScreenY` (replaces `Lift`, whose direction only held at some yaws); `mc2_19.fit` turns one revolution a minute through every segment. Screenshots are the whole drawable, and headless `bench.sh`/`smoke.sh` use an 800x600 Xvfb screen: with FullScreen on, the 1600x1200 one sized the viewport to the screen while the window stayed 800x600, so headless runs drew a 2x-scaled corner of each frame. (PR 7)

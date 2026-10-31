@@ -4048,7 +4048,7 @@ void execCallStrike (void) {
 	GameObjectPtr target = getObject(targetId);
 
 	if (target)
-		IfaceCallStrike(strikeType, NULL, target, false);
+		IfaceCallStrike(strikeType, NULL, target, false, clanStrike);
 	else {
 		strikeLoc.z = land->getTerrainElevation(strikeLoc);
 		IfaceCallStrike(strikeType, &strikeLoc, NULL, false, clanStrike);

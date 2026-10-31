@@ -41,6 +41,8 @@ void handleMouseButton(const SDL_Event* event);
 void handleMouseWheel(const SDL_Event* event);
 void beginUpdateMouseState();
 void updateMouseState();
+// -bench: cursor held at (x, y), no motion or wheel
+void pinMouse(float x, float y);
 
 void handleKeyEvent(const SDL_Event* event);
 void updateKeyboardState();
