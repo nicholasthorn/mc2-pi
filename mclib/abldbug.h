@@ -64,7 +64,7 @@ class WatchManager {
 
 		void init (void) {
 			maxWatches = 0;
-			maxWatches = 0;
+			numWatches = 0;
 			watches = NULL;
 		}
 

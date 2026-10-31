@@ -66,6 +66,7 @@ LoadScreenWrapper::LoadScreenWrapper()
 	enterScreen = new LoadScreen;
 	exitScreen = new LoadScreen;
 	bFirstTime = 0;
+	waitForResChange = 0;
 }
 
 LoadScreenWrapper::~LoadScreenWrapper()

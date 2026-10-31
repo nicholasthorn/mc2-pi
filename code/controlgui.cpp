@@ -171,6 +171,7 @@ ControlGui::ControlGui()
 
 	curOrder = 0;
 	fireFromCurrentPos = 0;
+	mouseInVehicleStopButton = 0;
 
 	pauseWnd = new PauseWindow;
 

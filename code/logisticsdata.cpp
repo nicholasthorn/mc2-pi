@@ -50,6 +50,7 @@ LogisticsData::LogisticsData()
 	resourcePoints = 0;
 
 	currentlyModifiedMech = 0;
+	oldVariant = 0;
 	missionInfo = 0;
 	rpJustAdded = false;
 

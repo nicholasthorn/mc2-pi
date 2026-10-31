@@ -102,6 +102,7 @@ class MoverGroup {
 		void init (MoverGroupData &data);
 
 		MoverGroup (void) {
+			memset(moverWIDs, 0, sizeof(moverWIDs));
 			init();
 		}
 			

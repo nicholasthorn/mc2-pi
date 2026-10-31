@@ -71,7 +71,7 @@ class gosStreamedAudio {
 class SoundEngine {
 
     public:
-        SoundEngine():frequency_(0), format_(0), channels_(0), chunksize_(0), is_initialized_(false) {} 
+        SoundEngine():frequency_(0), format_(0), channels_(0), chunksize_(0), is_initialized_(false), channel_info_() {} 
         bool init(int frequency, bool b_fmt_16_bit, bool b_fmt_signed, bool b_stereo);
         void update();
         void destroy();

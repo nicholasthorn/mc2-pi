@@ -12,6 +12,7 @@
 class mcScrollButton : public aAnimButton
 {
 public:
+	mcScrollButton() : lightEdge(0), darkEdge(0), regularColor(0) {}
 	virtual void render();
 
 	unsigned long lightEdge;
