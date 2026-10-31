@@ -88,6 +88,7 @@ class Team {
 		virtual void init (void);
 		
 		Team (void) {
+			memset(roster, 0, sizeof(roster));
 			init();
 		}
 			

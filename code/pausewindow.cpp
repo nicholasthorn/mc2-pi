@@ -51,6 +51,8 @@ PauseWindow::PauseWindow()
 
 	finalReference = 0;
 	currentTime = 0;
+	currentPos = 0;
+	memset( backgrounds, 0, sizeof( backgrounds ) );
 	wasDragging = 0;
 	objectivesAlreadyOn = 0;
 	bPromptToQuit = bPromptToAbort = 0;

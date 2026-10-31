@@ -166,7 +166,7 @@ class MechIcon : public ForceGroupIcon
 {
 	public:
 
-		MechIcon(){}
+		MechIcon(){ memset( damage, 0, sizeof( damage ) ); memset( backDamage, 0, sizeof( backDamage ) ); }
 		~MechIcon(){}
 
 		virtual bool			init( Mover* pMover );
@@ -195,7 +195,7 @@ class VehicleIcon : public ForceGroupIcon
 {
 public:
 
-	VehicleIcon(){}
+	VehicleIcon(){ memset( damage, 0, sizeof( damage ) ); }
 	~VehicleIcon(){}
 
 	virtual void renderUnitIconBack( float left, float top, float right, float bottom ){}

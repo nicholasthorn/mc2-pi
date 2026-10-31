@@ -378,6 +378,7 @@ class TargetPriorityList {
 		void init (void);
 
 		TargetPriorityList (void) {
+			memset(list, 0, sizeof(list));
 			init ();
 		}
 
@@ -973,6 +974,11 @@ class MechWarrior {
 			paintScheme = -1;
 			memset(skills, 0, sizeof(skills));
 			warriorBrainHandle = -1;
+			for (long i = 0; i < MAX_ATTACKERS; i++) {
+				attackers[i].WID = 0;
+				attackers[i].lastTime = 0.0;
+			}
+			memset(lastGoalPath, 0, sizeof(lastGoalPath));
 			init(true);
 		}
 

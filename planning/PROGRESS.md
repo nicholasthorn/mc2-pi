@@ -76,6 +76,12 @@ Added 2026-10-31. Not started.
     suppress inline with the reason, so the count drops. Exception:
     `ABLModule::orderCallFlags` is genuinely read uninitialised and was left
     alone because setting it could change script behaviour; decide and record.
+    Done for `code/`, `gui/` and `mclib/` outside gosfx/mlr/stuff (branch
+    `fix/uninit-game-engine`, `uninitDerivedMemberVar` there too): members
+    initialised, flexible array members in `multplyr.h`, `MovePath::stepList`
+    and a `HeapManager` false positive suppressed inline. `orderCallFlags`
+    is decided: `NULL` in `ABLModule::init()`, so a module without order
+    calls skips the flag test instead of reading through a garbage pointer.
   - Then `uninitDerivedMemberVar` (7), the error-level `nullPointer` (87) and
     `invalidLifetime` (11), then `arrayIndexOutOfBoundsCond` (10),
     `pointerSize` (7) and the rest.
@@ -345,6 +351,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: cppcheck `uninitMemberVar` / `uninitDerivedMemberVar` cleared in `code/`, `gui/` and `mclib/` outside gosfx/mlr/stuff (branch `fix/uninit-game-engine`): 59 baseline entries, members zeroed in their constructors (`aListItem` gets a constructor, so its five derived-class findings go together), 9 suppressed inline with a reason (7 flexible array members in `multplyr.h`, `MovePath::stepList`, a `HeapManager` false positive), plus three that only cppcheck 2.19 reports (`MoverControl`, `MoverDynamics`, `MasterComponent`). `ABLModule::orderCallFlags` now starts `NULL`, and `WatchManager::init()` sets `numWatches` (it set `maxWatches` twice). Batch checks (GL and GLES, smoke) on Ubuntu 26.04.
 - 2026-10-31: review findings R1, P2, E1 (branch `fix/review-small`): `gos_vertex.vert` writes `gl_PointSize` so `GL_POINTS` have a size on GLES; `gos_MarkGameplayStarted()` fires on every mission (a member cleared in `Mission::init`, not a static pointer to the reused `Mission`); `GlobalMap::init` allocates `doorInfos` / `doorLinks` before the reads that can fail, so `destroy()` never frees uninitialised pointers from a half-loaded map. Batch checks (GL and GLES, shaders, smoke) on Ubuntu 26.04; planet point not looked at on the Pi.
 
 - 2026-10-31: unattended runs behave the same on any display: `scripts/smoke.sh` always uses Xvfb (WSLg's display made local smoke and batch checks open a full-screen window on the desktop; `--display` opts out), and every `-autoexit` run, like `-bench`, ignores the keyboard and mouse, holds the cursor at the screen centre and runs windowed at the game resolution (`gos_IsAutomatedRun()`). Checked under a 1600x1200 Xvfb with FullScreen on: drawable 800x600, cursor at 400,300.

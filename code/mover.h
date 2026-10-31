@@ -184,6 +184,7 @@ class MoveChunk {
 		}
 
 		MoveChunk (void) {
+			stepRelPos[0] = stepRelPos[1] = stepRelPos[2] = 0;
 			init();
 		}
 
@@ -248,6 +249,7 @@ class MoverDynamics {
 		virtual void init (void);
 
 		MoverDynamics (void) {
+			max = DynamicsLimits();
 			init();
 		}
 			
@@ -339,6 +341,7 @@ class MoverControl {
 		}
 
 		MoverControl (void) {
+			settings = ControlSettings();
 			init();
 		}
 			
