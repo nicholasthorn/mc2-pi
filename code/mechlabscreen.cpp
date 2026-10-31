@@ -45,6 +45,7 @@ MechLabScreen::MechLabScreen(  )
 	pSelectedComponent = NULL;
 	selI = -1;
 	selJ = -1;
+	setLayoutIndexes();
 
 	countDownTime = .5;
 	curCount = 0.0;
@@ -92,6 +93,26 @@ MechLabScreen::~MechLabScreen()
 	componentListBox.destroy();
 }
 
+void MechLabScreen::setLayoutIndexes()
+{
+	// Stock: weapon info icons 29-34, jump jet / armor icons 47-49, mech
+	// picture 50-53, jump jet outline 54, heat sink icon 55. Omnitech's
+	// layout (and its code) has these as 1-6, 7-9, 10, 11 and 12; its 13 is
+	// an ammo icon for an ammo readout this code does not have
+	stockLayout = staticCount > 55;
+	damageIcon = stockLayout ? 30 : 2;
+	heatLimitIcon = stockLayout ? 33 : 5;
+	ammoIcon = stockLayout ? 34 : 6;
+	jumpRangeIcon = stockLayout ? 47 : 7;
+	jumpHeatIcon = stockLayout ? 48 : 8;
+	armorIcon = stockLayout ? 49 : 9;
+	jumpJetOutline = stockLayout ? 54 : 11;
+	heatSinkIcon = stockLayout ? 55 : 12;
+
+	if ( !stockLayout && staticCount > 13 )
+		statics[13].showGUIWindow( 0 );
+}
+
 int MechLabScreen::init( FitIniFile& file )
 {
 	if ( saveDlg )// already initialized
@@ -100,9 +121,7 @@ int MechLabScreen::init( FitIniFile& file )
 	ComponentListItem::init( file );
 
 	LogisticsScreen::init( file, "Static", "Text", "Rect", "Button" );
-	if ( !layoutSupported() )
-		fprintf( stderr, "mechlab: mcl_mc.fit has %ld statics, this mech lab needs %d: the mech lab is off\n",
-			staticCount, MAX_STATIC_USED + 1 );
+	setLayoutIndexes();
 
 	componentListBox.init( rects[2].left(), rects[2].top(),
 							rects[2].width(), rects[2].height() );
@@ -307,26 +326,31 @@ void MechLabScreen::begin()
 		originalCost = pVariant->getCost();
 
 
-		char path[256];
-		strcpy( path, artPath );
-		strcat( path, "MCL_MC_" );
-		char mechName[64];
-		EString fileName = pVariant->getFileName( );
-		_splitpath( fileName, NULL, NULL, mechName, NULL );
-		strcat( path, mechName );
-		strcat( path, "_B.tga" );
-		CharLower( path );
+		// the mech picture behind the payload grid: stock only, Omnitech's
+		// static there is a plain black area ("obsolete" in its layout)
+		if ( stockLayout )
+		{
+			char path[256];
+			strcpy( path, artPath );
+			strcat( path, "MCL_MC_" );
+			char mechName[64];
+			EString fileName = pVariant->getFileName( );
+			_splitpath( fileName, NULL, NULL, mechName, NULL );
+			strcat( path, mechName );
+			strcat( path, "_B.tga" );
+			CharLower( path );
 
-		for ( int i = 51; i < 54; i++ )
-			statics[i].setTexture( path );
+			for ( int i = 51; i < 54; i++ )
+				statics[i].setTexture( path );
 
-		strcpy( path, artPath );
-		strcat( path, "MCL_MC_" );
-		strcat( path, mechName );
-		strcat( path, "_A.tga" );
-		CharLower( path );
+			strcpy( path, artPath );
+			strcat( path, "MCL_MC_" );
+			strcat( path, mechName );
+			strcat( path, "_A.tga" );
+			CharLower( path );
 
-		statics[50].setTexture( path );
+			statics[50].setTexture( path );
+		}
 
 
 		for (int i = COMPONENT_FORM_WEAPON_ENERGY; i < COMPONENT_FORM_JUMPJET + 1; i++ )
@@ -360,10 +384,10 @@ void MechLabScreen::begin()
 
 	if ( pVariant->getChassis()->jumpJetsAllowed() )
 	{
-		statics[54].showGUIWindow( true );
+		statics[jumpJetOutline].showGUIWindow( true );
 	}
 	else
-		statics[54].showGUIWindow( false );
+		statics[jumpJetOutline].showGUIWindow( false );
 
 
 
@@ -1222,18 +1246,18 @@ void	MechLabScreen::setComponent( LogisticsComponent* pComponent, bool bMessageF
 			// hide jump range stuff
 			attributeMeters[4].showGUIWindow( 0 );
 			textObjects[7].showGUIWindow( 0 );
-			statics[47].showGUIWindow( 0 );
+			statics[jumpRangeIcon].showGUIWindow( 0 );
 
 			textObjects[15].setText( "" );
 
 			// jump range
-			statics[48].showGUIWindow( 0 );
+			statics[jumpHeatIcon].showGUIWindow( 0 );
 			// armor
-			statics[49].showGUIWindow( 0 );
+			statics[armorIcon].showGUIWindow( 0 );
 			// damage
-			statics[30].showGUIWindow( 0 );
+			statics[damageIcon].showGUIWindow( 0 );
 			// heat
-			statics[55].showGUIWindow( 1 );	
+			statics[heatSinkIcon].showGUIWindow( 1 );	
 
 
 			attributeMeters[7].showGUIWindow( 0 );
@@ -1264,11 +1288,11 @@ void	MechLabScreen::setComponent( LogisticsComponent* pComponent, bool bMessageF
 			showJumpJetItems( 1 );
 			
 			// jump range
-			statics[48].showGUIWindow( 0 );
+			statics[jumpHeatIcon].showGUIWindow( 0 );
 			// armor
-			statics[49].showGUIWindow( 1 );
+			statics[armorIcon].showGUIWindow( 1 );
 			// damage
-			statics[30].showGUIWindow( 0 );
+			statics[damageIcon].showGUIWindow( 0 );
 			
 			sprintf( text, "%.1lf", pCurComponent->getDamage() );
 			textObjects[7].setText( text );
@@ -1369,38 +1393,38 @@ void	MechLabScreen::setComponent( LogisticsComponent* pComponent, bool bMessageF
 void MechLabScreen::showJumpJetItems( bool bShow )
 {
 		// show jump jet stuff
-		statics[47].showGUIWindow( bShow );
-		statics[48].showGUIWindow( bShow );
-		statics[49].showGUIWindow( 0 );
+		statics[jumpRangeIcon].showGUIWindow( bShow );
+		statics[jumpHeatIcon].showGUIWindow( bShow );
+		statics[armorIcon].showGUIWindow( 0 );
 		attributeMeters[4].showGUIWindow( bShow );
 		attributeMeters[0].showGUIWindow( 1 );
-		statics[30].showGUIWindow( !bShow ); // damage
+		statics[damageIcon].showGUIWindow( !bShow ); // damage
 
 		textObjects[7].showGUIWindow( 1 );
 
 		// hide all heat sink stuff, regardless of who
 		attributeMeters[8].showGUIWindow( 0 );
 		textObjects[16].showGUIWindow( 0 );
-		statics[55].showGUIWindow( 0 );
+		statics[heatSinkIcon].showGUIWindow( 0 );
 		
 		// turn off weapon stuff
-		for ( int i = 31; i < 35; i++ )
+		for ( int i = damageIcon + 1; i <= ammoIcon; i++ )
 		{
 			statics[i].showGUIWindow( !bShow );
 		}
 
 		// but not the heat one!
-		statics[33].showGUIWindow( true );
+		statics[heatLimitIcon].showGUIWindow( true );
 
 		// turn off ammo thing if appropriate
 		if (!useUnlimitedAmmo && !bShow)
 		{
-			statics[34].showGUIWindow( 1 );
+			statics[ammoIcon].showGUIWindow( 1 );
 			attributeMeters[3].showGUIWindow( 1 );
 		}
 		else
 		{
-			statics[34].showGUIWindow( 0 );
+			statics[ammoIcon].showGUIWindow( 0 );
 			attributeMeters[3].showGUIWindow( 0 );
 		}
 
