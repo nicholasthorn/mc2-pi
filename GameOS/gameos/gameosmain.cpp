@@ -16,7 +16,6 @@
 #include "utils/tga_writer.h"
 
 #include <signal.h>
-#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -95,10 +94,10 @@ static std::string bench_output_path(const char* name, const char* ext)
 // Reads back the frame just drawn (before swap) and writes it as a TGA.
 static void bench_capture(const std::string& name)
 {
-    // The game draws at its own resolution from the bottom-left corner; the
-    // drawable can be bigger (e.g. a full Xvfb screen), so crop to the game.
-    const int w = std::min(Environment.drawableWidth, Environment.screenWidth);
-    const int h = std::min(Environment.drawableHeight, Environment.screenHeight);
+    // The game's screen is scaled to fill the whole drawable (draw_screen's
+    // viewport), which can be bigger than the game resolution, so read all of it.
+    const int w = Environment.drawableWidth;
+    const int h = Environment.drawableHeight;
     if(w <= 0 || h <= 0)
         return;
     std::vector<uint8_t> px((size_t)w * h * 4);

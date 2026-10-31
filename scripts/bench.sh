@@ -259,7 +259,8 @@ use_renderer() {
                 echo "bench: no display and xvfb-run not installed" >&2
                 exit 2
             fi
-            RUN=(xvfb-run -a -s "-screen 0 1600x1200x24")
+            # match the game's 800x600 (minprefs.cfg), as in smoke.sh
+            RUN=(xvfb-run -a -s "-screen 0 800x600x24")
             display=xvfb
         fi
     fi
