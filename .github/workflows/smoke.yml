@@ -48,12 +48,14 @@ jobs:
         with:
           lfs: false
       # Rebuild only when mc2srcdata or the data tools change. Data is
-      # platform independent, so the arm64 job reuses this cache.
+      # platform independent, so the arm64 job reuses this cache. The tools
+      # link all of mclib (with mlr, stuff, gosfx) and GameOS, so all of it
+      # is hashed: a rebuild costs about two minutes.
       - name: Cache key
         id: key
         run: |
           sha=$(git ls-remote https://github.com/alariq/mc2srcdata.git HEAD | cut -c1-12)
-          echo "key=gamedata-$sha-${{ hashFiles('data_tools/**', 'text_tool/**', 'mclib/ffile.cpp', 'mclib/packet.cpp', 'mclib/lz*.cpp', 'scripts/build_gamedata.sh') }}" >> "$GITHUB_OUTPUT"
+          echo "key=gamedata-$sha-${{ hashFiles('data_tools/**', 'text_tool/**', 'mclib/**', 'GameOS/**', 'scripts/build_gamedata.sh') }}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         id: cache
         with:
