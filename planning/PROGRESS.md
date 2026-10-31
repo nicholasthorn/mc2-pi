@@ -206,10 +206,16 @@ on 2026-10-31.
       `size == realSize` (`3b5f87ca`), bounds fixes `adbf3c9a`, `69ee9782`.
       Omnitech's `tgl.fst` is unreadable without it, and retail FSTs
       decompress to zeros with no error today. (10-29, 10-31)
-- [ ] Mission / ABL hardening: `b71702ba` (no commanders), `e3dde9e4` +
-      `2da701ba` (`Team::home` dangling across missions), `a4e5db6d` (missing
-      ABL file), `e4a21257` (null operand in `ablxexpr.cpp`), the null-guard
-      half of `468991c3`. (10-29)
+- [x] Mission / ABL hardening (10-31): ported `b71702ba` (no commanders:
+      team 0 and commander 0 are created, since STOP only logs), the
+      `Team::home` / `Commander::home` reset and the commander re-init leak
+      from `e3dde9e4`, `a4e5db6d` (missing ABL file returns -1, no exit) and
+      `e4a21257` (null type in `execExpression`). Skipped: the rest of the
+      `e3dde9e4` refactor and `2da701ba` (its follow-up), and all of
+      `468991c3`: the arity half fixes remaster-only stubs (stock defines
+      `corePatrol`/`coreGuard` in `corebrain.abx`), and the `execStatement`
+      null guard leaves the stale token in place, so the next call reads the
+      following bytes as another pointer. (10-29)
 - [x] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29, done
       10-31)
 - [x] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
@@ -336,6 +342,7 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-10-31: Back-ports from the remaster (branch `fix/backport-mech-save`): `BattleMech` checks `sensorSystem` before every write (a mech with no sensor component, or whose profile load bailed early, has none); `.mdf` component ids past `masterList` are dropped like empty slots and crit-space bytes past `ItemLocationToInvLocation` mark the space empty; `.fit` mech profiles with too many items or an out-of-range `MasterID` are rejected (`Fatal()` only logged, then wrote past `inventory[]`) and crit spaces past the populated inventory are empty; the campaign dialog no longer scans every save game first, each save is version-checked once, and rejected list entries are freed. Not ported: `a03e13a2` (stub mech types do not exist here), `aa20a308` (a `badLoad` move map already exits at mission load), `84e1774a` (Omnitech work).
+- 2026-10-31: back-ported the mission / ABL hardening group from the remaster: a mission with no parts still gets team 0 and commander 0, `Mission::destroy` clears `Team::home` / `Commander::home`, `Mission::init` frees every old commander, a missing or invalid ABL file makes `ABLi_preProcess` return -1 (and `ABLi_loadLibrary` treats any negative handle as a failure), and `execExpression` no longer dereferences a NULL operand type (branch `fix/backport-mission-abl`).
 - 2026-10-31: quick fixes from the tidy-up list: `FitIniFile` finds a key (scalar, string or array) on the last line of a file without `FITend` (no stock file has that shape); unused `object_tex` shaders deleted and the shader validator fails on `#version`; stale docs fixed (vsync-off numbers, panning, #6 log line, MSVC `small` trap); `mission.cpp` item closed with no change needed.
 - 2026-10-31: Bench review fixes (branch `fix/bench-review`): scenario `load()` keeps defaults for missing optional keys (`readId*` zeroed them) and refuses bad, repeated or `all` segment names, negative `Gather` and repeated `Shot` frames (unit tested); `-bench` pins the cursor at the centre (no more up-left edge scroll) and ignores polled keys and buttons; `glFinish()` before a screenshot so its GPU wait is not subtracted from the frame; perf control FIFOs opened non-blocking with a 2 s ack timeout, and created in a `mktemp -d` dir (DrvFS has no FIFOs); `segments.csv` gains display, vsync, options_cfg and the run's status; scenario error text no longer loses its first character. Unit tests on GL and GLES builds (WSL); not run on the Pi, MSVC not built.
 - 2026-10-31: "To do: process and housekeeping" list added: WSL Ubuntu upgrade, batched code review of `pi-port`, agents onto the updated process, transcript sweep for dropped ideas, cppcheck baseline triage. Transcript sweep done the same day (`Fatal()` decision reversed after it: `STOP` exits again, behind a CI switch first): "Tidy up" list of untracked items (branches at risk, bugs, Pi perf backlog, unverified changes, remaster back-ports, stale docs, housekeeping).

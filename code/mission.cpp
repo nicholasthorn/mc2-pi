@@ -2018,7 +2018,10 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 			Team::teams[i] = NULL;
 		}
 	Team::numTeams = 0;
-	for (int i = 0; i < Commander::numCommanders; i++)
+	// Commander::destroy() decrements numCommanders, so read the count once
+	// (as Mission::destroy does) or only half the commanders are freed.
+	long numC = Commander::numCommanders;
+	for (int i = 0; i < numC; i++)
 		if (Commander::commanders[i]) {
 			delete Commander::commanders[i];
 			Commander::commanders[i] = NULL;
@@ -2079,6 +2082,17 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 				if (teamID > maxTeamID)
 					maxTeamID = teamID;
 			}
+	}
+
+	// A mission with no parts (or none with a team and commander) would
+	// leave teams[0] and commanders[0] NULL, and they are dereferenced
+	// below. STOP only logs, so still create team 0 and commander 0.
+	if ((maxTeamID < 0) || (maxCommanderID < 0)) {
+		STOP(("Mission::init: %s has no parts with a TeamId and CommanderId", missionName ? missionName : "(null)"));
+		if (maxTeamID < 0)
+			maxTeamID = 0;
+		if (maxCommanderID < 0)
+			maxCommanderID = 0;
 	}
 
 	//----------------------------------------------
@@ -2307,6 +2321,10 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	
 	missionScriptHandle = ABLi_preProcess(brainFileName, &numErrors, &numLinesProcessed);
 	gosASSERT(missionScriptHandle >= 0);
+	// -1: the script is missing or not ABL. The mission brain is left
+	// uninitialised, so say so here rather than fail later in its first run.
+	if (missionScriptHandle < 0)
+		STOP(("Mission::init: cannot load mission script %s", (const char*)brainFileName));
 	
 	missionBrain = new ABLModule;
 	gosASSERT(missionBrain != NULL);
@@ -3279,6 +3297,8 @@ void Mission::destroy (bool initLogistics)
 			Team::teams[i] = NULL;
 		}
 	Team::numTeams = 0;
+	// home pointed into the array just freed; readers check it for NULL.
+	Team::home = NULL;
 
 	long numC = Commander::numCommanders;
 	for (int i = 0; i < numC; i++)
@@ -3287,6 +3307,7 @@ void Mission::destroy (bool initLogistics)
 			Commander::commanders[i] = NULL;
 		}
 	Commander::numCommanders = 0;
+	Commander::home = NULL;
 
 	if (Mover::triggerAreaMgr) {
 		delete Mover::triggerAreaMgr;
