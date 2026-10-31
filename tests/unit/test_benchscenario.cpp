@@ -11,6 +11,7 @@
 #include "inifile.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 
 static bool loadFixture(BenchScenario& s, char* err, size_t errSize)
@@ -175,6 +176,133 @@ TEST_CASE("a file without a [Bench] block is refused with a reason")
 	CHECK_FALSE(s.load(fit, err, sizeof(err)));
 	CHECK(std::strstr(err, "[Bench]") != nullptr);
 	fit.close();
+}
+
+TEST_CASE("optional keys keep their defaults when missing")
+{
+	// FitIniFile's readId* zero the value on a missing key; load() must not
+	// let that through
+	BenchScenario s;
+	char err[128] = "";
+	FitIniFile fit;
+	REQUIRE(fit.open(MC2_TEST_FIXTURE_DIR "/bench_minimal.fit") == 0);
+	REQUIRE_MESSAGE(s.load(fit, err, sizeof(err)), err);
+	fit.close();
+
+	CHECK(s.frames == 3600);
+	CHECK_FALSE(s.hasArena);
+	CHECK(s.gather == 16);
+	CHECK(s.lineGap == doctest::Approx(600.0f));
+	CHECK(s.spacing == doctest::Approx(100.0f));
+	CHECK(s.reorderEvery == 90);
+	CHECK(s.strikeRadius == doctest::Approx(300.0f));
+	CHECK(s.follow);
+	CHECK(s.screenX == doctest::Approx(0.5f));
+	CHECK(s.screenY == doctest::Approx(0.5f));
+	REQUIRE(s.numSegments == 2);
+	CHECK(s.segments[0].shot == -1);
+	CHECK(s.segments[0].strikeEvery == 0);
+	CHECK(s.segments[1].shot == -1);
+	// a missing Name becomes seg<i>
+	CHECK(std::strcmp(s.segments[0].name, "seg0") == 0);
+	CHECK(std::strcmp(s.segments[1].name, "seg1") == 0);
+}
+
+// Writes a two-segment scenario to a scratch file in the working directory
+// (the build tree) with the given extra [Bench] lines and per-segment lines,
+// loads it and returns load()'s answer.
+static bool loadScratch(const char* benchExtra, const char* seg0, const char* seg1,
+		char* err, size_t errSize)
+{
+	const char* path = "bench_scratch.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fprintf(fp, "FITini\n\n[Bench]\nl NumSegments = 2\n%s\n\n"
+			"[Segment0]\nl Start = 0\n%s\n\n"
+			"[Segment1]\nl Start = 100\n%s\n\nFITend\n",
+			benchExtra, seg0, seg1);
+	fclose(fp);
+
+	BenchScenario s;
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == 0);
+	const bool ok = s.load(fit, err, errSize);
+	fit.close();
+	remove(path);
+	return ok;
+}
+
+TEST_CASE("bad segment names, negative Gather and repeated shots are refused")
+{
+	char err[128] = "";
+	const char* a = "st Name = \"a\"";
+	const char* b = "st Name = \"b-2_X\"";
+
+	// a valid baseline, so the failures below are the lines under test
+	CHECK_MESSAGE(loadScratch("", a, b, err, sizeof(err)), err);
+
+	SUBCASE("negative Gather")
+	{
+		CHECK_FALSE(loadScratch("l Gather = -1", a, b, err, sizeof(err)));
+		CHECK(std::strstr(err, "Gather") != nullptr);
+	}
+	SUBCASE("Gather of 0 is allowed")
+	{
+		CHECK(loadScratch("l Gather = 0", a, b, err, sizeof(err)));
+	}
+	SUBCASE("name with a space")
+	{
+		CHECK_FALSE(loadScratch("", a, "st Name = \"b c\"", err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment1") != nullptr);
+	}
+	SUBCASE("name with a path character")
+	{
+		CHECK_FALSE(loadScratch("", "st Name = \"../x\"", b, err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment0") != nullptr);
+	}
+	SUBCASE("empty name")
+	{
+		CHECK_FALSE(loadScratch("", "st Name = \"\"", b, err, sizeof(err)));
+	}
+	SUBCASE("reserved name all")
+	{
+		CHECK_FALSE(loadScratch("", a, "st Name = \"all\"", err, sizeof(err)));
+		CHECK(std::strstr(err, "all") != nullptr);
+	}
+	SUBCASE("repeated name")
+	{
+		CHECK_FALSE(loadScratch("", a, a, err, sizeof(err)));
+		CHECK(std::strstr(err, "repeats") != nullptr);
+	}
+	SUBCASE("two segments with the same Shot frame")
+	{
+		CHECK_FALSE(loadScratch("", "st Name = \"a\"\nl Shot = 150",
+				"st Name = \"b\"\nl Shot = 150", err, sizeof(err)));
+		CHECK(std::strstr(err, "Shot") != nullptr);
+	}
+	SUBCASE("name too long for its buffer is refused, not renamed")
+	{
+		// 32 characters: no room for the terminator in BenchSegment::name
+		CHECK_FALSE(loadScratch("", a, "st Name = \"abcdefghijklmnopqrstuvwxyz012345\"",
+				err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment1") != nullptr);
+	}
+	SUBCASE("name of 31 characters fits")
+	{
+		CHECK(loadScratch("", a, "st Name = \"abcdefghijklmnopqrstuvwxyz01234\"",
+				err, sizeof(err)));
+	}
+	SUBCASE("mission too long for its buffer is refused")
+	{
+		CHECK_FALSE(loadScratch("st Mission = \"m1234567890123456789012345678901234567890123456789012345678901234\"",
+				a, b, err, sizeof(err)));
+		CHECK(std::strstr(err, "Mission") != nullptr);
+	}
+	SUBCASE("two segments without a shot are fine")
+	{
+		CHECK(loadScratch("", "st Name = \"a\"\nl Shot = -1",
+				"st Name = \"b\"\nl Shot = -1", err, sizeof(err)));
+	}
 }
 
 }

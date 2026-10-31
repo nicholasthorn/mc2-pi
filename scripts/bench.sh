@@ -39,7 +39,7 @@
 #                      --frames. Each segment gets a row per run in
 #                      segments.csv, and the screenshots it asks for are saved
 #                      as logs/*.frames_<segment>.tga.
-#   --perf            after the timed runs, one extra run per mission and
+#   --perf             after the timed runs, one extra run per mission and
 #                      renderer under "perf record -g", sampling gameplay
 #                      frames only (the game switches it on and off). Its fps
 #                      is not recorded: sampling slows the game. Writes
@@ -183,7 +183,13 @@ fi
 [ -f "$RESULTS" ] || echo "$HEADER" > "$RESULTS"
 SEGMENTS="$OUT_DIR/segments.csv"
 BENCH_KEYS="frames fps avg_ms p50_ms p95_ms p99_ms max_ms logic_ms render_ms swap_ms draws tris"
-[ -f "$SEGMENTS" ] || echo "date,commit,label,host,scenario,mission,renderer,run,segment,${BENCH_KEYS// /,}" > "$SEGMENTS"
+# status is the whole run's: a FAIL run's segment numbers are not results
+SEG_HEADER="date,commit,label,host,scenario,mission,renderer,display,vsync,run,options_cfg,status,segment,${BENCH_KEYS// /,}"
+if [ -f "$SEGMENTS" ] && [ "$(head -1 "$SEGMENTS")" != "$SEG_HEADER" ]; then
+    mv "$SEGMENTS" "$OUT_DIR/segments-old-$(date +%Y%m%d-%H%M%S).csv"
+    echo "bench: segments.csv had other columns; moved it aside"
+fi
+[ -f "$SEGMENTS" ] || echo "$SEG_HEADER" > "$SEGMENTS"
 
 COMMIT=$(git -C "$SRC_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)
 git -C "$SRC_DIR" diff --quiet HEAD -- 2>/dev/null || COMMIT="$COMMIT-dirty"
@@ -274,7 +280,8 @@ echo "bench: $RUNS run(s) x {$MISSIONS} x {$RENDERERS}, $FRAMES frames each; res
 [ -n "$SCENARIO" ] && echo "bench: scenario $SCENARIO; per-segment results: $SEGMENTS"
 
 SUMMARY=$(mktemp)
-trap 'rm -f "$SUMMARY"' EXIT
+FIFO_DIR=""
+trap 'rm -f "$SUMMARY"; [ -n "$FIFO_DIR" ] && rm -rf "$FIFO_DIR"' EXIT
 failed=0
 
 # Runs interleave missions and renderers so slow drift (heat, background
@@ -319,7 +326,7 @@ for run in $(seq 1 "$RUNS"); do
             [ $rc -ne 0 ] && [ $rc -ne 137 ] && reasons+=("exit status $rc")
             [ -z "${fps:-}" ] && reasons+=("no [AUTOEXIT] line")
             [ -z "$bench" ] && reasons+=("no [BENCH] line")
-            [ -n "$SCENARIO" ] && grep -q '^\[BENCH\] ERROR' "$log" && reasons+=("scenario error: $(grep -m1 '^\[BENCH\] ERROR' "$log" | cut -c17-)")
+            [ -n "$SCENARIO" ] && grep -q '^\[BENCH\] ERROR' "$log" && reasons+=("scenario error: $(grep -m1 '^\[BENCH\] ERROR' "$log" | sed 's/^\[BENCH\] ERROR: //')")
             mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
             aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
             if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
@@ -351,7 +358,7 @@ for run in $(seq 1 "$RUNS"); do
                     printf '%s,%s,' "$(date -Iseconds)" "$COMMIT"
                     csv_quote "$LABEL"; printf ','
                     csv_quote "$HOST"; printf ','
-                    printf '%s,%s,%s,%s,%s' "$SCENARIO_NAME" "$m" "$r" "$run" "$seg"
+                    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s' "$SCENARIO_NAME" "$m" "$r" "$display" "$VSYNC" "$run" "$CFG_HASH" "$status" "$seg"
                     for k in $BENCH_KEYS; do
                         printf ',%s' "$(sed -n "s/.* $k=\([0-9.]*\).*/\1/p" <<< "$line")"
                     done
@@ -400,6 +407,9 @@ if [ $PERF = 1 ]; then
     echo "bench: perf, $PERF_FREQ Hz, call graph $CALL_GRAPH, $FRAMES frames per mission"
     cg=fp
     [ "$CALL_GRAPH" = dwarf ] && cg="dwarf,16384"
+    # The control FIFOs live in a local temp dir: --out may be on a file
+    # system without FIFOs (WSL's DrvFS, network shares).
+    FIFO_DIR=$(mktemp -d) || exit 2
     for m in $MISSIONS; do
         for r in $RENDERERS; do
             if ! use_renderer "$r"; then
@@ -409,8 +419,8 @@ if [ $PERF = 1 ]; then
             fi
             wait_cool
             base="$OUT_DIR/logs/${STAMP}_${m}_${r}_perf"
-            ctl="$base.ctl.fifo"
-            ack="$base.ack.fifo"
+            ctl="$FIFO_DIR/ctl.fifo"
+            ack="$FIFO_DIR/ack.fifo"
             rm -f "$ctl" "$ack"
             mkfifo "$ctl" "$ack" || exit 2
             # Held open read-write here so neither perf's nor the game's

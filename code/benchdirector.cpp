@@ -227,24 +227,35 @@ void dumpState (void) {
 	}
 }
 
+// Mean position of the units still fighting, and how many there are (x and
+// y are left alone when there are none).
+long fightCentre (float& x, float& y) {
+
+	float sx = 0.0f, sy = 0.0f;
+	long n = 0;
+	for (size_t i = 0; i < fighters.size(); i++)
+		if (canFight(fighters[i])) {
+			sx += fighters[i]->getPosition().x;
+			sy += fighters[i]->getPosition().y;
+			n++;
+		}
+	if (n > 0) {
+		x = sx / (float)n;
+		y = sy / (float)n;
+	}
+	return n;
+}
+
 // Scenario health, at each segment start: how many fighters are left, where
 // the fight is and how spread out it is (mean distance from its centre).
 void logFight (void) {
 
 	float x = 0.0f, y = 0.0f;
-	long n = 0;
-	for (size_t i = 0; i < fighters.size(); i++)
-		if (canFight(fighters[i])) {
-			x += fighters[i]->getPosition().x;
-			y += fighters[i]->getPosition().y;
-			n++;
-		}
+	const long n = fightCentre(x, y);
 	if (n == 0) {
 		printf("[BENCH] frame %ld: nobody left fighting\n", frame);
 		return;
 	}
-	x /= (float)n;
-	y /= (float)n;
 	float spread = 0.0f, farthest = 0.0f;
 	for (size_t i = 0; i < fighters.size(); i++)
 		if (canFight(fighters[i])) {
@@ -291,16 +302,9 @@ void moveCamera (void) {
 	}
 	else {
 		float x = 0.0f, y = 0.0f;
-		long n = 0;
-		for (size_t i = 0; i < fighters.size(); i++)
-			if (canFight(fighters[i])) {
-				x += fighters[i]->getPosition().x;
-				y += fighters[i]->getPosition().y;
-				n++;
-			}
-		if (n > 0) {
-			viewX += (x / (float)n - viewX) * 0.05f;
-			viewY += (y / (float)n - viewY) * 0.05f;
+		if (fightCentre(x, y) > 0) {
+			viewX += (x - viewX) * 0.05f;
+			viewY += (y - viewY) * 0.05f;
 		}
 	}
 
