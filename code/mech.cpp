@@ -1811,7 +1811,8 @@ long BattleMech::init (DWORD variantNum)
 							// Add to Anti-Missile System list for fast reference...
 							if (numAntiMissileSystems == MAX_ANTI_MISSILE_SYSTEMS)
 								Fatal(0, "Too many Anti-Missile Systems");
-							antiMissileSystem[numAntiMissileSystems++] = spaceData;
+							else	// Fatal only logs: do not write past the list
+								antiMissileSystem[numAntiMissileSystems++] = spaceData;
 						}
 						break;
 
@@ -2596,7 +2597,8 @@ void BattleMech::resetComponents (long totalComponents, long *componentList)
 							// Add to Anti-Missile System list for fast reference...
 							if (numAntiMissileSystems == MAX_ANTI_MISSILE_SYSTEMS)
 								Fatal(0, "Too many Anti-Missile Systems");
-							antiMissileSystem[numAntiMissileSystems++] = spaceData;
+							else	// Fatal only logs: do not write past the list
+								antiMissileSystem[numAntiMissileSystems++] = spaceData;
 						}
 						break;
 
@@ -3228,7 +3230,8 @@ long BattleMech::init (FitIniFile* mechFile) {
 							// Add to Anti-Missile System list for fast reference...
 							if (numAntiMissileSystems == MAX_ANTI_MISSILE_SYSTEMS)
 								Fatal(0, "Too many Anti-Missile Systems");
-							antiMissileSystem[numAntiMissileSystems++] = spaceData[0];
+							else	// Fatal only logs: do not write past the list
+								antiMissileSystem[numAntiMissileSystems++] = spaceData[0];
 						}
 						break;
 
