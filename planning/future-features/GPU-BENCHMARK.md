@@ -245,10 +245,12 @@ the Pi; not needed for the numbers.
    Verified in WSL (llvmpipe): GL, GLES and Clang build; mc2_19 at 3600
    frames, two runs identical in game state on every frame and in all four
    screenshots; per-segment fps within 1 to 3 percent between runs; GLES
-   gives the same state and correct screenshots. Known gap: in the effects
-   segment the draw-call count can differ by about 0.3% between runs
-   (triangles, state and images identical), probably how the alpha-sorted
-   effect batching (PR #5) splits; not chased.
+   gives the same state and correct screenshots. The effects segment's draw
+   counts and pixels used to vary between runs: `GVAppearance` left its
+   paint colours uninitialised, and the air strike bomber (never given a
+   paint scheme) repainted itself with them, so whether two bombers shared
+   a texture instance, and their colour, came from heap garbage. Fixed by
+   defaulting them to white, as `MechAppearance` does.
 3. GPU timer queries and `bench.sh` / `bench_compare.py`.
 4. HUD (optional).
 
