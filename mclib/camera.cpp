@@ -1581,8 +1581,8 @@ long Camera::update (void)
 	// Velocity Update
 	updateGoalVelocity();
 	
-	if ((velocity.x != 0.0) &&
-		(velocity.y != 0.0) &&
+	if ((velocity.x != 0.0) ||
+		(velocity.y != 0.0) ||
 		(velocity.z != 0.0))
 	{
 		Stuff::Vector3D posOffset;
