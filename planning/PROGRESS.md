@@ -32,7 +32,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `uninitMemberVar` (100), `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2)
+- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2). The 100 baseline `uninitMemberVar` were triaged 2026-10-31 (see log) and stay in the baseline: set before any read, never read, stubbed multiplayer, test code, or no-init by design
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 2-4: scripted camera and combat, GPU timer queries, compare script (`future-features/GPU-BENCHMARK.md`)
@@ -115,6 +115,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: cppcheck `uninitMemberVar` triage: the 100 baseline findings (2.13) plus the 19 that only local 2.7 reports (`GVAppearance`, `Turret`, `BldgAppearance`, `Mech3DAppearance`). Real bugs fixed: `GVAppearance::isInfantry` read unset by the SimpleCamera vehicle view (dust cloud loop), now `false` in `init()` (`276daee`); the bomber paint colours, same change as PR 7 (`188ac39`); a font texture that failed to load was still registered and bound with an unset `Texture::type_` (`69b5eda`); `MemoryStream` bit IO after the `class_data` constructor used an unset buffer (`49e107e`). All others are set before any read, never read, or in stubbed MP / test code.
 - 2026-10-31: agent workflow in three tiers (`.claude/rules/agent-workflow.md`): one worktree per session or feature; `scripts/check.sh` before every commit (incremental build, unit tests, shaders, cppcheck on changed files compared with the code before the change, line endings / em dashes); `--level batch` every few commits adds both renderers and a short smoke, then `/simplify` + `/code-review`; at the PR `/code-review high`, and `smoke.yml` now also runs on PRs that touch code.
 - 2026-10-31: render CPU quick wins (#5): shader hot reload no longer stat()s every shader every frame, alpha-sorted effect triangles batched per state, GameOS skips repeated GL state / sampler / uniform calls and streams vertex uploads, shapes lit only by point/spot lights in reach. Pi 400 GPU build, vsync off: mc2_01 113 -> 179 fps, mc2_03 148 -> 181 fps; llvmpipe mc2_01 14.1 -> 17.3 fps.
 - 2026-10-31: `bench.sh --perf`: one `perf record -g` run per mission, sampling switched on/off by the game at the first and last gameplay frame (`MC2_PERF_CTL`/`MC2_PERF_ACK` FIFOs), per-library and top-symbol report, optional flame graph; `-DMC2_FRAME_POINTERS=ON`. Verified in WSL (llvmpipe): sampling covers gameplay only, frame-pointer stacks reach `main` (WSL's perf has no libelf, so names were checked with addr2line). First lead: `FastFile::openFast` and zlib busy during gameplay on mc2_03. Not run on the Pi.
