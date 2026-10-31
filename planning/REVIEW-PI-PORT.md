@@ -59,7 +59,7 @@ land and note the PR.
   - So a `STOP` after a `PAUSE` or after partly flushed stdout is mid-line, and
     the run passes.
   - Fix: drop the anchor, and have `logmsg` end each message with a newline.
-- [ ] **T1. Bench "closeup" screenshot is taken in the wrong segment**
+- [x] **T1. Bench "closeup" screenshot is taken in the wrong segment** (fixed on `review/followup`)
       (`bench/mc2_19.fit:51`; from `2d44620`).
   - `Shot = 2400` is the first frame of Segment3, so the close-up image shows
     the effects framing and the first artillery strike.
@@ -136,7 +136,7 @@ land and note the PR.
       for failed runs too, with no status column, so a software-fallback run
       mixes into good data. Add a status column or skip rows for non-PASS
       runs. (`2d44620`)
-- [ ] **T3.** (names, over-long strings and negative Gather fixed in #12; the `f[5] KeyN` case is still open) `code/benchscenario.cpp:21,45,56-63` trusts the scenario file:
+- [x] **T3.** (names, over-long strings and negative Gather fixed in #12; `f[5] KeyN` on `review/followup`) `code/benchscenario.cpp:21,45,56-63` trusts the scenario file:
       - an over-long Name is left unterminated;
       - an empty Name breaks the summary line and screenshot names;
       - `f[5] KeyN` leaves altitude uninitialised (non-deterministic);
@@ -147,7 +147,7 @@ land and note the PR.
 - [x] **T4.** (fixed in #12) `scripts/bench.sh:322` uses `cut -c17-` where it should be
       `-c16-`, which drops the first letter of scenario error messages.
       (`2d44620`)
-- [ ] **T5.** `tests/unit/test_benchscenario.cpp:58-62`: the key-order test
+- [x] **T5.** (fixed on `review/followup`) `tests/unit/test_benchscenario.cpp:58-62`: the key-order test
       cannot fail without the `stable_sort`, because the fixture keys are
       already sorted. Add an out-of-order segment. (`2d44620`)
 

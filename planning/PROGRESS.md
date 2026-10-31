@@ -47,7 +47,7 @@ Added 2026-10-31. Not started.
       CMake config files for SDL2_mixer/ttf). Afterwards, check which
       workarounds can go (the `cmake/FindSDL2_*.cmake` pkg-config fallbacks stay:
       other distros need them) and update `BUILD-LINUX.md`.
-- [ ] **Code-review everything on `pi-port` so far** (83 commits ahead of
+- [x] **Code-review everything on `pi-port` so far** (83 commits ahead of
       `origin/master` as of 2026-10-31). One diff that size reviews badly, so
       review it in batches by area, oldest first: build/CI, GLES renderer and
       shaders, platform layer, engine (`mclib/`), game (`code/`), tests and
@@ -57,7 +57,8 @@ Added 2026-10-31. Not started.
   - 2026-10-31: review done (88 commits, six areas). Findings and their
     status: `planning/REVIEW-PI-PORT.md`. Fixed so far: G1 (#13), P1, T2,
     T4 and most of T3 (#12), B1-B6 (#18), R1, P2, E1 (#20); B7 (mc2_17
-    smoke flake) gone since #19. Still open: T1, the rest of T3, T5.
+    smoke flake) gone since #19; T1, the rest of T3, T5 (`review/followup`).
+    All 18 findings closed.
 - [ ] **Move all agents onto the updated agent process**: workflows, the
       three-tier process, and PRs into `pi-port` instead of merging or pushing to
       it directly. Update `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` to
@@ -344,6 +345,8 @@ Candidates:
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
+
+- 2026-10-31: last review findings (branch `review/followup`): bench scenarios refuse a `Shot` outside its own segment and a camera key without exactly 6 values (mc2_19's closeup shot moved from 2400, the next segment's first frame, to 2250); the key-sort test now fails without the sort; a unit test loads the shipped `bench/mc2_19.fit`. mc2_17 smoke passes 3 of 3 since #19 (B7 closed). Batch checks (GL and GLES, smoke) on Ubuntu 26.04; not run on the Pi.
 
 - 2026-10-31: review findings R1, P2, E1 (branch `fix/review-small`): `gos_vertex.vert` writes `gl_PointSize` so `GL_POINTS` have a size on GLES; `gos_MarkGameplayStarted()` fires on every mission (a member cleared in `Mission::init`, not a static pointer to the reused `Mission`); `GlobalMap::init` allocates `doorInfos` / `doorLinks` before the reads that can fail, so `destroy()` never frees uninitialised pointers from a half-loaded map. Batch checks (GL and GLES, shaders, smoke) on Ubuntu 26.04; planet point not looked at on the Pi.
 
