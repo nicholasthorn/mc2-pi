@@ -200,6 +200,10 @@ class File
 
 			bool isOpen (void);
 
+			// For a file opened on a memory buffer (open(buffer, length)),
+			// the buffer at the current position; NULL for any other file.
+			MemoryPtr getMemoryView (void);
+
 			virtual FileClass getFileClass (void)
 			{
 				return BASEFILE;

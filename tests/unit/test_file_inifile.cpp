@@ -154,4 +154,51 @@ TEST_CASE("File resolves and reads a loose disk file (base-loose branch)")
 	CHECK(!f.isOpen());
 }
 
+TEST_CASE("FitIniFile reads a FIT through a memory-buffer parent")
+{
+	// How ObjectTypeManager hands a built Omnitech mech type FIT to
+	// ObjectType::init(FilePtr, size): a memory File as the parent.
+	static const char fit[] =
+		"FITini\r\n\r\n"
+		"[ObjectClass]\r\nl ObjectTypeNum = 2\r\n\r\n"
+		"[MechProfile]\r\nst ProfileName = \"uziel\"\r\nf explosionradius = 80\r\n\r\n"
+		"FITend\r\n";
+	char buffer[sizeof(fit)];
+	memcpy(buffer, fit, sizeof(fit));
+	const int len = (int)strlen(buffer);
+
+	File mem;
+	REQUIRE(mem.open(buffer, len) == NO_ERR);
+	CHECK((mem.getMemoryView() == (MemoryPtr)buffer));
+
+	{
+		FitIniFile ini;
+		REQUIRE(ini.open(&mem, len) == NO_ERR);
+		REQUIRE(ini.seekBlock("ObjectClass") == NO_ERR);
+		long typeNum = 0;
+		CHECK(ini.readIdLong("ObjectTypeNum", typeNum) == NO_ERR);
+		CHECK(typeNum == 2);
+		REQUIRE(ini.seekBlock("MechProfile") == NO_ERR);
+		char name[32] = {0};
+		CHECK(ini.readIdString("ProfileName", name, 31) == NO_ERR);
+		CHECK(strcmp(name, "uziel") == 0);
+		float radius = 0.0f;
+		CHECK(ini.readIdFloat("explosionradius", radius) == NO_ERR);
+		CHECK(radius == doctest::Approx(80.0f));
+		ini.close();
+	}
+
+	// the view is not freed: the caller's buffer is intact
+	CHECK(memcmp(buffer, fit, sizeof(fit)) == 0);
+	mem.close();
+}
+
+TEST_CASE("File::getMemoryView is NULL for a disk file")
+{
+	File f;
+	REQUIRE(f.open(fixturePath("harness_smoke.fit").c_str()) == NO_ERR);
+	CHECK((f.getMemoryView() == NULL));
+	f.close();
+}
+
 } // TEST_SUITE("FileStack")

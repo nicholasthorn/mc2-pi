@@ -162,6 +162,26 @@ TEST_CASE("packed serves when loose absent; loose overrides packed")
 	remove(kFstEntryName);
 }
 
+TEST_CASE("an FST written on Windows (backslash names) is found with '/' paths")
+{
+	// Omnitech's (and Windows-built) archives store "data\\tgl\\x.tgl";
+	// FastFile::open normalises entry names so '/' lookups find them.
+	const std::string fstPath = scratchPath("archive_bs.fst");
+	authorFst(fstPath, "mvh_scratch_dir\\fst_entry.txt", kFstPayload, (int)strlen(kFstPayload));
+	{
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		long h = -1;
+		CHECK(FastFileFind("mvh_scratch_dir/fst_entry.txt", h) != nullptr);
+
+		File f;
+		REQUIRE(f.open("mvh_scratch_dir/fst_entry.txt") == NO_ERR);
+		CHECK(readAll(f) == kFstPayload);
+		f.close();
+	}
+	remove(fstPath.c_str());
+}
+
 TEST_CASE("fileExists reports loose (1) vs FST (2) tiers")
 {
 	// fileExists() encodes the same ladder as a destination bitmask:

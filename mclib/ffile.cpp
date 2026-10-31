@@ -237,6 +237,20 @@ long FastFile::open (const char* fName)
 		unsigned long result = 0;
 		result = fread(files[i].pfe,1,sizeof(FILEENTRY),handle);
 
+		//----------------------------------------------------------
+		// Archives built on Windows (retail data, MechCommander
+		// Omnitech) name entries "data\\tgl\\x.tgl"; this port looks
+		// them up with '/' (File::open converts). Normalise and rehash.
+		files[i].pfe->name[MAX_FILENAME_SIZE - 1] = 0;
+		bool renamed = false;
+		for (char* c = files[i].pfe->name; *c; c++)
+			if (*c == '\\') {
+				*c = '/';
+				renamed = true;
+			}
+		if (renamed)
+			files[i].pfe->hash = elfHash(files[i].pfe->name);
+
 		files[i].inuse = FALSE;
 		files[i].pos = 0;
 	}

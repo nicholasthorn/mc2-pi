@@ -780,6 +780,17 @@ long FitIniFile::open (const char* fName, FileMode _mode, long numChild, bool do
 //---------------------------------------------------------------------------
 long FitIniFile::open (FilePtr _parent, unsigned long fileSize, long numChild)
 {
+	// A memory file cannot be a parent (children read through the parent's
+	// handle): read the FIT straight out of its buffer instead. The view
+	// is not freed on close (no parent, not an FST image).
+	MemoryPtr view = _parent ? _parent->getMemoryView() : NULL;
+	if (view) {
+		long result = File::open((const char*)view, (int)fileSize);
+		if (result != NO_ERR)
+			return(result);
+		return(afterOpen());
+	}
+
 	numChild = -1;		//Force all parented FitINIs to load from RAM.
 	long result = File::open(_parent,fileSize,numChild);
 	if (result != NO_ERR)

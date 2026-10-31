@@ -1692,6 +1692,16 @@ bool File::isOpen (void)
 }
 
 //---------------------------------------------------------------------------
+MemoryPtr File::getMemoryView (void)
+{
+	// Only a plain memory file: not a disk, FST or child image
+	if (inRAM && fileImage && (parent == NULL) && (fastFile == NULL) &&
+		((handle == CLOSED_HANDLE_VALUE) || (handle == -1)))
+		return(fileImage + logicalPosition);
+	return(NULL);
+}
+
+//---------------------------------------------------------------------------
 char* File::getFilename (void)
 {
 	return (fileName);

@@ -265,10 +265,36 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    entries (`ObjectTypeManager::init` default), Omnitech's 4096. Needs: a
    larger table, `movobj.fit` lookup in `ObjectTypeManager::load` for
    numbers past the pak, and type construction from CSV/`.fit`.
-4. `.burnin.jpg` colour maps (logged, not yet fatal).
-5. A separate `STOP: requested packet number 125 is bigger than number of
-   packets: 125` appears earlier in the log, from another packet file;
-   likely tied to item 3, not investigated.
+   **Done on branch `omnitech-objtypes`:** table 4096 (the five MC1
+   terrain handles stay at 1019-1023); `ObjectTypeManager` loads
+   `objects/movobj.fit` if present and, for numbers past `object2.pak`,
+   opens `objects/<CSVname>.fit` or, for a mech, builds its type FIT from
+   the CSV (names = CSVname, explosion 41, destroyed 101, extent 12,
+   radius 80, destruct/explosion damage by weight class as in every stock
+   mech: <40t 35/15, <60t 45/20, <80t 55/25, else 65/30).
+   `FitIniFile::open(parent)` reads from a memory-file parent
+   (`File::getMemoryView`). `isselected` added. Clan Wars mission 1 now
+   loads its units and starts (`[MISSION] innersphere1 started`).
+4. **FST archives built on Windows.** Omnitech's `tgl.fst` and `art.fst`
+   name entries `data\tgl\x`; `FastFile::open` now normalises to `/` and
+   rehashes (branch). Separately, Omnitech's `tgl.fst` uses Microsoft's
+   original LZ compression (version 0xFADDECAF, not zlib); this port's
+   `LZDecomp` is zlib (the original is x86 inline asm, `#ifndef
+   LINUX_BUILD`), so it cannot read it. Its 4667 entries are the stock
+   ones, so the test setup keeps the stock `tgl.fst`; Omnitech's new
+   models are loose files. Its `art.fst` is zlib and reads.
+5. **`.burnin.jpg` colour maps: next blocker, now fatal.** With the units
+   loaded the mission starts and crashes in
+   `TerrainColorMap::getTextureHandle` (first terrain frame): the colour map
+   never loaded because Clan Wars ships only
+   `textures/innersphere1.burnin.jpg`. 6.28 accepts `.tga`, `.burnin.tga`
+   and `.burnin.jpg` (`Terrain::init`). Needs a JPEG decoder (none in the
+   build: stb_image or SDL2_image).
+6. Remaining noise: `ObjectTypeManager::objectFile->seekPacket(n)` with
+   Omnitech numbers in `Mission` (logs "requested packet number N is
+   bigger than number of packets: 1188", harmless); "Requested string id
+   N not found" for the new units' names (need Omnitech's `mc2res.dll`
+   strings).
 
 ## Scope if we do this
 
