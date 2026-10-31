@@ -346,9 +346,20 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    - Omnitech's own `sound.snd` lists 126 bites and its `sound.pak` holds
      125; `preloadSoundBite` skips the missing one quietly (1).
    Clan Wars mission 1 now passes `scripts/smoke.sh` (no error lines).
-8. Remaining: "Requested string id N not found" for the new units' names
-   (need Omnitech's `mc2res.dll` strings); the purchasable Omnitech units
-   in logistics are not checked in the UI yet.
+8. **Omnitech's strings. Done on the branch.** Its names and descriptions
+   for new content live in its Windows `mc2res.dll` (PE32, 4281 strings,
+   ids 10000 to 60049); Clan Wars mission 1 asked for 20 missing ids, its
+   new pilots' callsigns (30924 BARON to 30942 THUNDER) and 30000.
+   `gos_GetResourceString` now falls back, for ids the game's own table
+   lacks, to the string table of a `mc2res.dll` in the game folder, read at
+   run time by `utils/pe_strings` (bounds-checked PE resource reader,
+   UTF-16 to Windows-1252, unit tested). Nothing of Omnitech's is copied
+   into the repo, and stock text is never replaced. Only 30000 is still
+   missing; Omnitech's own DLL lacks it too.
+   A mod install therefore needs `mc2res.dll` in the game folder, as well
+   as its `TerrainTextureRes`.
+9. Remaining: the purchasable Omnitech units in logistics and the new
+   units in missions are not checked in the UI or in play yet.
 
 ## Scope if we do this
 
