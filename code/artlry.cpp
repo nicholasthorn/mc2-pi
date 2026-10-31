@@ -198,7 +198,10 @@ void IfaceCallStrike (long strikeID,
 	// Neither player nor clan (an ABL strike with clan false): no
 	// commander to own it, and CallArtillery would index commanders[-1].
 	if (commanderID < 0)
+	{
+		SPEWALWAYS(("ARTILLERY", " Iface.CallStrike: strike %ld is neither player nor clan, dropped ", strikeID));
 		return;
+	}
 
 	switch (strikeID) 
 	{
