@@ -1009,6 +1009,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	baseRootNodeDifference = 0.0f;
 
 	rotationalNodeIndex = -1;
+	shadowRotationalNodeIndex = -2;
 	hitLeftNodeIndex = hitRightNodeIndex = -1;
 	rootNodeIndex = lightCircleNodeIndex = -1;
 	leftArmNodeIndex = rightArmNodeIndex = -1;
@@ -1345,6 +1346,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	if (mechType && mechType->mechShadowShape)
 	{
 		mechShadowShape = mechType->mechShadowShape->CreateFrom();
+		shadowRotationalNodeIndex = -2;
 
 		//-------------------------------------------------
 		// Load the texture and store its handle.
@@ -3164,7 +3166,11 @@ void Mech3DAppearance::updateGeometry (void)
 
 			mechShadowShape->SetNodeRotation(rotationalNodeIndex,&torsoRot);
 
- 			mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
+			// by name once (a string scan over the nodes), then by index
+			if (shadowRotationalNodeIndex == -2)
+				shadowRotationalNodeIndex = mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
+			else
+				mechShadowShape->SetNodeRotation(shadowRotationalNodeIndex,&torsoRot);
 			mechShadowShape->SetLightList(eye->getWorldLights(),eye->getNumLights());
 			mechShadowShape->TransformMultiShape (&xlatPosition,&qRotation);
 		}
