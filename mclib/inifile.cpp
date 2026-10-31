@@ -900,7 +900,7 @@ long FitIniFile::readIdFloat (const char *varName, float &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0.0;
 		return(VARIABLE_NOT_FOUND);
@@ -953,7 +953,7 @@ long FitIniFile::readIdDouble (const char *varName, double &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0.0;
 		return(VARIABLE_NOT_FOUND);
@@ -1014,7 +1014,7 @@ long FitIniFile::readIdLong (const char *varName, long &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1067,7 +1067,7 @@ long FitIniFile::readIdBoolean (const char *varName, bool &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1120,7 +1120,7 @@ long FitIniFile::readIdShort (const char *varName, short &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1173,7 +1173,7 @@ long FitIniFile::readIdChar (const char *varName, char &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1236,7 +1236,7 @@ long FitIniFile::readIdULong (const char *varName, uint64_t &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1289,7 +1289,7 @@ long FitIniFile::readIdUShort (const char *varName, unsigned short &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1342,7 +1342,7 @@ long FitIniFile::readIdUChar (const char *varName, unsigned char &value)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		value = 0;
 		return(VARIABLE_NOT_FOUND);
@@ -1430,7 +1430,7 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1513,7 +1513,7 @@ long FitIniFile::getIdStringLength (const char *varName)
 	}
 	while((testy != 0) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if (testy != 0)
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1565,7 +1565,7 @@ long FitIniFile::readIdFloatArray (const char *varName, float *result, unsigned 
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1599,11 +1599,13 @@ long FitIniFile::readIdFloatArray (const char *varName, float *result, unsigned 
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -1661,7 +1663,7 @@ long FitIniFile::readIdIntArray (const char *varName, int *result, unsigned int 
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1695,11 +1697,13 @@ long FitIniFile::readIdIntArray (const char *varName, int *result, unsigned int 
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -1756,7 +1760,7 @@ long FitIniFile::readIdLongArray (const char *varName, long *result, unsigned lo
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1790,11 +1794,13 @@ long FitIniFile::readIdLongArray (const char *varName, long *result, unsigned lo
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -1851,7 +1857,7 @@ long FitIniFile::readIdULongArray (const char *varName, unsigned long *result, u
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1885,11 +1891,13 @@ long FitIniFile::readIdULongArray (const char *varName, unsigned long *result, u
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -1946,7 +1954,7 @@ long FitIniFile::readIdShortArray (const char *varName, short *result, unsigned 
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -1980,11 +1988,13 @@ long FitIniFile::readIdShortArray (const char *varName, short *result, unsigned 
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -2041,7 +2051,7 @@ long FitIniFile::readIdUShortArray (const char *varName, unsigned short *result,
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2075,11 +2085,13 @@ long FitIniFile::readIdUShortArray (const char *varName, unsigned short *result,
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -2136,7 +2148,7 @@ long FitIniFile::readIdCharArray (const char *varName, char *result, unsigned lo
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2170,11 +2182,13 @@ long FitIniFile::readIdCharArray (const char *varName, char *result, unsigned lo
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -2231,7 +2245,7 @@ long FitIniFile::readIdUCharArray (const char *varName, unsigned char *result, u
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2265,11 +2279,13 @@ long FitIniFile::readIdUCharArray (const char *varName, unsigned char *result, u
 
 		//--------------------------------------------------------------------------------
 		// Now, loop until we reach the end of block or we've read in all of the elements
-		while ((logicalPosition < endOfBlock) && (elementsRead < actualElements))
+		while (elementsRead < actualElements)
 		{
 			long errorCode = getNextWord(equalSign,elementString,9);
 			if (errorCode == GET_NEXT_LINE)
 			{
+				if (logicalPosition >= endOfBlock)
+					break;
 				readLine((MemoryPtr)line,254);
 				equalSign = line;
 				continue;
@@ -2326,7 +2342,7 @@ unsigned long FitIniFile::getIdFloatArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2381,7 +2397,7 @@ unsigned long FitIniFile::getIdLongArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2436,7 +2452,7 @@ unsigned long FitIniFile::getIdULongArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2491,7 +2507,7 @@ unsigned long FitIniFile::getIdShortArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2546,7 +2562,7 @@ unsigned long FitIniFile::getIdUShortArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2601,7 +2617,7 @@ unsigned long FitIniFile::getIdCharArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
@@ -2656,7 +2672,7 @@ unsigned long FitIniFile::getIdUCharArrayElements (const char *varName)
 	}
 	while(((fSearch == NULL) || (bSearch == NULL)) && (logicalPosition < endOfBlock));
 	
-	if (logicalPosition >= endOfBlock)
+	if ((fSearch == NULL) || (bSearch == NULL))
 	{
 		return(VARIABLE_NOT_FOUND);
 	}
