@@ -356,8 +356,8 @@ TEST_CASE("zlib data (what this port's LZCompress writes) still decodes")
 	Bytes out(plain.size(), 0);
 	CHECK(decode(out, packed, out.size()) == plain.size());
 	CHECK(out == plain);
-	Bytes small(1000, 0);
-	CHECK(decode(small, packed, small.size()) == 0);
+	Bytes tooShort(1000, 0);	// not `small`: a macro in the Windows headers
+	CHECK(decode(tooShort, packed, tooShort.size()) == 0);
 }
 
 TEST_CASE("an LZ FST (0xFADDECAF) with original LZ, zlib and raw-stored entries reads through File::open")
