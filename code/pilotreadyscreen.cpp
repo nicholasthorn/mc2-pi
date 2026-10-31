@@ -30,7 +30,9 @@ PilotReadyScreen::PilotReadyScreen()
 	status = LogisticsScreen::RUNNING;
 	s_instance = this;
 	forceGroupCount = 0;
-	
+	stockLayout = true;
+	pilotPicture = 67;
+
 	pDragPilot = 0;
 	dragLeft = 0;
 
@@ -58,6 +60,10 @@ void PilotReadyScreen::init(FitIniFile* file)
 	mechDisplay.init();
 	// init button, texts, statics, rects
 	LogisticsScreen::init( *file, "PilotReadyStatic", "PilotReadyTextEntry", "PilotReadyRect", "PilotReadyButton" );
+	// The pilot picture is static 67 in stock mcl_pr_layout.fit; MechCommander
+	// Omnitech's has 40 statics and puts it at 28 (as its own code does)
+	stockLayout = staticCount > 67;
+	pilotPicture = stockLayout ? 67 : 28;
 	
 	// initialize little icons
 	FitIniFile iconFile;
@@ -323,9 +329,13 @@ void PilotReadyScreen::render(int xOffset, int yOffset )
 		GUI_RECT rect = { 77 + xOffset, 317 + yOffset, 720+ xOffset, 515 + yOffset };
 		drawRect( rect, 0xff000000 );
 		mechDisplay.render( xOffset, yOffset );
-		// hack, cover up list box overrruns.
-		statics[27].render( xOffset, yOffset );
-		statics[28].render( xOffset, yOffset );
+		// hack, cover up list box overrruns (stock layout only: Omnitech's
+		// 27 and 28 are other pieces, and its code drops this)
+		if ( stockLayout )
+		{
+			statics[27].render( xOffset, yOffset );
+			statics[28].render( xOffset, yOffset );
+		}
 	}
 
 	if ( launchFadeTime )
@@ -746,7 +756,7 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 		// set up the big bitmap
 		if ( !pCurPilot )
 		{
-			statics[staticCount-1].setColor( 0 );
+			statics[pilotPicture].setColor( 0 );
 			return;
 		}
 
@@ -757,9 +767,9 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 		strcat( fileName, ".tga" );
 		EString str = fileName;
 		str.MakeLower();
-		statics[67].setTexture( str );
-		statics[67].setColor( 0xffffffff );
-		statics[67].setUVs( 0, 0, 92, 128 );
+		statics[pilotPicture].setTexture( str );
+		statics[pilotPicture].setColor( 0xffffffff );
+		statics[pilotPicture].setUVs( 0, 0, 92, 128 );
 	}
 
 	// update pilot specific stuff
@@ -852,7 +862,7 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 		for ( int i = 4; i < 13; i++ )
 			textObjects[i].setText( "" );
 
-		statics[staticCount-1].setColor( 0 );
+		statics[pilotPicture].setColor( 0 );
 
 	}
 }

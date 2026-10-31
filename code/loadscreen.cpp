@@ -334,6 +334,7 @@ LoadScreen::LoadScreen(  )
 	progressBackground = 0;
 	progressTextureMemory = 0;
 	animIndices = 0;
+	hasAnimText = false;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -414,7 +415,11 @@ void LoadScreen::init(FitIniFile& file, DWORD neverFlush)
 	outAnims[4].init( &file, "" );
 
 
-	text.init( &file, "AnimObject18" );
+	// MechCommander Omnitech's mcl_loadingscreen.fit has no animated panels:
+	// its "LOADING" line is an ordinary text (Text0), drawn with the rest
+	hasAnimText = (NO_ERR == file.seekBlock( "AnimObject18" ));
+	if ( hasAnimText )
+		text.init( &file, "AnimObject18" );
 	
 
 	if ( animObjectsCount )
@@ -513,6 +518,9 @@ void LoadScreen::render( int x, int y )
 {
 	//ignoring animation information...
 	LogisticsScreen::render();
+
+	if ( !hasAnimText || !animObjectsCount )
+		return;
 
 	int curX = animObjects[0].animInfo.getXDelta();
 	int curY = animObjects[0].animInfo.getYDelta();
