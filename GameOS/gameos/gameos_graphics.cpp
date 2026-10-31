@@ -558,16 +558,25 @@ size_t gosMesh::streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
     glBindBuffer(target, buf);
     void* p = glMapBufferRange(target, (GLintptr)*offset, (GLsizeiptr)bytes, access);
     gosASSERT(p);
-    if(!p) {
-        CHECK_GL_ERROR;
+    // GL_FALSE from glUnmapBuffer means the data store was lost (e.g. a mode
+    // switch)
+    bool ok = false;
+    if(p) {
+        memcpy(p, data, bytes);
+        ok = glUnmapBuffer(target) == GL_TRUE;
+    }
+    CHECK_GL_ERROR;
+    if(!ok) {
+        // gosASSERT is compiled out in release builds: say it once
+        static bool reported = false;
+        if(!reported) {
+            SPEWALWAYS(("GRAPHICS", "streaming a %s buffer failed, draws skipped\n",
+                    target == GL_ARRAY_BUFFER ? "vertex" : "index"));
+            reported = true;
+        }
+        glBindBuffer(target, 0);
         return STREAM_FAILED;
     }
-    memcpy(p, data, bytes);
-    // GL_FALSE means the data store was lost (e.g. a mode switch)
-    const GLboolean unmapped = glUnmapBuffer(target);
-    CHECK_GL_ERROR;
-    if(!unmapped)
-        return STREAM_FAILED;
 
     const size_t at = *offset;
     *offset += bytes;
