@@ -242,9 +242,12 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 		
  	//----------------------------
 	// Init sensor-related data...
-	result = bldgFile.readIdLong("TeamID", teamId);
+	// Read into a local: ObjectType::init() below resets teamId to -1, and
+	// Building::init() needs the file's team to create the sensor.
+	long fileTeamId;
+	result = bldgFile.readIdLong("TeamID", fileTeamId);
 	if (result != NO_ERR)
-		teamId = -1;
+		fileTeamId = -1;
 
 	result = bldgFile.readIdFloat("SensorRange", sensorRange);
 	if (result != NO_ERR)
@@ -292,6 +295,7 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 		perimeterAlarmTimer = 0.0f;
 
 	result = ObjectType::init(&bldgFile);
+	teamId = fileTeamId;
 	extentRadius = realExtent;
 	if (perimeterAlarmRange > 0.0f)
 		extentRadius = perimeterAlarmRange;
