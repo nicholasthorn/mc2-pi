@@ -99,6 +99,8 @@ MLR_I_DT_TMesh::MLR_I_DT_TMesh(
 #endif
 
 	passes = 2;
+
+	gos_vertices2uv = NULL;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,6 +112,7 @@ MLR_I_DT_TMesh::MLR_I_DT_TMesh(ClassData *class_data):
 	Verify(gos_GetCurrentHeap() == Heap);
 
 	passes = 2;
+	gos_vertices2uv = NULL;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

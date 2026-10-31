@@ -55,6 +55,7 @@ MemoryStream::MemoryStream(
 	Verify(initial_offset <= stream_size);
 	currentPosition = streamStart + initial_offset;
 	currentBit = Empty_Bit_Buffer;
+	workingBitBuffer = 0x00;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

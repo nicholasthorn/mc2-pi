@@ -104,6 +104,8 @@ static DWORD
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
+// m_name/m_data are the variable-length tail of the block, filled by the memcpys below
+// cppcheck-suppress uninitMemberVar
 Record::Record(
 	const RecordHandle *handle,
 	DWORD record_hash,

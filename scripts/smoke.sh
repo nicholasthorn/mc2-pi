@@ -70,6 +70,8 @@ LOG_DIR="$(cd "$LOG_DIR" && pwd)"
 
 export LIBGL_ALWAYS_SOFTWARE=1
 export SDL_AUDIODRIVER=dummy
+# a STOP (Fatal, Assert, ABL fatal) ends the run instead of carrying on
+export MC2_STOP_EXITS=1
 
 RUN=()
 if [ "$USE_DISPLAY" = 1 ]; then

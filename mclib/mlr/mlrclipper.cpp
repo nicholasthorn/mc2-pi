@@ -50,6 +50,7 @@ DrawScreenQuadsInformation::DrawScreenQuadsInformation()
 	onOrOff = NULL;
 
 	nrOfQuads = 0;
+	currentNrOfQuads = 0;
 };
 
 //#############################################################################

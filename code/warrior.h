@@ -87,7 +87,9 @@ class BldgAppearance;
 
 //***************************************************************************
 
-#define	MAX_WARRIORS				120
+// 160 as in MechCommander Omnitech (stock 120; slot 0 is never used): Clan
+// Wars mission 21 has 126 parts. Only sizes the static warriorList.
+#define	MAX_WARRIORS				160
 
 #define	MOVEGOAL_NONE				0xFFFFFFFF
 #define	MOVEGOAL_LOCATION			0x00000000

@@ -560,33 +560,53 @@ TypePtr execStdConcat (void) {
 	//--------------------------
 	// Get destination string...
 	getCodeToken();
-	execExpression();
+	TypePtr destTypePtr = execExpression();
 	char* dest = (char*)tos->address;
 	pop();
+
+	// A script string is a char array of fixed size (often char[40]): clip the
+	// append to it rather than overrun the next variable.
+	size_t destSize = 0;
+	if (destTypePtr && (destTypePtr->form == FRM_ARRAY) && (destTypePtr->info.array.elementTypePtr == CharTypePtr) &&
+		(destTypePtr->info.array.elementCount > 0))
+		destSize = (size_t)destTypePtr->info.array.elementCount;
 
 	//----------------------
 	// Get item to append...
 	getCodeToken();
 	TypePtr paramTypePtr = execExpression();
-	char buffer[20];
+	// "%.2f" of FLT_MAX is 43 characters; scripts do pass huge reals here
+	// (cpl0101a.abl concats a bad distance of about -5e33).
+	char buffer[64];
+	const char* src = NULL;
 	if (paramTypePtr == IntegerTypePtr) {
-		sprintf(buffer, "%d", tos->integer);
-		strcat(dest, buffer);
+		snprintf(buffer, sizeof(buffer), "%d", tos->integer);
+		src = buffer;
 		}
 	else if (paramTypePtr == CharTypePtr) {
-		sprintf(buffer, "%c", tos->byte);
-		strcat(dest, buffer);
+		snprintf(buffer, sizeof(buffer), "%c", tos->byte);
+		src = buffer;
 		}
 	else if (paramTypePtr == RealTypePtr) {
-		sprintf(buffer, "%.2f", tos->real);
-		strcat(dest, buffer);
+		snprintf(buffer, sizeof(buffer), "%.2f", tos->real);
+		src = buffer;
 		}
 	else if (paramTypePtr == BooleanTypePtr) {
-		sprintf(buffer, "%s", tos->integer ? "true" : "false");
-		strcat(dest, buffer);
+		snprintf(buffer, sizeof(buffer), "%s", tos->integer ? "true" : "false");
+		src = buffer;
 		}
 	else if ((paramTypePtr->form == FRM_ARRAY) && (paramTypePtr->info.array.elementTypePtr == CharTypePtr))
-		strcat(dest, (char*)tos->address);
+		src = (char*)tos->address;
+
+	if (src) {
+		if (destSize) {
+			size_t len = strnlen(dest, destSize);
+			if (len < destSize)
+				strncat(dest, src, destSize - len - 1);
+			}
+		else
+			strcat(dest, src);
+		}
 
 	tos->integer = 0;
 

@@ -73,6 +73,22 @@ DWORD compressedTextureSize = 0;
 
 extern int ObjectTextureSize;
 
+// Compressed texture data held in RAM (the texture cache; with USE_GOS_HEAP
+// it is plain malloc, not capped at TEXTURE_CACHE_SIZE). Logged at each new
+// 4 MB high-water step, for the Pi 400 and for mods with 512 textures.
+static long s_cacheBytes = 0;
+static long s_cacheLogged = 0;
+static void noteCacheBytes (long delta)
+{
+	const long step = 4 * 1024 * 1024;
+	s_cacheBytes += delta;
+	if (s_cacheBytes >= s_cacheLogged + step)
+	{
+		s_cacheLogged = s_cacheBytes - (s_cacheBytes % step);
+		fprintf(stderr, "[TXMCACHE] compressed textures in RAM: %ld MB (new high)\n", s_cacheLogged / (1024 * 1024));
+	}
+}
+
 // Whether a texture of n bytes, and its LZ (zlib) compressed copy in the
 // worst case (zlib's compressBound), fit the LZ buffers.
 static bool fitsLzBuffers (long n)
@@ -86,14 +102,14 @@ static bool fitsLzBuffers (long n)
 // (its prefs.cfg sets ObjectTextureRes 512), so at the stock 128 its units
 // drew untextured. Use the configured size when the texture is there, as
 // for all stock data, else the largest size that has it, else the
-// configured folder (the caller's fileExists then fails as before).
-void objectTexturePath (char* texturePath, const char* txmName)
+// configured folder (and say it is missing).
+bool objectTextureName (FullPathFileName& textureName, const char* txmName)
 {
+	char texturePath[1024];
 	sprintf(texturePath,"%s%d" PATH_SEPARATOR,tglPath,ObjectTextureSize);
-	FullPathFileName configured;
-	configured.init(texturePath,txmName,"");
-	if (fileExists(configured))
-		return;
+	textureName.init(texturePath,txmName,"");
+	if (fileExists(textureName))
+		return true;
 
 	static const int sizes[] = { 512, 256, 128, 64, 32, 16 };
 	for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
@@ -102,14 +118,13 @@ void objectTexturePath (char* texturePath, const char* txmName)
 			continue;
 		char otherPath[1024];
 		sprintf(otherPath,"%s%d" PATH_SEPARATOR,tglPath,sizes[i]);
-		FullPathFileName other;
-		other.init(otherPath,txmName,"");
-		if (fileExists(other))
-		{
-			strcpy(texturePath,otherPath);
-			return;
-		}
+		textureName.init(otherPath,txmName,"");
+		if (fileExists(textureName))
+			return true;
 	}
+
+	textureName.init(texturePath,txmName,"");
+	return false;
 }
 
 //------------------------------------------------------
@@ -1836,6 +1851,7 @@ DWORD MC_TextureManager::textureFromMemory (DWORD *data, gos_TextureFormat key, 
 	{
 		memcpy(masterTextureNodes[i].textureData,lzBuffer2,txmCompressSize);
 		masterTextureNodes[i].lzCompSize = txmCompressSize;
+		noteCacheBytes(txmCompressSize);
 	}
 	
 	//------------------	
@@ -2003,6 +2019,8 @@ DWORD MC_TextureManager::loadTexture (const char *textureFullPathName, gos_Textu
 	{
 		masterTextureNodes[i].lzCompSize = result;
 	}
+	if (masterTextureNodes[i].textureData)
+		noteCacheBytes(masterTextureNodes[i].lzCompSize);
 
 	masterTextureNodes[i].width = 0xf0000000 + txmSize;
 
@@ -2158,6 +2176,8 @@ void MC_TextureNode::destroy (void)
 	}
 	
 	mcTextureManager->textureStringHeap->Free(nodeName);
+	if (textureData)
+		noteCacheBytes(-(long)lzCompSize);
 	mcTextureManager->textureCacheHeap->Free(textureData);
 	init();
 }

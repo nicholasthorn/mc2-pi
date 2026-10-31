@@ -1099,13 +1099,8 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			char txmName[1024];
 			sensorTriangleShape->GetTextureName(i,txmName,256);
 
-			char texturePath[1024];
-			objectTexturePath(texturePath,txmName);
-	
 			FullPathFileName textureName;
-			textureName.init(texturePath,txmName,"");
-	
-			if (fileExists(textureName))
+			if (objectTextureName(textureName,txmName))
 			{
 				if (S_strnicmp(txmName,"a_",2) == 0)
 				{
@@ -1137,13 +1132,8 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				char txmName[1024];
 				sensorSquareShape->GetTextureName(i,txmName,256);
 	
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -1175,13 +1165,8 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				char txmName[1024];
 				sensorSquareShape->GetTextureName(i,txmName,256);
 	
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -1355,13 +1340,8 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			char txmName[1024];
 			mechShadowShape->GetTextureName(i,txmName,256);
 
-			char texturePath[1024];
-			objectTexturePath(texturePath,txmName);
-
 			FullPathFileName textureName;
-			textureName.init(texturePath,txmName,"");
-
-			if (fileExists(textureName))
+			if (objectTextureName(textureName,txmName))
 			{
 				if (S_strnicmp(txmName,"a_",2) == 0)
 				{
@@ -1775,11 +1755,8 @@ void Mech3DAppearance::resetPaintScheme (DWORD red, DWORD green, DWORD blue)
 	char txmName[1024];
 	mechShape->GetTextureName(0,txmName,256);
 
-   	char texturePath[1024];
-   	objectTexturePath(texturePath,txmName);
-
    	FullPathFileName textureName;
-   	textureName.init(texturePath,txmName,"");
+   	objectTextureName(textureName,txmName);
 
 	//DWORD paintInstance = (red << 16) + (green << 8) + (blue);
 	/* The texture manager asks for a unique 32bit identifier for every texture instance.
@@ -2909,13 +2886,8 @@ void Mech3DAppearance::setObjStatus (long oStatus)
 				char txmName[1024];
 				mechShape->GetTextureName(i,txmName,256);
 	
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{

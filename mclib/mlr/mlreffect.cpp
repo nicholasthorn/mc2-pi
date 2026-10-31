@@ -105,6 +105,10 @@ MLREffect::MLREffect(int nr, ClassData *class_data):
 
 	gos_vertices = NULL;
 	numGOSVertices = 0;
+
+	points = NULL;
+	colors = NULL;
+	drawMode = SortData::TriList;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
