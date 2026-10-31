@@ -206,6 +206,7 @@ class TerrainTextures
 
 		TerrainTextures (void)
 		{
+			globalMipLevel = 0;
 			init();
 		}
 

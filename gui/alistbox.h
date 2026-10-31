@@ -39,6 +39,8 @@ public:
 
 	};
 
+	aListItem() : state(ENABLED) {}
+
 	virtual void update(){ aObject::update(); }
 	virtual void render(){ aObject::render(); }
 

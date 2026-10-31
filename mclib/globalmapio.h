@@ -197,10 +197,12 @@ bool narrowGlobalMapDoor (Door& out, const WideGlobalMapDoor& in) {
 }
 
 // Cells past numCells are zeroed, like the stock in-memory footprints.
+// preNumCells is never read by the game and Omnitech's editor can save it
+// unset (Clan Wars missions 5, 11, 16): kept when it fits, else 0.
 template <class FootPrint>
 bool narrowGameObjectFootPrint (FootPrint& out, const WideGameObjectFootPrint& in) {
 	const int32_t maxCells = (int32_t)(sizeof(out.cells) / sizeof(out.cells[0]));
-	if (!fitsShort(in.cellPositionRow) || !fitsShort(in.cellPositionCol) || !fitsShort(in.preNumCells) ||
+	if (!fitsShort(in.cellPositionRow) || !fitsShort(in.cellPositionCol) ||
 		(in.numCells < 0) || (in.numCells > maxCells))
 		return false;
 	for (int32_t i = 0; i < in.numCells; i++)
@@ -209,7 +211,7 @@ bool narrowGameObjectFootPrint (FootPrint& out, const WideGameObjectFootPrint& i
 	out = FootPrint();
 	out.cellPositionRow = (short)in.cellPositionRow;
 	out.cellPositionCol = (short)in.cellPositionCol;
-	out.preNumCells = (short)in.preNumCells;
+	out.preNumCells = fitsShort(in.preNumCells) ? (short)in.preNumCells : 0;
 	out.numCells = (short)in.numCells;
 	for (int32_t i = 0; i < in.numCells; i++) {
 		out.cells[i][0] = (short)in.cells[i][0];

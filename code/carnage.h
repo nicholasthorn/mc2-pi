@@ -89,6 +89,7 @@ class Carnage : public GameObject
 
 			Carnage (void) : GameObject() 
 			{
+				effectId = -1;
 				init(true);
 			}
 

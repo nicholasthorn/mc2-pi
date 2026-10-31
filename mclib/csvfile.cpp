@@ -46,6 +46,7 @@
 CSVFile::CSVFile (void) : File()
 {
 	totalRows = totalCols = 0L;
+	dataBuffer[0] = '\0';
 }
 
 //---------------------------------------------------------------------------

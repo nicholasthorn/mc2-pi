@@ -71,7 +71,7 @@ protected:
 	//
 	struct ENode
 	{
-		ENode(T_ARG New_Element) : m_Data(New_Element) {};
+		ENode(T_ARG New_Element) : m_pNext(NULL), m_pPrev(NULL), m_Data(New_Element) {};
 		ENode*	m_pNext;
 		ENode*	m_pPrev;
 		T		m_Data;

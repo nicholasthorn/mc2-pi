@@ -90,6 +90,7 @@ InfoWindow::InfoWindow()
 	backgroundTexture = 0;
 	icon = NULL;
 	infoLength = 0;
+	bUnitChanged = false;
 
 	skillInfos = new StaticInfo[7];
 	memset( skillInfos, 0, sizeof( StaticInfo ) *  7);

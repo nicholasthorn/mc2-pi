@@ -85,6 +85,7 @@ class GoalObject {
 		void init (void);
 
 		GoalObject (void) {
+			memset(&pathInfo, 0, sizeof(pathInfo));
 			init ();
 		}
 
@@ -125,6 +126,7 @@ class GoalManager {
 		void init (void);
 
 		GoalManager (void) {
+			memset(regionMap, 0, sizeof(regionMap));
 			init ();
 		}
 

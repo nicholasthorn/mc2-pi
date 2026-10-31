@@ -90,6 +90,7 @@ MLR_I_TMesh::MLR_I_TMesh(ClassData *class_data):
 	Verify(gos_GetCurrentHeap() == Heap);
 
 	drawMode = SortData::TriIndexedList;
+	numOfTriangles = 0;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

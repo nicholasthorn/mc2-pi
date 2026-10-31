@@ -543,7 +543,12 @@ long FastFile::readFast (DWORD fastFileHandle, void *bfr, DWORD size)
 				unsigned long decompLength = 0;
 				if (useLZCompress)
 				{
-					decompLength = LZDecomp((MemoryPtr)bfr,LZPacketBuffer,files[fastFileHandle].pfe->size);
+					// bounded by the caller's buffer (size; File reads whole
+					// entries, but readByte/readInt pass 1-4) and the entry's
+					// realSize: a short read fails the size check below
+					// instead of decompressing past bfr
+					const DWORD bound = (size < files[fastFileHandle].pfe->realSize) ? size : files[fastFileHandle].pfe->realSize;
+					decompLength = LZDecomp((MemoryPtr)bfr,LZPacketBuffer,files[fastFileHandle].pfe->size,bound);
 				}
 				else
 				{
@@ -616,7 +621,7 @@ long FastFile::writeFast (const char* fastFileName, void* buffer, int nbytes)
 		gosASSERT(LZPacketBuffer);
 
 		size_t compressedSize = LZCompress(LZPacketBuffer, (Bytef*)buffer, nbytes);
-		size_t uncompressedSize = LZDecomp((Bytef*)buffer, LZPacketBuffer, compressedSize);
+		size_t uncompressedSize = LZDecomp((Bytef*)buffer, LZPacketBuffer, compressedSize, nbytes);
 		if (nbytes != uncompressedSize)
 			STOP(("fast File size changed after compression.  Was %d is now %d", nbytes, uncompressedSize));
 

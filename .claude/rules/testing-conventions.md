@@ -46,6 +46,10 @@ smoke missions. Sanitizers and coverage are still to come
   `STOP: ` or `FATAL` line. Logs go to `--log-dir`. A new error that is
   genuinely harmless gets fixed at the source (see the post-`glewInit()` error
   clear), not added to an ignore list.
+- `smoke.sh` and `bench.sh` set `MC2_STOP_EXITS=1`: a `STOP` (and so
+  `Fatal`, `Assert`, `ABL_Fatal`) logs and ends the process with exit 1
+  instead of carrying on. A player's build still carries on unless the
+  variable is set.
 - Game data comes from `scripts/build_gamedata.sh`. `--no-movies` is enough
   for smoke runs and needs no Git LFS download.
 - A game directory without `options.cfg` only runs the hardware sniffer on its

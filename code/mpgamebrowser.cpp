@@ -505,6 +505,7 @@ aGameListItem& aGameListItem::operator=( const aGameListItem& src )
 }
 aGameListItem::aGameListItem() : latency( IDS_MP_LANBROW_PING_FONT )
 {
+	memset( &session, 0, sizeof( session ) );
 
 
 }
