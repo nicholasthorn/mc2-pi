@@ -1100,7 +1100,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			sensorTriangleShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 	
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -1138,7 +1138,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				sensorSquareShape->GetTextureName(i,txmName,256);
 	
 				char texturePath[1024];
-				sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+				objectTexturePath(texturePath,txmName);
 		
 				FullPathFileName textureName;
 				textureName.init(texturePath,txmName,"");
@@ -1176,7 +1176,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				sensorSquareShape->GetTextureName(i,txmName,256);
 	
 				char texturePath[1024];
-				sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+				objectTexturePath(texturePath,txmName);
 		
 				FullPathFileName textureName;
 				textureName.init(texturePath,txmName,"");
@@ -1356,7 +1356,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			mechShadowShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -1776,7 +1776,7 @@ void Mech3DAppearance::resetPaintScheme (DWORD red, DWORD green, DWORD blue)
 	mechShape->GetTextureName(0,txmName,256);
 
    	char texturePath[1024];
-   	sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+   	objectTexturePath(texturePath,txmName);
 
    	FullPathFileName textureName;
    	textureName.init(texturePath,txmName,"");
@@ -2910,7 +2910,7 @@ void Mech3DAppearance::setObjStatus (long oStatus)
 				mechShape->GetTextureName(i,txmName,256);
 	
 				char texturePath[1024];
-				sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+				objectTexturePath(texturePath,txmName);
 		
 				FullPathFileName textureName;
 				textureName.init(texturePath,txmName,"");

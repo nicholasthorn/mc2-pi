@@ -1515,6 +1515,10 @@ long BattleMech::init (DWORD variantNum)
 	for (long curItem = 0;curItem < MAX_MOVER_INVENTORY_ITEMS;curItem++)
 	{
 		mechFile->readUChar((26 + (97 * variantNum)) + curItem, 5, inventory[realItemNum].masterID);
+		// An id past the end of masterList (corrupt or modded .mdf) is
+		// dropped like an empty slot instead of indexing out of bounds.
+		if ((inventory[realItemNum].masterID != 255) && ((long)inventory[realItemNum].masterID >= MasterComponent::numComponents))
+			inventory[realItemNum].masterID = 255;
 		
 		if (inventory[realItemNum].masterID && (inventory[realItemNum].masterID != 255))
 		{
@@ -1572,6 +1576,10 @@ long BattleMech::init (DWORD variantNum)
 	for (int curItem = 0;curItem < MAX_MOVER_INVENTORY_ITEMS;curItem++)
 	{
 		mechFile->readUChar((26 + (97 * variantNum)) + curItem, 5, inventory[realItemNum].masterID);
+		// An id past the end of masterList (corrupt or modded .mdf) is
+		// dropped like an empty slot instead of indexing out of bounds.
+		if ((inventory[realItemNum].masterID != 255) && ((long)inventory[realItemNum].masterID >= MasterComponent::numComponents))
+			inventory[realItemNum].masterID = 255;
 		
 		if (inventory[realItemNum].masterID && (inventory[realItemNum].masterID != 255))
 		{
@@ -1640,6 +1648,10 @@ long BattleMech::init (DWORD variantNum)
 	for (int curItem = 0;curItem < MAX_MOVER_INVENTORY_ITEMS;curItem++)
 	{
 		mechFile->readUChar((26 + (97 * variantNum)) + curItem, 5, inventory[realItemNum].masterID);
+		// An id past the end of masterList (corrupt or modded .mdf) is
+		// dropped like an empty slot instead of indexing out of bounds.
+		if ((inventory[realItemNum].masterID != 255) && ((long)inventory[realItemNum].masterID >= MasterComponent::numComponents))
+			inventory[realItemNum].masterID = 255;
 		
 		if (inventory[realItemNum].masterID && (inventory[realItemNum].masterID != 255))
 		{
@@ -1731,6 +1743,15 @@ long BattleMech::init (DWORD variantNum)
 		{
 			unsigned char spaceData;
 			mechFile->readUChar((102 + (97*variantNum))+curSpace,stupidNewSageColumns[curLocation], spaceData);
+			// 0xff (empty) or a corrupt byte would read past
+			// ItemLocationToInvLocation: treat it as an empty space, as the
+			// logistics path below does.
+			if (spaceData >= MAX_MOVER_INVENTORY_ITEMS)
+			{
+				body[curLocation].criticalSpaces[curSpace].inventoryID = 0xff;
+				body[curLocation].criticalSpaces[curSpace].hit = false;
+				continue;
+			}
 			spaceData = ItemLocationToInvLocation[spaceData];
 			
 			body[curLocation].criticalSpaces[curSpace].inventoryID = spaceData;
@@ -2958,8 +2979,10 @@ long BattleMech::init (FitIniFile* mechFile) {
 	if (result != NO_ERR)
 		return(result);
 
-	if ((numOther + numWeapons + numAmmos) > MAX_MOVER_INVENTORY_ITEMS)
+	if ((numOther + numWeapons + numAmmos) > MAX_MOVER_INVENTORY_ITEMS) {
 		Fatal(numOther + numWeapons + numAmmos, " Battlemech.init: too many inventory items ");
+		return(-1);		// Fatal only logs: the item loops below would write past inventory[]
+	}
 
 	numAntiMissileSystems = 0;
 
@@ -2976,6 +2999,8 @@ long BattleMech::init (FitIniFile* mechFile) {
 		result = mechFile->readIdUChar("MasterID", inventory[curItem].masterID);
 		if (result != NO_ERR)
 			return(result);
+		if ((long)inventory[curItem].masterID >= MasterComponent::numComponents)
+			return(-1);		// would index masterList out of bounds
 		inventory[curItem].health = MasterComponent::masterList[inventory[curItem].masterID].getHealth();
 		inventory[curItem].disabled = false;
 		inventory[curItem].amount = 1;
@@ -3011,6 +3036,8 @@ long BattleMech::init (FitIniFile* mechFile) {
 		result = mechFile->readIdUChar("MasterID", inventory[curItem].masterID);
 		if (result != NO_ERR)
 			return(result);
+		if ((long)inventory[curItem].masterID >= MasterComponent::numComponents)
+			return(-1);		// would index masterList out of bounds
 
 		result = mechFile->readIdUChar("FacesForward", inventory[curItem].facing);
 		if (result != NO_ERR)
@@ -3044,6 +3071,8 @@ long BattleMech::init (FitIniFile* mechFile) {
 		result = mechFile->readIdUChar("MasterID", inventory[curItem].masterID);
 		if (result != NO_ERR)
 			return(result);
+		if ((long)inventory[curItem].masterID >= MasterComponent::numComponents)
+			return(-1);		// would index masterList out of bounds
 
 		long itemAmount;
 		result = mechFile->readIdLong("Amount", itemAmount);
@@ -3134,6 +3163,12 @@ long BattleMech::init (FitIniFile* mechFile) {
 
 			if (spaceData[0] < MAX_MOVER_INVENTORY_ITEMS)
 			{
+				// Past the populated inventory (corrupt profile): treat the
+				// space as empty. The Assert below is debug-only.
+				if (spaceData[0] >= numOther+numWeapons+numAmmos) {
+					body[curLocation].criticalSpaces[curSpace].inventoryID = 0xff;
+					continue;
+				}
 #ifdef _DEBUG
 			char msg[256];
 			sprintf(msg," Bad Mech Profile : %s ",mechFile->getFilename());
@@ -4748,7 +4783,8 @@ void BattleMech::startShutDown (void)
 	shutDownThisFrame = false;
 	startUpThisFrame = false;
 	setStatus(OBJECT_STATUS_SHUTDOWN);
-	sensorSystem->setShutdown(true);
+	if (sensorSystem)
+		sensorSystem->setShutdown(true);
 }
 
 //---------------------------------------------------------------------------
@@ -4802,7 +4838,8 @@ void BattleMech::updateMovement (void) {
 		startUpThisFrame = false;
 		setStatus(OBJECT_STATUS_SHUTDOWN);
 		control.settings.mech.throttle = maxThrottle;
-		sensorSystem->setShutdown(true);
+		if (sensorSystem)
+			sensorSystem->setShutdown(true);
 		return;
 	}
 
@@ -4832,7 +4869,8 @@ void BattleMech::updateMovement (void) {
 		control.settings.mech.throttle = maxThrottle;
 		if (useSound && !MPlayer && Team::home->isEnemy(getTeam()) && (getMoveType() != MOVETYPE_AIR))
 			soundSystem->playBettySample(BETTY_POWERUP);
-		sensorSystem->setShutdown(false);
+		if (sensorSystem)
+			sensorSystem->setShutdown(false);
 		return;
 	}
 
@@ -5191,7 +5229,8 @@ void BattleMech::netUpdateMovement (void) {
 			case MECH_STATUSCHUNK_BODYSTATE_FALLEN_FORWARD:
 				if (!isDisabled()) {
 					setStatus(OBJECT_STATUS_NORMAL);
-					sensorSystem->setShutdown(false);
+					if (sensorSystem)
+						sensorSystem->setShutdown(false);
 				}
 				if (bodyState != MECH_STATUSCHUNK_BODYSTATE_FALLEN_FORWARD) {
 					pilot->clearMoveOrders();
@@ -5203,7 +5242,8 @@ void BattleMech::netUpdateMovement (void) {
 			case MECH_STATUSCHUNK_BODYSTATE_FALLEN_BACKWARD:
 				if (!isDisabled()) {
 					setStatus(OBJECT_STATUS_NORMAL);
-					sensorSystem->setShutdown(false);
+					if (sensorSystem)
+						sensorSystem->setShutdown(false);
 				}
 				if (bodyState != MECH_STATUSCHUNK_BODYSTATE_FALLEN_BACKWARD) {
 					pilot->clearMoveOrders();
@@ -5215,7 +5255,8 @@ void BattleMech::netUpdateMovement (void) {
 			case MECH_STATUSCHUNK_BODYSTATE_PARKED:
 				if (!isDisabled()) {
 					setStatus(OBJECT_STATUS_SHUTDOWN);
-					sensorSystem->setShutdown(true);
+					if (sensorSystem)
+						sensorSystem->setShutdown(true);
 				}
 				if (bodyState != MECH_STATUSCHUNK_BODYSTATE_PARKED) {
 					soundSystem->playDigitalSample(POWERDOWN_SFX,getPosition());
@@ -5228,7 +5269,8 @@ void BattleMech::netUpdateMovement (void) {
 			case MECH_STATUSCHUNK_BODYSTATE_STANDING:
 				if (!isDisabled()) {
 					setStatus(OBJECT_STATUS_NORMAL);
-					sensorSystem->setShutdown(false);
+					if (sensorSystem)
+						sensorSystem->setShutdown(false);
 				}
 				if (bodyState != MECH_STATUSCHUNK_BODYSTATE_STANDING) {
 				
@@ -5837,11 +5879,14 @@ long BattleMech::update (void)
 				setSelected(1);
 				pilot->corePower(true);
 				setOnGUI(true);
-				sensorSystem->broken = false;
+				// A mech without a sensor component has no sensorSystem.
+				if (sensorSystem)
+					sensorSystem->broken = false;
 			}
 			else
 			{
-				sensorSystem->broken = true;
+				if (sensorSystem)
+					sensorSystem->broken = true;
 			}
 		}
 		
@@ -9249,7 +9294,8 @@ void BattleMech::repairAll (void)
 
 	maxWeaponDamage = calcMaxTargetDamage();
 
-	sensorSystem->broken = false;
+	if (sensorSystem)
+		sensorSystem->broken = false;
 }
 
 //***************************************************************************

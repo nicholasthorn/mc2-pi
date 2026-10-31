@@ -345,6 +345,11 @@ bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWave
 //---------------------------------------------------------------------------
 void SoundSystem::preloadSoundBite (long soundId)
 {
+	// MechCommander Omnitech's sound.snd lists 126 bites, its sound.pak holds
+	// 125: a bite with no packet stays silent (the seek used to log a STOP)
+	if (soundId >= soundDataFile->getNumPackets())
+		return;
+
 	long result = soundDataFile->seekPacket(soundId);
 	if (result != NO_ERR)
 		return;

@@ -200,6 +200,11 @@ class File
 
 			bool isOpen (void);
 
+			// For a file opened on a memory buffer (open(buffer, length)) or
+			// an FST entry, the image at the current position; NULL for a
+			// disk file or a child.
+			MemoryPtr getMemoryView (void);
+
 			virtual FileClass getFileClass (void)
 			{
 				return BASEFILE;

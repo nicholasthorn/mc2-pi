@@ -69,10 +69,20 @@ struct StockDoor {
 };
 #pragma pack()
 
+// not packed in move.h either (all shorts, no padding)
+struct StockFootPrint {
+	short		cellPositionRow;
+	short		cellPositionCol;
+	short		preNumCells;
+	short		numCells;
+	short		cells[64][2];
+};
+
 static_assert(sizeof(StockArea) == 25, "mirrors move.h GlobalMapArea");
 static_assert(sizeof(StockDoorInfo) == 3, "mirrors move.h DoorInfo");
 static_assert(sizeof(StockDoorLink) == 11, "mirrors move.h DoorLink");
 static_assert(sizeof(StockDoor) == 57, "mirrors move.h GlobalMapDoor");
+static_assert(sizeof(StockFootPrint) == 264, "mirrors move.h GameObjectFootPrint");
 
 // Writes one packet holding `bytes` and reopens the file for reading.
 struct OnePacket {
@@ -235,4 +245,48 @@ TEST_CASE("globalmapio: trailing door-link scratch slots are zeroed, not checked
 
 	// without the scratch hint the garbage index is rejected
 	CHECK_FALSE(readPathRecords(&f.in, 0, out, 3, narrowDoorLink<StockDoorLink>));
+}
+
+TEST_CASE("globalmapio: special-area footprints, stock and Omnitech wide")
+{
+	StockFootPrint stock[2] = {};
+	stock[0].cellPositionRow = 10; stock[0].numCells = 2;
+	stock[0].cells[0][0] = 9; stock[0].cells[1][0] = 10;
+	stock[1].cellPositionCol = 7;
+	{
+		OnePacket f("stock_fp.pak", stock, sizeof(stock));
+		StockFootPrint out[2] = {};
+		CHECK(readPathRecords(&f.in, 0, out, 2, narrowGameObjectFootPrint<StockFootPrint>));
+		CHECK(std::memcmp(stock, out, sizeof(stock)) == 0);
+	}
+
+	// Clan Wars mission 1: one gate, 528 bytes (its raw read overflowed the
+	// 264-byte stock buffer and the heap failed later, deleting the sky)
+	WideGameObjectFootPrint wide = {};
+	wide.cellPositionRow = 37; wide.cellPositionCol = 25; wide.numCells = 3;
+	wide.cells[0][0] = 36; wide.cells[0][1] = 25;
+	wide.cells[1][0] = 37; wide.cells[1][1] = 25;
+	wide.cells[2][0] = 38; wide.cells[2][1] = 25;
+	wide.cells[3][0] = 99999;	// past numCells: ignored, zeroed
+	{
+		OnePacket f("wide_fp.pak", &wide, sizeof(wide));
+		StockFootPrint out;
+		std::memset(&out, 0x5A, sizeof(out));
+		REQUIRE(readPathRecords(&f.in, 0, &out, 1, narrowGameObjectFootPrint<StockFootPrint>));
+		CHECK(out.cellPositionRow == 37);
+		CHECK(out.cellPositionCol == 25);
+		CHECK(out.preNumCells == 0);
+		CHECK(out.numCells == 3);
+		CHECK(out.cells[0][0] == 36);
+		CHECK(out.cells[2][0] == 38);
+		CHECK(out.cells[2][1] == 25);
+		CHECK(out.cells[3][0] == 0);
+	}
+
+	wide.numCells = 65;
+	StockFootPrint out = {};
+	CHECK_FALSE(narrowGameObjectFootPrint(out, wide));
+	wide.numCells = 3;
+	wide.cells[1][1] = -40000;
+	CHECK_FALSE(narrowGameObjectFootPrint(out, wide));
 }

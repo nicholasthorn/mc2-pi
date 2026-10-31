@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <SDL2/SDL_loadso.h>
+#include <map>
+#include <string>
+#include <vector>
+#include "utils/pe_strings.h"
 
 #ifdef PLATFORM_WINDOWS
 static void* DL_Open(const char* name) {
@@ -102,12 +106,40 @@ void __stdcall gos_CloseResourceDLL(HSTRRES handle)
     delete pstrres;
 }
 
+// Strings the game's own table lacks, from a Windows resource DLL named
+// mc2res.dll in the game folder (MechCommander Omnitech keeps the names and
+// descriptions of its new units there). Read on the first miss; the game's
+// table always wins, so stock text is never replaced.
+static const char* getExtraString(DWORD id)
+{
+    static std::map<uint32_t, std::string>* extra = NULL;
+    if (!extra) {
+        extra = new std::map<uint32_t, std::string>();
+        FILE* f = fopen("mc2res.dll", "rb");
+        if (f) {
+            std::vector<uint8_t> dll;
+            uint8_t buf[65536];
+            size_t n;
+            while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
+                dll.insert(dll.end(), buf, buf + n);
+            fclose(f);
+            if (readPeStringTable(dll.data(), dll.size(), *extra))
+                fprintf(stderr, "gos_res: %u strings from mc2res.dll for ids the game's table lacks\n",
+                        (unsigned)extra->size());
+        }
+    }
+    std::map<uint32_t, std::string>::const_iterator it = extra->find(id);
+    return it == extra->end() ? NULL : it->second.c_str();
+}
+
 const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
 {
     static const char* dummy_string_res = "missing string res";
     gosASSERT(handle);
     gos_StringRes* pstrres = (gos_StringRes*)(handle);
     const char* str = pstrres->getStringByIdFptr(id);
+    if(NULL == str)
+        str = getExtraString(id);
 
     if(NULL == str) {
         fprintf(stderr, "Requested string id: %u not found, return dummy string\n", id);

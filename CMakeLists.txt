@@ -167,6 +167,7 @@ set(SOURCES
     "code/mover.cpp"
     "code/objmgr.cpp"
     "code/objtype.cpp"
+    "code/movobj.cpp"
     "code/tacordr.cpp"
     "code/team.cpp"
     "code/terrobj.cpp"

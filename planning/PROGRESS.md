@@ -216,9 +216,12 @@ on 2026-10-31.
       `corePatrol`/`coreGuard` in `corebrain.abx`), and the `execStatement`
       null guard leaves the stale token in place, so the next call reads the
       following bytes as another pointer. (10-29)
-- [ ] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29)
-- [ ] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
-      `84e1774a`, `d21e7855`, `1cf8c7b8`. (10-29)
+- [x] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29, done
+      10-31)
+- [x] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
+      `84e1774a`, `d21e7855`, `1cf8c7b8`. (10-29, done 10-31: `294fd42e`,
+      `d21e7855`, `1cf8c7b8` ported; `a03e13a2` and `aa20a308` not needed
+      here; `84e1774a` (`move.cpp`) is left to the Omnitech work)
 
 **Docs out of date**
 
@@ -339,6 +342,7 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-10-31: unattended runs behave the same on any display: `scripts/smoke.sh` always uses Xvfb (WSLg's display made local smoke and batch checks open a full-screen window on the desktop; `--display` opts out), and every `-autoexit` run, like `-bench`, ignores the keyboard and mouse, holds the cursor at the screen centre and runs windowed at the game resolution (`gos_IsAutomatedRun()`). Checked under a 1600x1200 Xvfb with FullScreen on: drawable 800x600, cursor at 400,300.
+- 2026-10-31: Back-ports from the remaster (branch `fix/backport-mech-save`): `BattleMech` checks `sensorSystem` before every write (a mech with no sensor component, or whose profile load bailed early, has none); `.mdf` component ids past `masterList` are dropped like empty slots and crit-space bytes past `ItemLocationToInvLocation` mark the space empty; `.fit` mech profiles with too many items or an out-of-range `MasterID` are rejected (`Fatal()` only logged, then wrote past `inventory[]`) and crit spaces past the populated inventory are empty; the campaign dialog no longer scans every save game first, each save is version-checked once, and rejected list entries are freed. Not ported: `a03e13a2` (stub mech types do not exist here), `aa20a308` (a `badLoad` move map already exits at mission load), `84e1774a` (Omnitech work).
 - 2026-10-31: back-ported the mission / ABL hardening group from the remaster: a mission with no parts still gets team 0 and commander 0, `Mission::destroy` clears `Team::home` / `Commander::home`, `Mission::init` frees every old commander, a missing or invalid ABL file makes `ABLi_preProcess` return -1 (and `ABLi_loadLibrary` treats any negative handle as a failure), and `execExpression` no longer dereferences a NULL operand type (branch `fix/backport-mission-abl`).
 - 2026-10-31: quick fixes from the tidy-up list: `FitIniFile` finds a key (scalar, string or array) on the last line of a file without `FITend` (no stock file has that shape); unused `object_tex` shaders deleted and the shader validator fails on `#version`; stale docs fixed (vsync-off numbers, panning, #6 log line, MSVC `small` trap); `mission.cpp` item closed with no change needed.
 - 2026-10-31: Bench review fixes (branch `fix/bench-review`): scenario `load()` keeps defaults for missing optional keys (`readId*` zeroed them) and refuses bad, repeated or `all` segment names, negative `Gather` and repeated `Shot` frames (unit tested); `-bench` pins the cursor at the centre (no more up-left edge scroll) and ignores polled keys and buttons; `glFinish()` before a screenshot so its GPU wait is not subtracted from the frame; perf control FIFOs opened non-blocking with a 2 s ack timeout, and created in a `mktemp -d` dir (DrvFS has no FIFOs); `segments.csv` gains display, vsync, options_cfg and the run's status; scenario error text no longer loses its first character. Unit tests on GL and GLES builds (WSL); not run on the Pi, MSVC not built.

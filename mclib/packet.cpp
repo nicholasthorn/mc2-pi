@@ -321,7 +321,8 @@ int PacketFile::readPacket (int packet, unsigned char *buffer)
 					if (LZPacketBuffer)
 					{
 						read(LZPacketBuffer,(packetSize-sizeof(unsigned int)));
-						long decompLength = LZDecomp(buffer,LZPacketBuffer,packetSize-sizeof(unsigned int));
+						// bounded by the declared unpacked size, which callers size the buffer by
+						long decompLength = LZDecomp(buffer,LZPacketBuffer,packetSize-sizeof(unsigned int),packetUnpackedSize);
 						if (decompLength != packetUnpackedSize) {
 							SPEW(("PACKET", "LZDecomp length!= uncompressed length"));	
 							result = 0;

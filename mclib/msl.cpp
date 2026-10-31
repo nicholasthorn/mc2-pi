@@ -636,7 +636,7 @@ long TG_TypeMultiShape::LoadTGMultiShapeFromASE (const char *fileName, bool forc
 				GetTextureName(i,txmName,256);
 		
 				char texturePath[1024];
-				sprintf(texturePath,"%s%d" PATH_SEPARATOR ,tglPath,ObjectTextureSize);
+				objectTexturePath(texturePath,txmName);
 			
 				FullPathFileName textureName;
 				textureName.init(texturePath,txmName,"");

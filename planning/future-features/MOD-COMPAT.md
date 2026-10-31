@@ -265,10 +265,124 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    entries (`ObjectTypeManager::init` default), Omnitech's 4096. Needs: a
    larger table, `movobj.fit` lookup in `ObjectTypeManager::load` for
    numbers past the pak, and type construction from CSV/`.fit`.
-4. `.burnin.jpg` colour maps (logged, not yet fatal).
-5. A separate `STOP: requested packet number 125 is bigger than number of
-   packets: 125` appears earlier in the log, from another packet file;
-   likely tied to item 3, not investigated.
+   **Done on branch `omnitech-objtypes`:** table 4096 (the five MC1
+   terrain handles stay at 1019-1023); `ObjectTypeManager` loads
+   `objects/movobj.fit` if present and, for numbers past `object2.pak`,
+   opens `objects/<CSVname>.fit` or, for a mech, builds its type FIT from
+   the CSV (names = CSVname, explosion 41, destroyed 101, extent 12,
+   radius 80, destruct/explosion damage by weight class as in every stock
+   mech: <40t 35/15, <60t 45/20, <80t 55/25, else 65/30).
+   `FitIniFile::open(parent)` reads from a memory-file parent
+   (`File::getMemoryView`). `isselected` added. Clan Wars mission 1 now
+   loads its units and starts (`[MISSION] innersphere1 started`).
+4. **FST archives built on Windows.** Omnitech's `tgl.fst` and `art.fst`
+   name entries `data\tgl\x`; `FastFile::open` now normalises to `/` and
+   rehashes (branch). Separately, Omnitech's `tgl.fst` uses Microsoft's
+   original LZ compression (version 0xFADDECAF, not zlib); this port's
+   `LZDecomp` is zlib (the original is x86 inline asm, `#ifndef
+   LINUX_BUILD`), so it cannot read it. Its 4667 entries are the stock
+   ones, so the test setup keeps the stock `tgl.fst`; Omnitech's new
+   models are loose files. Its `art.fst` is zlib and reads.
+5. **`.burnin.jpg` colour maps. Done on branch `omnitech-objtypes`.** Clan
+   Wars ships only `textures/<mission>.burnin.jpg` (100 maps, all square,
+   baseline, 768 to 4096 px). The original engine already had the JPG branch
+   in `TerrainColorMap::init`, disabled (`&& false`) because `DecodeJPG` was
+   a stub on this port. `DecodeJPG` is now stb_image (v2.30, vendored
+   unmodified in `thirdparty/stb`, JPEG only, 16384 px cap) through the
+   GL-free `utils/jpeg_decode` (unit tested); the JPG is tried first as in
+   the original code and a missing or undecodable one falls through to the
+   TGAs, so stock data never reaches it.
+   Found on the way:
+   - Omnitech's `prefs.cfg` sets `TerrainTextureRes = 256` and its
+     `textures.fit` names terrain tiles that exist only under
+     `textures/256*`. At the stock 64, 128 tiles are missing. Release builds
+     used to turn a missing texture into a zero-size node that segfaulted
+     when cached in (`MC_TextureNode::get_gosTextureHandle`); now
+     `loadTexture` logs `txmmgr: missing texture <name>` and the node draws
+     nothing. A mod install must carry its `TerrainTextureRes`.
+   - With both, Clan Wars mission 1 plays (300 frames at 256: no missing
+     textures, about 52 fps under software GL).
+   - At mission exit glibc reported `double free or corruption` deleting
+     `theSky` (`TG_Shape::destroy`). The sky was only the victim: ASan
+     showed `MOVE_readData` reading the special-area footprint packet raw
+     into a 264-byte stock buffer, and Omnitech's `_GameObjectFootPrint` is
+     528 bytes (four int32 fields, int32 cell pairs; same widening as the
+     pathing structs). **Fixed on the branch:** the footprints go through
+     `readPathRecords` (`narrowGameObjectFootPrint`), so a size matching
+     neither layout is refused, and the count packet is size-checked.
+     Clan Wars mission 1 now runs 300 frames and exits cleanly, ASan
+     clean. The smoke script still flags it for the logged `STOP:` lines
+     of the packet noise below.
+   - "Texture not correct size!" (28 per load): the cached terrain
+     transitions (`<type>.<overlay>.txm` in `data/textures`, one
+     TERRAIN_TXM_SIZE square each) are named without their size and shared
+     by every mission, so stock's 64 caches sit beside Omnitech's 256 ones.
+     A quick load (all caches on the mission's `.lst` present) never loads
+     the source tiles, so it cannot rebuild one. The old code STOPped and
+     drew a part-filled buffer; a cache larger than the current size would
+     have overflowed it (`LZDecomp` had no output bound). **Fixed on the
+     branch:** `LZDecomp` takes an optional output limit; `TerrainTextures::
+     init` turns quick load off if a listed cache has the wrong size (the
+     full load rebuilds and rewrites them); an unlisted one of another size
+     is resampled (nearest) to the current size; a corrupt one is drawn
+     blank (a quick load cannot rebuild it). Clan Wars mission 1 now logs
+     no STOP besides the packet noise.
+6. **Mission editor import (idea, 2026-10-31).** When a mission editor
+   lands (look at the Remaster and Omnitech editors for inspiration), an
+   import step can convert mod data that the engine cannot read in a
+   backwards-compatible way (to stock formats, e.g. TGA), so the engine
+   only has to read stock formats. JPEG colour maps did not need this:
+   reading them was the original engine's own code path and is invisible to
+   stock data.
+7. **"requested packet number N is bigger than number of packets" (92 per
+   Clan Wars load). Fixed on the branch.** Not harmless:
+   - `Mission` read ground vehicle / elemental profiles by seeking the type
+     number in `object2.pak` (11), so Omnitech vehicles spawned without
+     their profile; `LogisticsData::addVehicle` / `addBuilding` did the same
+     (80), so Omnitech's purchasable vehicles and buildings were missing.
+     Both now use `openTypeProfile` (`code/movobj.cpp`, also built by the
+     viewer): the pak packet, or the loose `.fit` that `movobj.fit` names.
+     The `movobj.fit` lookup moved there too and opens the file on first
+     use (logistics runs before `ObjectTypeManager::init`).
+   - Omnitech's own `sound.snd` lists 126 bites and its `sound.pak` holds
+     125; `preloadSoundBite` skips the missing one quietly (1).
+   Clan Wars mission 1 now passes `scripts/smoke.sh` (no error lines).
+8. **Omnitech's strings. Done on the branch.** Its names and descriptions
+   for new content live in its Windows `mc2res.dll` (PE32, 4281 strings,
+   ids 10000 to 60049); Clan Wars mission 1 asked for 20 missing ids, its
+   new pilots' callsigns (30924 BARON to 30942 THUNDER) and 30000.
+   `gos_GetResourceString` now falls back, for ids the game's own table
+   lacks, to the string table of a `mc2res.dll` in the game folder, read at
+   run time by `utils/pe_strings` (bounds-checked PE resource reader,
+   UTF-16 to Windows-1252, unit tested). Nothing of Omnitech's is copied
+   into the repo, and stock text is never replaced. Only 30000 is still
+   missing; Omnitech's own DLL lacks it too.
+   A mod install therefore needs `mc2res.dll` in the game folder, as well
+   as its `TerrainTextureRes`.
+9. **In play (2026-10-31).** Clan Wars mission 1 under `-bench` with a
+   scripted fight (3 player, 12 enemy units; headless Xvfb at 800x600,
+   llvmpipe), screenshots at three heights. The JPEG colour map and the
+   minimap draw correctly. Found and fixed on the branch:
+   - **Untextured (white) units.** Omnitech's `prefs.cfg` sets
+     `ObjectTextureRes = 512` and ships object textures only in
+     `data/tgl/512`; at the stock 128 they were silently not found.
+     `objectTexturePath()` (`txmmgr.cpp`, used by every actor's texture
+     load) takes the configured size when the texture is there, as for all
+     stock data, else the largest size that has it.
+   - **Heap overrun on 512 textures.** `MAX_LZ_BUFFER_SIZE` held one 256
+     texture and the size check was a `gosASSERT`: Omnitech's 512 textures
+     overran it and crashed later in `ObjectTypeManager::get`. The buffer
+     now takes 512x512, a texture that cannot fit is logged and drawn as
+     missing, and the cache-in decompressions are bounded.
+   - **Pink fog.** The fog colour (D3D 0xAARRGGBB) reached the shaders with
+     red and blue swapped (`uint32_to_vec4`; vertex colours are swizzled,
+     fog was not). Stock fogs are near-grey so it hardly showed; Clan Wars'
+     light blue (0xA0A5FF) came out pink at the map edge. Fixed where
+     `fog_color_` is set; stock mc2_19 checked by screenshot.
+   A mod install should still carry its `ObjectTextureRes` (512) and
+   `TerrainTextureRes` (256) for full detail.
+   Not checked: the logistics screens with Omnitech's units (needs menu
+   input, not scriptable headless yet).
 
 ## Scope if we do this
 

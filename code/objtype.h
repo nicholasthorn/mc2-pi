@@ -209,6 +209,8 @@ class ObjectTypeManager {
 
 		//--------------------------------------------------------
 		// Following is done to maintain compatibility with MC1...
+		// (the five handles end at MC1_TYPE_HANDLE_END, the stock table size)
+		enum { MC1_TYPE_HANDLE_END = 1024 };
 		static long				bridgeTypeHandle;
 		static long				forestTypeHandle;
 		static long				wallHeavyTypeHandle;
@@ -226,10 +228,14 @@ class ObjectTypeManager {
 			init();
 		}
 
-		long init (const char* objectFileName, long objectTypeCacheSize, long objectCacheSize, long maxObjectTypes = 1024);
+		// 4096 as in Omnitech, whose types go past object2.pak (see objtype.cpp)
+		long init (const char* objectFileName, long objectTypeCacheSize, long objectCacheSize, long maxObjectTypes = 4096);
 			
 		void destroy (void);
-							
+
+		// opens a vehicle / elemental type's profile FIT (movobj.h)
+		static long openProfile (long objTypeNum, FitIniFile& profile);
+
 		~ObjectTypeManager (void) {
 			destroy();
 		}

@@ -68,6 +68,50 @@ DWORD compressedTextureSize = 0;
 
 #define MAX_SENDDOWN		10002
 
+// width of a node whose file was missing at load: the from-memory flag, size 0
+#define MISSING_TEXTURE_WIDTH	0xf0000000
+
+extern int ObjectTextureSize;
+
+// Whether a texture of n bytes, and its LZ (zlib) compressed copy in the
+// worst case (zlib's compressBound), fit the LZ buffers.
+static bool fitsLzBuffers (long n)
+{
+	return (n > 0) && ((size_t)n + (n >> 12) + (n >> 14) + 13 <= MAX_LZ_BUFFER_SIZE);
+}
+
+//------------------------------------------------------
+// Object textures live in tglPath<ObjectTextureRes>/. Stock data has them
+// at every supported size, but MechCommander Omnitech ships its at 512 only
+// (its prefs.cfg sets ObjectTextureRes 512), so at the stock 128 its units
+// drew untextured. Use the configured size when the texture is there, as
+// for all stock data, else the largest size that has it, else the
+// configured folder (the caller's fileExists then fails as before).
+void objectTexturePath (char* texturePath, const char* txmName)
+{
+	sprintf(texturePath,"%s%d" PATH_SEPARATOR,tglPath,ObjectTextureSize);
+	FullPathFileName configured;
+	configured.init(texturePath,txmName,"");
+	if (fileExists(configured))
+		return;
+
+	static const int sizes[] = { 512, 256, 128, 64, 32, 16 };
+	for (size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
+	{
+		if (sizes[i] == ObjectTextureSize)
+			continue;
+		char otherPath[1024];
+		sprintf(otherPath,"%s%d" PATH_SEPARATOR,tglPath,sizes[i]);
+		FullPathFileName other;
+		other.init(otherPath,txmName,"");
+		if (fileExists(other))
+		{
+			strcpy(texturePath,otherPath);
+			return;
+		}
+	}
+}
+
 //------------------------------------------------------
 // Frees up gos_VERTEX manager memory
 void MC_TextureManager::freeVertices(void)
@@ -1757,7 +1801,16 @@ DWORD MC_TextureManager::textureFromMemory (DWORD *data, gos_TextureFormat key, 
 	// Find and store the width.
 	masterTextureNodes[i].width = width;
 	long txmSize = width * width * bitDepth;
-	
+
+	// e.g. a mission briefing map larger than 512: draw nothing rather than
+	// overrun the LZ buffers
+	if (!fitsLzBuffers(txmSize))
+	{
+		fprintf(stderr, "txmmgr: texture from memory too large (%lux%lu)\n", (unsigned long)width, (unsigned long)width);
+		masterTextureNodes[i].gosTextureHandle = 0;
+		return(i);
+	}
+
 	if (!lzBuffer1)
 	{
 		lzBuffer1 = (MemoryPtr)textureCacheHeap->Malloc(MAX_LZ_BUFFER_SIZE);
@@ -1888,19 +1941,38 @@ DWORD MC_TextureManager::loadTexture (const char *textureFullPathName, gos_Textu
 	// This way, we never need to know anything about the texture AND we can store PMGs
 	// in memory instead of TGAs which use WAY less RAM!
 	File textureFile;
-#ifdef _DEBUG
-	long textureFileOpenResult = 
-#endif
-		textureFile.open(textureFullPathName);
-	gosASSERT(textureFileOpenResult == NO_ERR);
+	long textureFileOpenResult = textureFile.open(textureFullPathName);
+	if (textureFileOpenResult != NO_ERR)
+	{
+		// Named by the data but not on disk (e.g. a mod's terrain set read at
+		// a TerrainTextureRes it does not ship). Release builds used to make a
+		// zero-size node that crashed when cached in; now the node draws
+		// nothing (get_gosTextureHandle returns 0).
+		fprintf(stderr, "txmmgr: missing texture %s\n", textureFullPathName);
+		masterTextureNodes[i].textureData = NULL;
+		masterTextureNodes[i].lzCompSize = 0;
+		masterTextureNodes[i].width = MISSING_TEXTURE_WIDTH;
+		return(i);
+	}
 	
 	long txmSize = textureFile.fileSize();
-	
+
+	// The old check was a gosASSERT, so release builds overran the buffers
+	if (!fitsLzBuffers(txmSize))
+	{
+		fprintf(stderr, "txmmgr: texture too large or empty (%ld bytes): %s\n", txmSize, textureFullPathName);
+		textureFile.close();
+		masterTextureNodes[i].textureData = NULL;
+		masterTextureNodes[i].lzCompSize = 0;
+		masterTextureNodes[i].width = MISSING_TEXTURE_WIDTH;
+		return(i);
+	}
+
 	if (!lzBuffer1)
 	{
 		lzBuffer1 = (MemoryPtr)textureCacheHeap->Malloc(MAX_LZ_BUFFER_SIZE);
 		gosASSERT(lzBuffer1 != NULL);
-		
+
 		lzBuffer2 = (MemoryPtr)textureCacheHeap->Malloc(MAX_LZ_BUFFER_SIZE);
 		gosASSERT(lzBuffer2 != NULL);
 	}
@@ -1911,7 +1983,6 @@ DWORD MC_TextureManager::loadTexture (const char *textureFullPathName, gos_Textu
 	long result = textureFile.readRAW(masterTextureNodes[i].textureData,textureCacheHeap);
 	if (!result)
 	{
-		gosASSERT(txmSize <= MAX_LZ_BUFFER_SIZE);
 		textureFile.read(lzBuffer1,txmSize);
 
 		textureFile.close();
@@ -1946,6 +2017,19 @@ long MC_TextureManager::saveTexture (DWORD textureIndex, const char *textureFull
 	{
 		return (~NO_ERR);
 	}
+	if (masterTextureNodes[textureIndex].width == 0)
+		return (~NO_ERR);		//These faces have no texture!!
+
+	//------------------------------------------
+	// Badboys are now LZ Compressed in texture cache. Decompress before
+	// creating the file, so a bad entry does not truncate the one on disk.
+	long origSize = LZDecomp(MC_TextureManager::lzBuffer2,(MemoryPtr)masterTextureNodes[textureIndex].textureData,masterTextureNodes[textureIndex].lzCompSize,MAX_LZ_BUFFER_SIZE);
+	if (origSize != (masterTextureNodes[textureIndex].width & 0x0fffffff))
+	{
+		STOP(("Decompressed to different size from original!  Txm:%s  Width:%d  DecompSize:%d",masterTextureNodes[textureIndex].nodeName,(masterTextureNodes[textureIndex].width & 0x0fffffff),origSize));
+		return (~NO_ERR);
+	}
+
 	File textureFile;
 	long textureFileOpenResult = textureFile.create(textureFullPathName);
 	if (NO_ERR != textureFileOpenResult)
@@ -1953,28 +2037,8 @@ long MC_TextureManager::saveTexture (DWORD textureIndex, const char *textureFull
 		textureFile.close();
 		return textureFileOpenResult;
 	}
-
-	{
-		if (masterTextureNodes[textureIndex].width == 0)
-		{
-			textureFile.close();
-			return (~NO_ERR);		//These faces have no texture!!
-		}
-
-		{
-			//------------------------------------------
-			// Badboys are now LZ Compressed in texture cache.
-			long origSize = LZDecomp(MC_TextureManager::lzBuffer2,(MemoryPtr)masterTextureNodes[textureIndex].textureData,masterTextureNodes[textureIndex].lzCompSize);
-			if (origSize != (masterTextureNodes[textureIndex].width & 0x0fffffff))
-				STOP(("Decompressed to different size from original!  Txm:%s  Width:%d  DecompSize:%d",masterTextureNodes[textureIndex].nodeName,(masterTextureNodes[textureIndex].width & 0x0fffffff),origSize));
-
-			if (origSize >= MAX_LZ_BUFFER_SIZE)
-				STOP(("Texture TOO large: %s",masterTextureNodes[textureIndex].nodeName));
-
-			textureFile.write(MC_TextureManager::lzBuffer2, origSize);
-		}
-		textureFile.close();
-	}
+	textureFile.write(MC_TextureManager::lzBuffer2, origSize);
+	textureFile.close();
 
 	return NO_ERR;
 }
@@ -2026,6 +2090,9 @@ DWORD MC_TextureNode::get_gosTextureHandle (void)	//If texture is not in VidRAM,
 			return 0;		//These faces have no texture!!
 		}
 
+		if (width == MISSING_TEXTURE_WIDTH)
+			return 0;		//File was missing at load (logged there)
+
 		if (!textureData)
 		{
 			PAUSE(("txmmgr: Cache is out of RAM!"));
@@ -2038,13 +2105,16 @@ DWORD MC_TextureNode::get_gosTextureHandle (void)	//If texture is not in VidRAM,
 			// Cache this badboy IN.
 			// Badboys are now LZ Compressed in texture cache.
 			// Uncompress, then memcpy.
-			long origSize = LZDecomp(MC_TextureManager::lzBuffer2,(MemoryPtr)textureData,lzCompSize);
+			// Bounded by the buffer: a bad or oversized cache entry draws
+			// nothing (STOP only logs, and the buffer used to be overrun)
+			long origSize = LZDecomp(MC_TextureManager::lzBuffer2,(MemoryPtr)textureData,lzCompSize,MAX_LZ_BUFFER_SIZE);
 			if (origSize != (width & 0x0fffffff))
+			{
 				STOP(("Decompressed to different size from original!  Txm:%s  Width:%d  DecompSize:%d",nodeName,(width & 0x0fffffff),origSize));
+				width = MISSING_TEXTURE_WIDTH;		// once, not every frame
+				return 0;
+			}
 
-			if (origSize >= MAX_LZ_BUFFER_SIZE)
-				STOP(("Texture TOO large: %s",nodeName));
-			
 			gosTextureHandle = gos_NewTextureFromMemory(key,nodeName,MC_TextureManager::lzBuffer2,(width & 0x0fffffff),hints);
 			mcTextureManager->currentUsedTextures++;
 			lastUsed = turn;
@@ -2066,8 +2136,8 @@ DWORD MC_TextureNode::get_gosTextureHandle (void)	//If texture is not in VidRAM,
 			DWORD txmSize = pTextureData.Height * pTextureData.Height * sizeof(DWORD);
 			gosASSERT(textureData);
 			
-			LZDecomp(MC_TextureManager::lzBuffer2,(MemoryPtr)textureData,lzCompSize);
-			memcpy(pTextureData.pTexture,MC_TextureManager::lzBuffer2,txmSize);
+			if (LZDecomp(MC_TextureManager::lzBuffer2,(MemoryPtr)textureData,lzCompSize,MAX_LZ_BUFFER_SIZE) >= txmSize)
+				memcpy(pTextureData.pTexture,MC_TextureManager::lzBuffer2,txmSize);
 			 
 			//------------------------
 			// Unlock the texture
