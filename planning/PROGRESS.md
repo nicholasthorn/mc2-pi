@@ -25,8 +25,9 @@ belongs in commit messages and PRs.
 
 **Not verified / unknown**
 
-- [x] Real Pi 400 hardware (2026-10-29, at `10401db`): builds and runs. GPU (GLES) build, mc2_01, 3000 gameplay frames in 51.2 s (58.5 fps, about 800x600); that is at the 60 Hz vsync cap (`ENABLE_VSYNC` is hard-coded on in `gos_render.cpp`), so real GPU headroom is unmeasured; `MC2_VSYNC=0` now turns it off. Software rendering: mc2_01 50.4 fps, mc2_03 67.1 fps.
-- [ ] Pi: GPU frame rate with vsync off; the other three smoke missions on the GPU build
+- [x] Real Pi 400 hardware (2026-10-29, at `10401db`): builds and runs. GPU (GLES) build, mc2_01, 3000 gameplay frames in 51.2 s (58.5 fps, about 800x600); that is at the 60 Hz vsync cap; with `MC2_VSYNC=0` (vsync off), mc2_01 ran at 113 fps before #5 and 179 fps after it (mc2_03 148 -> 181). Software rendering: mc2_01 50.4 fps, mc2_03 67.1 fps.
+- [x] Pi: GPU frame rate with vsync off (see above and the #5 log line)
+- [ ] Pi: the other three smoke missions on the GPU build
 - [ ] Desktop GL run on Windows after the GLES changes
 
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
@@ -124,7 +125,7 @@ on 2026-10-31.
       Findings (missing scenario keys read as 0, `segments.csv` without a
       status, plain `-bench` edge-scrolling the camera because the mouse sits
       at (0,0), keys and clicks leaking into bench runs, perf ack FIFO that
-      can hang, and smaller ones) fixed in PR #12 (`fix/bench-review`).
+      can hang, and smaller ones) fixed in PR #12 (`82bbf18`).
 - [ ] The last three-config rebuild in the Omnitech session exited 1 and was
       never looked at; WSL Clang had been removed by another session's
       cleanup, so it may only be that. (10-31)
@@ -153,15 +154,23 @@ on 2026-10-31.
       `fix/passing-bugs` (`||`). Only ABL `SetCameraVelocity` /
       `SetCameraGoalVelocity` set it, and every stock use is commented out, so
       stock missions are unchanged; mods that use them now move.
-- [ ] `mission.cpp`: `revealTacMap` is shadowed by a local (~1836) so the
+- [x] `mission.cpp`: `revealTacMap` is shadowed by a local (~1836) so the
       global is never set; `godMode` does nothing since `markSeen` was
       stubbed; `Team::noPain` is not reset by `Mission::init`. (10-31)
-- [ ] `FitIniFile::readId*` (`mclib/inifile.cpp`) treats a key on the last
-      line of a block as missing (the end-of-block test runs after the line
-      is read); files that end each block with a blank line get away with it.
-      Seen in the PR #12 review. (10-31)
-- [ ] `shaders/object_tex.frag` / `.vert`: unused, carry their own `#version`
-      and use `texture2D` (won't compile on GLES). Delete. (10-29)
+      Closed without a change: nothing reads `revealTacMap`; `godMode` is a
+      debug setting whose reveal is commented out in the original source;
+      `noPain` carries across missions on purpose (`-nopain` sets it on the
+      command line before any mission loads, and saves store it).
+- [x] `FitIniFile::readId*` (`mclib/inifile.cpp`) treats a key on the last
+      line of a block as missing. Seen in the PR #12 review. (10-31) Narrower
+      than first thought: a block runs to the next header or `FITend`, so only
+      the last line of a file without `FITend` was missed (arrays even after
+      the key was found). Fixed and unit tested for scalar, array and string
+      readers. No stock file has that shape, so stock values are unchanged.
+- [x] `shaders/object_tex.frag` / `.vert`: unused, carry their own `#version`
+      and use `texture2D` (won't compile on GLES). Delete. (10-29) Deleted;
+      `validate_shaders.py` now fails on a `#version` line instead of
+      skipping the file.
 
 **Performance backlog (Pi)**
 
@@ -207,16 +216,18 @@ on 2026-10-31.
 
 **Docs out of date**
 
-- [ ] "Pi: GPU frame rate with vsync off" is unticked although the #5 log has
+- [x] "Pi: GPU frame rate with vsync off" is unticked although the #5 log has
       the numbers (113 -> 179, 148 -> 181 fps); the "headroom unmeasured" note
       is stale.
-- [ ] Known issues still says panning is not implemented; #4 (`fa0188e`)
+- [x] Known issues still says panning is not implemented; #4 (`fa0188e`)
       merged stereo panning. The by-ear check was never recorded.
-- [ ] PR #6 (`01bfcb3`) has no log line.
-- [ ] MSVC's `small` macro (fixed in `4b98eee`) belongs in "Portability traps"
+- [x] PR #6 (`01bfcb3`) has no log line.
+- [x] MSVC's `small` macro (fixed in `4b98eee`) belongs in "Portability traps"
       in `build-conventions.md`.
 - [ ] `MOD-COMPAT.md`: name Dark Gray: Borderworlds as the MC2X test load,
-      and note the remaster's LZ decoder against the LZ gap.
+      and note the remaster's LZ decoder against the LZ gap. Left for the
+      Omnitech session: it is editing `MOD-COMPAT.md` on
+      `omnitech-objtypes`.
 
 **Housekeeping**
 
@@ -308,7 +319,7 @@ Candidates:
 ## Known issues
 
 - Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
-- Sound: panning/doppler not implemented (alariq README).
+- Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
 - `-mission <name>` with a mission that does not exist crashes (SIGSEGV) instead of reporting an error.
@@ -321,6 +332,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: quick fixes from the tidy-up list: `FitIniFile` finds a key (scalar, string or array) on the last line of a file without `FITend` (no stock file has that shape); unused `object_tex` shaders deleted and the shader validator fails on `#version`; stale docs fixed (vsync-off numbers, panning, #6 log line, MSVC `small` trap); `mission.cpp` item closed with no change needed.
 - 2026-10-31: Bench review fixes (branch `fix/bench-review`): scenario `load()` keeps defaults for missing optional keys (`readId*` zeroed them) and refuses bad, repeated or `all` segment names, negative `Gather` and repeated `Shot` frames (unit tested); `-bench` pins the cursor at the centre (no more up-left edge scroll) and ignores polled keys and buttons; `glFinish()` before a screenshot so its GPU wait is not subtracted from the frame; perf control FIFOs opened non-blocking with a 2 s ack timeout, and created in a `mktemp -d` dir (DrvFS has no FIFOs); `segments.csv` gains display, vsync, options_cfg and the run's status; scenario error text no longer loses its first character. Unit tests on GL and GLES builds (WSL); not run on the Pi, MSVC not built.
 - 2026-10-31: "To do: process and housekeeping" list added: WSL Ubuntu upgrade, batched code review of `pi-port`, agents onto the updated process, transcript sweep for dropped ideas, cppcheck baseline triage. Transcript sweep done the same day (`Fatal()` decision reversed after it: `STOP` exits again, behind a CI switch first): "Tidy up" list of untracked items (branches at risk, bugs, Pi perf backlog, unverified changes, remaster back-ports, stale docs, housekeeping).
 - 2026-10-31: `-bench` keeps texture eviction off the wall clock: PR 6's 2-second window (turns scaled by a measured frame rate) stays at 30 turns per second under the fixed step, so evictions no longer depend on machine speed. `gos_GetFixedFrameLength()` moved into libgameos so mclib callers link into the data tools. Two merged mc2_19 runs identical in draws, triangles, state and screenshots. (PR 7)
@@ -329,6 +341,7 @@ Newest first. `YYYY-MM-DD: what (commit or PR)`.
 - 2026-10-31: GPU benchmark phase 2: bench director (`code/benchdirector.cpp`, logic in `code/benchscenario.cpp`, unit tested) plays `bench/mc2_19.fit` (player lance vs 20 enemies, 4 segments, artillery, follow camera); per-segment `[BENCH]` lines, TGA screenshots, `state` checksum column; `-bench` turns sound off (radio chatter made `RandomNumber()` calls depend on audio timing, so combat runs drifted). Verified in WSL (llvmpipe, GL and GLES): two 3600-frame runs identical in game state and screenshots; draw-call count still varies ~0.3% in the effects segment (triangles identical). Not run on the Pi.
 - 2026-10-31: cppcheck `uninitMemberVar` triage: the 100 baseline findings (2.13) plus the 19 that only local 2.7 reports (`GVAppearance`, `Turret`, `BldgAppearance`, `Mech3DAppearance`). Real bugs fixed: `GVAppearance::isInfantry` read unset by the SimpleCamera vehicle view (dust cloud loop), now `false` in `init()` (`276daee`); the bomber paint colours, same change as PR 7 (`188ac39`); a font texture that failed to load was still registered and bound with an unset `Texture::type_` (`69b5eda`); `MemoryStream` bit IO after the `class_data` constructor used an unset buffer (`49e107e`). All others are set before any read, never read, or in stubbed MP / test code.
 - 2026-10-31: agent workflow in three tiers (`.claude/rules/agent-workflow.md`): one worktree per session or feature; `scripts/check.sh` before every commit (incremental build, unit tests, shaders, cppcheck on changed files compared with the code before the change, line endings / em dashes); `--level batch` every few commits adds both renderers and a short smoke, then `/simplify` + `/code-review`; at the PR `/code-review high`, and `smoke.yml` now also runs on PRs that touch code.
+- 2026-10-31: render CPU and hitch fixes (#6, `01bfcb3`): terrain lit only by lights whose falloff reaches the frame's terrain box (`Camera::cullTerrainLights`); unused textures freed after 2 seconds instead of 60 frames (re-uploads while panning); LOD switches with hysteresis; cached `joint_torso` node lookup; `mclib/render_heuristics.h` unit tested. Pi hitch numbers not measured.
 - 2026-10-31: render CPU quick wins (#5): shader hot reload no longer stat()s every shader every frame, alpha-sorted effect triangles batched per state, GameOS skips repeated GL state / sampler / uniform calls and streams vertex uploads, shapes lit only by point/spot lights in reach. Pi 400 GPU build, vsync off: mc2_01 113 -> 179 fps, mc2_03 148 -> 181 fps; llvmpipe mc2_01 14.1 -> 17.3 fps.
 - 2026-10-31: `bench.sh --perf`: one `perf record -g` run per mission, sampling switched on/off by the game at the first and last gameplay frame (`MC2_PERF_CTL`/`MC2_PERF_ACK` FIFOs), per-library and top-symbol report, optional flame graph; `-DMC2_FRAME_POINTERS=ON`. Verified in WSL (llvmpipe): sampling covers gameplay only, frame-pointer stacks reach `main` (WSL's perf has no libelf, so names were checked with addr2line). First lead: `FastFile::openFast` and zlib busy during gameplay on mc2_03. Not run on the Pi.
 - 2026-10-30: GPU benchmark phase 1: `-bench <csv>` deterministic mode, per-frame CSV and `[BENCH]` percentiles (`GameOS/gameos/utils/frame_stats.cpp`, unit tested), draw/triangle counters, `bench.sh` wired up. ABL `getLogisticsTime` / `isPlayingVoiceOver` follow mission time under `-bench` (tutorial stages were timed by the wall clock). Verified in WSL (desktop GL, llvmpipe): two runs identical in draws/tris for every frame, mc2_01 900 frames and mc2_03 3000 frames. Not run on the Pi yet.

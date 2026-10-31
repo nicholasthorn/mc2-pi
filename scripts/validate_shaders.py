@@ -65,9 +65,10 @@ def main():
             continue
         body = expand(os.path.join(sdir, name))
         if VERSION.search(body):
-            # carries its own #version, so it is not built through the
-            # material path (e.g. the unused object_tex.*)
-            print("skip %s (has its own #version)" % name)
+            # buildShaderHeader() injects #version at runtime; a second one
+            # breaks both profiles (.claude/rules/shader-conventions.md)
+            failed += 1
+            print("FAIL %s: has its own #version line" % name)
             continue
         for profile, header in HEADERS.items():
             for defs in VARIANTS:
