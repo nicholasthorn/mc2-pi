@@ -19,7 +19,7 @@ land and note the PR.
 
 ## High
 
-- [ ] **G1. Buildings never get a sensor** (`code/bldng.cpp:245,294,1271`,
+- [x] **G1. Buildings never get a sensor** (fixed in #13) (`code/bldng.cpp:245,294,1271`,
       `code/objtype.cpp:168`; from `22f7c98`).
   - `22f7c98` removed `BuildingType::teamId` because it shadowed
     `ObjectType::teamId`, but the shadow was load-bearing.
@@ -36,7 +36,7 @@ land and note the PR.
 
 ## Medium
 
-- [ ] **P1. `-bench` input filter does not freeze input**
+- [x] **P1. (fixed in #12) `-bench` input filter does not freeze input**
       (`GameOS/gameos/gameosmain.cpp:203-210`, `gos_input.cpp`; from `066ec5d`).
   - The filter drops SDL events, but GameOS reads keyboard and mouse buttons
     from polled state (`SDL_GetKeyboardState`, `SDL_GetMouseState`), and mouse
@@ -51,7 +51,7 @@ land and note the PR.
     park the mouse at the centre of the window.
   - Check `fix/bench-review` first: another session has uncommitted edits to
     these files.
-- [ ] **B1. Smoke runs can miss `STOP` lines** (`scripts/smoke.sh:82`; from
+- [ ] **B1. Smoke runs can miss `STOP` lines** (fixed on `fix/review-ci`, no PR yet) (`scripts/smoke.sh:82`; from
       `b36ea54`).
   - The pattern is anchored (`^STOP: `), but `logmsg()` adds no newline, and
     369 of 387 `STOP` format strings and about 102 `PAUSE` strings have none
@@ -86,6 +86,16 @@ land and note the PR.
 - [ ] **B6.** `tests/unit/CMakeLists.txt:85` copies fixtures only at configure
       time, so incremental local runs test stale fixtures. Copy them with a
       build-time dependency.
+- [ ] **B7. mc2_17 smoke at 3000 frames is flaky** (found while verifying
+      B1, not by the review).
+  - On llvmpipe (Ubuntu 26.04, desktop GL), mc2_17 failed in 3 of 4 runs.
+  - Each failure exits with status 0, with no `[AUTOEXIT]` and no error
+    line, after `[MISSION] mc2_17 started`.
+  - It fails the same way on `0f1c6ee`, without the B1 change.
+  - Likely the mission ends (won or lost) before 3000 gameplay frames, since
+    smoke runs are not seeded.
+  - Find out what ends it. Then seed smoke runs (the `-bench` seed), or
+    have smoke treat a clean mission end as a pass.
 
 **Renderer**
 
@@ -115,11 +125,11 @@ land and note the PR.
 
 **Benchmark and tests** (check against `fix/bench-review` first)
 
-- [ ] **T2.** `scripts/bench.sh:348-361` writes segment rows to `segments.csv`
+- [x] **T2.** (fixed in #12) `scripts/bench.sh:348-361` writes segment rows to `segments.csv`
       for failed runs too, with no status column, so a software-fallback run
       mixes into good data. Add a status column or skip rows for non-PASS
       runs. (`2d44620`)
-- [ ] **T3.** `code/benchscenario.cpp:21,45,56-63` trusts the scenario file:
+- [ ] **T3.** (names, over-long strings and negative Gather fixed in #12; the `f[5] KeyN` case is still open) `code/benchscenario.cpp:21,45,56-63` trusts the scenario file:
       - an over-long Name is left unterminated;
       - an empty Name breaks the summary line and screenshot names;
       - `f[5] KeyN` leaves altitude uninitialised (non-deterministic);
@@ -127,7 +137,7 @@ land and note the PR.
 
       Check the return codes, require a non-empty name with no spaces and
       exactly 6 floats, and reject `Gather < 0`. (`2d44620`)
-- [ ] **T4.** `scripts/bench.sh:322` uses `cut -c17-` where it should be
+- [x] **T4.** (fixed in #12) `scripts/bench.sh:322` uses `cut -c17-` where it should be
       `-c16-`, which drops the first letter of scenario error messages.
       (`2d44620`)
 - [ ] **T5.** `tests/unit/test_benchscenario.cpp:58-62`: the key-order test
