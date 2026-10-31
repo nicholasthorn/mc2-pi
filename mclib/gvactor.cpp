@@ -688,6 +688,10 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	currentFlash = duration = flashDuration = 0.0f;
 	flashColor = 0x00000000;
 	drawFlash = false;
+
+	// Default to bright RGB, as MechAppearance does. Air strike bombers never
+	// get a paint scheme, but setObjStatus() repaints them with this.
+	psRed = psGreen = psBlue = 0xffffffff;
 	
 	rotationalNodeIndex = -1;
 	dustNodeIndex = activityNodeIndex = hitNodeId = weaponNodeId[0] = weaponNodeId[1] = weaponNodeId[2] = weaponNodeId[3] = -1;
