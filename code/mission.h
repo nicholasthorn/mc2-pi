@@ -153,6 +153,7 @@ class Mission
 	//Data Members
 	//-------------
 	protected:
+		friend class UiSmokeDriver;	// -uismoke reads whether gameplay started
 	
 		FitIniFilePtr					missionFile;
 										

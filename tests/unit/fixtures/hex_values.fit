@@ -1,0 +1,10 @@
+FITini
+
+[Hex]
+ul Colour = 0xFF000000
+ul Padded = 0x00000000A
+l LongPadded = 0x0000000010
+l IntPadded = 0x00000000F
+uc ByteValue = 0x7F
+
+FITend

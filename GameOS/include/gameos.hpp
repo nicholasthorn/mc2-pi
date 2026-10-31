@@ -1927,11 +1927,24 @@ void __stdcall gos_MarkGameplayStarted( const char* missionName );
 //
 float __stdcall gos_GetFixedFrameLength();
 //
-// True for an unattended run ("-autoexit <frames>" or "-bench <csv>": smoke
-// and bench scripts). Such a run ignores the keyboard and mouse, holds the
-// cursor at the screen centre and runs windowed, whatever display it is on.
+// True for an unattended run ("-autoexit <frames>", "-bench <csv>" or
+// "-uismoke <walk>": smoke and bench scripts). Such a run ignores the
+// keyboard and mouse, holds the cursor at the screen centre and runs
+// windowed, whatever display it is on.
 //
 bool __stdcall gos_IsAutomatedRun();
+//
+// "-uismoke <walk>": the comma-separated front-end screens to visit, or NULL.
+// The game's UI smoke driver (code/uismokedriver.cpp) walks them, prints
+// "[SCREEN] <name> shown" for each and "[UISMOKE] done" at the end, then
+// quits (scripts/smoke.sh).
+//
+const char* __stdcall gos_GetUiSmokeWalk();
+//
+// The process exit status once the game shuts down normally (default 0):
+// a failed -uismoke walk sets 1, so it fails without reading the log.
+//
+void __stdcall gos_SetExitCode( int code );
 //
 // "-benchscenario <fit>" (with -bench): the scripted scenario file, or NULL.
 // The game's bench director (code/benchdirector.cpp) plays it, and reports:
