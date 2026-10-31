@@ -4399,10 +4399,18 @@ void execGetRelativePositionToObject (void) {
 	long flags = ABLi_popInteger();
 	float* relPos = ABLi_popRealPtr();
 
+	//---------------------------------------------------------------
+	// Always write the result: callers (coreEscort) pass an unset
+	// local array, and ABL local arrays are not zeroed. Non-movers
+	// (e.g. a building to escort) get GameObject::relativePosition.
+	relPos[0] = 0.0;
+	relPos[1] = 0.0;
+	relPos[2] = 0.0;
+
 	GameObjectPtr object = getObject(objectId);
-	if (object && object->isMover()) {
+	if (object) {
 		Stuff::Vector3D newPos;
-		newPos = ((MoverPtr)object)->relativePosition(angle, distance, flags);
+		newPos = object->relativePosition(angle, distance, flags);
 		relPos[0] = newPos.x;
 		relPos[1] = newPos.y;
 		relPos[2] = newPos.z;
