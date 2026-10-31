@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------------
 // globalmapio.h: reading the global (area/door) pathing packets of a mission
-// .pak in either the stock layout or MechCommander Omnitech's wide one.
+// .pak, and its special-area footprints, in either the stock layout or
+// MechCommander Omnitech's wide one.
 //
 // Omnitech (change "magic 07032012") widened the 16-bit fields of the
 // on-disk pathing records to 32 bits, and maps saved by its editor use that
@@ -66,12 +67,22 @@ struct WideGlobalMapDoor {
 	int32_t		hPrime;
 	int32_t		fPrime;
 };
+
+// Special-area (gate/wall) footprints, the packet after the three global maps
+struct WideGameObjectFootPrint {
+	int32_t		cellPositionRow;
+	int32_t		cellPositionCol;
+	int32_t		preNumCells;
+	int32_t		numCells;
+	int32_t		cells[64][2];
+};
 #pragma pack()
 
 static_assert(sizeof(WideGlobalMapArea) == 31, "Omnitech _GlobalMapArea is 31 bytes");
 static_assert(sizeof(WideDoorInfo) == 5, "Omnitech _DoorInfo is 5 bytes");
 static_assert(sizeof(WideDoorLink) == 13, "Omnitech _DoorLink is 13 bytes");
 static_assert(sizeof(WideGlobalMapDoor) == 73, "Omnitech _GlobalMapDoor is 73 bytes");
+static_assert(sizeof(WideGameObjectFootPrint) == 528, "Omnitech _GameObjectFootPrint is 528 bytes");
 
 // The structs are packed, so their fields are unaligned: check values and
 // assign them, never bind a reference to a field (undefined behaviour).
@@ -181,6 +192,28 @@ bool narrowGlobalMapDoor (Door& out, const WideGlobalMapDoor& in) {
 		out.direction[s] = in.direction[s];
 		out.numLinks[s] = (short)in.numLinks[s];
 		out.links_Legacy32bitPtr[s] = in.links_Legacy32bitPtr[s];
+	}
+	return true;
+}
+
+// Cells past numCells are zeroed, like the stock in-memory footprints.
+template <class FootPrint>
+bool narrowGameObjectFootPrint (FootPrint& out, const WideGameObjectFootPrint& in) {
+	const int32_t maxCells = (int32_t)(sizeof(out.cells) / sizeof(out.cells[0]));
+	if (!fitsShort(in.cellPositionRow) || !fitsShort(in.cellPositionCol) || !fitsShort(in.preNumCells) ||
+		(in.numCells < 0) || (in.numCells > maxCells))
+		return false;
+	for (int32_t i = 0; i < in.numCells; i++)
+		if (!fitsShort(in.cells[i][0]) || !fitsShort(in.cells[i][1]))
+			return false;
+	out = FootPrint();
+	out.cellPositionRow = (short)in.cellPositionRow;
+	out.cellPositionCol = (short)in.cellPositionCol;
+	out.preNumCells = (short)in.preNumCells;
+	out.numCells = (short)in.numCells;
+	for (int32_t i = 0; i < in.numCells; i++) {
+		out.cells[i][0] = (short)in.cells[i][0];
+		out.cells[i][1] = (short)in.cells[i][1];
 	}
 	return true;
 }

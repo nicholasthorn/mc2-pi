@@ -302,10 +302,18 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      nothing. A mod install must carry its `TerrainTextureRes`.
    - With both, Clan Wars mission 1 plays (300 frames at 256: no missing
      textures, about 52 fps under software GL).
-   - **Next blocker:** at mission exit, `double free or corruption` in
-     `TG_Shape::destroy` (`tgl.cpp:663`, `listOfShadowVertices`) deleting
-     `theSky` from `GameCamera::destroy`. Only with the Clan Wars sky;
-     stock exits cleanly. Not investigated.
+   - At mission exit glibc reported `double free or corruption` deleting
+     `theSky` (`TG_Shape::destroy`). The sky was only the victim: ASan
+     showed `MOVE_readData` reading the special-area footprint packet raw
+     into a 264-byte stock buffer, and Omnitech's `_GameObjectFootPrint` is
+     528 bytes (four int32 fields, int32 cell pairs; same widening as the
+     pathing structs). **Fixed on the branch:** the footprints go through
+     `readPathRecords` (`narrowGameObjectFootPrint`), so a size matching
+     neither layout is refused, and the count packet is size-checked.
+     Clan Wars mission 1 now runs 300 frames and exits cleanly, ASan
+     clean. The smoke script still flags it for the logged `STOP:` lines:
+     the packet noise below and "Texture not correct size!" (not yet
+     looked at).
 6. **Mission editor import (idea, 2026-10-31).** When a mission editor
    lands (look at the Remaster and Omnitech editors for inspiration), an
    import step can convert mod data that the engine cannot read in a

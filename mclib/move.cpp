@@ -729,7 +729,13 @@ long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 		systemHeap->Free(GlobalMoveMap[2]->pathExistsTable);
 		GlobalMoveMap[2]->pathExistsTable = NULL;
 
-		long numBytes = packetFile->readPacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets, (unsigned char*)&tempNumSpecialAreas);
+		// The count is a 4-byte long in maps written on Windows, 8 on Linux:
+		// zero it first and refuse anything larger.
+		const long countPacket = whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets;
+		tempNumSpecialAreas = 0;
+		if ((packetFile->seekPacket(countPacket) != NO_ERR) || (packetFile->getPacketSize() > (long)sizeof(tempNumSpecialAreas)))
+			Fatal(-1, " MOVE_readData: Unable to read num special areas ");
+		long numBytes = packetFile->readPacket(countPacket, (unsigned char*)&tempNumSpecialAreas);
 		if (numBytes <= 0)
 			Fatal(numBytes, " MOVE_readData: Unable to read num special areas ");
 		if (tempSpecialAreaFootPrints) {
@@ -737,10 +743,18 @@ long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 			tempSpecialAreaFootPrints = NULL;
 		}
 		if (tempNumSpecialAreas > 0) {
+			// Stock or Omnitech wide footprints (528 bytes each, Clan Wars);
+			// reading the wide ones raw used to overflow this buffer.
 			tempSpecialAreaFootPrints = (GameObjectFootPrint*)systemHeap->Malloc(sizeof(GameObjectFootPrint) * tempNumSpecialAreas);
-			numBytes = packetFile->readPacket(whichPacket + numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 1, (unsigned char*)tempSpecialAreaFootPrints);
-			if (numBytes <= 0)
-				Fatal(numBytes, " MOVE_readData: Unable to read num special areas ");
+			gosASSERT(tempSpecialAreaFootPrints != NULL);
+			if (!readPathRecords(packetFile, countPacket + 1, tempSpecialAreaFootPrints, tempNumSpecialAreas, narrowGameObjectFootPrint<GameObjectFootPrint>)) {
+				long size = -1;
+				if ((countPacket + 1 < packetFile->getNumPackets()) && (packetFile->seekPacket(countPacket + 1) == NO_ERR))
+					size = packetFile->getPacketSize();
+				STOP(("MOVE_readData: special area footprints: packet %ld holds %ld bytes, expected %ld records", countPacket + 1, size, tempNumSpecialAreas));
+				GlobalMoveMap[0]->badLoad = true;
+				return(numMissionMapPackets + numGlobalMap0Packets + numGlobalMap1Packets + numGlobalMap2Packets + 2);
+			}
 		}
 
 	}
@@ -1510,6 +1524,7 @@ static_assert(sizeof(GlobalMapArea) == 25, "stock GlobalMapArea layout");
 static_assert(sizeof(DoorInfo) == 3, "stock DoorInfo layout");
 static_assert(sizeof(DoorLink) == 11, "stock DoorLink layout");
 static_assert(sizeof(GlobalMapDoor) == 57, "stock GlobalMapDoor layout");
+static_assert(sizeof(GameObjectFootPrint) == 264, "stock GameObjectFootPrint layout");
 
 // Logs why a pathing packet was rejected (packet number, size, records).
 static void reportBadPathPacket (PacketFilePtr packetFile, long packet, const char* what, long index, long count) {
