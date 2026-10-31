@@ -31,16 +31,7 @@ struct DDSURFACEDESC2 {
 extern CPrefs prefs;
 
 
-#define MM_MSG_NEW_CAMPAIGN 90
-#define MM_MSG_SAVE			92
-#define MM_MSG_LOAD			91
-#define MM_MSG_MULTIPLAYER	93
-#define MM_MSG_RETURN_TO_GAME 94
-#define MM_MSG_OPTIONS		95
-#define MM_MSG_ENCYCLOPEDIA	96
-#define MM_MSG_EXIT			97
-#define MM_MSG_SINGLE_MISSION	98
-#define MM_MSG_LEGAL		99
+// MM_MSG_* button ids: mainmenu.h
 
 extern volatile bool mc2IsInMouseTimer;
 extern volatile bool mc2IsInDisplayBackBuffer;

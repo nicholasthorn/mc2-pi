@@ -700,7 +700,7 @@ void LogisticsMissionInfo::setSingleMission( const char* missionFileName )
 
 	currentStage = 0;
 
-	MissionInfo* pInfo = new MissionInfo;
+	MissionInfo* pInfo = new MissionInfo();	// () zeroes the flags not set below
 	groups[0].infos.Append( pInfo );
 
 	groups[0].operationFileName = "MCL_CM_Op1_1.fit";
@@ -726,6 +726,9 @@ void LogisticsMissionInfo::setSingleMission( const char* missionFileName )
 	pInfo->completed = 0;
 	pInfo->playMissionSelection = 0;
 	pInfo->playPurchasing = true;
+	// was never set: skipLogistics() read an uninitialised bool (UBSan), and
+	// single missions only showed logistics because it was usually non-zero
+	pInfo->playLogistics = true;
 	pInfo->playSalvage = 0;
 	pInfo->playPilotPromotion = 0;
 

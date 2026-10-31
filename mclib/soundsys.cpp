@@ -494,16 +494,19 @@ void SoundSystem::update (void)
 
 	//Start the music change we requested playing!!
 	// This avoids the stupid sound bug of starting more then one stream per frame!!
+	// Each stream uses its own tune (streamNId): currentMusicId can already be
+	// -1 here (the old stream ended while the new one waited to start), and
+	// indexing with it read before the start of the music tables.
 	if (stream1Handle && !stream1Active)
 	{
 		stream1Active = true;
-		gosAudio_SetChannelPlayMode( STREAM1CHANNEL, digitalMusicLoopFlags[currentMusicId] ? gosAudio_Loop : gosAudio_PlayOnce);
+		gosAudio_SetChannelPlayMode( STREAM1CHANNEL, digitalMusicLoopFlags[stream1Id] ? gosAudio_Loop : gosAudio_PlayOnce);
 	}
 
 	if (stream2Handle && !stream2Active)
 	{
 		stream2Active = true;
-		gosAudio_SetChannelPlayMode( STREAM2CHANNEL, digitalMusicLoopFlags[currentMusicId] ? gosAudio_Loop : gosAudio_PlayOnce);
+		gosAudio_SetChannelPlayMode( STREAM2CHANNEL, digitalMusicLoopFlags[stream2Id] ? gosAudio_Loop : gosAudio_PlayOnce);
 	}
 
  	if (useMusic && (stream1Active || stream2Active))
@@ -532,7 +535,7 @@ void SoundSystem::update (void)
 					if (volLevel > 1.0)
 						volLevel = 1.0;
 
-					gosAudio_SetChannelSlider(STREAM1CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[currentMusicId]);
+					gosAudio_SetChannelSlider(STREAM1CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[stream1Id]);
 				}
 			}
 			else if (stream1Time > 0.0)
@@ -543,7 +546,7 @@ void SoundSystem::update (void)
 				if (stream1Time <= 0.0)
 				{
 					stream1Time = 0.0;
-					gosAudio_SetChannelSlider(STREAM1CHANNEL, gosAudio_Volume, digitalMasterVolume * musicVolume * digitalMusicVolume[currentMusicId]);
+					gosAudio_SetChannelSlider(STREAM1CHANNEL, gosAudio_Volume, digitalMasterVolume * musicVolume * digitalMusicVolume[stream1Id]);
 				}
 				else
 				{
@@ -555,7 +558,7 @@ void SoundSystem::update (void)
 					if (volLevel > 1.0)
 						volLevel = 1.0;
 
-					gosAudio_SetChannelSlider(STREAM1CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[currentMusicId]);
+					gosAudio_SetChannelSlider(STREAM1CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[stream1Id]);
 				}
 			}
 		}
@@ -585,7 +588,7 @@ void SoundSystem::update (void)
 					if (volLevel > 1.0)
 						volLevel = 1.0;
 
-					gosAudio_SetChannelSlider(STREAM2CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[currentMusicId]);
+					gosAudio_SetChannelSlider(STREAM2CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[stream2Id]);
 				}
 			}
 			else if (stream2Time > 0.0)
@@ -596,7 +599,7 @@ void SoundSystem::update (void)
 				if (stream2Time <= 0.0)
 				{
 					stream2Time = 0.0;
-					gosAudio_SetChannelSlider(STREAM2CHANNEL, gosAudio_Volume, digitalMasterVolume * musicVolume * digitalMusicVolume[currentMusicId]);
+					gosAudio_SetChannelSlider(STREAM2CHANNEL, gosAudio_Volume, digitalMasterVolume * musicVolume * digitalMusicVolume[stream2Id]);
 				}
 				else
 				{
@@ -608,7 +611,7 @@ void SoundSystem::update (void)
 					if (volLevel > 1.0)
 						volLevel = 1.0;
 
-					gosAudio_SetChannelSlider(STREAM2CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[currentMusicId]);
+					gosAudio_SetChannelSlider(STREAM2CHANNEL, gosAudio_Volume, digitalMasterVolume * volLevel * musicVolume * digitalMusicVolume[stream2Id]);
 				}
 			}
 		}
