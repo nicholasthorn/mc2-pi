@@ -283,14 +283,37 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    LINUX_BUILD`), so it cannot read it. Its 4667 entries are the stock
    ones, so the test setup keeps the stock `tgl.fst`; Omnitech's new
    models are loose files. Its `art.fst` is zlib and reads.
-5. **`.burnin.jpg` colour maps: next blocker, now fatal.** With the units
-   loaded the mission starts and crashes in
-   `TerrainColorMap::getTextureHandle` (first terrain frame): the colour map
-   never loaded because Clan Wars ships only
-   `textures/innersphere1.burnin.jpg`. 6.28 accepts `.tga`, `.burnin.tga`
-   and `.burnin.jpg` (`Terrain::init`). Needs a JPEG decoder (none in the
-   build: stb_image or SDL2_image).
-6. Remaining noise: `ObjectTypeManager::objectFile->seekPacket(n)` with
+5. **`.burnin.jpg` colour maps. Done on branch `omnitech-objtypes`.** Clan
+   Wars ships only `textures/<mission>.burnin.jpg` (100 maps, all square,
+   baseline, 768 to 4096 px). The original engine already had the JPG branch
+   in `TerrainColorMap::init`, disabled (`&& false`) because `DecodeJPG` was
+   a stub on this port. `DecodeJPG` is now stb_image (v2.30, vendored
+   unmodified in `thirdparty/stb`, JPEG only, 16384 px cap) through the
+   GL-free `utils/jpeg_decode` (unit tested); the JPG is tried first as in
+   the original code and a missing or undecodable one falls through to the
+   TGAs, so stock data never reaches it.
+   Found on the way:
+   - Omnitech's `prefs.cfg` sets `TerrainTextureRes = 256` and its
+     `textures.fit` names terrain tiles that exist only under
+     `textures/256*`. At the stock 64, 128 tiles are missing. Release builds
+     used to turn a missing texture into a zero-size node that segfaulted
+     when cached in (`MC_TextureNode::get_gosTextureHandle`); now
+     `loadTexture` logs `txmmgr: missing texture <name>` and the node draws
+     nothing. A mod install must carry its `TerrainTextureRes`.
+   - With both, Clan Wars mission 1 plays (300 frames at 256: no missing
+     textures, about 52 fps under software GL).
+   - **Next blocker:** at mission exit, `double free or corruption` in
+     `TG_Shape::destroy` (`tgl.cpp:663`, `listOfShadowVertices`) deleting
+     `theSky` from `GameCamera::destroy`. Only with the Clan Wars sky;
+     stock exits cleanly. Not investigated.
+6. **Mission editor import (idea, 2026-10-31).** When a mission editor
+   lands (look at the Remaster and Omnitech editors for inspiration), an
+   import step can convert mod data that the engine cannot read in a
+   backwards-compatible way (to stock formats, e.g. TGA), so the engine
+   only has to read stock formats. JPEG colour maps did not need this:
+   reading them was the original engine's own code path and is invisible to
+   stock data.
+7. Remaining noise: `ObjectTypeManager::objectFile->seekPacket(n)` with
    Omnitech numbers in `Mission` (logs "requested packet number N is
    bigger than number of packets: 1188", harmless); "Requested string id
    N not found" for the new units' names (need Omnitech's `mc2res.dll`

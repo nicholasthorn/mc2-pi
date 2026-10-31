@@ -67,6 +67,9 @@ DWORD compressedTextureSize = 0;
 
 #define MAX_SENDDOWN		10002
 
+// width of a node whose file was missing at load: the from-memory flag, size 0
+#define MISSING_TEXTURE_WIDTH	0xf0000000
+
 //------------------------------------------------------
 // Frees up gos_VERTEX manager memory
 void MC_TextureManager::freeVertices(void)
@@ -1873,11 +1876,19 @@ DWORD MC_TextureManager::loadTexture (const char *textureFullPathName, gos_Textu
 	// This way, we never need to know anything about the texture AND we can store PMGs
 	// in memory instead of TGAs which use WAY less RAM!
 	File textureFile;
-#ifdef _DEBUG
-	long textureFileOpenResult = 
-#endif
-		textureFile.open(textureFullPathName);
-	gosASSERT(textureFileOpenResult == NO_ERR);
+	long textureFileOpenResult = textureFile.open(textureFullPathName);
+	if (textureFileOpenResult != NO_ERR)
+	{
+		// Named by the data but not on disk (e.g. a mod's terrain set read at
+		// a TerrainTextureRes it does not ship). Release builds used to make a
+		// zero-size node that crashed when cached in; now the node draws
+		// nothing (get_gosTextureHandle returns 0).
+		fprintf(stderr, "txmmgr: missing texture %s\n", textureFullPathName);
+		masterTextureNodes[i].textureData = NULL;
+		masterTextureNodes[i].lzCompSize = 0;
+		masterTextureNodes[i].width = MISSING_TEXTURE_WIDTH;
+		return(i);
+	}
 	
 	long txmSize = textureFile.fileSize();
 	
@@ -2010,6 +2021,9 @@ DWORD MC_TextureNode::get_gosTextureHandle (void)	//If texture is not in VidRAM,
 			PAUSE(("txmmgr: Textur has zero width!"));
 			return 0;		//These faces have no texture!!
 		}
+
+		if (width == MISSING_TEXTURE_WIDTH)
+			return 0;		//File was missing at load (logged there)
 
 		if (!textureData)
 		{
