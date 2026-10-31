@@ -111,11 +111,13 @@ extern void (*ABLEndlessStateCallback) (UserFile* log);
 // aligned. Read and write them with memcpy (a plain load/store on x86 and
 // aarch64) rather than through typed pointers, which is undefined behaviour.
 template <typename T> static inline void putCode (char* dest, T value) {
+	// cppcheck-suppress pointerSize ; T is the value type copied, a pointer for pointer-valued codes
 	memcpy(dest, &value, sizeof(T));
 }
 
 template <typename T> static inline T peekCode (const char* src) {
 	T value;
+	// cppcheck-suppress pointerSize ; T is the value type copied, a pointer for pointer-valued codes
 	memcpy(&value, src, sizeof(T));
 	return(value);
 }

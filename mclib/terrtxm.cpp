@@ -290,12 +290,14 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 			types[i].textureData = (MemoryPtr *)tileRAMHeap->Malloc(sizeof(MemoryPtr) * MC_MAX_MIP_LEVELS);
 			gosASSERT(types[i].textureData != NULL);
 			
+			// cppcheck-suppress pointerSize ; an array of MemoryPtr: element size is the pointer size
 			memset(types[i].textureData,0,sizeof(MemoryPtr) * MC_MAX_MIP_LEVELS);
 
 			types[i].maskData = (MemoryPtr *)tileRAMHeap->Malloc(sizeof(MemoryPtr) * MC_MASK_NUM * MC_MAX_MIP_LEVELS);
 			gosASSERT(types[i].maskData != NULL);
 			
-			memset(types[i].maskData,0,sizeof(MemoryPtr) * MC_MASK_NUM);
+			// cppcheck-suppress pointerSize ; an array of MemoryPtr: element size is the pointer size
+			memset(types[i].maskData,0,sizeof(MemoryPtr) * MC_MASK_NUM * MC_MAX_MIP_LEVELS);	// all of it, as allocated
 
 			long terrainTextureIndex = initTexture(i);
 			types[i].baseTXMIndex = terrainTextureIndex;
@@ -361,6 +363,7 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 		overlays[i].overlayData = (MemoryPtr *)tileRAMHeap->Malloc(sizeof(MemoryPtr) * overlays[i].numTextures * MC_MAX_MIP_LEVELS);
 		gosASSERT(overlays[i].overlayData != NULL);
 		
+		// cppcheck-suppress pointerSize ; an array of MemoryPtr: element size is the pointer size
 		memset(overlays[i].overlayData,0,sizeof(MemoryPtr) * overlays[i].numTextures * MC_MAX_MIP_LEVELS);
 
 		for (long j=0;j<overlays[i].numTextures;j++)
@@ -413,6 +416,7 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 		details[i].detailData = (MemoryPtr *)tileRAMHeap->Malloc(sizeof(MemoryPtr) * details[i].numDetails * MC_MAX_MIP_LEVELS);
 		gosASSERT(details[i].detailData != NULL);
 		
+		// cppcheck-suppress pointerSize ; an array of MemoryPtr: element size is the pointer size
 		memset(details[i].detailData,0,sizeof(MemoryPtr) * details[i].numDetails * MC_MAX_MIP_LEVELS);
 
 		for (long j=0;j < details[i].numDetails; j++)
