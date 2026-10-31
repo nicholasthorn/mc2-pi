@@ -57,15 +57,15 @@ Summary summarize(const std::vector<FrameSample>& frames)
 
 std::string csvHeader()
 {
-	return "frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris";
+	return "frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris,segment,state";
 }
 
 std::string csvRow(long frame, const FrameSample& s)
 {
-	char buf[160];
-	snprintf(buf, sizeof(buf), "%ld,%.3f,%.3f,%.3f,%.3f,%u,%u", frame,
+	char buf[176];
+	snprintf(buf, sizeof(buf), "%ld,%.3f,%.3f,%.3f,%.3f,%u,%u,%u,%08x", frame,
 			s.total_ms, s.logic_ms, s.render_ms, s.swap_ms,
-			(unsigned)s.draws, (unsigned)s.tris);
+			(unsigned)s.draws, (unsigned)s.tris, (unsigned)s.segment, (unsigned)s.state);
 	return buf;
 }
 

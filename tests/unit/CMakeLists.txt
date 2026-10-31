@@ -24,6 +24,8 @@ add_executable(mc2_tests
     test_audio_pan.cpp
     test_globalmapio.cpp
     test_frame_stats.cpp
+    test_benchscenario.cpp
+    test_tga_writer.cpp
     test_render_heuristics.cpp
 
     # Real engine TUs: the file / ini / packet / FST / CSV stack. This is the
@@ -44,6 +46,10 @@ add_executable(mc2_tests
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/tga_writer.cpp
+
+    # scripted benchmark scenario: game code, but game-free
+    ${MC2_SRC}/code/benchscenario.cpp
 )
 
 # Engine headers are legacy code: include them as SYSTEM headers (replacing the
@@ -56,6 +62,7 @@ target_include_directories(mc2_tests SYSTEM PRIVATE
     ${MC2_SRC}/mclib
     ${MC2_SRC}/GameOS/include
     ${MC2_SRC}/GameOS/gameos
+    ${MC2_SRC}/code
 )
 
 # New code in this target is held to -Wall -Wextra -Werror (GCC/Clang); the
@@ -63,10 +70,13 @@ target_include_directories(mc2_tests SYSTEM PRIVATE
 set_source_files_properties(
     test_main.cpp heap_shim.cpp test_file_inifile.cpp test_csvfile.cpp
     test_fst_roundtrip.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
-    test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_render_heuristics.cpp
+    test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/tga_writer.cpp
+    ${MC2_SRC}/code/benchscenario.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 
 # Fixtures are copied next to the tests and opened by RELATIVE path:

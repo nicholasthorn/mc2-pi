@@ -103,8 +103,13 @@ TEST_CASE("CSV header and row have the same columns")
 	const std::string header = frame_stats::csvHeader();
 	const std::string row = frame_stats::csvRow(7, sample(16.0, 12, 3456));
 
-	CHECK(header == "frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris");
-	CHECK(row == "7,16.000,4.000,8.000,4.000,12,3456");
+	CHECK(header == "frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris,segment,state");
+	CHECK(row == "7,16.000,4.000,8.000,4.000,12,3456,0,00000000");
+
+	FrameSample s = sample(16.0, 12, 3456);
+	s.segment = 3;
+	s.state = 0xBEEF;
+	CHECK(frame_stats::csvRow(7, s) == "7,16.000,4.000,8.000,4.000,12,3456,3,0000beef");
 }
 
 TEST_CASE("summary line is one parseable [BENCH] line")

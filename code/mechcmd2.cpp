@@ -1169,6 +1169,16 @@ void __stdcall InitializeGameEngine()
 				useMusic = FALSE;
 			}
 
+			// -bench: no sound, as if system.cfg had no UseSound block. Audio
+			// plays in real time, and whether a pilot's radio message gets to
+			// RandomNumber() depends on whether the last one has finished, so
+			// with sound on, combat runs drift apart (Radio::playMessage).
+			if (gos_GetFixedFrameLength() > 0.0f)
+			{
+				useSound = FALSE;
+				useMusic = FALSE;
+			}
+
 			result = systemFile->seekBlock("CameraSettings");
 			if (result == NO_ERR)
 			{

@@ -117,6 +117,7 @@
 #include "../resource.h"
 
 #include<gameos.hpp>
+#include "benchdirector.h"
 
 //----------------------------------------------------------------------------------
 // Macro Definitions
@@ -489,7 +490,11 @@ long Mission::update (void)
 		
 		if (missionInterface)
 			ProfileTime(MCTimeInterfaceUpdate,missionInterface->update());
-		
+
+		// -benchscenario: scripted battle and camera; after the interface
+		// (input) and before the camera update, so its camera wins
+		BenchDirector::update(missionFileName);
+
 		ProfileTime(MCTimeCameraUpdate,eye->update());
 		
 		missionInterface->updateVTol();

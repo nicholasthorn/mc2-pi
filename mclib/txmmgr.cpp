@@ -1685,8 +1685,12 @@ DWORD MC_TextureManager::update (void)
 	DWORD numTexturesFreed = 0;
 	currentUsedTextures = 0;
 
-	// free textures unused for 2 seconds (60 turns at the old ~30 fps)
-	s_turnRate.update((uint32_t)timeGetTime(), turn);
+	// free textures unused for 2 seconds (60 turns at the old ~30 fps).
+	// -bench: a turn is a fixed 1/30 s of game time, so keep the 30 turns
+	// per second the rate starts at; measuring the wall clock would make
+	// which textures are evicted depend on how fast the machine runs.
+	if (gos_GetFixedFrameLength() == 0.0f)
+		s_turnRate.update((uint32_t)timeGetTime(), turn);
 	const long idleTurn = turn - s_turnRate.turnsFor(2000, 60);
 
 	for (long i=0;i<MC_MAXTEXTURES;i++)

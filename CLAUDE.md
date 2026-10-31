@@ -87,6 +87,8 @@ scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2
 scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --label "fan on"
 # CPU profile of gameplay frames (perf, frame-pointer build: -DMC2_FRAME_POINTERS=ON)
 scripts/bench.sh --game-dir ../mc2game --build-dir build-fp --renderers gpu --runs 0 --perf
+# Scripted battle with timed segments and screenshots (format: bench/README.md)
+scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit
 ```
 
 Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
