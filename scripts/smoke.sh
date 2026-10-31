@@ -18,7 +18,8 @@
 #   --missions "..."  missions to run (default: mc2_01 mc2_03)
 #   --frames N        frames per mission before -autoexit (default: 600)
 #   --ui "..."        front-end walks to run, space separated; each is a
-#                     comma-separated list of screens for -uismoke (names in
+#                     comma-separated list of screens for -uismoke, each
+#                     optionally "<screen>+<action>" (names in
 #                     code/uismokewalk.cpp). "" skips them. Default: the two
 #                     walks in $UI_WALKS below
 #   --timeout S       seconds before a run counts as hung (default: 300)
@@ -31,13 +32,13 @@ set -u
 
 # 1: the four options tabs, then a new campaign (its first mission, mc2_01,
 #    skips logistics and loads at once).
-# 2: a single mission (mc2_02) through its logistics screens and back. It
-#    starts with no mechs, so the mech lab and "Launch" stay disabled until
-#    the walk can buy one (planning/future-features/UI-SMOKE.md, slice 2).
+# 2: a single mission (mc2_02), which starts with no mechs: buy one, put it
+#    in the force, open the mech lab (Cancel), back to the briefing, give
+#    the mech a pilot and launch.
 UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
 UI_OPTIONS="$UI_OPTIONS,campaign,mission"
-UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase,mechbay,pilotready"
-UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing"
+UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab"
+UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing,mechbay,pilotready+pilot,mission"
 
 GAME_DIR=""
 BUILD_DIR=""
@@ -191,8 +192,11 @@ for w in $UI_WALKS; do
     [ -n "$why" ] && reasons+=("$why")
     grep -q '^\[UISMOKE\] done' "$log" || [ -n "$why" ] || reasons+=("walk never finished")
     # every screen of the walk, in order
+    # ("<screen>+<action>" steps show as "<screen>"; the driver fails the walk
+    # itself if an action's button cannot be pressed)
     shown=$(sed -n 's/^\[SCREEN\] \(.*\) shown$/\1/p' "$log" | paste -sd, -)
-    [ "$shown" = "$w" ] || reasons+=("screens shown: ${shown:-none}")
+    [ "$shown" = "$(printf '%s' "$w" | sed 's/+[a-z]*//g')" ] \
+        || reasons+=("screens shown: ${shown:-none}")
     report "ui$n" "$log" "$(grep -m1 '^\[UISMOKE\] done' "$log")"
 done
 

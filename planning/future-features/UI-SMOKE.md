@@ -1,6 +1,6 @@
 # UI smoke tests (menu screens)
 
-Proposed 2026-10-31. Slice 1 built 2026-10-31 (`-uismoke`, see "Slices").
+Proposed 2026-10-31. Slices 1 and 2 built 2026-10-31 (`-uismoke`, see "Slices").
 
 ## Problem
 
@@ -70,9 +70,12 @@ Out:
 ## Approach (chosen)
 
 `-uismoke <walk>`: a comma-separated list of screens, starting at `mainmenu`.
+A step can also be `<screen>+<action>`: an in-screen button pressed once the
+screen has been held, then the screen is held again (`buy` on `mechpurchase`,
+`add` on `mechbay`, `pilot` on `pilotready`).
 
 ```
-./mc2 -uismoke mainmenu,options-graphics,options-audio,mainmenu,campaign,missionselection,briefing,mechbay
+./mc2 -uismoke mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab,mechbay,pilotready+pilot,mission
 ```
 
 - **The walk** (`code/uismokewalk.cpp`, pure logic, unit tested in
@@ -90,7 +93,8 @@ Out:
   (a `friend` line in each class, no new accessors) and presses buttons by
   sending the screen the same `handleMessage(aMSG_LEFTMOUSEDOWN, id)` a click
   sends, but only if the button exists and is enabled, so the walk can only
-  go where a player could. Prints `[SCREEN] <name> shown`, then
+  go where a player could. Prints `[SCREEN] <name> shown` (and
+  `[ACTION] <screen>+<action>` for an in-screen press), then
   `[UISMOKE] done: ...` or `[UISMOKE] FAIL: <why>`, and quits.
 - **GameOS** (`gameosmain.cpp`): parses `-uismoke` and hands it to the game
   through `gos_GetUiSmokeWalk()` (as `-benchscenario`), and makes the run an
@@ -130,7 +134,7 @@ cannot say why a click did nothing.
   game lowercases the save path (`FullPathFileName::init`).
 - **A single mission starts with no mechs.** The mech bay selects nothing,
   so "Change Loadout" (mech lab) is disabled, and pilot ready's "Launch" is
-  disabled with no force. Both need a mech bought first (slice 2).
+  disabled with no force. Both need a mech bought first (done in slice 2).
 
 ## Slices
 
@@ -138,14 +142,22 @@ cannot say why a click did nothing.
    walks. (1) main menu, options (4 tabs, Cancel), new campaign dialog, into
    mc2_01. (2) single mission dialog (mc2_02), briefing, mech bay, mech
    purchase, back to the mech bay, pilot ready, back to the mech bay and
-   briefing. Routes for mission selection and the mech lab exist and are unit
-   tested, but no default walk reaches them yet.
-2. Actions inside screens, so the walk can buy a mech (purchase screen
-   `MB_MSG_ADD` on a selected list item), put it in the force group, open the
-   mech lab (and Cancel, and later change a weapon), pick pilots, and launch
-   from pilot ready. Needs list-box item access in the driver (`MechListBox`,
-   `LogisticsPilotListBox`) and a walk syntax for actions that stay on one
-   screen (for example `mechpurchase+buy`).
+   briefing.
+2. **Built (2026-10-31):** in-screen actions (`<screen>+<action>`): `buy` on
+   mech purchase (`MB_MSG_ADD` on the first variant that fits the mission's
+   drop weight and the C-bills), `add` on the mech bay (`MB_MSG_ADD`, the
+   mech it selects into the force), `pilot` on pilot ready (`PR_MSG_ADD`,
+   the selected pilot into the selected slot). Only `buy` picks a list item
+   itself: the variant `begin()` selects may not fit (MechCommander
+   Omnitech's `a_0_2` takes 65 t and lists an Atlas first, so "add" then
+   stays off); the others use what `begin()` selects. The purchase screen
+   is left with Accept
+   (`MB_MSG_NEXT`): its Back sells back everything bought there. Default walk
+   (2) is now: single mission (mc2_02), briefing, mech bay, purchase + buy,
+   mech bay + add, mech lab (Cancel), mech bay, briefing, mech bay, pilot
+   ready + pilot, Launch into mc2_02. Still to come here: changing a weapon in
+   the mech lab, selling, more than one mech, picking a list item other than
+   the default.
 3. Tutorial: pick the tutorial entry of the campaign dialog
    (`LogisticsSaveDialog` list item 1) before OK; its logistics ABL brain
    (`MissionBegin::begin`, `startAnimation`) moves the cursor itself, so

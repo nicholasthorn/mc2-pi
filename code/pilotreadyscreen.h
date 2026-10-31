@@ -17,6 +17,11 @@ PilotReadyScreen.h : Header file for pilot selection
 class LogisticsPilot;
 class LogisticsMechIcon;
 
+// pilot ready button ids (mcl_pr_layout.fit); also pressed by -uismoke
+#define PR_MSG_ADD 62
+#define PR_MSG_REMOVE 63
+#define PR_MSG_MAIN 64
+
 class PilotReadyScreen : public LogisticsScreen
 {
 
