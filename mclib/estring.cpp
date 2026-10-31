@@ -269,7 +269,9 @@ void	EString::ChecEBufferDoRealloc()
 
 		Alloc( Cur_Length );
 
-		memcpy( m_pBuffer + 1, p_Data, Cur_Length * sizeof( EChar ) );
+		// an empty string's Data() is NULL; memcpy with NULL is UB even for 0 bytes
+		if ( Cur_Length > 0 )
+			memcpy( m_pBuffer + 1, p_Data, Cur_Length * sizeof( EChar ) );
 		m_pBuffer->m_Data_Length = Cur_Length;
 
 	}

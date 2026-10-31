@@ -306,4 +306,36 @@ TEST_CASE("FitIniFile reads an array and a string on the last line of a file")
 	remove(path);
 }
 
+// Hex numbers are parsed digit by digit from the right; a value with more
+// than 8 digits shifted an int by 32 or more (UBSan, found by the UI smoke
+// walks). Digits past the 8th are now ignored, as a 32-bit value has no room
+// for them; leading zeros, the case seen in data, read as before.
+TEST_CASE("FitIniFile hex values: 32-bit range and zero padding")
+{
+	FitIniFile fit;
+	const std::string path = fixturePath("hex_values.fit");
+	REQUIRE(fit.open(path.c_str()) == NO_ERR);
+	REQUIRE(fit.seekBlock("Hex") == NO_ERR);
+
+	DWORD colour = 0;
+	REQUIRE(fit.readIdULong("Colour", colour) == NO_ERR);
+	CHECK(colour == 0xFF000000u);
+
+	DWORD padded = 0;
+	REQUIRE(fit.readIdULong("Padded", padded) == NO_ERR);
+	CHECK(padded == 0xAu);
+
+	long longPadded = 0;
+	REQUIRE(fit.readIdLong("LongPadded", longPadded) == NO_ERR);
+	CHECK(longPadded == 0x10);
+
+	int intPadded = 0;
+	REQUIRE(fit.readIdInt("IntPadded", intPadded) == NO_ERR);
+	CHECK(intPadded == 0xF);
+
+	unsigned char byteValue = 0;
+	REQUIRE(fit.readIdUChar("ByteValue", byteValue) == NO_ERR);
+	CHECK(byteValue == 0x7F);
+}
+
 } // TEST_SUITE("FileStack")
