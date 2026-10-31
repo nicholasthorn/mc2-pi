@@ -210,9 +210,9 @@ TEST_CASE("optional keys keep their defaults when missing")
 
 // Writes a two-segment scenario to a scratch file in the working directory
 // (the build tree) with the given extra [Bench] lines and per-segment lines,
-// loads it and returns load()'s answer.
+// loads it (into *out when given) and returns load()'s answer.
 static bool loadScratch(const char* benchExtra, const char* seg0, const char* seg1,
-		char* err, size_t errSize)
+		char* err, size_t errSize, BenchScenario* out = nullptr)
 {
 	const char* path = "bench_scratch.fit";
 	FILE* fp = fopen(path, "wb");
@@ -223,13 +223,83 @@ static bool loadScratch(const char* benchExtra, const char* seg0, const char* se
 			benchExtra, seg0, seg1);
 	fclose(fp);
 
-	BenchScenario s;
+	BenchScenario local;
+	BenchScenario& s = out ? *out : local;
 	FitIniFile fit;
 	REQUIRE(fit.open(path) == 0);
 	const bool ok = s.load(fit, err, errSize);
 	fit.close();
 	remove(path);
 	return ok;
+}
+
+TEST_CASE("the shipped mc2_19 scenario loads, each shot inside its segment")
+{
+	BenchScenario s;
+	char err[128] = "";
+	FitIniFile fit;
+	REQUIRE(fit.open(MC2_TEST_FIXTURE_DIR "/bench/mc2_19.fit") == 0);
+	REQUIRE_MESSAGE(s.load(fit, err, sizeof(err)), err);
+	fit.close();
+
+	for (long i = 0; i < s.numSegments; i++)
+		if (s.segments[i].shot >= 0)
+			CHECK(s.segmentAt(s.segments[i].shot) == i);
+}
+
+TEST_CASE("camera keys are sorted by frame across segments")
+{
+	// segment 0's second key comes after segment 1's only key
+	BenchScenario s;
+	char err[128] = "";
+	REQUIRE_MESSAGE(loadScratch("",
+			"l NumKeys = 2\nf[6] Key0 = 0, 0, 0, 30, 0, 1000\nf[6] Key1 = 500, 300, 0, 30, 0, 1000",
+			"l NumKeys = 1\nf[6] Key0 = 200, 100, 0, 30, 0, 1000",
+			err, sizeof(err), &s), err);
+
+	REQUIRE(s.numKeys == 3);
+	CHECK(s.keys[0].frame == 0);
+	CHECK(s.keys[1].frame == 200);
+	CHECK(s.keys[2].frame == 500);
+	// so cameraAt interpolates 200 -> 500, not 0 -> 500
+	CHECK(s.cameraAt(350).dx == doctest::Approx(200.0f));
+}
+
+TEST_CASE("a camera key needs all six values")
+{
+	char err[128] = "";
+	CHECK_FALSE(loadScratch("", "l NumKeys = 1\nf[5] Key0 = 0, 0, 0, 30, 0",
+			"", err, sizeof(err)));
+	CHECK(std::strstr(err, "Segment0") != nullptr);
+	CHECK(loadScratch("", "l NumKeys = 1\nf[6] Key0 = 0, 0, 0, 30, 0, 1000",
+			"", err, sizeof(err)));
+}
+
+TEST_CASE("a Shot must fall inside its own segment")
+{
+	// segments: 0 = [0, 100), 1 = [100, Frames)
+	char err[128] = "";
+	SUBCASE("on the segment's first frame")
+	{
+		CHECK_MESSAGE(loadScratch("l Frames = 300", "l Shot = 0", "l Shot = 100",
+				err, sizeof(err)), err);
+	}
+	SUBCASE("on the next segment's start")
+	{
+		CHECK_FALSE(loadScratch("l Frames = 300", "l Shot = 100", "", err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment0") != nullptr);
+	}
+	SUBCASE("before the segment's start")
+	{
+		CHECK_FALSE(loadScratch("l Frames = 300", "", "l Shot = 50", err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment1") != nullptr);
+	}
+	SUBCASE("last segment: at or after Frames")
+	{
+		CHECK_FALSE(loadScratch("l Frames = 300", "", "l Shot = 300", err, sizeof(err)));
+		CHECK(std::strstr(err, "Segment1") != nullptr);
+		CHECK(loadScratch("l Frames = 300", "", "l Shot = 299", err, sizeof(err)));
+	}
 }
 
 TEST_CASE("bad segment names, negative Gather and repeated shots are refused")
@@ -276,6 +346,7 @@ TEST_CASE("bad segment names, negative Gather and repeated shots are refused")
 	}
 	SUBCASE("two segments with the same Shot frame")
 	{
+		// one of them is outside its own segment (segments do not overlap)
 		CHECK_FALSE(loadScratch("", "st Name = \"a\"\nl Shot = 150",
 				"st Name = \"b\"\nl Shot = 150", err, sizeof(err)));
 		CHECK(std::strstr(err, "Shot") != nullptr);

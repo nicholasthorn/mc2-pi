@@ -95,7 +95,10 @@ set_source_files_properties(
 add_custom_target(mc2_test_fixtures ALL
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/fixtures
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_CURRENT_SOURCE_DIR}/fixtures ${CMAKE_CURRENT_BINARY_DIR}/fixtures)
+            ${CMAKE_CURRENT_SOURCE_DIR}/fixtures ${CMAKE_CURRENT_BINARY_DIR}/fixtures
+    # the shipped bench scenarios, so a test can check they still load
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${MC2_SRC}/bench ${CMAKE_CURRENT_BINARY_DIR}/fixtures/bench)
 add_dependencies(mc2_tests mc2_test_fixtures)
 target_compile_definitions(mc2_tests PRIVATE MC2_TEST_FIXTURE_DIR="fixtures")
 
