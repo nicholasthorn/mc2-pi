@@ -51,7 +51,7 @@ land and note the PR.
     park the mouse at the centre of the window.
   - Check `fix/bench-review` first: another session has uncommitted edits to
     these files.
-- [ ] **B1. Smoke runs can miss `STOP` lines** (fixed on `fix/review-ci`, no PR yet) (`scripts/smoke.sh:82`; from
+- [x] **B1. Smoke runs can miss `STOP` lines** (fixed on `fix/review-ci`) (`scripts/smoke.sh:82`; from
       `b36ea54`).
   - The pattern is anchored (`^STOP: `), but `logmsg()` adds no newline, and
     369 of 387 `STOP` format strings and about 102 `PAUSE` strings have none
@@ -70,20 +70,20 @@ land and note the PR.
 
 **Build, CI and scripts**
 
-- [ ] **B2.** `smoke.yml:56` game-data cache key misses the code the data tools
+- [x] **B2.** (fixed on `fix/review-ci`) `smoke.yml:56` game-data cache key misses the code the data tools
       link (`mclib/file.cpp`, `mclib/mlr`, `mclib/msl*`, `stuff`,
       `GameOS/src`), so data-tool changes there test stale data. Hash
       `mclib/**` and `GameOS/src/**` too. (`d772bdc`)
-- [ ] **B3.** `scripts/cppcheck_gate.py:79-96` ignores cppcheck's return code,
+- [x] **B3.** (fixed on `fix/review-ci`) `scripts/cppcheck_gate.py:79-96` ignores cppcheck's return code,
       so a cppcheck that fails without printing findings reports "0 new" and
       passes. Fail on a non-zero return code with no findings parsed.
-- [ ] **B4.** `scripts/check.sh:169` compares the gate's `NEW ... (xN)` lines as
+- [x] **B4.** (fixed on `fix/review-ci`) `scripts/check.sh:169` compares the gate's `NEW ... (xN)` lines as
       text when the local and baseline cppcheck versions differ, so going from
       x2 to x1 counts as a new finding. Compare per-key counts. (`ea07d53`)
-- [ ] **B5.** `scripts/validate_shaders.py:19-24` does not validate the
+- [x] **B5.** (fixed on `fix/review-ci`) `scripts/validate_shaders.py:19-24` does not validate the
       `#version 330..410` + `GL_ARB_shading_language_420pack` header that
       `buildShaderHeader()` emits (the WSLg path). Add that variant.
-- [ ] **B6.** `tests/unit/CMakeLists.txt:85` copies fixtures only at configure
+- [x] **B6.** (fixed on `fix/review-ci`) `tests/unit/CMakeLists.txt:85` copies fixtures only at configure
       time, so incremental local runs test stale fixtures. Copy them with a
       build-time dependency.
 - [ ] **B7. mc2_17 smoke at 3000 frames is flaky** (found while verifying

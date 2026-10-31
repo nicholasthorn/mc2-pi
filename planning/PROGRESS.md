@@ -54,6 +54,10 @@ Added 2026-10-31. Not started.
       scripts. Run `/code-review` per batch, collect the confirmed findings in
       one list, then fix them through PRs, one area per PR. Skip what PR #5
       already had reviewed.
+  - 2026-10-31: review done (88 commits, six areas). Findings and their
+    status: `planning/REVIEW-PI-PORT.md`. Fixed so far: G1 (#13), P1, T2,
+    T4 and most of T3 (#12), B1-B6 (`fix/review-ci`). Still open: T1, the
+    rest of T3, T5, B7, R1, P2, E1.
 - [ ] **Move all agents onto the updated agent process**: workflows, the
       three-tier process, and PRs into `pi-port` instead of merging or pushing to
       it directly. Update `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` to
@@ -341,6 +345,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: code review of all of `pi-port` (`planning/REVIEW-PI-PORT.md`): 1 high, 3 medium, 13 low findings, plus a flaky mc2_17 smoke found while verifying (B7). Build/CI fixes (branch `fix/review-ci`): smoke catches `STOP` lines that land mid-line and `logmsg` ends each message with a newline; the smoke game-data cache key hashes all of `mclib` and `GameOS`; the cppcheck gate exits 2 when cppcheck or the gate itself fails, and `check.sh` reports it instead of passing; `check.sh` compares cppcheck findings by count; the shader validator also checks the GLSL 3.30 + 420pack header; unit-test fixtures are copied afresh on every build. Batch checks (GL and GLES builds, unit tests, smoke) on Ubuntu 26.04; MSVC, Clang and arm64 left to CI.
 - 2026-10-31: Back-ports from the remaster (branch `fix/backport-mech-save`): `BattleMech` checks `sensorSystem` before every write (a mech with no sensor component, or whose profile load bailed early, has none); `.mdf` component ids past `masterList` are dropped like empty slots and crit-space bytes past `ItemLocationToInvLocation` mark the space empty; `.fit` mech profiles with too many items or an out-of-range `MasterID` are rejected (`Fatal()` only logged, then wrote past `inventory[]`) and crit spaces past the populated inventory are empty; the campaign dialog no longer scans every save game first, each save is version-checked once, and rejected list entries are freed. Not ported: `a03e13a2` (stub mech types do not exist here), `aa20a308` (a `badLoad` move map already exits at mission load), `84e1774a` (Omnitech work).
 - 2026-10-31: back-ported the mission / ABL hardening group from the remaster: a mission with no parts still gets team 0 and commander 0, `Mission::destroy` clears `Team::home` / `Commander::home`, `Mission::init` frees every old commander, a missing or invalid ABL file makes `ABLi_preProcess` return -1 (and `ABLi_loadLibrary` treats any negative handle as a failure), and `execExpression` no longer dereferences a NULL operand type (branch `fix/backport-mission-abl`).
 - 2026-10-31: quick fixes from the tidy-up list: `FitIniFile` finds a key (scalar, string or array) on the last line of a file without `FITend` (no stock file has that shape); unused `object_tex` shaders deleted and the shader validator fails on `#version`; stale docs fixed (vsync-off numbers, panning, #6 log line, MSVC `small` trap); `mission.cpp` item closed with no change needed.
