@@ -32,6 +32,10 @@ public:
 
 	bool			rpJustAdded;
 
+	// MechCommander Omnitech's ABL setsalvagecraftenabled / togglesalvagecraft:
+	// -1 = the mission's own setting, 0 / 1 = off / on. Mission::init resets it.
+	int				salvageCraftOverride;
+
 	static LogisticsData*		instance;
 
 	LogisticsComponent* getComponent( int componentID );

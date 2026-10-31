@@ -485,7 +485,7 @@ long Building::updateAnimations (void)
 		}
 	}
 	else*/
-	if (((BuildingTypePtr)getObjectType())->resourcePoints)
+	if (getResourcePoints())
 	{
 		if (!MPlayer)
 		{
@@ -969,17 +969,17 @@ long Building::setTeamId (long _teamId, bool setup)
 	if (turn > 10)
 		appearance->flashBuilding(5.0,0.5,highLight[Team::relations[teamId][Team::home->getId()]]);
 		
-	if ((turn > 10) && ((BuildingTypePtr)getObjectType())->resourcePoints)
+	if ((turn > 10) && getResourcePoints())
 	{
 		if (MPlayer) {
 			if (MPlayer->isServer())
-				MPlayer->sendReinforcement(((BuildingTypePtr)getObjectType())->resourcePoints, 0, "noname", commanderId, getPosition(), 6);
+				MPlayer->sendReinforcement(getResourcePoints(), 0, "noname", commanderId, getPosition(), 6);
 				//MPlayer->playerInfo[commanderId].resourcePoints += ((BuildingTypePtr)getObjectType())->resourcePoints;
 			if (teamId == Team::home->getId())
 				soundSystem->playBettySample(BETTY_RESOURCES);
 		}
 		else {
-			LogisticsData::instance->addResourcePoints(((BuildingTypePtr)getObjectType())->resourcePoints);
+			LogisticsData::instance->addResourcePoints(getResourcePoints());
 			soundSystem->playBettySample(BETTY_RESOURCES);
 		}
 	}
@@ -1123,15 +1123,33 @@ void Building::render (void) {
 }
 
 //---------------------------------------------------------------------------
-char* Building::getName (void) 
+char* Building::getName (void)
 {
-	if (((BuildingTypePtr)getObjectType())->buildingTypeName != -1) 
+	if (customName[0])
+		return(customName);
+
+	if (((BuildingTypePtr)getObjectType())->buildingTypeName != -1)
 	{
 		cLoadString(((BuildingTypePtr)getObjectType())->buildingTypeName, lastName, 254);
 		return(lastName);
 	}
 
 	return(NULL);
+}
+
+//---------------------------------------------------------------------------
+long Building::getResourcePoints (void)
+{
+	if (fixedResourcePoints >= 0)
+		return(fixedResourcePoints);
+	return(((BuildingTypePtr)getObjectType())->resourcePoints);
+}
+
+//---------------------------------------------------------------------------
+void Building::setCustomName (const char* name)
+{
+	strncpy(customName, name ? name : "", sizeof(customName) - 1);
+	customName[sizeof(customName) - 1] = '\0';
 }
 
 //---------------------------------------------------------------------------

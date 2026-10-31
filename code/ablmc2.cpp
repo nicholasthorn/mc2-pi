@@ -108,6 +108,10 @@
 #include"logistics.h"
 #endif
 
+#include"bldng.h"
+#include"logisticsdata.h"
+#include<vector>
+
 MoverGroupPtr			CurGroup = NULL;
 GameObjectPtr			CurObject = NULL;
 long					CurObjectClass = 0;
@@ -6981,6 +6985,366 @@ void execAutoRepairWithinRadius (void) {
 }
 
 //*****************************************************************************
+// More MechCommander Omnitech commands, used by its own campaigns (mw2_*,
+// a_*, e_*, ...). Written from the 6.28 changelog (version.txt) and the
+// missions' usage, on stock engine calls; no Omnitech code.
+//*****************************************************************************
+
+// Brain changes (setbrain, and addmovertoplayer's switch to pbrain) are
+// queued: compiling a brain resets the ABL compiler's globals, and the unit
+// asking may be running the brain being replaced. Mission::update applies
+// the queue before any script runs that frame.
+struct QueuedBrain {
+	GameObjectWatchID	who;
+	char				name[64];
+};
+static std::vector<QueuedBrain> QueuedBrains;
+
+static void queueBrain (GameObjectPtr obj, const char* name) {
+
+	if (!obj || !name || !name[0])
+		return;
+	QueuedBrain q;
+	q.who = obj->getWatchID();
+	strncpy(q.name, name, sizeof(q.name) - 1);
+	q.name[sizeof(q.name) - 1] = '\0';
+	QueuedBrains.push_back(q);
+}
+
+void ablClearQueuedBrains (void) {
+
+	QueuedBrains.clear();
+}
+
+void ablApplyQueuedBrains (void) {
+
+	if (QueuedBrains.empty())
+		return;
+	std::vector<QueuedBrain> todo;
+	todo.swap(QueuedBrains);
+	for (size_t i = 0; i < todo.size(); i++) {
+		GameObjectPtr obj = ObjectManager->getByWatchID(todo[i].who);
+		MechWarriorPtr pilot = obj ? obj->getPilot() : NULL;
+		if (!pilot)
+			continue;
+		FullPathFileName brainFile;
+		brainFile.init(warriorPath, todo[i].name, ".abl");
+		if (!fileExists(brainFile)) {
+			fprintf(stderr, "setbrain: no brain %s\n", (const char*)brainFile);
+			continue;
+		}
+		long numErrors = 0, numLinesProcessed = 0;
+		long handle = ABLi_preProcess(brainFile, &numErrors, &numLinesProcessed);
+		if (handle < 0)
+			continue;
+		pilot->setBrainName(todo[i].name);
+		pilot->setBrain(handle);
+		fprintf(stderr, "setbrain: part %ld now runs %s\n", obj->getPartId(), todo[i].name);
+	}
+}
+
+// Moves a mover to another team and commander: the steps of the stock
+// GameObjectManager::tradeMover (team with its sensor and pilot, roster,
+// group, mover lists), without marking it salvage or resetting its watch
+// ID, plus the player's force bar. Single player only (multiplayer rosters
+// are not kept here).
+static void moveMoverToForce (MoverPtr mover, long teamId, long commanderId) {
+
+	if (MPlayer ||
+		(teamId < 0) || (teamId >= Team::numTeams) || !Team::teams[teamId] ||
+		(commanderId < 0) || (commanderId >= Commander::numCommanders))
+		return;
+	// ControlGui only takes the home commander's units off the force bar
+	mission->missionInterface->removeMover(mover);
+	mover->setSelected(false);
+	if (mover->getGroup())
+		mover->getGroup()->remove(mover);
+	// setup = true adds the sensor and pilot to the new team; it also takes
+	// the mover off its old team's roster
+	mover->setTeamId(teamId, true);
+	Team::teams[teamId]->addToRoster(mover);
+	mover->setCommanderId(commanderId);
+	ObjectManager->modifyMoverLists(mover, MOVERLIST_TRADE);
+	// orders and alarms from its old side (the new brain sets its own)
+	if (mover->getPilot()) {
+		mover->getPilot()->clearAlarms();
+		mover->getPilot()->clearCurTacOrder();
+	}
+	if (commanderId == Commander::home->getId()) {
+		mover->setControl(CONTROL_PLAYER);
+		mover->setLocalMoverId(0);
+		mission->missionInterface->addMover(mover);
+		mover->setOnGUI(true);
+	}
+	else
+		mover->setControl(CONTROL_AI);
+}
+
+void execAddMoverToPlayer (void) {
+
+	//-----------------------------------------------------
+	//	ADD MOVER TO PLAYER (Omnitech):
+	//		Switches a mech or vehicle to the given team and
+	//		commander (0, 0 = the player; 0, 2 = allied), adding
+	//		it to the player's force, and gives it pbrain.
+	//		PARAMS:	integer		part id
+	//				integer		team id
+	//				integer		commander id
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	long teamId = ABLi_popInteger();
+	long commanderId = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover())
+		return;
+	moveMoverToForce((MoverPtr)obj, teamId, commanderId);
+	queueBrain(obj, "pbrain");
+}
+
+void execRemoveMoverFromPlayer (void) {
+
+	//-----------------------------------------------------
+	//	REMOVE MOVER FROM PLAYER (Omnitech):
+	//		Takes one of the player's mechs or vehicles off the
+	//		player's force: it joins the first allied commander's
+	//		force on the player's team (computer controlled).
+	//		PARAMS:	integer		part id
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover() || (obj->getCommanderId() != Commander::home->getId()))
+		return;
+	long ally = -1;
+	for (long i = 0; i < Commander::numCommanders; i++)
+		if ((i != Commander::home->getId()) && Commander::commanders[i] &&
+			(Commander::commanders[i]->getTeam() == Team::home)) {
+			ally = i;
+			break;
+		}
+	if (ally >= 0)
+		moveMoverToForce((MoverPtr)obj, Team::home->getId(), ally);
+	else
+		fprintf(stderr, "removemoverfromplayer: no allied commander on the player's team; part %ld stays\n", partId);
+}
+
+void execSetBrain (void) {
+
+	//-----------------------------------------------------
+	//	SET BRAIN (Omnitech):
+	//		Gives a unit a new brain (file name without .abl, from
+	//		the warrior brains folder). Applied before the next
+	//		frame's scripts run.
+	//		PARAMS:	integer		part id
+	//				char[]		brain name
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	char* brainName = ABLi_popCharPtr();
+
+	queueBrain(getObject(partId), brainName);
+}
+
+void execSetTextMsg (void) {
+
+	//-----------------------------------------------------
+	//	SET TEXT MSG (Omnitech):
+	//		Shows text in the mission's message lines; '*' starts a
+	//		new line. Mode 1 (a box that waits for Enter) and the
+	//		duration are not implemented: every message shows like
+	//		mode 0, for the message lines' own time.
+	//		PARAMS:	integer		mode (0 timed, 1 wait for Enter)
+	//				char[]		text
+	//				integer		seconds (mode 0)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	ABLi_popInteger();
+	char* text = ABLi_popCharPtr();
+	ABLi_popInteger();
+
+	if (!text || !mission || !mission->missionInterface)
+		return;
+	const char* p = text;
+	while (*p) {
+		const char* end = strchr(p, '*');
+		size_t len = end ? (size_t)(end - p) : strlen(p);
+		char line[128];		// ControlGui chat lines hold 127 characters
+		size_t n = (len < sizeof(line) - 1) ? len : sizeof(line) - 1;
+		memcpy(line, p, n);
+		line[n] = '\0';
+		if (n)
+			mission->missionInterface->getControlGui()->setChatText("", line, 0x00ffffff, 0);
+		p += len;
+		if (*p == '*')
+			p++;
+	}
+}
+
+void execAddResourcePoints (void) {
+
+	//-----------------------------------------------------
+	//	ADD RESOURCE POINTS (Omnitech): + or -, for the mission.
+	//		PARAMS:	integer		points
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long points = ABLi_popInteger();
+	if (LogisticsData::instance)
+		LogisticsData::instance->addResourcePoints(points);
+}
+
+void execAddMoney (void) {
+
+	//-----------------------------------------------------
+	//	ADD MONEY (Omnitech): C-Bills, + or -.
+	//		PARAMS:	integer		amount
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long amount = ABLi_popInteger();
+	if (LogisticsData::instance)
+		LogisticsData::instance->addCBills(amount);
+}
+
+void execSetSalvageCraftEnabled (void) {
+
+	//-----------------------------------------------------
+	//	SET SALVAGE CRAFT ENABLED (Omnitech): the salvage craft
+	//		support option for the rest of the mission.
+	//		PARAMS:	boolean		enabled
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	bool enabled = ABLi_popBoolean();
+	if (LogisticsData::instance)
+		LogisticsData::instance->salvageCraftOverride = enabled ? 1 : 0;
+}
+
+void execToggleSalvageCraft (void) {
+
+	//-----------------------------------------------------
+	//	TOGGLE SALVAGE CRAFT (Omnitech): flips the salvage craft
+	//		support option.
+	//		PARAMS:	NONE
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	if (LogisticsData::instance)
+		LogisticsData::instance->salvageCraftOverride = LogisticsData::instance->canHaveSalavageCraft() ? 0 : 1;
+}
+
+void execSetTxtBuildingName (void) {
+
+	//-----------------------------------------------------
+	//	SET TXT BUILDING NAME (Omnitech): a building's displayed
+	//		name, as text (Omnitech also takes turrets and gates;
+	//		not done here).
+	//		PARAMS:	integer		building id
+	//				char[]		name
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long objectId = ABLi_popInteger();
+	char* name = ABLi_popCharPtr();
+
+	GameObjectPtr obj = getObject(objectId);
+	if (obj && (obj->getObjectClass() == BUILDING))
+		((BuildingPtr)obj)->setCustomName(name);
+}
+
+void execSetFixedBuildingRP (void) {
+
+	//-----------------------------------------------------
+	//	SET FIXED BUILDING RP (Omnitech): resource points a
+	//		building gives when captured; makes it capturable.
+	//		PARAMS:	integer		building id
+	//				integer		resource points
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long objectId = ABLi_popInteger();
+	long points = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(objectId);
+	if (obj && (obj->getObjectClass() == BUILDING))
+		((BuildingPtr)obj)->setFixedResourcePoints(points);
+}
+
+void execDamageMechArmor (void) {
+
+	//-----------------------------------------------------
+	//	DAMAGE MECH ARMOR (Omnitech): random damage to every
+	//		front armor location of a mech (up to its current
+	//		armor there).
+	//		PARAMS:	integer		mech part id
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || (obj->getObjectClass() != BATTLEMECH))
+		return;
+	BattleMechPtr mech = (BattleMechPtr)obj;
+	for (long loc = MECH_ARMOR_LOCATION_HEAD; loc <= MECH_ARMOR_LOCATION_RLEG; loc++) {
+		long current = (long)mech->armor[loc].curArmor;
+		if (current > 0)
+			mech->armor[loc].curArmor -= (float)RandomNumber(current + 1);
+	}
+}
+
+void execDestroyMechBodyLocation (void) {
+
+	//-----------------------------------------------------
+	//	DESTROY MECH BODY LOCATION (Omnitech):
+	//		PARAMS:	integer		mech part id
+	//				integer		location (0 head, 1 ctorso, 2 ltorso,
+	//							3 rtorso, 4 larm, 5 rarm, 6 lleg, 7 rleg)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	long location = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || (obj->getObjectClass() != BATTLEMECH) || obj->isDestroyed() ||
+		(location < MECH_BODY_LOCATION_HEAD) || (location >= NUM_MECH_BODY_LOCATIONS))
+		return;
+	((BattleMechPtr)obj)->destroyBodyLocation(location);
+}
+
+void execSetMechGesture (void) {
+
+	//-----------------------------------------------------
+	//	SET MECH GESTURE (Omnitech): poses a disabled mech;
+	//		ignored for others. The id is taken as a mech state
+	//		goal (MECH_STATE_*: 7 fallen forward, 8 fallen
+	//		backward): Omnitech documents "7 (fallen backward)",
+	//		which matches the states, not the gesture table (where
+	//		7 is running). The appearance animates into it.
+	//		PARAMS:	integer		mech part id
+	//				integer		state id (0 to 9)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	long state = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || (obj->getObjectClass() != BATTLEMECH) || !obj->isDisabled() ||
+		(state < MECH_STATE_PARKED) || (state > MECH_STATE_LIMPING_RIGHT) || !obj->getAppearance())
+		return;
+	obj->getAppearance()->setGestureGoal(state);
+}
+
+//*****************************************************************************
 
 void initABL (void) {
 
@@ -7106,8 +7470,7 @@ void initABL (void) {
 //	ABLi_addFunction("checkobjectivetimer", false, "i", "r", execCheckObjectiveTimer);
 	ABLi_addFunction("setobjectivestatus", false, "ii", "i", execSetObjectiveStatus);
 	ABLi_addFunction("checkobjectivestatus", false, "i", "i", execCheckObjectiveStatus);
-//	ABLi_addFunction("setobjectivetype", false, "ii", "i", execSetObjectiveType);
-//	ABLi_addFunction("checkobjectivetype", false, "i", "i", execCheckObjectiveType);
+//	setobjectivetype / checkobjectivetype: registered with the Omnitech commands below
 	ABLi_addFunction("playdigitalmusic", false, "i", "i", execPlayDigitalMusic);
 	ABLi_addFunction("stopmusic", false, NULL, "i", execStopMusic);
 	ABLi_addFunction("playsoundeffect", false, "i", "i", execPlaySoundEffect);
@@ -7295,7 +7658,22 @@ void initABL (void) {
 	ABLi_addFunction("scanareacapture", false, "*", "i", execScanAreaCapture);
 	ABLi_addFunction("scanarearepair", false, "*", "i", execScanAreaRepair);
 	ABLi_addFunction("autorepairwithinradius", false, "i*", NULL, execAutoRepairWithinRadius);
-	
+	ABLi_addFunction("addmovertoplayer", false, "iii", NULL, execAddMoverToPlayer);
+	ABLi_addFunction("removemoverfromplayer", false, "i", NULL, execRemoveMoverFromPlayer);
+	ABLi_addFunction("setbrain", false, "iC", NULL, execSetBrain);
+	ABLi_addFunction("settextmsg", false, "iCi", NULL, execSetTextMsg);
+	ABLi_addFunction("addresourcepoints", false, "i", NULL, execAddResourcePoints);
+	ABLi_addFunction("addmoney", false, "i", NULL, execAddMoney);
+	ABLi_addFunction("setsalvagecraftenabled", false, "b", NULL, execSetSalvageCraftEnabled);
+	ABLi_addFunction("togglesalvagecraft", false, NULL, NULL, execToggleSalvageCraft);
+	ABLi_addFunction("settxtbuildingname", false, "iC", NULL, execSetTxtBuildingName);
+	ABLi_addFunction("setfixedbuildingrp", false, "ii", NULL, execSetFixedBuildingRP);
+	ABLi_addFunction("damagemecharmor", false, "i", NULL, execDamageMechArmor);
+	ABLi_addFunction("destroymechbodylocation", false, "ii", NULL, execDestroyMechBodyLocation);
+	ABLi_addFunction("setmechgesture", false, "ii", NULL, execSetMechGesture);
+	ABLi_addFunction("setobjectivetype", false, "ii", "i", execSetObjectiveType);
+	ABLi_addFunction("checkobjectivetype", false, "i", "i", execCheckObjectiveType);
+
 	//static long Godzilla = 120;
 	//static long GodzillaList[5] = {10, 20, 30, 40, 50};
 	//ABLi_registerInteger("godzilla", &Godzilla);

@@ -419,6 +419,43 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    (750; Omnitech 1500) on V3D are not measured.
    The 68 missions of Omnitech's other campaigns (`mw2_*`, `e_*`, `a_*`,
    `x_*`) have not been run.
+11. **Omnitech's other campaigns (2026-10-31, branch `omnitech-campaigns`).**
+   The 68 missions outside Clan Wars (`mw2_*`, `e_*`, `a_*`, `x_*`, `p`,
+   `e3demo`): 45 passed a 300-frame smoke at first. The rest:
+   - **13 Omnitech-only ABL commands** (21 missions; 12 use
+     `addmovertoplayer`), now in `code/ablmc2.cpp`, written from the 6.28
+     changelog and the missions' calls on stock engine calls:
+     `addmovertoplayer` / `removemoverfromplayer` (the stock `tradeMover`
+     steps: team with sensor and pilot, roster, group, mover lists; plus the
+     force bar, control, old orders cleared; not salvage, single player
+     only; the joining unit gets `pbrain`), `setbrain`,
+     `settextmsg` (message lines, `*` = new line; mode 1's "wait for
+     Enter" box and the duration are not done), `addresourcepoints`,
+     `addmoney`, `setsalvagecraftenabled` / `togglesalvagecraft` (a
+     per-mission override of the support option), `settxtbuildingname`
+     and `setfixedbuildingrp` (per-building name / capture RP; buildings
+     only, not turrets or gates), `damagemecharmor`,
+     `destroymechbodylocation`, `setmechgesture` (the id read as a mech
+     state, 7 / 8 fallen forward / backward, which fits Omnitech's "7
+     (fallen backward)" better than the gesture table); plus the stock
+     `setobjectivetype` / `checkobjectivetype`, registered (they act on the
+     old objectives array, a no-op like `setobjectivestatus`). Brain
+     changes are queued and applied at the start of the next
+     `Mission::update`: compiling a brain resets the ABL compiler's
+     globals, and the calling unit may be running the brain being
+     replaced. Checked in play by injecting calls into mission `mw2_n_0`
+     (test copy): the APC joined the force bar, both brains switched, the
+     message showed on two lines.
+   - **Paletted TGAs**: sky 12 (`tgl/512/sky12_*`, missions `e_4_7`,
+     `mw2_n_6`) is 8-bit colour-mapped, which `Image::loadTGA` refused;
+     now expanded through the palette.
+   - **Weapon damage over 255** (`mw2_n_0`): the `WeaponShotInfo` check is
+     the multiplayer packing limit; single player now only requires it
+     non-negative.
+   - **More than 60 off-map areas** (`mw2_8_1`): `offMapAreas` overran the
+     `GlobalMap` object (found by ASan); `MAX_OFFMAP_AREAS` 120 as in
+     Omnitech, and the fill is bounded.
+   The test folder now uses Omnitech's own `tgl.fst` (readable since #31).
 
 ## Scope if we do this
 

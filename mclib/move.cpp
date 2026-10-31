@@ -1733,9 +1733,18 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 	Assert(numLinksRead == numDoorLinks, 0, " GlobalMap.init: Incorrect Links count ");
 
 	numOffMapAreas = 0;
+	bool tooManyOffMap = false;
 	for (int i = 0; i < numAreas; i++)
 		if (areas[i].offMap) {
-			offMapAreas[numOffMapAreas++] = i;
+			// MAX_OFFMAP_AREAS bounds the list (it used to overrun the
+			// GlobalMap object on Omnitech maps: mw2_8_1); every off-map
+			// area is still closed
+			if (numOffMapAreas < MAX_OFFMAP_AREAS)
+				offMapAreas[numOffMapAreas++] = i;
+			else if (!tooManyOffMap) {
+				fprintf(stderr, "GlobalMap: more than %d off-map areas; the rest are not listed\n", MAX_OFFMAP_AREAS);
+				tooManyOffMap = true;
+			}
 			closeArea(i);
 			}
 		else
