@@ -641,6 +641,19 @@ int32_t ABLi_preProcess (const char* sourceFileName, long* numErrors, long* numL
 	getToken();
 
 	SymTableNodePtr moduleIdPtr = moduleHeader();
+	if (!moduleIdPtr) {
+		// No module identifier: the file is missing (ablFileOpenCB only STOPs
+		// and reports success) or not ABL. Everything below dereferences the
+		// module, so give up with -1, which setBrain() and ABLModule::init()
+		// already treat as "no module".
+		fprintf(stderr, "ABL: missing or invalid module file [%s]\n", source_fn);
+		while (closeSourceFile() == ABL_NO_ERR)
+			;
+		if (numErrors)
+			*numErrors = errorCount;
+		free(source_fn);
+		return(-1);
+	}
 	CurModuleIdPtr = moduleIdPtr;
 	CurRoutineIdPtr = moduleIdPtr;
 
@@ -981,9 +994,9 @@ ABLModulePtr ABLi_loadLibrary (const char* sourceFileName, long* numErrors, long
 	// Preprocess the library. Note that a library should be loaded
 	// just once.
 	int libraryHandle = ABLi_preProcess(sourceFileName, numErrors, numLinesProcessed, numFilesProcessed, printLines);
-	if (libraryHandle < (NumModulesRegistered - 1)) {
-		//------------------
-		// Already loaded...
+	if ((libraryHandle < 0) || (libraryHandle < (NumModulesRegistered - 1))) {
+		//----------------------------------------------------
+		// Already loaded (or failed to load: negative handle)...
 		delete library;
 		library = NULL;
 		CurLibrary = NULL;
@@ -1192,8 +1205,11 @@ SymTableNodePtr moduleHeader (void) {
 		moduleIdPtr->labelIndex = 0;
 		getToken();
 		}
-	else
+	else {
 		syntaxError(ABL_ERR_SYNTAX_MISSING_IDENTIFIER);
+		// Nothing to fill in below: ABLi_preProcess() gives up on NULL.
+		return(NULL);
+	}
 
 	//--------------------------------------------
 	// For now, modules do not have param lists...
