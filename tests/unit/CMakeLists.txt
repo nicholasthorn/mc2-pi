@@ -25,6 +25,7 @@ add_executable(mc2_tests
     test_globalmapio.cpp
     test_jpeg_decode.cpp
     test_pe_strings.cpp
+    test_str_bounded.cpp
     test_frame_stats.cpp
     test_benchscenario.cpp
     test_tga_writer.cpp
@@ -50,6 +51,7 @@ add_executable(mc2_tests
     ${MC2_SRC}/GameOS/gameos/utils/jpeg_decode.cpp
     ${MC2_SRC}/GameOS/gameos/utils/stb_image_impl.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pe_strings.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/str_bounded.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
     ${MC2_SRC}/GameOS/gameos/utils/tga_writer.cpp
 
@@ -77,7 +79,7 @@ set_source_files_properties(
     test_main.cpp heap_shim.cpp test_file_inifile.cpp test_csvfile.cpp
     test_fst_roundtrip.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
-    test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
@@ -85,6 +87,7 @@ set_source_files_properties(
     ${MC2_SRC}/code/benchscenario.cpp
     ${MC2_SRC}/GameOS/gameos/utils/jpeg_decode.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pe_strings.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/str_bounded.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 
 # Fixtures are copied next to the tests and opened by RELATIVE path:
