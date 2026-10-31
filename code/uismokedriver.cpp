@@ -193,6 +193,14 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, MB_MSG_CHANGE_LOADOUT);
 	case UiAction::BuyMechs:
 		return pressButton(screen, MB_MSG_BUY);
+	// in-screen actions: each acts on what the screen has selected, which
+	// its begin() sets (the first variant, the first mech, the first pilot)
+	case UiAction::BuyMech:
+		return pressButton(screen, MB_MSG_ADD);
+	case UiAction::AddToForce:
+		return pressButton(screen, MB_MSG_ADD);
+	case UiAction::AssignPilot:
+		return pressButton(screen, PR_MSG_ADD);
 	case UiAction::None:
 		break;
 	}
@@ -238,7 +246,17 @@ void UiSmokeDriver::update()
 		g_from = r.screen;
 		break;
 	case UiSmokeWalk::Event::Act:
-		if (const char* why = press(r.action)) {
+		if (*uiActionName(r.action)) {
+			// in-screen action: the screen stays
+			if (const char* why = press(r.action)) {
+				snprintf(line, sizeof(line), "FAIL: cannot %s on %s: %s",
+						uiActionName(r.action), uiScreenName(r.screen), why);
+				finish(line, true);
+			} else {
+				printf("[ACTION] %s+%s\n", uiScreenName(r.screen), uiActionName(r.action));
+				fflush(stdout);
+			}
+		} else if (const char* why = press(r.action)) {
 			snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
 					uiScreenName(g_from), uiScreenName(r.screen), why);
 			finish(line, true);
