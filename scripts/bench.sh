@@ -273,6 +273,8 @@ use_renderer() {
 }
 
 export SDL_AUDIODRIVER=dummy
+# a STOP (Fatal, Assert, ABL fatal) ends the run instead of carrying on
+export MC2_STOP_EXITS=1
 export MC2_VSYNC="$VSYNC"
 
 echo "bench: $HOST, commit $COMMIT, governor $GOVERNOR, options.cfg $CFG_HASH, vsync $VSYNC"
