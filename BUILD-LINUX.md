@@ -112,3 +112,17 @@ cp -r assets/ data/ *.cfg *.fst testttxm.tga <location of mc2exe>
 # Running the game
 
 Go to your `mc2exe` folder and execute `./mc2`, your game should hopefully run! Have fun!
+
+# Tested setups (pi-port)
+
+- **Ubuntu 26.04 (WSL2)**: the main development environment. GCC 15.2,
+  Clang 21, CMake 4.2, cppcheck 2.19, glslang 16, SDL2 2.32. For the
+  checks in `scripts/check.sh` and smoke runs also install `cppcheck`,
+  `glslang-tools`, `xvfb` and `mesa-utils`, and build with Ninja:
+  `cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo`.
+- **Ubuntu 24.04**: the CI runners (`.github/workflows/`).
+- **Ubuntu 22.04 (GCC 11)**: still builds. Its SDL2_mixer and SDL2_ttf
+  packages have no CMake config files; `cmake/FindSDL2_*.cmake` fall back to
+  pkg-config (kept for other distros too).
+- Under WSLg, `scripts/smoke.sh` still runs headless (Xvfb); pass
+  `--display` to watch a run.

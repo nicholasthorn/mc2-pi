@@ -25,10 +25,13 @@ original code. Desktop OpenGL stays the default everywhere else.
 | OpenGL ES 3.1 renderer (`-DMC2_GLES=ON`) for the Pi's V3D GPU | Done |
 | Shaders valid as both GLSL ES 3.10 and GLSL 4.20, `#version` chosen at runtime | Done |
 | arm64 (aarch64) build: signed `char`, portable heap, GCC 12 fixes | Done |
-| Linux build fixes (Ubuntu 22.04 / GCC 11), Clang and MSVC fixes | Done |
+| Linux builds from Ubuntu 22.04 (GCC 11) to 26.04 (GCC 15), Clang and MSVC fixes | Done |
 | Crash and undefined-behaviour fixes, many back-ported from [mc2-opengl-remastered](https://github.com/ThranduilsRing/mc2-opengl-remastered), more found by sanitizers and cppcheck | Done, ongoing |
 | CI: builds, unit tests, shader validation, nightly smoke runs, sanitizers, cppcheck | Done |
-| Running on real Pi 4/400 hardware | **Not yet confirmed** (builds and runs on arm64 Linux and under Mesa's software renderer) |
+| Running on real Pi 4/400 hardware | **Done** on a Pi 400 at about 800x600: the GLES build runs mc2_01 at 179 fps and mc2_03 at 181 fps with vsync off (60 with it on); Mesa's software renderer manages 50 to 67 fps |
+| Mod content: MechCommander Omnitech, with all 28 Clan Wars missions | Done: they load and pass a headless smoke run; not yet played through |
+| Benchmarks: deterministic `-bench` runs, scripted battle scenarios with screenshots, `perf` profiles of gameplay frames | Done; first Pi runs pending |
+| Stereo panning for positional sound | Done |
 | Downloadable builds (Pi, Linux, Windows) | Planned ([planning/RELEASES.md](planning/RELEASES.md)); until then, build from source |
 
 ## Platforms
@@ -77,13 +80,19 @@ into it):
 |---|---|---|
 | Unit tests (doctest, CTest) | `ctest --test-dir build --output-on-failure` | Every push, all four configurations; also under ASan + UBSan |
 | Shader validation (GLSL ES 3.10 + 4.20) | `python3 scripts/validate_shaders.py` | Every push |
-| Smoke runs (missions under Xvfb + llvmpipe) | `scripts/smoke.sh --game-dir ~/mc2exe --build-dir build` | Nightly, x64 desktop GL and arm64 GLES; sanitized on x64 |
+| Smoke runs (missions under Xvfb + llvmpipe) | `scripts/smoke.sh --game-dir ~/mc2exe --build-dir build` | Nightly and on PRs that touch code: x64 desktop GL and arm64 GLES; sanitized on x64 |
+| Benchmark (on the Pi, own display) | `scripts/bench.sh --game-dir ~/mc2exe --build-dir build --renderers gpu` | No: run by hand |
 | Static analysis | `scripts/cppcheck_gate.py` against `scripts/cppcheck-baseline.txt` | Changed files every push, full tree nightly |
 
 - Sanitizer builds: configure with `-DMC2_SANITIZE=address,undefined` (GCC/Clang).
 - New source files build with `-Wall -Wextra -Werror` (`MC2_STRICT_WARNINGS`).
 - `-autoexit <frames>` quits cleanly after that many gameplay frames (used by
-  the smoke runs).
+  the smoke runs). Such a run ignores the keyboard and mouse and runs
+  windowed, so it behaves the same on any display.
+- `-bench <csv>` makes a run deterministic (fixed game step, fixed seed) and
+  writes per-frame timings; `bench/README.md` describes scripted scenarios.
+- `MC2_STOP_EXITS=1` makes a `STOP` end the run (the smoke and bench scripts
+  set it), so a fatal error cannot pass unnoticed.
 - `MC2_VSYNC=0` turns vsync off (on by default), to measure frame rate past
   the display refresh rate.
 - `MC2_SHADER_HOT_RELOAD=1` reloads shaders when their files change (off by
@@ -99,7 +108,7 @@ Conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md) and
 ## Known issues
 
 - No networking: the multiplayer screens are stubs (the menu button is disabled).
-- Sound: no panning or doppler.
+- Sound: no doppler (stereo panning works).
 - `-mission <name>` with a mission that does not exist crashes instead of
   reporting an error.
 - WSLg's GPU driver shows a white screen with desktop GL; use
@@ -109,8 +118,11 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
 
 ## Plans
 
-- **Confirm and tune on real Pi 4/400 hardware**: which missions run, at what
-  frame rate.
+- **Tune on the Pi**: the render backlog in
+  [planning/future-features/PI-RENDER-PERF.md](planning/future-features/PI-RENDER-PERF.md),
+  starting with the frame spikes from files loaded during play.
+- **Mods** ([planning/future-features/MOD-COMPAT.md](planning/future-features/MOD-COMPAT.md)):
+  more Omnitech campaigns, and an MC2X campaign (Dark Gray: Borderworlds).
 - **Downloadable builds** on GitHub Releases
   ([planning/RELEASES.md](planning/RELEASES.md)): a lean package for the Pi
   4/400 on Raspberry Pi OS, tested on hardware before each release, plus
@@ -118,8 +130,9 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
   Windows zip. Engine only; each package includes the tools to build the game
   data.
 - **Quality** ([planning/QUALITY-ROADMAP.md](planning/QUALITY-ROADMAP.md)): more
-  unit tests, the cppcheck cleanup, sanitized smoke on arm64, deterministic smoke
-  runs, frame-time benchmarks, and a Pi as a self-hosted CI runner.
+  unit tests, the cppcheck cleanup, sanitized smoke on arm64, smoke runs that
+  reach the logistics and save/load screens, and a Pi as a self-hosted CI
+  runner.
 - **VR tabletop (exploratory)**: playing a mission as a 3D diorama on a virtual
   table in a Meta Quest headset. A feasibility study and phased plan are in
   [planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md);

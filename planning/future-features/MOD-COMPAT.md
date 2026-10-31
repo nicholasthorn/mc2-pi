@@ -282,7 +282,11 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    `LZDecomp` is zlib (the original is x86 inline asm, `#ifndef
    LINUX_BUILD`), so it cannot read it. Its 4667 entries are the stock
    ones, so the test setup keeps the stock `tgl.fst`; Omnitech's new
-   models are loose files. Its `art.fst` is zlib and reads.
+   models are loose files. Its `art.fst` is zlib and reads. The remaster
+   already has a C port of Microsoft's LZ decoder (`7d6f9bc6`, with raw
+   entries where `size == realSize` in `3b5f87ca` and bounds fixes
+   `adbf3c9a`, `69ee9782`): back-porting it would read Omnitech's `tgl.fst`
+   and stop retail-format FSTs decompressing to zeros without an error.
 5. **`.burnin.jpg` colour maps. Done on branch `omnitech-objtypes`.** Clan
    Wars ships only `textures/<mission>.burnin.jpg` (100 maps, all square,
    baseline, 768 to 4096 px). The original engine already had the JPG branch
@@ -439,6 +443,9 @@ public, and its EULA terms differ from ours.
 
 The chosen campaign's first missions load and finish under `-autoexit` on
 desktop GL and the Pi; stock missions still pass the 5-mission smoke.
+
+Test loads: Clan Wars (Omnitech) is the first. For MC2X, use Dark Gray:
+Borderworlds (MC2X r20): it is the campaign that fits MC2X best.
 
 ## Open questions
 
