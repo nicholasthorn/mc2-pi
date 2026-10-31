@@ -52,7 +52,8 @@ TEST_CASE("routes are the buttons a player presses") {
 	CHECK(uiRoute(UiScreen::MechBay, UiScreen::MechLab) == UiAction::ChangeLoadout);
 	CHECK(uiRoute(UiScreen::MechLab, UiScreen::MechBay) == UiAction::Previous);
 	CHECK(uiRoute(UiScreen::MechBay, UiScreen::MechPurchase) == UiAction::BuyMechs);
-	CHECK(uiRoute(UiScreen::MechPurchase, UiScreen::MechBay) == UiAction::Previous);
+	// accept, not "Back": Back sells back everything bought on the screen
+	CHECK(uiRoute(UiScreen::MechPurchase, UiScreen::MechBay) == UiAction::Next);
 
 	// no button for these
 	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MechBay) == UiAction::None);
@@ -64,6 +65,61 @@ TEST_CASE("routes are the buttons a player presses") {
 	for (int i = 0; i < (int)UiScreen::Count; ++i)
 		CHECK(uiRoute(UiScreen::Mission, (UiScreen)i) == UiAction::None);
 	CHECK(uiRoute(UiScreen::Unknown, UiScreen::MainMenu) == UiAction::None);
+}
+
+TEST_CASE("in-screen actions belong to one screen each") {
+	CHECK(uiScreenAction(UiScreen::MechPurchase, "buy", 3) == UiAction::BuyMech);
+	CHECK(uiScreenAction(UiScreen::MechBay, "add", 3) == UiAction::AddToForce);
+	CHECK(uiScreenAction(UiScreen::PilotReady, "pilot", 5) == UiAction::AssignPilot);
+	CHECK(uiScreenAction(UiScreen::MechBay, "buy", 3) == UiAction::None);
+	CHECK(uiScreenAction(UiScreen::MechPurchase, "bu", 2) == UiAction::None);
+	CHECK(uiScreenAction(UiScreen::MainMenu, "add", 3) == UiAction::None);
+	CHECK(std::strcmp(uiActionName(UiAction::BuyMech), "buy") == 0);
+	CHECK(std::strcmp(uiActionName(UiAction::Next), "") == 0);
+}
+
+TEST_CASE("parse reads screen+action steps") {
+	Run r;
+	REQUIRE(r.walk.parse("mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add",
+			r.err, sizeof(r.err)));
+	CHECK(r.walk.numSteps() == 6);
+	CHECK(r.walk.step(4) == UiScreen::MechPurchase);
+	CHECK(r.walk.stepAction(4) == UiAction::BuyMech);
+	CHECK(r.walk.step(5) == UiScreen::MechBay);
+	CHECK(r.walk.stepAction(5) == UiAction::AddToForce);
+	CHECK(r.walk.stepAction(3) == UiAction::None);
+
+	CHECK_FALSE(r.walk.parse("mainmenu,singlemission,briefing,mechbay+buy", r.err, sizeof(r.err)));
+	CHECK(std::strstr(r.err, "mechbay has no action 'buy'") != nullptr);
+	CHECK_FALSE(r.walk.parse("mainmenu+", r.err, sizeof(r.err)));
+	CHECK_FALSE(r.walk.parse("mainmenu,nosuch+buy", r.err, sizeof(r.err)));
+	CHECK(std::strstr(r.err, "unknown screen 'nosuch'") != nullptr);
+}
+
+TEST_CASE("an in-screen action is pressed after the hold, then held again") {
+	Run r;
+	REQUIRE(r.walk.parse("mainmenu,singlemission,briefing,mechbay+add,pilotready",
+			r.err, sizeof(r.err)));
+	r.walk.holdFrames = 2;
+	// skip ahead to the mech bay
+	const UiScreen before[] = { UiScreen::MainMenu, UiScreen::SingleMission, UiScreen::Briefing };
+	for (UiScreen s : before) {
+		CHECK(r.walk.update(s, 0.1f).event == UiSmokeWalk::Event::Shown);
+		CHECK(r.walk.update(s, 0.1f).event == UiSmokeWalk::Event::Waiting);
+		CHECK(r.walk.update(s, 0.1f).event == UiSmokeWalk::Event::Act);
+	}
+	CHECK(r.walk.update(UiScreen::MechBay, 0.1f).event == UiSmokeWalk::Event::Shown);
+	CHECK(r.walk.update(UiScreen::MechBay, 0.1f).event == UiSmokeWalk::Event::Waiting);
+	UiSmokeWalk::Result res = r.walk.update(UiScreen::MechBay, 0.1f);
+	CHECK(res.event == UiSmokeWalk::Event::Act);
+	CHECK(res.action == UiAction::AddToForce);
+	CHECK(res.screen == UiScreen::MechBay);
+	// held again, and must stay up
+	CHECK(r.walk.update(UiScreen::MechBay, 0.1f).event == UiSmokeWalk::Event::Waiting);
+	res = r.walk.update(UiScreen::MechBay, 0.1f);
+	CHECK(res.event == UiSmokeWalk::Event::Act);
+	CHECK(res.action == UiAction::Next);
+	CHECK(res.screen == UiScreen::PilotReady);
 }
 
 TEST_CASE("parse accepts a valid walk") {

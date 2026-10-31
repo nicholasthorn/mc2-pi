@@ -193,6 +193,31 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, MB_MSG_CHANGE_LOADOUT);
 	case UiAction::BuyMechs:
 		return pressButton(screen, MB_MSG_BUY);
+	// in-screen actions: each acts on what the screen has selected, which
+	// its begin() sets (the first mech, the first pilot); buy picks its own
+	// variant, below
+	case UiAction::BuyMech:
+		// the first variant may not fit the mission's drop weight
+		// (MechCommander Omnitech's a_0_2 takes 65 t and lists an Atlas
+		// first), and then "add" in the mech bay stays off: pick one that fits
+		if (MechPurchaseScreen* purchase = MechPurchaseScreen::instance()) {
+			MechListBox& list = purchase->variantListBox;
+			long i = 0;
+			for (; i < list.GetItemCount(); i++) {
+				LogisticsMech* mech = ((MechListBoxItem*)list.GetItem(i))->getMech();
+				if (LogisticsData::instance->canAddMechToForceGroup(mech)
+						&& NO_ERR == LogisticsData::instance->canPurchaseMech(mech->getVariant()))
+					break;
+			}
+			if (i == list.GetItemCount())
+				return "no mech fits the drop weight and the C-bills";
+			list.SelectItem(i);
+		}
+		return pressButton(screen, MB_MSG_ADD);
+	case UiAction::AddToForce:
+		return pressButton(screen, MB_MSG_ADD);
+	case UiAction::AssignPilot:
+		return pressButton(screen, PR_MSG_ADD);
 	case UiAction::None:
 		break;
 	}
@@ -238,7 +263,17 @@ void UiSmokeDriver::update()
 		g_from = r.screen;
 		break;
 	case UiSmokeWalk::Event::Act:
-		if (const char* why = press(r.action)) {
+		if (*uiActionName(r.action)) {
+			// in-screen action: the screen stays
+			if (const char* why = press(r.action)) {
+				snprintf(line, sizeof(line), "FAIL: cannot %s on %s: %s",
+						uiActionName(r.action), uiScreenName(r.screen), why);
+				finish(line, true);
+			} else {
+				printf("[ACTION] %s+%s\n", uiScreenName(r.screen), uiActionName(r.action));
+				fflush(stdout);
+			}
+		} else if (const char* why = press(r.action)) {
 			snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
 					uiScreenName(g_from), uiScreenName(r.screen), why);
 			finish(line, true);

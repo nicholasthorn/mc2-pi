@@ -44,6 +44,8 @@ class MechPurchaseScreen: public LogisticsScreen
 		void				beginDrag( LogisticsMech* pMech );
 		virtual int			handleMessage( unsigned long, unsigned long );
 
+		friend class UiSmokeDriver;	// -uismoke picks a mech that fits the force
+
 	private:
 	
 		MechPurchaseScreen( const MechPurchaseScreen& src );
