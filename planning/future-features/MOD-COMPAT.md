@@ -278,15 +278,16 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
 4. **FST archives built on Windows.** Omnitech's `tgl.fst` and `art.fst`
    name entries `data\tgl\x`; `FastFile::open` now normalises to `/` and
    rehashes (branch). Separately, Omnitech's `tgl.fst` uses Microsoft's
-   original LZ compression (version 0xFADDECAF, not zlib); this port's
-   `LZDecomp` is zlib (the original is x86 inline asm, `#ifndef
-   LINUX_BUILD`), so it cannot read it. Its 4667 entries are the stock
-   ones, so the test setup keeps the stock `tgl.fst`; Omnitech's new
-   models are loose files. Its `art.fst` is zlib and reads. The remaster
-   already has a C port of Microsoft's LZ decoder (`7d6f9bc6`, with raw
-   entries where `size == realSize` in `3b5f87ca` and bounds fixes
-   `adbf3c9a`, `69ee9782`): back-porting it would read Omnitech's `tgl.fst`
-   and stop retail-format FSTs decompressing to zeros without an error.
+   original LZ compression (version 0xFADDECAF, not zlib). **Decoder in
+   (branch `fix/backport-lz-decoder`, back-port of the remaster's
+   `7d6f9bc6` and `3b5f87ca`):** `LZDecomp` reads the original LZ as well
+   as zlib, picked from the first two bytes, and raw entries
+   (`size == realSize`) read. Omnitech's own `tgl.fst` now reads: all 4667
+   entries decode to their exact size, 1947 byte for byte the stock ones,
+   the rest differing only in float last bits and padding bytes, and
+   mc2_01/mc2_03 run with it. The test setup still uses the stock
+   `tgl.fst`, with Omnitech's new models as loose files; switching it is a
+   separate step. Its `art.fst` is zlib and reads.
 5. **`.burnin.jpg` colour maps. Done on branch `omnitech-objtypes`.** Clan
    Wars ships only `textures/<mission>.burnin.jpg` (100 maps, all square,
    baseline, 768 to 4096 px). The original engine already had the JPG branch
@@ -418,6 +419,43 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    (750; Omnitech 1500) on V3D are not measured.
    The 68 missions of Omnitech's other campaigns (`mw2_*`, `e_*`, `a_*`,
    `x_*`) have not been run.
+11. **Omnitech's other campaigns (2026-10-31, branch `omnitech-campaigns`).**
+   The 68 missions outside Clan Wars (`mw2_*`, `e_*`, `a_*`, `x_*`, `p`,
+   `e3demo`): 45 passed a 300-frame smoke at first. The rest:
+   - **13 Omnitech-only ABL commands** (21 missions; 12 use
+     `addmovertoplayer`), now in `code/ablmc2.cpp`, written from the 6.28
+     changelog and the missions' calls on stock engine calls:
+     `addmovertoplayer` / `removemoverfromplayer` (the stock `tradeMover`
+     steps: team with sensor and pilot, roster, group, mover lists; plus the
+     force bar, control, old orders cleared; not salvage, single player
+     only; the joining unit gets `pbrain`), `setbrain`,
+     `settextmsg` (message lines, `*` = new line; mode 1's "wait for
+     Enter" box and the duration are not done), `addresourcepoints`,
+     `addmoney`, `setsalvagecraftenabled` / `togglesalvagecraft` (a
+     per-mission override of the support option), `settxtbuildingname`
+     and `setfixedbuildingrp` (per-building name / capture RP; buildings
+     only, not turrets or gates), `damagemecharmor`,
+     `destroymechbodylocation`, `setmechgesture` (the id read as a mech
+     state, 7 / 8 fallen forward / backward, which fits Omnitech's "7
+     (fallen backward)" better than the gesture table); plus the stock
+     `setobjectivetype` / `checkobjectivetype`, registered (they act on the
+     old objectives array, a no-op like `setobjectivestatus`). Brain
+     changes are queued and applied at the start of the next
+     `Mission::update`: compiling a brain resets the ABL compiler's
+     globals, and the calling unit may be running the brain being
+     replaced. Checked in play by injecting calls into mission `mw2_n_0`
+     (test copy): the APC joined the force bar, both brains switched, the
+     message showed on two lines.
+   - **Paletted TGAs**: sky 12 (`tgl/512/sky12_*`, missions `e_4_7`,
+     `mw2_n_6`) is 8-bit colour-mapped, which `Image::loadTGA` refused;
+     now expanded through the palette.
+   - **Weapon damage over 255** (`mw2_n_0`): the `WeaponShotInfo` check is
+     the multiplayer packing limit; single player now only requires it
+     non-negative.
+   - **More than 60 off-map areas** (`mw2_8_1`): `offMapAreas` overran the
+     `GlobalMap` object (found by ASan); `MAX_OFFMAP_AREAS` 120 as in
+     Omnitech, and the fill is bounded.
+   The test folder now uses Omnitech's own `tgl.fst` (readable since #31).
 
 ## Scope if we do this
 

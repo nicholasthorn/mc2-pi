@@ -229,12 +229,15 @@ on 2026-10-31.
 
 **Back-ports from the remaster not yet done**
 
-- [ ] Original LZ decoder in C (`7d6f9bc6`), raw FST entries when
+- [x] Original LZ decoder in C (`7d6f9bc6`), raw FST entries when
       `size == realSize` (`3b5f87ca`), bounds fixes `adbf3c9a`, `69ee9782`.
-      Omnitech's `tgl.fst` is unreadable without it, and retail FSTs
-      decompress to zeros with no error today. (10-29, 10-31) Still open after
-      #17/#21: Omnitech runs with the stock `tgl.fst` (same 4667 entries) and
-      its new models as loose files (`MOD-COMPAT.md` item 4).
+      (10-31, branch `fix/backport-lz-decoder`) Ported: the C decoder,
+      rewritten against the asm and bounded by `destLen`, chosen by the
+      first two bytes (original LZ starts with a 9-bit CLEAR, so byte 0 is
+      0x00; zlib never is); raw entries, decoded first and copied only if
+      that fails. The bounds fixes were already in from #17/#21. Omnitech's
+      own `tgl.fst` now reads (all 4667 entries) and mc2_01/mc2_03 run with
+      it; the Omnitech test setup still uses the stock one.
 - [x] Mission / ABL hardening (10-31): ported `b71702ba` (no commanders:
       team 0 and commander 0 are created, since STOP only logs), the
       `Team::home` / `Commander::home` reset and the commander re-init leak
@@ -376,6 +379,9 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-10-31: UI smoke, slice 1 (branch `test/ui-smoke`, `future-features/UI-SMOKE.md`): `-uismoke <walk>` walks named front-end screens, pressing the buttons a player would (the same `handleMessage` a click sends, only if the button is enabled), printing `[SCREEN] <name> shown` and `[UISMOKE] done` / `FAIL`. Walk logic is game-free and unit tested (`code/uismokewalk.cpp`); the driver is game glue (`code/uismokedriver.cpp`). `smoke.sh` runs two walks by default after the missions, each with a temporary `XDG_CONFIG_HOME` holding a campaign-save fixture: options tabs then new campaign into mc2_01; single mission mc2_02 through briefing, mech bay, purchase, pilot ready and back. Found: a new campaign skips logistics (mc2_01), single missions are listed only from campaign saves, a single mission starts with no mechs (mech lab and Launch disabled until slice 2). Both walks pass on GL and GLES on Ubuntu 26.04 (llvmpipe); MSVC, Clang, arm64 and sanitized runs left to CI; not run on the Pi.
+- 2026-10-31: MechCommander Omnitech's other campaigns (branch `omnitech-campaigns`): 13 Omnitech-only ABL commands (`addmovertoplayer`, `setbrain`, `settextmsg`, `addresourcepoints`, salvage craft, building name and capture RP, mech damage and gesture, ...) from its changelog, brain changes queued to the start of the next frame; colour-mapped TGAs load (Omnitech's sky 12); weapon damage over 255 allowed outside multiplayer; `MAX_OFFMAP_AREAS` 60 -> 120 with the fill bounded (ASan: it overran the `GlobalMap` object). Details in `MOD-COMPAT.md` item 11.
+
+- 2026-10-31: Back-port of the remaster's original LZ decoder (branch `fix/backport-lz-decoder`): `LZDecomp` reads Microsoft's original LZW (the 2001 asm format) as well as zlib, picked from the first two bytes, every write bounded by `destLen`; `FastFile::readFast` copies raw entries (`size == realSize`) when decoding fails, so uncompressed 0xCADDECAF archives read too. Test-first: `test_lzdecomp.cpp` (a test-only encoder that follows the asm compressor, hand-built streams, multi-block, truncated, over-limit, corrupt, zlib, FSTs through `File::open`; no third-party data). Omnitech's `tgl.fst`: all 4667 entries decode to their exact size, 1947 identical to the stock ones and the rest differ only in float last bits and padding bytes (built by different tools); mc2_01 and mc2_03 smoke-run with it. Built and tested on WSL Ubuntu 26.04 (GCC, desktop GL and GLES); MSVC, Clang, arm64 and the Pi left to CI.
 - 2026-10-31: review of #22: ABL `print()` had the same 20-byte real overflow as `concat()` (now 64 bytes, `snprintf`); the bounded append and the env switch parsing moved to GL-free `GameOS/gameos/utils/str_bounded.cpp` with unit tests; `MC2_STOP_EXITS` treats `false` / `no` / `off` as off; `STOP(("... %s", str))` (the two-argument `InternalFunctionStop`) now prints the `STOP: ` prefix and a newline, so smoke's `^STOP:` check sees it. Ubuntu 26.04: GL and GLES builds, unit tests, Clang; CI's five missions on both renderers (#28).
 - 2026-10-31: mc2_15 segfault fixed (#25): ABL `getRelativePositionToObject` wrote nothing unless the object was a mover, and `coreEscort` passes it an unset local array (ABL local arrays come from `malloc`, unzeroed). `mc2_15_E2_TCD_Mech2` escorts a building (part id 141696), so it ordered a move to leftover heap bytes (glibc free-list pointers, e.g. x = 1.7e18), and `GlobalMap::calcArea` read off the map. The native now always writes its result and uses the virtual `GameObject::relativePosition` for any object (a building returns its own position; no object gives 0,0,0). GLES mc2_15 at 3000 frames: 6/6 pass on Ubuntu 26.04 WSL (before: 1 crash in 8 runs here, most runs in the earlier sweep); desktop GL mc2_15 also run.
 - 2026-10-31: backlog tidy: to-do and tidy-up items done elsewhere ticked (review #26, STOP step 1 #22, agent workflow #8, Omnitech review fixes #17/#21, WSL on Ubuntu 26.04, uninit triage #23/#24); cppcheck baseline regenerated by CI (`static.yml` run 41209792050): 523 -> 413, every `uninitMemberVar`/`uninitDerivedMemberVar` gone; `BUILD-LINUX.md` lists the tested setups; `MOD-COMPAT.md` names the MC2X test campaign and the remaster's LZ decoder; stale worktrees and local branches of merged PRs removed (#27).

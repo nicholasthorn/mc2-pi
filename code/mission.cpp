@@ -156,6 +156,11 @@ extern Stuff::Vector3D debugGVActorPosition;
 
 extern GameObjectFootPrint* tempSpecialAreaFootPrints;
 extern long tempNumSpecialAreas;
+
+// MechCommander Omnitech ABL commands (ablmc2.cpp): brain changes queued by
+// setbrain / addmovertoplayer are applied outside any running script
+extern void ablApplyQueuedBrains (void);
+extern void ablClearQueuedBrains (void);
 extern DWORD ServerPlayerNum;
 
 extern bool useNonWeaponEffects;
@@ -329,6 +334,9 @@ long Mission::update (void)
 			gos_MarkGameplayStarted(missionFileName);
 			gameplayMarked = true;
 		}
+
+		// before any brain or the mission script runs this frame
+		ablApplyQueuedBrains();
 
 		memset(ObjectManager->moverLineOfSightTable, -1, ObjectManager->maxMovers*ObjectManager->maxMovers);
 
@@ -1713,6 +1721,10 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	terminationCounterStarted = 0;
 	// one Mission object is reused for every mission (destroy() then init())
 	gameplayMarked = false;
+	// Omnitech ABL state is per mission
+	ablClearQueuedBrains();
+	if (LogisticsData::instance)
+		LogisticsData::instance->salvageCraftOverride = -1;
 
 	#ifdef LAB_ONLY
 	x=GetCycles();
@@ -3565,9 +3577,8 @@ ObjectiveStatus Mission::checkObjectiveStatus (long objectiveNum)
 //----------------------------------------------------------------------------------
 long Mission::setObjectiveType (long objectiveNum, ObjectiveType type)
 {
-	gosASSERT((objectiveNum >= 0) || objectiveNum < (long)numObjectives);
-
-	if (objectives)
+	// (the original check used || and so passed every number)
+	if (objectives && (objectiveNum >= 0) && (objectiveNum < (long)numObjectives))
 		objectives[objectiveNum].type = type;
 	
 	return(NO_ERR);
@@ -3576,11 +3587,9 @@ long Mission::setObjectiveType (long objectiveNum, ObjectiveType type)
 //----------------------------------------------------------------------------------
 ObjectiveType Mission::checkObjectiveType (long objectiveNum)
 {
-	gosASSERT((objectiveNum >= 0) || objectiveNum < (long)numObjectives);
-		
 	ObjectiveType result = PrimaryGoal;
-	
-	if (objectives)
+
+	if (objectives && (objectiveNum >= 0) && (objectiveNum < (long)numObjectives))
 		result = objectives[objectiveNum].type;
 	
 	return(result);
