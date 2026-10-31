@@ -356,7 +356,7 @@ long LogisticsMissionInfo::load( FitIniFile& file )
 	if ( NO_ERR != campaignFile.open( fileName ) )
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't find file %s", path );
+		sprintf( errorStr, "couldn't find file %s", fileName );
 		return -1;
 	}
 

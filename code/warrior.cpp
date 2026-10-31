@@ -1984,8 +1984,9 @@ bool MechWarrior::injure (float numWounds, bool checkEject) {
 			if (myVehicle)
 				myVehicle->disable(PILOT_DEATH);
 	
-			if (getGroup() && myVehicle)	// myVehicle can be NULL (checked just above)
-				getGroup()->handleMateDestroyed(myVehicle->getWatchID());
+			MoverGroupPtr group = getGroup();
+			if (group && myVehicle)	// myVehicle can be NULL (checked just above)
+				group->handleMateDestroyed(myVehicle->getWatchID());
 	
 			//---------------------------------------
 			// Kill our radio. Dead Men Don't Talk...
@@ -2031,8 +2032,9 @@ void MechWarrior::eject (void) {
 	MoverPtr myVehicle = getVehicle();
 	if (myVehicle) {
 		myVehicle->disable(EJECTION_DEATH);
-		if (getGroup())
-			getGroup()->handleMateEjected(myVehicle->getWatchID());
+		MoverGroupPtr group = getGroup();
+		if (group)
+			group->handleMateEjected(myVehicle->getWatchID());
 	}
 
 	//-------------------------------------------------
