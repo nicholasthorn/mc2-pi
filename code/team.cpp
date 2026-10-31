@@ -189,7 +189,7 @@ void Team::buildRoster (void) {
 	for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
 		MoverPtr mover = ObjectManager->getMover(i);
 		if (mover->getTeamId() == id)
-			roster[rosterSize++] = mover->getWatchID();
+			addToRoster(mover);
 	}
 	
 //	numMechs = objClassTally[0];
@@ -210,8 +210,16 @@ MoverPtr Team::getMover (long index) {
 
 void Team::addToRoster (MoverPtr mover) {
 
-	if (mover)
-		roster[rosterSize++] = mover->getWatchID();
+	// roster[] holds MAX_MOVERS_PER_TEAM (120, in the save format), but
+	// MAX_WARRIORS is 160 since the Omnitech limits, so a team can now have
+	// more movers: past the limit they are left off the roster, logged
+	if (!mover)
+		return;
+	if (rosterSize >= MAX_MOVERS_PER_TEAM) {
+		fprintf(stderr, "Team %ld: more than %d movers, one left off the roster\n", id, MAX_MOVERS_PER_TEAM);
+		return;
+	}
+	roster[rosterSize++] = mover->getWatchID();
 }
 
 //---------------------------------------------------------------------------

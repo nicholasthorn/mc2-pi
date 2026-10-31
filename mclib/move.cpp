@@ -1667,6 +1667,25 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 
 	//--------------
 	// Door Links...
+	// setStartDoor / setGoalDoor fill side 0 of the start and goal doors with
+	// one link per door of an area, so those lists must hold the most doors
+	// any area has (what write() stores). Omnitech's editor can save stale
+	// counts there: grow the lists to fit rather than let a search overrun.
+	long maxDoors = 0;
+	for (long d = 0; d < numDoors; d++)
+		for (long s = 0; s < 2; s++) {
+			const long area = doors[d].area[s];
+			if ((area >= 0) && (area < numAreas) && (areas[area].numDoors > maxDoors))
+				maxDoors = areas[area].numDoors;
+		}
+	long scratchGrow[NUM_DOOR_OFFSETS];
+	long totalGrow = 0;
+	for (long k = 0; k < NUM_DOOR_OFFSETS; k++) {
+		scratchGrow[k] = (doors[numDoors + k].numLinks[0] < maxDoors) ? (maxDoors - doors[numDoors + k].numLinks[0]) : 0;
+		totalGrow += scratchGrow[k];
+	}
+	numDoorLinks += totalGrow;
+
 	doorLinks = (DoorLinkPtr)systemHeap->Malloc(sizeof(DoorLink) * numDoorLinks);
 	gosASSERT(doorLinks != NULL);
 	long numLinksRead = 0;
@@ -1675,13 +1694,24 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 			long numLinks = doors[i].numLinks[side] + NUM_EXTRA_DOOR_LINKS;
 			gosASSERT(numLinks >= 2);
 			long packet = whichPacket++;
-			if ((numLinksRead + numLinks > numDoorLinks) ||
-				!readPathRecords(packetFile, packet, &doorLinks[numLinksRead], numLinks, narrowDoorLink<DoorLink>, doors[i].numLinks[side])) {
+			// The start and goal doors (numDoors + DOOR_OFFSET_*) are the
+			// pathfinder's scratch: all their links are filled in per search,
+			// and Omnitech's editor saves leftover memory there (Clan Wars
+			// missions 7 and 13), so none are checked
+			const long scratchFrom = (i >= numDoors) ? 0 : doors[i].numLinks[side];
+			const long grow = ((i >= numDoors) && (side == 0)) ? scratchGrow[i - numDoors] : 0;
+			if ((numLinksRead + numLinks + grow > numDoorLinks) ||
+				!readPathRecords(packetFile, packet, &doorLinks[numLinksRead], numLinks, narrowDoorLink<DoorLink>, scratchFrom)) {
 				reportBadPathPacket(packetFile, packet, "doorLinks of door", i, numLinks);
 				badLoad = true;
 				return(whichPacket - startPacket);
 			}
 			doors_links[i][side] = &doorLinks[numLinksRead];
+			if (grow) {
+				memset(&doorLinks[numLinksRead + numLinks], 0, sizeof(DoorLink) * grow);
+				doors[i].numLinks[side] = (short)maxDoors;
+				numLinks += grow;
+			}
 			numLinksRead += numLinks;
 		}
 	}

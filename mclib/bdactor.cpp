@@ -605,13 +605,8 @@ void BldgAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			char txmName[1024];
 			bldgShape->GetTextureName(i,txmName,256);
 
-			char texturePath[1024];
-			objectTexturePath(texturePath,txmName);
-	
 			FullPathFileName textureName;
-			textureName.init(texturePath,txmName,"");
-	
-			if (fileExists(textureName))
+			if (objectTextureName(textureName,txmName))
 			{
 				if (S_strnicmp(txmName,"a_",2) == 0)
 				{
@@ -646,13 +641,8 @@ void BldgAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				char txmName[1024];
 				bldgShadowShape->GetTextureName(i,txmName,256);
 		
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -846,13 +836,8 @@ void BldgAppearance::setObjStatus (long oStatus)
 				char txmName[1024];
 				bldgShape->GetTextureName(i,txmName,256);
 	
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -886,13 +871,8 @@ void BldgAppearance::setObjStatus (long oStatus)
 				char txmName[1024];
 				bldgShadowShape->GetTextureName(i,txmName,256);
 	
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -1345,13 +1325,8 @@ bool BldgAppearance::recalcBounds (void)
 								char txmName[1024];
 								bldgShape->GetTextureName(j,txmName,256);
 
-								char texturePath[1024];
-								objectTexturePath(texturePath,txmName);
-
 								FullPathFileName textureName;
-								textureName.init(texturePath,txmName,"");
-
-								if (fileExists(textureName))
+								if (objectTextureName(textureName,txmName))
 								{
 									if (S_strnicmp(txmName,"a_",2) == 0)
 									{
@@ -1397,13 +1372,8 @@ bool BldgAppearance::recalcBounds (void)
 								char txmName[1024];
 								bldgShape->GetTextureName(i,txmName,256);
 										
-								char texturePath[1024];
-								objectTexturePath(texturePath,txmName);
-						
 								FullPathFileName textureName;
-								textureName.init(texturePath,txmName,"");
-										
-								if (fileExists(textureName))
+								if (objectTextureName(textureName,txmName))
 								{
 									if (S_strnicmp(txmName,"a_",2) == 0)
 									{
@@ -3265,13 +3235,8 @@ void TreeAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			char txmName[1024];
 			treeShape->GetTextureName(i,txmName,256);
 	
-			char texturePath[1024];
-			objectTexturePath(texturePath,txmName);
-	
 			FullPathFileName textureName;
-			textureName.init(texturePath,txmName,"");
-	
-			if (fileExists(textureName))
+			if (objectTextureName(textureName,txmName))
 			{
 				if (S_strnicmp(txmName,"a_",2) == 0)
 				{
@@ -3306,13 +3271,8 @@ void TreeAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				char txmName[1024];
 				treeShadowShape->GetTextureName(i,txmName,256);
 		
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -3475,13 +3435,8 @@ void TreeAppearance::setObjStatus (long oStatus)
 				char txmName[1024];
 				treeShape->GetTextureName(i,txmName,256);
 		
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -3515,13 +3470,8 @@ void TreeAppearance::setObjStatus (long oStatus)
 				char txmName[1024];
 				treeShadowShape->GetTextureName(i,txmName,256);
 		
-				char texturePath[1024];
-				objectTexturePath(texturePath,txmName);
-		
 				FullPathFileName textureName;
-				textureName.init(texturePath,txmName,"");
-		
-				if (fileExists(textureName))
+				if (objectTextureName(textureName,txmName))
 				{
 					if (S_strnicmp(txmName,"a_",2) == 0)
 					{
@@ -3810,13 +3760,8 @@ bool TreeAppearance::recalcBounds (void)
 							char txmName[1024];
 							treeShape->GetTextureName(j,txmName,256);
 
-							char texturePath[1024];
-							objectTexturePath(texturePath,txmName);
-
 							FullPathFileName textureName;
-							textureName.init(texturePath,txmName,"");
-
-							if (fileExists(textureName))
+							if (objectTextureName(textureName,txmName))
 							{
 								if (S_strnicmp(txmName,"a_",2) == 0)
 								{
@@ -3860,13 +3805,8 @@ bool TreeAppearance::recalcBounds (void)
 							char txmName[1024];
 							treeShape->GetTextureName(i,txmName,256);
 									
-							char texturePath[1024];
-							objectTexturePath(texturePath,txmName);
-					
 							FullPathFileName textureName;
-							textureName.init(texturePath,txmName,"");
-									
-							if (fileExists(textureName))
+							if (objectTextureName(textureName,txmName))
 							{
 								if (S_strnicmp(txmName,"a_",2) == 0)
 								{

@@ -21,6 +21,7 @@ belongs in commit messages and PRs.
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
 - [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
+- [x] Mods: MechCommander Omnitech data (object types past `object2.pak`, wide map packets, `.burnin.jpg` colour maps, `mc2res.dll` strings, 512 object textures) loads and plays; Clan Wars mission 1 checked in play (PR 17, `future-features/MOD-COMPAT.md`)
 - [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`
 
 **Not verified / unknown**
@@ -37,6 +38,8 @@ belongs in commit messages and PRs.
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
+- [ ] UI smoke tests: a scripted player for the menu screens (main menu, purchase, mech lab, pilot ready, Mechlopedia, options, load/save) and a `smoke.sh` `ui` tier, on stock and mod data (`future-features/UI-SMOKE.md`). Also step 2 of the `STOP` plan below, and the only way to see Omnitech's units in logistics. (10-31)
+- [ ] CI benchmark regression job: `-bench` on base and PR, fail when draw calls or triangles grow > ~10%, frame times informational. User said "not now". (10-31)
 
 ## To do: process and housekeeping
 
@@ -91,7 +94,8 @@ Added 2026-10-31. Not started.
      destructors over a broken engine crash). `smoke.sh`, the sanitized smoke
      and `bench.sh` set it.
   2. Widen smoke coverage to the screens it never opens (logistics, mech lab,
-     options, save/load) so more `STOP`s get exercised.
+     options, save/load) so more `STOP`s get exercised
+     (`future-features/UI-SMOKE.md`).
   3. Every `STOP` that fires but is not really fatal (e.g. "Move to order
      location is Not a Number" in `ablmc2.cpp`) becomes a warning: `PAUSE`
      or a log line, with any needed bail-out.
@@ -341,6 +345,11 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: All 28 Clan Wars missions (`innersphere1`-`28`) pass a 300-frame headless smoke at Omnitech's texture settings (branch `omnitech-followups`). 10 failed first: Omnitech's editor saves an unset `preNumCells` in special-area footprints (never read; now stored as 0) and leftover memory in the pathfinder's start/goal door links (now treated as scratch, like the trailing slots), and 3 missions have more than 119 pilots (`MAX_WARRIORS` 120 -> 160, as in Omnitech; team rosters stay at 120 and are now bounded). Review also found the start/goal door link lists sized from the map's stored count, which a path search could overrun: `GlobalMap::init` now grows them to the largest area's door count. New `[TXMCACHE]` (compressed textures held) and `[MEM]` (peak resident) log lines: Clan Wars peaks at 72-92 MB of compressed textures against 12 MB for stock missions; peak resident 360-860 MB under llvmpipe (varies run to run) against 290-375 MB stock. Not measured on the Pi.
+- 2026-10-31: Tidy-ups after PR 17: object texture lookups check each file once (`objectTextureName()`); the remaining `LZDecomp` calls in the FST reader and logistics are bounded. Decompressing each listed terrain-transition cache twice at load was measured (about 64 ms for mc2_01's 100 caches on a desktop) and left. UI smoke tests designed, not built (`future-features/UI-SMOKE.md`).
+
+- 2026-10-31: MechCommander Omnitech content loads and plays (PR 17, branch `omnitech-objtypes`): object types past `object2.pak` from `movobj.fit` (mech type FITs built from the CSV), vehicle and building profiles in missions and logistics, wide pathing records and special-area footprints, `.burnin.jpg` colour maps (stb_image, the original engine's disabled JPG branch), strings from a game-folder `mc2res.dll` for ids the stock table lacks, object textures from another `ObjectTextureRes` folder, cached terrain transitions built at another `TerrainTextureRes`. Clan Wars mission 1 plays (checked by `-bench` screenshots), exits clean, ASan clean. `MOD-COMPAT.md` has the details.
+- 2026-10-31: Loader and renderer bugs found on the way (PR 17), most hidden because `gosASSERT` compiles out and `STOP` only logs: texture LZ buffers overrun by 512 textures, a heap overflow from Omnitech's 528-byte special-area footprints, a missing texture crashing release builds, unbounded `LZDecomp` (now takes an output bound), unchecked special-area count; fog colour reached the shaders with red and blue swapped on every mission (stock fogs are near-grey, so it hardly showed).
 - 2026-10-31: Back-ports from the remaster (branch `fix/backport-mech-save`): `BattleMech` checks `sensorSystem` before every write (a mech with no sensor component, or whose profile load bailed early, has none); `.mdf` component ids past `masterList` are dropped like empty slots and crit-space bytes past `ItemLocationToInvLocation` mark the space empty; `.fit` mech profiles with too many items or an out-of-range `MasterID` are rejected (`Fatal()` only logged, then wrote past `inventory[]`) and crit spaces past the populated inventory are empty; the campaign dialog no longer scans every save game first, each save is version-checked once, and rejected list entries are freed. Not ported: `a03e13a2` (stub mech types do not exist here), `aa20a308` (a `badLoad` move map already exits at mission load), `84e1774a` (Omnitech work).
 - 2026-10-31: back-ported the mission / ABL hardening group from the remaster: a mission with no parts still gets team 0 and commander 0, `Mission::destroy` clears `Team::home` / `Commander::home`, `Mission::init` frees every old commander, a missing or invalid ABL file makes `ABLi_preProcess` return -1 (and `ABLi_loadLibrary` treats any negative handle as a failure), and `execExpression` no longer dereferences a NULL operand type (branch `fix/backport-mission-abl`).
 - 2026-10-31: quick fixes from the tidy-up list: `FitIniFile` finds a key (scalar, string or array) on the last line of a file without `FITend` (no stock file has that shape); unused `object_tex` shaders deleted and the shader validator fails on `#version`; stale docs fixed (vsync-off numbers, panning, #6 log line, MSVC `small` trap); `mission.cpp` item closed with no change needed.
