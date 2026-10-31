@@ -53,6 +53,8 @@ namespace Stuff {
 			{}
 		Matrix4D&
 			BuildIdentity();
+		// BuildIdentity() sets every entry; cppcheck does not follow it
+		// cppcheck-suppress uninitMemberVar
 		explicit Matrix4D(int)
 			{BuildIdentity();}
 		Matrix4D(const Matrix4D &matrix)

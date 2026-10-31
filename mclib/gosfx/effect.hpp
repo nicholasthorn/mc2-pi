@@ -30,7 +30,10 @@ namespace gosFX
 	{
 	public:
 		Event():
-			Plug(DefaultData)
+			Plug(DefaultData),
+			m_time(0.0f),
+			m_flags(0),
+			m_effectID(0)
 				{}
 		Event(const Event& event);
 

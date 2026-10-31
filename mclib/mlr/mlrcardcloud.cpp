@@ -86,6 +86,7 @@ MLRCardCloud::MLRCardCloud(int nr) :
 {
 	Verify(gos_GetCurrentHeap() == Heap);
 	usedNrOfCards = NULL;
+	texCoords = NULL;
 
 	Check_Pointer(this);
 	

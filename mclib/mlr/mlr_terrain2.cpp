@@ -217,6 +217,7 @@ MLR_Terrain2::MLR_Terrain2(ClassData *class_data):
 	maxAllDepth = 0;
 
 	borderPixelFun = 0.0f;
+	currentDepth = -1;
 
 	Scalar *fptr = &frame[0][0];
 
