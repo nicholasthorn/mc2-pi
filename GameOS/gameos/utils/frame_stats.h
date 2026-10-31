@@ -13,7 +13,9 @@ namespace frame_stats {
 
 struct FrameSample {
 	double total_ms = 0.0;   // whole main-loop iteration
-	double logic_ms = 0.0;   // Environment.DoGameLogic()
+	double logic_ms = 0.0;   // Environment.DoGameLogic(), plus the main loop's
+	                         // gos_RendererHandleEvents(), gos_UpdateAudio()
+	                         // and make_current_context() after it
 	double render_ms = 0.0;  // draw_screen(): game render enqueue + GL submit
 	double swap_ms = 0.0;    // swap_window(): where a GPU-bound frame waits
 	uint32_t draws = 0;      // GL draw calls issued this frame
