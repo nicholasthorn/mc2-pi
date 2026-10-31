@@ -511,9 +511,15 @@ TypePtr execExpression (void) {
 		operand1Ptr = tos - 1;
 		operand2Ptr = tos;
 
+		//-----------------------------------------------------------------
+		// No type for the first operand (a void function call, or bytecode
+		// from a module that failed to compile): the branches below would
+		// read resultTypePtr->form, so compare as false instead...
+		if (!resultTypePtr)
+			result = false;
 		//-----------------------------------------------------
 		// Both operands are integer, boolean or enumeration...
-		if (((resultTypePtr == IntegerTypePtr) && (type2Ptr == IntegerTypePtr)) ||
+		else if (((resultTypePtr == IntegerTypePtr) && (type2Ptr == IntegerTypePtr)) ||
 			(resultTypePtr->form == FRM_ENUM)) {
 			switch (op) {
 				case TKN_EQUALEQUAL:
