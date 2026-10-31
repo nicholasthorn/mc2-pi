@@ -70,6 +70,7 @@ class MainMenu: public LogisticsScreen
 		static	bool	bDrawMechlopedia;
 
 	private:
+		friend class UiSmokeDriver;	// -uismoke reads which screen is up
 
 		MainMenu& operator=( const MainMenu& ainMenu );
 		MainMenu( const MainMenu& src );

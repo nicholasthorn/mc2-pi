@@ -43,6 +43,7 @@ public:
 
 
 private:
+	friend class UiSmokeDriver;	// -uismoke reads which screen is up
 
 	int indexOfButtonWithID(int id);
 

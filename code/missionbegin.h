@@ -65,6 +65,7 @@ class MissionBegin
 		void restartMPlayer( const char* playerName);
 
 	private:
+		friend class UiSmokeDriver;	// -uismoke reads which screen is up
 
 		bool						bDone;
 		bool						bReadyToLoad;

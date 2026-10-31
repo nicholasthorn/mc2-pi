@@ -62,6 +62,14 @@ static const char* g_bench_scenario = NULL;
 static std::vector<std::string> g_bench_segments;   // index = FrameSample::segment
 static std::string g_bench_shot;                    // screenshot for this frame
 
+// -uismoke <walk>: the front-end screens code/uismokedriver.cpp visits
+static const char* g_uismoke_walk = NULL;
+
+const char* __stdcall gos_GetUiSmokeWalk()
+{
+    return g_uismoke_walk;
+}
+
 const char* __stdcall gos_GetBenchScenario()
 {
     return g_bench ? g_bench_scenario : NULL;
@@ -394,10 +402,12 @@ int main(int argc, char** argv)
             bench_csv = argv[i+1];
         if(0 == strcmp(argv[i], "-benchscenario"))
             g_bench_scenario = argv[i+1];
+        if(0 == strcmp(argv[i], "-uismoke"))
+            g_uismoke_walk = argv[i+1];
     }
     g_bench = bench_csv != NULL;
     gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
-    gos_SetAutomatedRun(g_bench || autoexit_frames > 0);
+    gos_SetAutomatedRun(g_bench || autoexit_frames > 0 || g_uismoke_walk != NULL);
     g_bench_csv = bench_csv;
     perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;
