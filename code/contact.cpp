@@ -424,6 +424,9 @@ void SensorSystem::removeContact (long contactIndex) {
 
 	//-----------------------------------------------
 	// This assumes the contactIndex is legitimate...
+	// (callers test it against 255, the "no contact" byte, not the list size)
+	if ((contactIndex < 0) || (contactIndex >= numContacts))
+		return;
 
 	MoverPtr contact = (MoverPtr)ObjectManager->get(contacts[contactIndex] & 0x7FFF);
 	Assert(contact != NULL, contacts[contactIndex] & 0x7FFF, " SensorSystem.removeContact: bad contact ");
@@ -723,8 +726,10 @@ void TeamSensorSystem::setTeam (TeamPtr newTeam) {
 
 void TeamSensorSystem::addSensor (SensorSystemPtr sensor) {
 
-	if (numSensors == MAX_SENSORS_PER_TEAM)
+	if (numSensors == MAX_SENSORS_PER_TEAM) {
 		Fatal(0, " TeamSensorSystem.addSensor: too many sensors ");
+		return;		// Fatal only logs: do not write past sensors[]
+	}
 
 	sensor->setMasterIndex(numSensors);
 	sensors[numSensors++] = sensor;
@@ -1364,8 +1369,10 @@ void SensorSystemManager::updateTeamContactLists (void) {
 
 void SensorSystemManager::addEcm (GameObjectPtr owner, float range) {
 
-	if (numEcms == MAX_ECMS)
+	if (numEcms == MAX_ECMS) {
 		Fatal(0, " SensorSystemManager.addEcm: too many ecms ");
+		return;		// Fatal only logs: do not write past ecms[]
+	}
 
 	ecms[numEcms].owner = owner;
 	ecms[numEcms].range = range;

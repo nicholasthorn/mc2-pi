@@ -493,11 +493,11 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    ready, mech purchase, mech lab. "Buy" did add a mech: the walk's single
    mission (`a_0_2`, like stock's `mc2_02`) starts with an empty bay and a
    65 t drop weight, and the walk bought the first variant, an Atlas, which
-   then could not join the force. The UI smoke driver (#32) needs to buy
-   the first variant that fits instead. Open: the front end draws into an 800x600 area whatever the
-   window size, and Omnitech's layouts (made for larger screens, with
-   `HiresOffsets`) run past it, so the right and bottom of its screens are
-   cut off.
+   then could not join the force. The UI smoke driver's "buy" (#32) needs
+   to pick the first variant that fits instead. Open: the front end draws
+   into an 800x600 area whatever the window size, and Omnitech's layouts
+   (made for larger screens, with `HiresOffsets`) run past it, so the right
+   and bottom of its screens are cut off.
 
 13. **Omnitech campaign packs (2026-10-31).** Nine 2012-2016 packs on
    ModDB (`moddb.com/mods/mechcommander-omnitech/downloads`), Inno Setup

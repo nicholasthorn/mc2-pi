@@ -1297,7 +1297,7 @@ void StatusChunk::pack (MoverPtr mover) {
 					StatusChunkUnpackErr = 1;
 				#endif
 			}
-			GameObjectPtr target = (GameObjectPtr)MPlayer->moverRoster[targetId];
+			GameObjectPtr target = ((targetId >= 0) && (targetId < MAX_MULTIPLAYER_MOVERS)) ? (GameObjectPtr)MPlayer->moverRoster[targetId] : NULL;	// the check above only sets an error flag
 			//----------------------------------------------------------------------------
 			// Mover targets could be NULL now, since we free them when they're destroyed.
 			//if (!target) {
@@ -1443,7 +1443,7 @@ void StatusChunk::unpack (MoverPtr mover) {
 					StatusChunkUnpackErr = 1;
 				#endif
 			}
-			GameObjectPtr target = (GameObjectPtr)MPlayer->moverRoster[targetId];
+			GameObjectPtr target = ((targetId >= 0) && (targetId < MAX_MULTIPLAYER_MOVERS)) ? (GameObjectPtr)MPlayer->moverRoster[targetId] : NULL;	// the check above only sets an error flag
 			//----------------------------------------------------------------------------
 			// Mover targets could be NULL now, since we free them when they're destroyed.
 			//if (!target) {
