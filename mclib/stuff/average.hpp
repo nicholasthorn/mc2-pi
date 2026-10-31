@@ -108,6 +108,8 @@ namespace Stuff {
 		AverageOf<T>::AverageOf()
 	{
 		array = NULL;
+		size = 0;
+		next = 0;
 	}
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

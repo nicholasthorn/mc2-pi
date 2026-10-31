@@ -243,6 +243,7 @@ MLRShape::MLRShape(
 	}
 
 	referenceCount = 1;
+	worldToShape = NULL;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -253,6 +254,7 @@ MLRShape::MLRShape(int nr):
 	Verify(gos_GetCurrentHeap() == Heap);
 	numPrimitives = 0;
 	referenceCount = 1;
+	worldToShape = NULL;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

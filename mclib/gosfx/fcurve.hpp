@@ -406,7 +406,8 @@ namespace gosFX {
 			m_seeded;
 
 		SeededCurveOf():
-			Curve(type)
+			Curve(type),
+			m_seeded(false)
 				{}
 
 		SeededCurveOf<C,S,type>&

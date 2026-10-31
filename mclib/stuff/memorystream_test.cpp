@@ -137,7 +137,7 @@ template <class T> class MinMaxHolderOf
 
 		MinMaxHolderOf()
 		{
-		
+			minValue = maxValue = value = T();
 		}
 	};
 

@@ -46,6 +46,8 @@ gosFX::Singleton__Specification::Singleton__Specification(
 {
 	Check_Pointer(this);
 	Verify(gos_GetCurrentHeap() == Heap);
+	m_alignZUsingX = false;
+	m_alignZUsingY = false;
 }
 
 //------------------------------------------------------------------------------
