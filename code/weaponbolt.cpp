@@ -2201,6 +2201,7 @@ void WeaponBolt::render (void)
 			localToWorld.Multiply(gosFX::Effect_Into_Motion,effectRot);
 			localResult.Multiply(localToWorld,shapeOrigin);
 		
+ 			// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
  			drawInfo.m_parentToWorld = &localResult;
 	 
 			if (!MLRVertexLimitReached)
@@ -2237,6 +2238,7 @@ void WeaponBolt::render (void)
 			shapeOrigin.BuildRotation(Stuff::EulerAngles(0.0f,0.0f,0.0f));
 			shapeOrigin.BuildTranslation(tPosition);
 			
+			// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
 			drawInfo.m_parentToWorld = &shapeOrigin;
 	 
 			if (!MLRVertexLimitReached)
@@ -2258,6 +2260,7 @@ void WeaponBolt::render (void)
 			shapeOrigin.BuildRotation(Stuff::EulerAngles(0.0f,0.0f,0.0f));
 			shapeOrigin.BuildTranslation(tPosition);
 			
+			// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
 			drawInfo.m_parentToWorld = &shapeOrigin;
 	 
 			if (!MLRVertexLimitReached)
@@ -2279,6 +2282,7 @@ void WeaponBolt::render (void)
 			shapeOrigin.BuildRotation(Stuff::EulerAngles(0.0f,0.0f,0.0f));
 			shapeOrigin.BuildTranslation(tPosition);
 			
+			// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
 			drawInfo.m_parentToWorld = &shapeOrigin;
 	 
 			if (!MLRVertexLimitReached)

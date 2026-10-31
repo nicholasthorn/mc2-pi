@@ -202,8 +202,13 @@ TG_ShapePtr TG_TypeNode::CreateFrom (void)
 	// virtual function, so raw heap memory has no valid vptr
 	TG_ShapePtr newShape = NULL;
 	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
+	if (!memarea)
+	{
+		// placement new on NULL is undefined; the heap is exhausted
+		STOP(("CreateFrom: out of TGL heap"));
+		return NULL;
+	}
 	newShape = ::new(memarea) TG_Shape();
-	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
 	newShape->numVertices = 0;
@@ -361,8 +366,13 @@ TG_ShapePtr TG_TypeShape::CreateFrom (void)
 {
 	TG_ShapePtr newShape = NULL;
 	void* memarea = TG_Shape::tglHeap->Malloc(sizeof(TG_Shape));
+	if (!memarea)
+	{
+		// placement new on NULL is undefined; the heap is exhausted
+		STOP(("CreateFrom: out of TGL heap"));
+		return NULL;
+	}
 	newShape = ::new(memarea) TG_Shape();
-	gosASSERT(newShape != NULL);
 	
 	//listOfVertices
 	newShape->numVertices = numTypeVertices;

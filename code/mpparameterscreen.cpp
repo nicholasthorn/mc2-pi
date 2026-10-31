@@ -1228,6 +1228,7 @@ void MPParameterScreen::update()
 				sortedPlayers[i] = &players[i];
 			}
 
+			// cppcheck-suppress uninitvar ; only the first playerCount entries are set, and qsort reads only those
 			qsort( sortedPlayers, playerCount, sizeof( MC2Player* ), sortPlayers );
 
 			for(int i = 0; i < playerCount; i++ )

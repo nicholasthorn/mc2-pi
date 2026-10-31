@@ -1469,6 +1469,7 @@ void Artillery::render (void)
 			shapeOrigin.BuildRotation(Stuff::EulerAngles(0.0f,0.0f,0.0f));
 			shapeOrigin.BuildTranslation(actualPosition);
 			
+			// cppcheck-suppress invalidLifetime ; drawInfo is re-pointed at this block's own matrix before Draw(), which copies it
 			drawInfo.m_parentToWorld = &shapeOrigin;
 	 
 			if (!MLRVertexLimitReached)

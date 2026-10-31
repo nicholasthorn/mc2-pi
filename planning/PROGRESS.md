@@ -88,10 +88,19 @@ Added 2026-10-31.
     reasons. The one real bug: `ABLModule::orderCallFlags` is now `NULL` in
     `ABLModule::init()`, so a module without order calls skips the flag test
     instead of reading and writing through a garbage pointer.
-  - Next: the error-level `nullPointer` (87) and `invalidLifetime` (11), then
-    `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: better after
-    the STOP/Fatal work below), `arrayIndexOutOfBoundsCond` (10),
-    `pointerSize` (7) and the rest.
+  - [x] `nullPointer` (87), `invalidLifetime` (11) and `uninitvar` (6)
+    (branch `fix/cppcheck-null-lifetime`): `TG_TypeNode`/`TG_TypeShape::
+    CreateFrom` check the TGL heap allocation before placement `new` (53),
+    the multiplayer stubs return a blank player record, an empty name and a
+    zero player count instead of NULL / an unset count (about 30),
+    `Camera::getClosestVertex` copes with no vertices, a load error printed
+    an unset buffer (`LogisticsMissionInfo::load`), `MechWarrior` checks and
+    uses one `getGroup()` result; the effect `drawInfo` lifetimes (11) and
+    the bounded `qsort` of player lists (4) are suppressed inline as false
+    positives with the reason.
+  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
+    better after the STOP/Fatal work below), `arrayIndexOutOfBoundsCond`
+    (10), `pointerSize` (7) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
@@ -360,7 +369,7 @@ Candidates:
 
 ## Known issues
 
-- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
+- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -374,6 +383,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: cppcheck `nullPointer`, `invalidLifetime` and `uninitvar` cleared (branch `fix/cppcheck-null-lifetime`, 104 baseline entries): real fixes in `TG_*::CreateFrom` (no placement `new` on a failed TGL heap allocation), the multiplayer stubs (blank record, empty name, zero count instead of NULL), `Camera::getClosestVertex` (no vertices), `LogisticsMissionInfo::load` (error text from an unset buffer) and `MechWarrior` (one `getGroup()` result); effect draw-info lifetimes and bounded player `qsort`s suppressed inline as false positives.
 - 2026-10-31: MechCommander Omnitech's other campaigns (branch `omnitech-campaigns`): 13 Omnitech-only ABL commands (`addmovertoplayer`, `setbrain`, `settextmsg`, `addresourcepoints`, salvage craft, building name and capture RP, mech damage and gesture, ...) from its changelog, brain changes queued to the start of the next frame; colour-mapped TGAs load (Omnitech's sky 12); weapon damage over 255 allowed outside multiplayer; `MAX_OFFMAP_AREAS` 60 -> 120 with the fill bounded (ASan: it overran the `GlobalMap` object). Details in `MOD-COMPAT.md` item 11.
 
 - 2026-10-31: Back-port of the remaster's original LZ decoder (branch `fix/backport-lz-decoder`): `LZDecomp` reads Microsoft's original LZW (the 2001 asm format) as well as zlib, picked from the first two bytes, every write bounded by `destLen`; `FastFile::readFast` copies raw entries (`size == realSize`) when decoding fails, so uncompressed 0xCADDECAF archives read too. Test-first: `test_lzdecomp.cpp` (a test-only encoder that follows the asm compressor, hand-built streams, multi-block, truncated, over-limit, corrupt, zlib, FSTs through `File::open`; no third-party data). Omnitech's `tgl.fst`: all 4667 entries decode to their exact size, 1947 identical to the stock ones and the rest differ only in float last bits and padding bytes (built by different tools); mc2_01 and mc2_03 smoke-run with it. Built and tested on WSL Ubuntu 26.04 (GCC, desktop GL and GLES); MSVC, Clang, arm64 and the Pi left to CI.

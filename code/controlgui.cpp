@@ -486,6 +486,7 @@ void ControlGui::startObjectives( bool bStart )
 		{
 			sorted[j] = &players[j];
 		}
+		// cppcheck-suppress uninitvar ; only the first playerCount entries are set, and qsort reads only those
 		qsort( sorted, playerCount, sizeof( MC2Player* ), sortStats );
 
 		mpStats[0].setData( NULL, 1 ); // this is the header...
@@ -765,6 +766,7 @@ void ControlGui::renderPlayerStatus(float xDelta)
 	{
 		sorted[j] = &players[j];
 	}
+	// cppcheck-suppress uninitvar ; only the first playerCount entries are set, and qsort reads only those
 	qsort( sorted, playerCount, sizeof( MC2Player* ), sortStats );
 
 	mpStats[0].setData( NULL, 1 ); // this is the header...

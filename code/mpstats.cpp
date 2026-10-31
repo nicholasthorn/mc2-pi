@@ -216,6 +216,7 @@ void MPStats::update()
 		if ( winnerCount > 1 )
 			winnerColor = 0xffA6A6A6;
 
+		// cppcheck-suppress uninitvar ; only the first playerCount entries are set, and qsort reads only those
 		qsort( sorted, playerCount, sizeof( MC2Player*), sortStats );
 
 	
