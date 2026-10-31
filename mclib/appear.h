@@ -54,6 +54,16 @@ extern unsigned long currentFloatHelp;
 
 struct _ScenarioMapCellInfo;
 struct _GameObjectFootPrint;
+
+//---------------------------------------------------------------------------
+// Distance past which LOD level is used, given the LOD in use now. Each
+// switch rebuilds the shape and looks up its textures again, so keep a 5%
+// band around each threshold: an object near it no longer flips back and forth.
+inline float LODSwitchDistance (float lodDistance, long level, long currentLOD)
+{
+	return (level <= currentLOD) ? (lodDistance * 0.95f) : (lodDistance * 1.05f);
+}
+
 //---------------------------------------------------------------------------
 // Class definitions
 class Appearance

@@ -1739,7 +1739,7 @@ bool GVAppearance::recalcBounds (void)
 						{
 							for (long i=1;i<MAX_LODS;i++)
 							{
-								if (appearType->gvShape[i] && (eyeDistance > appearType->lodDistance[i]))
+								if (appearType->gvShape[i] && (eyeDistance > LODSwitchDistance(appearType->lodDistance[i],i,currentLOD)))
 								{
 									baseLOD = false;
 									selectLOD = i;

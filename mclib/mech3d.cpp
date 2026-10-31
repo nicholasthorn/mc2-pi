@@ -2252,7 +2252,7 @@ bool Mech3DAppearance::recalcBounds (void)
 							//Set LOD of Model here because we have the distance and we KNOW we can see it!
 							for (long i=1;i<MAX_LODS;i++)
 							{
-								if (mechType->mechShape[i] && mechType->mechShape[i]->GetNumShapes() && (eyeDistance > mechType->lodDistance[i]))
+								if (mechType->mechShape[i] && mechType->mechShape[i]->GetNumShapes() && (eyeDistance > LODSwitchDistance(mechType->lodDistance[i],i,currentLOD)))
 								{
 									baseLOD = false;
 									selectLOD = i;
