@@ -88,10 +88,19 @@ Added 2026-10-31.
     reasons. The one real bug: `ABLModule::orderCallFlags` is now `NULL` in
     `ABLModule::init()`, so a module without order calls skips the flag test
     instead of reading and writing through a garbage pointer.
-  - Next: the error-level `nullPointer` (87) and `invalidLifetime` (11), then
-    `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: better after
-    the STOP/Fatal work below), `arrayIndexOutOfBoundsCond` (10),
-    `pointerSize` (7) and the rest.
+  - [x] `nullPointer` (87), `invalidLifetime` (11) and `uninitvar` (6)
+    (branch `fix/cppcheck-null-lifetime`): `TG_TypeNode`/`TG_TypeShape::
+    CreateFrom` check the TGL heap allocation before placement `new` (53),
+    the multiplayer stubs return a blank player record, an empty name and a
+    zero player count instead of NULL / an unset count (about 30),
+    `Camera::getClosestVertex` copes with no vertices, a load error printed
+    an unset buffer (`LogisticsMissionInfo::load`), `MechWarrior` checks and
+    uses one `getGroup()` result; the effect `drawInfo` lifetimes (11) and
+    the bounded `qsort` of player lists (4) are suppressed inline as false
+    positives with the reason.
+  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
+    better after the STOP/Fatal work below), `arrayIndexOutOfBoundsCond`
+    (10), `pointerSize` (7) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
@@ -360,7 +369,7 @@ Candidates:
 
 ## Known issues
 
-- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) still dereference `MPlayer->getPlayerInfo()`, which always returns NULL, in many places; they are unreachable because the main menu's Multiplayer button is disabled. Only the sites compilers flag are guarded so far.
+- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -374,6 +383,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: cppcheck `nullPointer`, `invalidLifetime` and `uninitvar` cleared (branch `fix/cppcheck-null-lifetime`, 104 baseline entries): real fixes in `TG_*::CreateFrom` (no placement `new` on a failed TGL heap allocation), the multiplayer stubs (blank record, empty name, zero count instead of NULL), `Camera::getClosestVertex` (no vertices), `LogisticsMissionInfo::load` (error text from an unset buffer) and `MechWarrior` (one `getGroup()` result); effect draw-info lifetimes and bounded player `qsort`s suppressed inline as false positives.
 - 2026-10-31: Back-port of the remaster's original LZ decoder (branch `fix/backport-lz-decoder`): `LZDecomp` reads Microsoft's original LZW (the 2001 asm format) as well as zlib, picked from the first two bytes, every write bounded by `destLen`; `FastFile::readFast` copies raw entries (`size == realSize`) when decoding fails, so uncompressed 0xCADDECAF archives read too. Test-first: `test_lzdecomp.cpp` (a test-only encoder that follows the asm compressor, hand-built streams, multi-block, truncated, over-limit, corrupt, zlib, FSTs through `File::open`; no third-party data). Omnitech's `tgl.fst`: all 4667 entries decode to their exact size, 1947 identical to the stock ones and the rest differ only in float last bits and padding bytes (built by different tools); mc2_01 and mc2_03 smoke-run with it. Built and tested on WSL Ubuntu 26.04 (GCC, desktop GL and GLES); MSVC, Clang, arm64 and the Pi left to CI.
 - 2026-10-31: review of #22: ABL `print()` had the same 20-byte real overflow as `concat()` (now 64 bytes, `snprintf`); the bounded append and the env switch parsing moved to GL-free `GameOS/gameos/utils/str_bounded.cpp` with unit tests; `MC2_STOP_EXITS` treats `false` / `no` / `off` as off; `STOP(("... %s", str))` (the two-argument `InternalFunctionStop`) now prints the `STOP: ` prefix and a newline, so smoke's `^STOP:` check sees it. Ubuntu 26.04: GL and GLES builds, unit tests, Clang; CI's five missions on both renderers (#28).
 - 2026-10-31: mc2_15 segfault fixed (#25): ABL `getRelativePositionToObject` wrote nothing unless the object was a mover, and `coreEscort` passes it an unset local array (ABL local arrays come from `malloc`, unzeroed). `mc2_15_E2_TCD_Mech2` escorts a building (part id 141696), so it ordered a move to leftover heap bytes (glibc free-list pointers, e.g. x = 1.7e18), and `GlobalMap::calcArea` read off the map. The native now always writes its result and uses the virtual `GameObject::relativePosition` for any object (a building returns its own position; no object gives 0,0,0). GLES mc2_15 at 3000 frames: 6/6 pass on Ubuntu 26.04 WSL (before: 1 crash in 8 runs here, most runs in the earlier sweep); desktop GL mc2_15 also run.
