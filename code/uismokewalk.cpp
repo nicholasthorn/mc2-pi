@@ -106,9 +106,13 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::Previous;
 		break;
 	case UiScreen::MechLab:
-	case UiScreen::MechPurchase:
 		if (to == UiScreen::MechBay)
-			return UiAction::Previous;
+			return UiAction::Previous;	// Cancel
+		break;
+	case UiScreen::MechPurchase:
+		// Accept: "Back" cancels, selling back everything bought here
+		if (to == UiScreen::MechBay)
+			return UiAction::Next;
 		break;
 	default:
 		break;
@@ -116,11 +120,44 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 	return UiAction::None;
 }
 
+namespace {
+
+struct ScreenAction {
+	UiScreen screen;
+	const char* name;
+	UiAction action;
+};
+
+const ScreenAction SCREEN_ACTIONS[] = {
+	{ UiScreen::MechPurchase, "buy", UiAction::BuyMech },
+	{ UiScreen::MechBay, "add", UiAction::AddToForce },
+	{ UiScreen::PilotReady, "pilot", UiAction::AssignPilot },
+};
+
+} // namespace
+
+UiAction uiScreenAction(UiScreen s, const char* name, size_t len)
+{
+	for (const ScreenAction& a : SCREEN_ACTIONS)
+		if (a.screen == s && strlen(a.name) == len && strncmp(a.name, name, len) == 0)
+			return a.action;
+	return UiAction::None;
+}
+
+const char* uiActionName(UiAction action)
+{
+	for (const ScreenAction& a : SCREEN_ACTIONS)
+		if (a.action == action)
+			return a.name;
+	return "";
+}
+
 bool UiSmokeWalk::parse(const char* text, char* err, size_t errSize)
 {
 	count = 0;
 	index = 0;
 	holding = false;
+	acted = false;
 	held = 0;
 	waited = 0.0f;
 	state = State::Running;
@@ -134,11 +171,25 @@ bool UiSmokeWalk::parse(const char* text, char* err, size_t errSize)
 	for (;;) {
 		const char* comma = strchr(p, ',');
 		const size_t len = comma ? (size_t)(comma - p) : strlen(p);
-		const UiScreen s = uiScreenFromName(p, len);
+		// "<screen>" or "<screen>+<action>"
+		const char* plus = (const char*)memchr(p, '+', len);
+		const size_t nameLen = plus ? (size_t)(plus - p) : len;
+		const UiScreen s = uiScreenFromName(p, nameLen);
 		if (s == UiScreen::Unknown) {
-			snprintf(err, errSize, "unknown screen '%.*s'", (int)len, p);
+			snprintf(err, errSize, "unknown screen '%.*s'", (int)nameLen, p);
 			count = 0;
 			return false;
+		}
+		UiAction action = UiAction::None;
+		if (plus) {
+			const size_t actionLen = len - nameLen - 1;
+			action = uiScreenAction(s, plus + 1, actionLen);
+			if (action == UiAction::None) {
+				snprintf(err, errSize, "%s has no action '%.*s'", uiScreenName(s),
+						(int)actionLen, plus + 1);
+				count = 0;
+				return false;
+			}
 		}
 		if (count == MAX_STEPS) {
 			snprintf(err, errSize, "too many screens (at most %ld)", MAX_STEPS);
@@ -149,13 +200,15 @@ bool UiSmokeWalk::parse(const char* text, char* err, size_t errSize)
 			snprintf(err, errSize, "a walk starts at mainmenu, not '%s'", uiScreenName(s));
 			return false;
 		}
-		if (count > 0 && uiRoute(steps[count - 1], s) == UiAction::None) {
-			snprintf(err, errSize, "no route from %s to %s", uiScreenName(steps[count - 1]),
-					uiScreenName(s));
+		if (count > 0 && uiRoute(steps[count - 1].screen, s) == UiAction::None) {
+			snprintf(err, errSize, "no route from %s to %s",
+					uiScreenName(steps[count - 1].screen), uiScreenName(s));
 			count = 0;
 			return false;
 		}
-		steps[count++] = s;
+		steps[count].screen = s;
+		steps[count].action = action;
+		++count;
 		if (!comma)
 			break;
 		p = comma + 1;
@@ -168,39 +221,47 @@ UiSmokeWalk::Result UiSmokeWalk::update(UiScreen current, float dt)
 	if (count == 0 || state == State::Done)
 		return { Event::Done, UiScreen::Unknown, UiAction::None };
 	if (state == State::TimedOut)
-		return { Event::Timeout, steps[index], UiAction::None };
+		return { Event::Timeout, steps[index].screen, UiAction::None };
 	if (state == State::Lost)
-		return { Event::Lost, steps[index], UiAction::None };
+		return { Event::Lost, steps[index].screen, UiAction::None };
 
-	const UiScreen target = steps[index];
+	const Step& step = steps[index];
 	if (!holding) {
-		if (current == target) {
+		if (current == step.screen) {
 			holding = true;
+			acted = false;
 			held = 0;
-			return { Event::Shown, target, UiAction::None };
+			return { Event::Shown, step.screen, UiAction::None };
 		}
 		waited += dt;
 		if (waited > timeoutSeconds) {
 			state = State::TimedOut;
-			return { Event::Timeout, target, UiAction::None };
+			return { Event::Timeout, step.screen, UiAction::None };
 		}
-		return { Event::Waiting, target, UiAction::None };
+		return { Event::Waiting, step.screen, UiAction::None };
 	}
 
 	// the button at the end of the hold belongs to this screen: if something
 	// else took over meanwhile, pressing it would act on the wrong screen
-	if (current != target) {
+	if (current != step.screen) {
 		state = State::Lost;
-		return { Event::Lost, target, UiAction::None };
+		return { Event::Lost, step.screen, UiAction::None };
 	}
 	if (++held < holdFrames)
-		return { Event::Waiting, target, UiAction::None };
+		return { Event::Waiting, step.screen, UiAction::None };
+
+	// an in-screen action, then a second hold to let the screen show its effect
+	if (step.action != UiAction::None && !acted) {
+		acted = true;
+		held = 0;
+		return { Event::Act, step.screen, step.action };
+	}
 
 	holding = false;
 	if (++index >= count) {
 		state = State::Done;
-		return { Event::Done, target, UiAction::None };
+		return { Event::Done, step.screen, UiAction::None };
 	}
 	waited = 0.0f;
-	return { Event::Act, steps[index], uiRoute(target, steps[index]) };
+	return { Event::Act, steps[index].screen, uiRoute(step.screen, steps[index].screen) };
 }
