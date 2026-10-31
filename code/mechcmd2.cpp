@@ -60,6 +60,8 @@
 #include"logisticsdialog.h"
 #endif
 
+#include"uismokedriver.h"
+
 #ifndef PREFS_H
 #include"prefs.h"
 #endif
@@ -2214,7 +2216,10 @@ void __stdcall DoGameLogic()
 						mission->missionInterface->togglePauseWithoutMenu();
 				}
 			}
-	
+
+			// -uismoke: walk the front-end screens (scripts/smoke.sh)
+			UiSmokeDriver::update();
+
 
 		}
 	

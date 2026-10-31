@@ -180,6 +180,8 @@ set(SOURCES
     "code/mission2.cpp"
     "code/benchscenario.cpp"
     "code/benchdirector.cpp"
+    "code/uismokewalk.cpp"
+    "code/uismokedriver.cpp"
     "code/objective.cpp"
     "code/saveload.cpp"
     "code/trigger.cpp"
@@ -266,6 +268,9 @@ add_executable(mc2 ${SOURCES} ${MAIN_SRC})
 if(MC2_STRICT_WARNINGS)
     set_source_files_properties(code/benchscenario.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
+    # uismokedriver.cpp is glue like benchdirector.cpp; the walk is pure logic
+    set_source_files_properties(code/uismokewalk.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 endif()
 target_link_libraries(mc2 mclib gosfx mlr stuff gui gameos gameos_main windows ZLIB::ZLIB ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer ${ADDITIONAL_LIBS} ${MC2_GL_LIBS})
 
