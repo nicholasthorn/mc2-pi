@@ -41,6 +41,10 @@ When you can only build one locally, say which ones were not built.
   `size_t` in new code and treat any pointer/integer cast as suspect.
 - **Type punning.** GCC `-O2` breaks `*(long*)&someDouble` style punning (see the
   `ablxstd.cpp` fix). Use `memcpy`.
+- **Windows header macros.** On MSVC, `<windows.h>` (reached through the
+  platform headers) defines `small`, `near`, `far`, `min`, `max` and others as
+  macros, so a variable called `small` breaks only the Windows build
+  (`4b98eee`). Avoid those names, even in tests.
 - **`-fpermissive` is gone** (the tree builds without it). Do not bring it back:
   it hid code that Clang and MSVC reject.
 
