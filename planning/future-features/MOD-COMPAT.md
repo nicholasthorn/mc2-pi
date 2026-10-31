@@ -382,7 +382,38 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    A mod install should still carry its `ObjectTextureRes` (512) and
    `TerrainTextureRes` (256) for full detail.
    Not checked: the logistics screens with Omnitech's units (needs menu
-   input, not scriptable headless yet).
+   input, not scriptable headless yet; see `UI-SMOKE.md`).
+10. **Every Clan Wars mission (2026-10-31, branch `omnitech-followups`).**
+   All 28 (`innersphere1`-`28`) pass a 300-frame headless smoke at
+   Omnitech's texture settings (`TerrainTextureRes 256`,
+   `ObjectTextureRes 512`). Ten failed at first, all in data Omnitech's own
+   engine never checks:
+   - special-area footprints with an unset `preNumCells` (missions 5, 11,
+     16, 19, 25): never read by the game, now stored as 0 when it does not
+     fit;
+   - leftover memory in the link lists of the pathfinder's start and goal
+     doors (`numDoors + DOOR_OFFSET_*`, missions 7 and 13): scratch filled
+     in per search, now zeroed like each door's trailing scratch slots;
+   - more than 119 pilots (missions 21, 27, 28; up to 137 parts):
+     `MAX_WARRIORS` raised to Omnitech's 160 (it only sizes the static
+     warrior list; no save format). Each team's roster stays at
+     `MAX_MOVERS_PER_TEAM` (120, in the save format) and is now bounded:
+     movers past it are left off and logged (none in Clan Wars: at most
+     102 per team).
+   Found by review on the way: the start/goal door link lists are sized
+   from the counts stored in the map, and setStartDoor / setGoalDoor write
+   one link per door of an area into them. `GlobalMap::init` now grows
+   them to the most doors any area has (what `write()` stores), so a stale
+   count in an Omnitech map cannot make a path search overrun.
+   Memory: `[TXMCACHE]` logs the compressed textures held (a plain malloc
+   here, not capped at `TEXTURE_CACHE_SIZE` because of `USE_GOS_HEAP`) and
+   `[MEM]` the peak resident set at autoexit. Clan Wars peaks at 72-92 MB
+   of compressed textures (stock missions 12 MB) and 360-860 MB resident
+   under llvmpipe, which varies run to run (stock 290-375 MB). Fine on a
+   4 GB Pi 400 in RAM terms; GPU texture memory and `MAX_MC2_GOS_TEXTURES`
+   (750; Omnitech 1500) on V3D are not measured.
+   The 68 missions of Omnitech's other campaigns (`mw2_*`, `e_*`, `a_*`,
+   `x_*`) have not been run.
 
 ## Scope if we do this
 
