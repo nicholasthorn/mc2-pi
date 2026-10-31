@@ -161,6 +161,7 @@ class Mission
 										
 		char							missionFileName[80];
 		char							missionScriptName[80];
+		bool							gameplayMarked;		// gos_MarkGameplayStarted() called for this mission
 		ABLModulePtr					missionBrain;
 		ABLParamPtr						missionParams;
 		SymTableNodePtr					missionBrainCallback;
@@ -247,6 +248,7 @@ class Mission
 
 			missionFileName[0] = 0;
 			missionScriptName[0] = 0;
+			gameplayMarked = false;
 
 			missionBrainParams = NULL;
 

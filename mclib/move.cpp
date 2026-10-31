@@ -1619,6 +1619,13 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 		return(whichPacket - startPacket);
 	}
 
+	// doorInfos (and doorLinks below) are allocated before the reads that can
+	// fail: destroy() treats a map with areas but no doorInfos as one built
+	// by the editor and frees areas_cellsCovered[i] / areas_doors[i], which
+	// here are uninitialised Malloc memory.
+	doorInfos = (DoorInfoPtr)systemHeap->Malloc(sizeof(DoorInfo) * numDoorInfos);
+	gosASSERT(doorInfos != NULL);
+
 	areas = (GlobalMapAreaPtr)systemHeap->Malloc(sizeof(GlobalMapArea) * numAreas);
 	areas_cellsCovered = (short**)systemHeap->Malloc(sizeof(short*) * numAreas);
 	areas_doors = (DoorInfoPtr*)systemHeap->Malloc(sizeof(DoorInfoPtr) * numAreas);
@@ -1631,8 +1638,6 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 		return(whichPacket - startPacket);
 	}
 
-	doorInfos = (DoorInfoPtr)systemHeap->Malloc(sizeof(DoorInfo) * numDoorInfos);
-	gosASSERT(doorInfos != NULL);
 	long curDoorInfo = 0;
 	for (long i = 0; i < numAreas; i++)
 		if (areas[i].numDoors) {
@@ -1656,6 +1661,10 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 		curDoorInfo += areas[curArea].numDoors;
 	}
 
+	// before the doors read, for the same reason as doorInfos above
+	doorLinks = (DoorLinkPtr)systemHeap->Malloc(sizeof(DoorLink) * numDoorLinks);
+	gosASSERT(doorLinks != NULL);
+
 	doors = (GlobalMapDoorPtr)systemHeap->Malloc(sizeof(GlobalMapDoor) * (numDoors + NUM_DOOR_OFFSETS));
 	doors_links = (DoorInfoLinksPtr*)systemHeap->Malloc(sizeof(DoorInfoLinksPtr) * (numDoors + NUM_DOOR_OFFSETS));
 	gosASSERT(doors != NULL);
@@ -1667,8 +1676,6 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 
 	//--------------
 	// Door Links...
-	doorLinks = (DoorLinkPtr)systemHeap->Malloc(sizeof(DoorLink) * numDoorLinks);
-	gosASSERT(doorLinks != NULL);
 	long numLinksRead = 0;
 	for (int i = 0; i < (numDoors + NUM_DOOR_OFFSETS); i++) {
 		for (long side = 0; side < 2; side++) {
