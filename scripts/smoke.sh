@@ -72,7 +72,10 @@ if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
         echo "smoke: no display and xvfb-run not installed" >&2
         exit 2
     fi
-    RUN=(xvfb-run -a -s "-screen 0 1600x1200x24")
+    # The screen must match the game's resolution (800x600, minprefs.cfg):
+    # FullScreen sizes the viewport to the screen, but with no window manager
+    # the window stays 800x600, so a bigger screen draws a cropped, scaled frame.
+    RUN=(xvfb-run -a -s "-screen 0 800x600x24")
 fi
 
 # Log lines that mean something went wrong even if the game kept running.

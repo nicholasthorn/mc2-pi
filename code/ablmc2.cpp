@@ -5983,7 +5983,12 @@ void execIsPlayingVoiceOver(void)
 	//
 	// Returns a bool,  true if voiceover channel is active, false if not.
 
-	ABLi_pushBoolean(soundSystem->isPlayingVoiceOver());
+	// -bench: audio plays in real time, so a script waiting for the voice-over
+	// to end would advance on a different frame each run; it never waits
+	if (gos_GetFixedFrameLength() > 0.0f)
+		ABLi_pushBoolean(false);
+	else
+		ABLi_pushBoolean(soundSystem->isPlayingVoiceOver());
 }
 
 //*****************************************************************************
@@ -6003,7 +6008,13 @@ void execGetLogisticsTime(void)
 	//
 	// Returns a bool,  true if voiceover channel is active, false if not.
 
-	ABLi_pushReal(timeGetTime());
+	// Milliseconds; scripts time tutorial stages and camera moves with it.
+	// -bench: mission time instead of the wall clock, so they land on the
+	// same frame every run (scripts only use differences of it)
+	if (gos_GetFixedFrameLength() > 0.0f)
+		ABLi_pushReal(scenarioTime * 1000.0f);
+	else
+		ABLi_pushReal(timeGetTime());
 }
 
 //*****************************************************************************

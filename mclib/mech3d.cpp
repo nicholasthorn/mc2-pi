@@ -1009,6 +1009,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	baseRootNodeDifference = 0.0f;
 
 	rotationalNodeIndex = -1;
+	shadowRotationalNodeIndex = -1;
 	hitLeftNodeIndex = hitRightNodeIndex = -1;
 	rootNodeIndex = lightCircleNodeIndex = -1;
 	leftArmNodeIndex = rightArmNodeIndex = -1;
@@ -1345,6 +1346,7 @@ void Mech3DAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	if (mechType && mechType->mechShadowShape)
 	{
 		mechShadowShape = mechType->mechShadowShape->CreateFrom();
+		shadowRotationalNodeIndex = -1;
 
 		//-------------------------------------------------
 		// Load the texture and store its handle.
@@ -2252,7 +2254,7 @@ bool Mech3DAppearance::recalcBounds (void)
 							//Set LOD of Model here because we have the distance and we KNOW we can see it!
 							for (long i=1;i<MAX_LODS;i++)
 							{
-								if (mechType->mechShape[i] && mechType->mechShape[i]->GetNumShapes() && (eyeDistance > mechType->lodDistance[i]))
+								if (mechType->mechShape[i] && mechType->mechShape[i]->GetNumShapes() && (eyeDistance > LODSwitchDistance(mechType->lodDistance[i],i,currentLOD)))
 								{
 									baseLOD = false;
 									selectLOD = i;
@@ -3159,12 +3161,13 @@ void Mech3DAppearance::updateGeometry (void)
 			
 		if (mechShadowShape && useShadows)
 		{
-			if (rotationalNodeIndex == -1)
-	   			rotationalNodeIndex = mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
-
-			mechShadowShape->SetNodeRotation(rotationalNodeIndex,&torsoRot);
-
- 			mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
+			// The shadow shape's own joint_torso: rotationalNodeIndex belongs
+			// to mechShape, whose nodes may be in a different order. Found by
+			// name (a string scan over the nodes) once, then set by index.
+			if (shadowRotationalNodeIndex == -1)
+				shadowRotationalNodeIndex = mechShadowShape->SetNodeRotation("joint_torso",&torsoRot);
+			else
+				mechShadowShape->SetNodeRotation(shadowRotationalNodeIndex,&torsoRot);
 			mechShadowShape->SetLightList(eye->getWorldLights(),eye->getNumLights());
 			mechShadowShape->TransformMultiShape (&xlatPosition,&qRotation);
 		}

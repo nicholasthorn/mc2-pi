@@ -67,6 +67,18 @@ if(MC2_SANITIZE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${MC2_SANITIZE}")
     message("Sanitizers: ${MC2_SANITIZE}")
 endif()
+# MC2_FRAME_POINTERS: keep frame pointers so "perf record -g" (scripts/bench.sh
+# --perf) can walk call stacks; -O2 drops them. Costs a few percent, so it is
+# off for normal builds and benchmark numbers come from a build without it.
+option(MC2_FRAME_POINTERS "Keep frame pointers for perf call graphs (GCC/Clang)" OFF)
+if(MC2_FRAME_POINTERS)
+    if(MSVC)
+        message(FATAL_ERROR "MC2_FRAME_POINTERS is only wired for GCC/Clang")
+    endif()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer")
+    message("Frame pointers: on")
+endif()
 # -Wno-unused-local-typedefs - to disable "typedef was ignored on this declaration"
 
 if(MSVC)
@@ -166,6 +178,8 @@ set(SOURCES
     "code/gamecam.cpp"
     "code/mission.cpp"
     "code/mission2.cpp"
+    "code/benchscenario.cpp"
+    "code/benchdirector.cpp"
     "code/objective.cpp"
     "code/saveload.cpp"
     "code/trigger.cpp"
@@ -244,6 +258,15 @@ endif()
 
 
 add_executable(mc2 ${SOURCES} ${MAIN_SRC})
+# new, game-free code: strict warnings. benchdirector.cpp stays on the legacy
+# flags: it is glue that includes most of the game's 2001 headers.
+# benchscenario.cpp includes inifile.h, whose dstd.h has MSVC-only
+# "#pragma warning" lines; the unit tests see it as a SYSTEM header, the game
+# target cannot, so only that warning is relaxed here.
+if(MC2_STRICT_WARNINGS)
+    set_source_files_properties(code/benchscenario.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
+endif()
 target_link_libraries(mc2 mclib gosfx mlr stuff gui gameos gameos_main windows ZLIB::ZLIB ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer ${ADDITIONAL_LIBS} ${MC2_GL_LIBS})
 
 add_subdirectory("./res" "./out/res")

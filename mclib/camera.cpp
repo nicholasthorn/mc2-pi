@@ -40,6 +40,8 @@
 #include"timing.h"
 #endif
 
+#include"render_heuristics.h"
+
 #ifndef USERINPUT_H
 #include"userinput.h"
 #endif
@@ -1768,6 +1770,37 @@ void Camera::updateLights()
 				terrainLights[numTerrainLights++] = light;
 			}
 		}
+	}
+}
+
+//---------------------------------------------------------------------------
+// Every point and spot light in the world goes into terrainLights, and the
+// terrain lights each visible vertex with each of them (TerrainQuad::setupTextures).
+// Keep only the point, spot and terrain lights whose falloff reaches the box
+// around this frame's terrain vertices (same world coords as the vertices:
+// vx, vy, elevation). A light out of range of the box is out of range of
+// every vertex in it, so the lighting is unchanged.
+void Camera::cullTerrainLights (const Stuff::Vector3D &boxMin, const Stuff::Vector3D &boxMax)
+{
+	numNearTerrainLights = 0;
+	for (long i=0;i<numTerrainLights;i++)
+	{
+		TG_LightPtr light = terrainLights[i];
+
+		// The terrain code factors the first two lights in separately.
+		if ((i >= 2) && light &&
+			((light->lightType == TG_LIGHT_POINT) ||
+			 (light->lightType == TG_LIGHT_SPOT) ||
+			 (light->lightType == TG_LIGHT_TERRAIN)))
+		{
+			const float pos[3] = { light->position.x, light->position.y, light->position.z };
+			const float lo[3] = { boxMin.x, boxMin.y, boxMin.z };
+			const float hi[3] = { boxMax.x, boxMax.y, boxMax.z };
+			if (PointBoxDistanceSquared(pos, lo, hi) >= (light->farDistance * light->farDistance))
+				continue;
+		}
+
+		nearTerrainLights[numNearTerrainLights++] = light;
 	}
 }
 

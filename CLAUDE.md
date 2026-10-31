@@ -39,7 +39,7 @@ mc2/
 ├── res/           ← mc2res resource library (libmc2res_64.so / mc2res.dll)
 ├── Viewer/ text_tool/  ← side tools
 ├── scripts/       ← validate_shaders.py
-└── planning/      ← PROGRESS.md, QUALITY-ROADMAP.md, future-features/
+└── planning/      ← PROGRESS.md, QUALITY-ROADMAP.md, RELEASES.md, future-features/
 ```
 
 `MechCmd2.vcproj` and `mc2res.vcproj` are vestigial. CMake is the build.
@@ -77,10 +77,18 @@ scripts/build_gamedata.sh --src-data ../mc2srcdata --build-dir build --out ../mc
 # Run (from the game directory: mc2, libmc2res_64.so, shaders/, data/, assets/, *.fst)
 ./mc2 -mission mc2_01
 ./mc2 -mission mc2_01 -autoexit 600   # quit cleanly after 600 gameplay frames
+./mc2 -mission mc2_01 -autoexit 3000 -bench frames.csv   # deterministic run, per-frame timings + [BENCH] summary
 LIBGL_ALWAYS_SOFTWARE=1 ./mc2     # WSL2 / no GPU: Mesa llvmpipe, closest PC match to the Pi
 
 # Smoke: run missions headless (Xvfb + llvmpipe), fail on crash/hang/GL error/STOP
 scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2_03"]
+
+# Benchmark (on the Pi, own display): -bench runs, results.csv with p50/p95/p99 and the CPU split
+scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --label "fan on"
+# CPU profile of gameplay frames (perf, frame-pointer build: -DMC2_FRAME_POINTERS=ON)
+scripts/bench.sh --game-dir ../mc2game --build-dir build-fp --renderers gpu --runs 0 --perf
+# Scripted battle with timed segments and screenshots (format: bench/README.md)
+scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit
 ```
 
 Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
@@ -127,6 +135,19 @@ configurations. Smoke runs: `scripts/smoke.sh` (needs built game data), nightly
 in CI. Still to come (sanitizers, coverage, benchmarks):
 `planning/QUALITY-ROADMAP.md`. How to write and run tests:
 `.claude/rules/testing-conventions.md`.
+
+## Workflow: worktrees and three tiers of checks
+
+Details in `.claude/rules/agent-workflow.md`. In short:
+
+- **One worktree per session or feature**, off the latest `pi-port`, with its
+  own build directories.
+- **Every commit:** `scripts/check.sh --build-dir <dir>`: incremental build,
+  unit tests, shader validation, cppcheck on changed files, diff hygiene.
+- **Every 3 to 5 commits and before a push:** `scripts/check.sh --level batch`
+  (both renderers, short smoke), then `/simplify` and `/code-review`.
+- **At the PR:** `/code-review high` on the branch; CI runs the full build
+  matrix and the five-mission smoke on the PR.
 
 Once coverage is measured, the threshold is a **ratchet**:
 
@@ -200,6 +221,7 @@ Then the **Session status** (every branch and PR the session touched), exactly o
 
 - `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`: per-platform build and data setup
 - `planning/QUALITY-ROADMAP.md`: tests, static analysis, CI, performance to-do list
+- `planning/RELEASES.md`: release packages (Pi 4/400 first, plus Linux and Windows for everyone), support levels, how a release is made
 - `planning/PROGRESS.md`: what is built, what is in progress, dated log
 - `planning/future-features/`: specced, not built
 - `devdoc.txt`, `docs` (a text file, not a folder): alariq's original dev notes

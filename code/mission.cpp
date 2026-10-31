@@ -117,6 +117,7 @@
 #include "../resource.h"
 
 #include<gameos.hpp>
+#include "benchdirector.h"
 
 //----------------------------------------------------------------------------------
 // Macro Definitions
@@ -433,7 +434,13 @@ long Mission::update (void)
 			// After that, it increments based on System Time.
 			// NOT the crazy GameOS frameRate.
 			DWORD currentTimeGetTime = timeGetTime();
-			if (LastTimeGetTime != 0xffffffff)
+			if (gos_GetFixedFrameLength() > 0.0f)
+			{
+				// -bench: mission time follows the fixed step, so script
+				// triggers fire on the same frame on every run
+				scenarioTime += frameLength;
+			}
+			else if (LastTimeGetTime != 0xffffffff)
 			{
 				float milliseconds = currentTimeGetTime - LastTimeGetTime;
 				scenarioTime += (milliseconds / 1000.0f);
@@ -483,7 +490,11 @@ long Mission::update (void)
 		
 		if (missionInterface)
 			ProfileTime(MCTimeInterfaceUpdate,missionInterface->update());
-		
+
+		// -benchscenario: scripted battle and camera; after the interface
+		// (input) and before the camera update, so its camera wins
+		BenchDirector::update(missionFileName);
+
 		ProfileTime(MCTimeCameraUpdate,eye->update());
 		
 		missionInterface->updateVTol();

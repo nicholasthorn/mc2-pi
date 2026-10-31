@@ -233,6 +233,9 @@ Two kinds, kept separate because they need different environments.
 - [ ] `perf record` / `perf stat` on the Pi for CPU hot spots.
 - [ ] Security: self-hosted runners must **never** run workflows from fork
       PRs. Restrict the Pi job to pushes on your own branches.
+- [ ] Release check: run the release candidate's Pi package on the Pi runner,
+      so the Pi can move from a manual check to an automatic one
+      (`planning/RELEASES.md`, "Support levels").
 
 ---
 

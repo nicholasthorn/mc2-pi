@@ -116,6 +116,9 @@ class Camera
 		TG_LightPtr					*terrainLights;					//This is the light list to process every frame for TERRAIN ONLY
 		long						numTerrainLights;				//Number of lights active for terrain.  Actually Correct.
 
+		TG_LightPtr					nearTerrainLights[MAX_LIGHTS_IN_WORLD];	//terrainLights that reach the terrain being drawn, see cullTerrainLights()
+		long						numNearTerrainLights;
+
 		gosBuffer*					lights_shader_data_;
 		
  		//Camera Scripting stuff
@@ -364,6 +367,8 @@ class Camera
 			memset(zoomLevelLODScale, 0, sizeof(zoomLevelLODScale));
 			startZInverse = startWInverse = zPerPixel = wPerPixel = 0.0f;
 			numLights = numActiveLights = numTerrainLights = 0;
+			memset(nearTerrainLights, 0, sizeof(nearTerrainLights));
+			numNearTerrainLights = 0;
 			lights_shader_data_ = NULL;
 			fadeStart = 0;
 			lightYaw = lightPitch = 0.0f;
@@ -552,6 +557,24 @@ class Camera
 		{
 			return numTerrainLights;
 		}
+
+		//-----------------------------------------------------------------
+		// The terrain lights after cullTerrainLights(), indexed like
+		// getTerrainLight(): the first two are always kept.
+		TG_LightPtr getNearTerrainLight (long index)
+		{
+			if ((index >= 0) && (index < numNearTerrainLights))
+				return nearTerrainLights[index];
+
+			return NULL;
+		}
+
+		long getNumNearTerrainLights (void)
+		{
+			return numNearTerrainLights;
+		}
+
+		void cullTerrainLights (const Stuff::Vector3D &boxMin, const Stuff::Vector3D &boxMax);
 
 		long addWorldLight (TG_LightPtr light)
 		{

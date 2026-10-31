@@ -19,6 +19,7 @@ belongs in commit messages and PRs.
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
+- [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
 - [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`
 
@@ -31,34 +32,27 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `uninitMemberVar` (100), `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2)
+- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2). The 100 baseline `uninitMemberVar` were triaged 2026-10-31 (see log) and stay in the baseline: set before any read, never read, stubbed multiplayer, test code, or no-init by design
 - [ ] Sanitized smoke on arm64 too
-- [ ] Deterministic smoke runs (seed the RNG)
+- [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
+- [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
 
 ## Planned: built releases on GitHub
 
-Not started. Engine-only packages attached to GitHub Releases, built by a
-workflow when a version tag is pushed.
+Not started. Full plan: `planning/RELEASES.md`. Two audiences: constrained
+systems first (Raspberry Pi 4/400 on Raspberry Pi OS), and ready-to-run builds
+for everyone on ordinary Linux and Windows PCs. No game data in any package;
+each ships the data tools instead.
 
-- [ ] `.github/workflows/release.yml`: on `push: tags: ['v*']`, same matrix as
-      `ci.yml`, run the unit tests, package, then create a **draft** release with
-      generated notes (`gh release create`, `permissions: contents: write`).
-- [ ] Packages, plus a `SHA256SUMS` file:
-  - `mc2-pi-arm64-gles.tar.gz`: built inside a `debian:bookworm` container on
-    the arm64 runner, so it matches Raspberry Pi OS's glibc and SDL packages
-    (a binary built on `ubuntu-24.04-arm` probably will not start there).
-  - `mc2-linux-x64.tar.gz`: built on an older base (or an AppImage bundling
-    SDL) so it runs beyond the newest Ubuntu.
-  - `mc2-windows-x64.zip`: `mc2.exe`, `mc2res.dll`, `shaders/`, the SDL2 /
-    SDL2_mixer / SDL2_ttf / GLEW / zlib DLLs from `3rdparty.zip` with their
-    license texts, and either the MSVC runtime DLLs or a note to install the
-    Visual C++ Redistributable (release builds use the dynamic runtime).
-    Unsigned, so SmartScreen will warn.
-- [ ] **No game data in releases** (original Microsoft EULA). Each package has
-      install notes: dependencies, and building the data from `mc2srcdata` with
-      `scripts/build_gamedata.sh`.
-- [ ] Process: `git tag -a vX.Y.Z`, push the tag to `pi`, review the draft,
-      publish. Try it first with a pre-release tag (`v0.1.0-rc1`).
+- [ ] Phase 1: packaging scripts, `--tools-dir` for `build_gamedata.sh`, install
+      notes, third-party license bundle
+- [ ] Phase 2: `release.yml` (tag-triggered, draft release): Pi tarball
+      (`debian:bookworm` container), Windows zip (DLLs and C++ runtime
+      included), Linux x64 tarball
+- [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
+- [ ] Phase 4: smoke tests against the unpacked packages
+- [ ] Phase 5: `v0.1.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
+- [ ] Phase 6: `v0.1.0`, with Pi hardware results in the notes
 
 ## Taking the useful parts of the remaster
 
@@ -113,6 +107,16 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: `-bench` keeps texture eviction off the wall clock: PR 6's 2-second window (turns scaled by a measured frame rate) stays at 30 turns per second under the fixed step, so evictions no longer depend on machine speed. `gos_GetFixedFrameLength()` moved into libgameos so mclib callers link into the data tools. Two merged mc2_19 runs identical in draws, triangles, state and screenshots. (PR 7)
+- 2026-10-31: Air strike bombers painted from uninitialised memory: `GVAppearance` never set `psRed`/`psGreen`/`psBlue`, and the bomber (no paint scheme of its own) repaints itself with them in `setObjStatus()`, so its colour, and whether two bombers shared a texture instance, came from heap garbage. Defaulted to white as `MechAppearance` does. Found as the last run-to-run difference in the bench effects segment (draw counts, ~0.3% of pixels). (PR 7)
+- 2026-10-31: Bench camera circles the fight: framing projects the fight's centre and moves the aim point to hold it at `ScreenX`/`ScreenY` (replaces `Lift`, whose direction only held at some yaws); `mc2_19.fit` turns one revolution a minute through every segment. Screenshots are the whole drawable, and headless `bench.sh`/`smoke.sh` use an 800x600 Xvfb screen: with FullScreen on, the 1600x1200 one sized the viewport to the screen while the window stayed 800x600, so headless runs drew a 2x-scaled corner of each frame. (PR 7)
+- 2026-10-31: GPU benchmark phase 2: bench director (`code/benchdirector.cpp`, logic in `code/benchscenario.cpp`, unit tested) plays `bench/mc2_19.fit` (player lance vs 20 enemies, 4 segments, artillery, follow camera); per-segment `[BENCH]` lines, TGA screenshots, `state` checksum column; `-bench` turns sound off (radio chatter made `RandomNumber()` calls depend on audio timing, so combat runs drifted). Verified in WSL (llvmpipe, GL and GLES): two 3600-frame runs identical in game state and screenshots; draw-call count still varies ~0.3% in the effects segment (triangles identical). Not run on the Pi.
+- 2026-10-31: cppcheck `uninitMemberVar` triage: the 100 baseline findings (2.13) plus the 19 that only local 2.7 reports (`GVAppearance`, `Turret`, `BldgAppearance`, `Mech3DAppearance`). Real bugs fixed: `GVAppearance::isInfantry` read unset by the SimpleCamera vehicle view (dust cloud loop), now `false` in `init()` (`276daee`); the bomber paint colours, same change as PR 7 (`188ac39`); a font texture that failed to load was still registered and bound with an unset `Texture::type_` (`69b5eda`); `MemoryStream` bit IO after the `class_data` constructor used an unset buffer (`49e107e`). All others are set before any read, never read, or in stubbed MP / test code.
+- 2026-10-31: agent workflow in three tiers (`.claude/rules/agent-workflow.md`): one worktree per session or feature; `scripts/check.sh` before every commit (incremental build, unit tests, shaders, cppcheck on changed files compared with the code before the change, line endings / em dashes); `--level batch` every few commits adds both renderers and a short smoke, then `/simplify` + `/code-review`; at the PR `/code-review high`, and `smoke.yml` now also runs on PRs that touch code.
+- 2026-10-31: render CPU quick wins (#5): shader hot reload no longer stat()s every shader every frame, alpha-sorted effect triangles batched per state, GameOS skips repeated GL state / sampler / uniform calls and streams vertex uploads, shapes lit only by point/spot lights in reach. Pi 400 GPU build, vsync off: mc2_01 113 -> 179 fps, mc2_03 148 -> 181 fps; llvmpipe mc2_01 14.1 -> 17.3 fps.
+- 2026-10-31: `bench.sh --perf`: one `perf record -g` run per mission, sampling switched on/off by the game at the first and last gameplay frame (`MC2_PERF_CTL`/`MC2_PERF_ACK` FIFOs), per-library and top-symbol report, optional flame graph; `-DMC2_FRAME_POINTERS=ON`. Verified in WSL (llvmpipe): sampling covers gameplay only, frame-pointer stacks reach `main` (WSL's perf has no libelf, so names were checked with addr2line). First lead: `FastFile::openFast` and zlib busy during gameplay on mc2_03. Not run on the Pi.
+- 2026-10-30: GPU benchmark phase 1: `-bench <csv>` deterministic mode, per-frame CSV and `[BENCH]` percentiles (`GameOS/gameos/utils/frame_stats.cpp`, unit tested), draw/triangle counters, `bench.sh` wired up. ABL `getLogisticsTime` / `isPlayingVoiceOver` follow mission time under `-bench` (tutorial stages were timed by the wall clock). Verified in WSL (desktop GL, llvmpipe): two runs identical in draws/tris for every frame, mc2_01 900 frames and mc2_03 3000 frames. Not run on the Pi yet.
+- 2026-10-30: fix: every mission crashed at load ("Too Many Standard Functions") after the Omnitech ABL commands took the table past 256; `MAX_STANDARD_FUNCTIONS` now 512 (`mclib/ablsymt.h`).
 - 2026-10-30: GPU benchmark specced (`future-features/GPU-BENCHMARK.md`): deterministic `-bench` mode, scripted camera and combat in segments, per-frame CPU/GPU split and draw counters, checkpoint screenshots. Not built.
 - 2026-10-30: 10 Omnitech ABL commands its base brains need (`code/ablmc2.cpp`); builds and unit tests only, Clan Wars load not re-run yet.
 - 2026-10-30: global pathing packets size-checked; Omnitech's wide layout read and narrowed (`mclib/globalmapio.h`, unit tested); a bad move map now stops the mission with a message instead of corrupting the heap (`43ba20a`). Clan Wars mission 1 on 6.28 data gets past pathing; next blocker is Omnitech ABL commands in its base brains.
@@ -128,6 +132,7 @@ Newest first. `YYYY-MM-DD: what (commit or PR)`.
 - 2026-10-29: cppcheck `nullPointerRedundantCheck`: 8 real check-after-use bugs fixed (ABL static allocation test, inverted `GlobalMap::print` guard, logistics results, tutorial button, ...) (`2aa3591`); baseline 1114 -> 1095.
 - 2026-10-29: Stereo panning works (branch `stereo-panning`): `panToStereoLevels()` (constant-power, full level at centre, 6 unit tests) feeds `Mix_SetPanning`; also fixed `gosAudio_GetChannelSlider` panning falling into the frequency case. Not yet checked by ear.
 - 2026-10-29: cppcheck `uninitMemberVar` 787 -> 170 in three batches (`1d806e5`, `3d11ac6`, `ecab444`), including real copy-constructor bugs in `LogisticsScreen` and `aObject` and an unset `MultiPlayer`; gate keys ignore line numbers in messages (`f6fb2d2`); baseline 1731 -> 1114.
+- 2026-10-29: Release plan written up (`planning/RELEASES.md`): Pi 4/400 as the first-class constrained target, plus Linux x64/arm64 AppImages and a Windows zip for everyone; support levels, phases, licensing checklist.
 - 2026-10-29: Feasibility studies for the upstream gaps: `future-features/SOUND-POSITIONAL.md` (stereo panning is a small fix; doppler needs a new mixer, low value outside VR) and `future-features/NETWORKING.md` (transport and ~80 `MultiPlayer` methods were stubbed in Microsoft's release; large, phased).
 - 2026-10-29: cppcheck bulk cleanup: gate ignores the five "Stuff" registration names for duplInheritedMember (`b72cf00`), printf length modifiers fixed at 433 sites (`0d96de4`, `ba65d34`); baseline 4415 -> 1731.
 - 2026-10-29: Planned: GitHub release packaging; aim recorded to take as much of the remaster as fits, including upscaled game data after a Pi performance check.

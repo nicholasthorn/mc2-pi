@@ -97,10 +97,12 @@ refactoring, and only for code you are changing.
 
 ## Running tests
 
-- Agents **do** run the fast checks themselves after a change: the build, unit
-  tests, and the shader validator. Report the result.
-- Agents **do not** launch the game, run missions, or run on the Pi without
-  asking: these need game data, a display or the hardware. Say which command to
+- Which checks run when (every commit, every batch, at the PR) is in
+  `agent-workflow.md`. Agents run them themselves and report the result.
+- Agents **do** run headless smoke missions (`scripts/smoke.sh`, llvmpipe) as
+  part of the batch checks, when built game data is available.
+- Agents **do not** launch the game in a window, or run anything on the Pi,
+  without asking: these need a display or the hardware. Say which command to
   run and what it would verify.
 
 ## Never

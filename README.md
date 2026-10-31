@@ -29,6 +29,7 @@ original code. Desktop OpenGL stays the default everywhere else.
 | Crash and undefined-behaviour fixes, many back-ported from [mc2-opengl-remastered](https://github.com/ThranduilsRing/mc2-opengl-remastered), more found by sanitizers and cppcheck | Done, ongoing |
 | CI: builds, unit tests, shader validation, nightly smoke runs, sanitizers, cppcheck | Done |
 | Running on real Pi 4/400 hardware | **Not yet confirmed** (builds and runs on arm64 Linux and under Mesa's software renderer) |
+| Downloadable builds (Pi, Linux, Windows) | Planned ([planning/RELEASES.md](planning/RELEASES.md)); until then, build from source |
 
 ## Platforms
 
@@ -110,6 +111,12 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
 
 - **Confirm and tune on real Pi 4/400 hardware**: which missions run, at what
   frame rate.
+- **Downloadable builds** on GitHub Releases
+  ([planning/RELEASES.md](planning/RELEASES.md)): a lean package for the Pi
+  4/400 on Raspberry Pi OS, tested on hardware before each release, plus
+  ready-to-run builds for everyone else: Linux AppImages (x64 and arm64) and a
+  Windows zip. Engine only; each package includes the tools to build the game
+  data.
 - **Quality** ([planning/QUALITY-ROADMAP.md](planning/QUALITY-ROADMAP.md)): more
   unit tests, the cppcheck cleanup, sanitized smoke on arm64, deterministic smoke
   runs, frame-time benchmarks, and a Pi as a self-hosted CI runner.

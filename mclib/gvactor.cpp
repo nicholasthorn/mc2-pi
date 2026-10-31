@@ -688,6 +688,10 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	currentFlash = duration = flashDuration = 0.0f;
 	flashColor = 0x00000000;
 	drawFlash = false;
+
+	// Default to bright RGB, as MechAppearance does. Air strike bombers never
+	// get a paint scheme, but setObjStatus() repaints them with this.
+	psRed = psGreen = psBlue = 0xffffffff;
 	
 	rotationalNodeIndex = -1;
 	dustNodeIndex = activityNodeIndex = hitNodeId = weaponNodeId[0] = weaponNodeId[1] = weaponNodeId[2] = weaponNodeId[3] = -1;
@@ -734,6 +738,10 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	activity = NULL;
 	isWaking = false;
 	movedThisFrame = false;
+	// Only setMoverParameters() sets this; SimpleCamera's vehicle view (mech
+	// bay, mechlopedia, briefing) never calls it but turns the shape, so
+	// updateGeometry() read it unset.
+	isInfantry = false;
 	dustCloudStart = false;
 	isActivitying = false;
 
@@ -1739,7 +1747,7 @@ bool GVAppearance::recalcBounds (void)
 						{
 							for (long i=1;i<MAX_LODS;i++)
 							{
-								if (appearType->gvShape[i] && (eyeDistance > appearType->lodDistance[i]))
+								if (appearType->gvShape[i] && (eyeDistance > LODSwitchDistance(appearType->lodDistance[i],i,currentLOD)))
 								{
 									baseLOD = false;
 									selectLOD = i;

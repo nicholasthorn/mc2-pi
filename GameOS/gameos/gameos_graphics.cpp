@@ -31,6 +31,24 @@ static const DWORD INVALID_TEXTURE_ID = 0;
 
 static gosRenderer* g_gos_renderer = NULL;
 
+// GL draw calls and triangles since the last gos_TakeRenderStats() (-bench)
+static uint32_t g_stat_draws = 0;
+static uint32_t g_stat_tris = 0;
+
+static void countDraw(GLenum pt, GLsizei count)
+{
+    ++g_stat_draws;
+    if(pt == GL_TRIANGLES)
+        g_stat_tris += (uint32_t)count / 3;
+}
+
+void gos_TakeRenderStats(uint32_t* draws, uint32_t* tris)
+{
+    *draws = g_stat_draws;
+    *tris = g_stat_tris;
+    g_stat_draws = g_stat_tris = 0;
+}
+
 // #version line (plus extensions / default precisions) prepended to every
 // shader; picked in gos_CreateRenderer() from the context's GLSL version.
 static std::string g_shader_header = "#version 420\n";
@@ -586,6 +604,7 @@ void gosMesh::draw(gosRenderMaterial* material) const
             gosASSERT(0 && "Wrong primitive type");
     }
 
+    countDraw(pt, num_vertices_);
     glDrawArrays(pt, 0, num_vertices_);
 
     material->endVertexDeclaration();
@@ -634,6 +653,7 @@ void gosMesh::drawIndexed(gosRenderMaterial* material) const
             gosASSERT(0 && "Wrong primitive type");
     }
 
+    countDraw(pt, num_indices_);
     glDrawElements(pt, num_indices_, getIndexSizeBytes()==2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, BUFFER_OFFSET(ib_at));
 
     material->endVertexDeclaration();
@@ -668,6 +688,7 @@ void gosMesh::drawIndexed(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vd
 	CHECK_GL_ERROR;
 
 	GLenum pt = GL_TRIANGLES;
+	countDraw(pt, ib->count_);
 	glDrawElements(pt, ib->count_, index_size == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, NULL);
 
 	vdecl->end();
@@ -696,6 +717,7 @@ void gosMesh::drawIndexed(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vd
 	CHECK_GL_ERROR;
 
 	GLenum pt = GL_TRIANGLES;
+	countDraw(pt, ib->count_);
 	glDrawElements(pt, ib->count_, index_size == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, NULL);
 
 	vdecl->end();
@@ -2198,6 +2220,8 @@ void gosRenderer::drawText(const char* text) {
     const gosFont* font = ta.FontHandle;
 
     const DWORD tex_id = font->getTextureId();
+    if(tex_id == INVALID_TEXTURE_ID) // font texture failed to load
+        return;
     const gosTexture* tex = getTexture(tex_id);
     gosTextureInfo ti;
     tex->getTextureInfo(&ti);
@@ -2545,11 +2569,15 @@ gosFont* gosFont::load(const char* fontFile) {
 	gosASSERT(formatted_len <= glyphNameSize - 1);
 
     gosTexture* ptex = new gosTexture(gos_Texture_Alpha, textureName, 0, NULL, 0, false);
+    DWORD tex_id = INVALID_TEXTURE_ID;
+    // STOP only logs: do not register a texture that never got created, its
+    // Texture::type_ is unset and binding it indexes textureType[] with it
     if(!ptex || !ptex->createHardwareTexture()) {
         STOP(("Failed to create font texture: %s\n", textureName));
+        delete ptex;
+    } else {
+        tex_id = gos_GetRenderer()->addTexture(ptex);
     }
-
-    DWORD tex_id = gos_GetRenderer()->addTexture(ptex);
 
     gosFont* font = new gosFont();
     if(!gos_load_glyphs(glyphName, font->gi_)) {

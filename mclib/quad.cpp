@@ -844,9 +844,9 @@ void TerrainQuad::setupTextures (void)
 				vertices[0]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
-				for (long i=2;i<eye->getNumTerrainLights();i++)
+				for (long i=2;i<eye->getNumNearTerrainLights();i++)
 				{
-					TG_LightPtr thisLight = eye->getTerrainLight(i);
+					TG_LightPtr thisLight = eye->getNearTerrainLight(i);
 					if (thisLight)
 					{
 	//					if (useShadows)
@@ -998,9 +998,9 @@ void TerrainQuad::setupTextures (void)
 				vertices[1]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
-				for (long i=2;i<eye->getNumTerrainLights();i++)
+				for (long i=2;i<eye->getNumNearTerrainLights();i++)
 				{
-					TG_LightPtr thisLight = eye->getTerrainLight(i);
+					TG_LightPtr thisLight = eye->getNearTerrainLight(i);
 					if (thisLight)
 					{
 	//					if (useShadows)
@@ -1152,9 +1152,9 @@ void TerrainQuad::setupTextures (void)
 				vertices[2]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
-				for (long i=2;i<eye->getNumTerrainLights();i++)
+				for (long i=2;i<eye->getNumNearTerrainLights();i++)
 				{
-					TG_LightPtr thisLight = eye->getTerrainLight(i);
+					TG_LightPtr thisLight = eye->getNearTerrainLight(i);
 					if (thisLight)
 					{
 	//					if (useShadows)
@@ -1306,9 +1306,9 @@ void TerrainQuad::setupTextures (void)
 				vertices[3]->lightRGB = lightb + (lightr<<16) + (lightg << 8) + (0xffu << 24);
 
 				//First two light are already factored into the above equations!
-				for (long i=2;i<eye->getNumTerrainLights();i++)
+				for (long i=2;i<eye->getNumNearTerrainLights();i++)
 				{
-					TG_LightPtr thisLight = eye->getTerrainLight(i);
+					TG_LightPtr thisLight = eye->getNearTerrainLight(i);
 					if (thisLight)
 					{
 	//					if (useShadows)

@@ -1919,6 +1919,29 @@ int __stdcall gos_rand();
 // counts frames from here (smoke runs, scripts/smoke.sh).
 //
 void __stdcall gos_MarkGameplayStarted( const char* missionName );
+//
+// "-bench <csv>": the fixed game step in seconds, or 0 when not benchmarking.
+// The game uses it for frameLength and mission time (and skips its clock
+// seed), so gameplay frame N is the same moment of the mission on every run
+// whatever the frame rate (scripts/bench.sh).
+//
+float __stdcall gos_GetFixedFrameLength();
+//
+// "-benchscenario <fit>" (with -bench): the scripted scenario file, or NULL.
+// The game's bench director (code/benchdirector.cpp) plays it, and reports:
+//   gos_BenchSegment(name): frames from now on belong to this segment; each
+//     segment gets its own "[BENCH] segment=<name> ..." line (no spaces).
+//   gos_BenchScreenshot(name): save this frame, as drawn, to
+//     <csv minus .csv>_<name>.tga.
+//
+//   gos_BenchStateHash(h): checksum of the game state this frame (the "state"
+//     CSV column); two runs that differ here diverged in game logic, not
+//     just in what was drawn.
+//
+const char* __stdcall gos_GetBenchScenario();
+void __stdcall gos_BenchSegment( const char* name );
+void __stdcall gos_BenchScreenshot( const char* name );
+void __stdcall gos_BenchStateHash( unsigned int hash );
 
 
 

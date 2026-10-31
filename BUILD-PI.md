@@ -35,6 +35,45 @@ data/  assets/  *.fst  *.cfg  testtxm.tga
 
 Run with `./mc2`, or `./mc2 -mission mc2_01` to jump straight into a mission.
 
+## Benchmarking and profiling
+
+`scripts/bench.sh` runs missions in the deterministic `-bench` mode (same
+frames on every run) and records fps, frame-time percentiles and the CPU
+split per run. Run it on the Pi's own display with nothing else busy:
+
+```
+scripts/bench.sh --game-dir ~/mc2exe --build-dir build64 --renderers gpu
+```
+
+Stock missions open quietly. For a frame with real load (25 units fighting,
+artillery, a moving camera), play a scripted scenario; each of its segments
+is timed separately and screenshotted (`bench/README.md`):
+
+```
+scripts/bench.sh --game-dir ~/mc2exe --build-dir build64 --renderers gpu --scenario bench/mc2_19.fit
+```
+
+For CPU profiles, add `--perf` (one extra sampled run per mission, gameplay
+frames only). It needs `perf` and, for readable call stacks, a build with
+frame pointers in its own directory, so timed numbers still come from a
+normal build:
+
+```
+sudo apt install linux-perf
+sudo sysctl kernel.perf_event_paranoid=2      # if it is 3
+cmake -S . -B build-fp -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_GLES=ON -DMC2_FRAME_POINTERS=ON
+cmake --build build-fp
+scripts/bench.sh --game-dir ~/mc2exe --build-dir build-fp --renderers gpu --runs 0 --perf
+```
+
+Each profile's `*.perf.txt` shows time per library (game, GL driver,
+kernel) and the top functions. Mesa's driver functions only have names if
+its debug symbols are installed; Pi OS ships its own Mesa build, so matching
+`-dbgsym` packages may not exist. The per-library split works either way.
+Stacks also stop inside system libraries built without frame pointers;
+`--call-graph dwarf` walks through them at the cost of a much larger
+`perf.data`.
+
 ## Windows / WSL2 (WSLg)
 
 Same steps on Ubuntu 22.04 under WSL2 (`MC2_GLES` ON or OFF).

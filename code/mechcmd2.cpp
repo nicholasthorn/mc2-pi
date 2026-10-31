@@ -953,7 +953,9 @@ void __stdcall InitializeGameEngine()
 	}
 
 	//Seed the random Number generator.
-	gos_srand(timeGetTime());
+	// (-bench: GameOS has already seeded it with a fixed value)
+	if (gos_GetFixedFrameLength() == 0.0f)
+		gos_srand(timeGetTime());
 
 	if (!SnifferMode)
 	{
@@ -1162,6 +1164,16 @@ void __stdcall InitializeGameEngine()
 				useSound = TRUE;
 			}
 			else
+			{
+				useSound = FALSE;
+				useMusic = FALSE;
+			}
+
+			// -bench: no sound, as if system.cfg had no UseSound block. Audio
+			// plays in real time, and whether a pilot's radio message gets to
+			// RandomNumber() depends on whether the last one has finished, so
+			// with sound on, combat runs drift apart (Radio::playMessage).
+			if (gos_GetFixedFrameLength() > 0.0f)
 			{
 				useSound = FALSE;
 				useMusic = FALSE;
@@ -2076,6 +2088,10 @@ void __stdcall DoGameLogic()
 		frameLength = 1.0 / frameRate;
 		if (frameLength > 0.25f)
 			frameLength = 0.25f;
+
+		// -bench: a fixed step, so frame N is the same game moment on every run
+		if (gos_GetFixedFrameLength() > 0.0f)
+			frameLength = gos_GetFixedFrameLength();
 
 		//Calc out the average frame rate so we can decide if we should use the
 		// movie Video or Just the Audio Track!
