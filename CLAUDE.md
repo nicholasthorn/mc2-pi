@@ -39,7 +39,7 @@ mc2/
 ├── res/           ← mc2res resource library (libmc2res_64.so / mc2res.dll)
 ├── Viewer/ text_tool/  ← side tools
 ├── scripts/       ← validate_shaders.py
-└── planning/      ← PROGRESS.md, QUALITY-ROADMAP.md, future-features/
+└── planning/      ← PROGRESS.md, QUALITY-ROADMAP.md, RELEASES.md, future-features/
 ```
 
 `MechCmd2.vcproj` and `mc2res.vcproj` are vestigial. CMake is the build.
@@ -221,6 +221,7 @@ Then the **Session status** (every branch and PR the session touched), exactly o
 
 - `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`: per-platform build and data setup
 - `planning/QUALITY-ROADMAP.md`: tests, static analysis, CI, performance to-do list
+- `planning/RELEASES.md`: release packages (Pi 4/400 first, plus Linux and Windows for everyone), support levels, how a release is made
 - `planning/PROGRESS.md`: what is built, what is in progress, dated log
 - `planning/future-features/`: specced, not built
 - `devdoc.txt`, `docs` (a text file, not a folder): alariq's original dev notes

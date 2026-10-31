@@ -39,28 +39,20 @@ belongs in commit messages and PRs.
 
 ## Planned: built releases on GitHub
 
-Not started. Engine-only packages attached to GitHub Releases, built by a
-workflow when a version tag is pushed.
+Not started. Full plan: `planning/RELEASES.md`. Two audiences: constrained
+systems first (Raspberry Pi 4/400 on Raspberry Pi OS), and ready-to-run builds
+for everyone on ordinary Linux and Windows PCs. No game data in any package;
+each ships the data tools instead.
 
-- [ ] `.github/workflows/release.yml`: on `push: tags: ['v*']`, same matrix as
-      `ci.yml`, run the unit tests, package, then create a **draft** release with
-      generated notes (`gh release create`, `permissions: contents: write`).
-- [ ] Packages, plus a `SHA256SUMS` file:
-  - `mc2-pi-arm64-gles.tar.gz`: built inside a `debian:bookworm` container on
-    the arm64 runner, so it matches Raspberry Pi OS's glibc and SDL packages
-    (a binary built on `ubuntu-24.04-arm` probably will not start there).
-  - `mc2-linux-x64.tar.gz`: built on an older base (or an AppImage bundling
-    SDL) so it runs beyond the newest Ubuntu.
-  - `mc2-windows-x64.zip`: `mc2.exe`, `mc2res.dll`, `shaders/`, the SDL2 /
-    SDL2_mixer / SDL2_ttf / GLEW / zlib DLLs from `3rdparty.zip` with their
-    license texts, and either the MSVC runtime DLLs or a note to install the
-    Visual C++ Redistributable (release builds use the dynamic runtime).
-    Unsigned, so SmartScreen will warn.
-- [ ] **No game data in releases** (original Microsoft EULA). Each package has
-      install notes: dependencies, and building the data from `mc2srcdata` with
-      `scripts/build_gamedata.sh`.
-- [ ] Process: `git tag -a vX.Y.Z`, push the tag to `pi`, review the draft,
-      publish. Try it first with a pre-release tag (`v0.1.0-rc1`).
+- [ ] Phase 1: packaging scripts, `--tools-dir` for `build_gamedata.sh`, install
+      notes, third-party license bundle
+- [ ] Phase 2: `release.yml` (tag-triggered, draft release): Pi tarball
+      (`debian:bookworm` container), Windows zip (DLLs and C++ runtime
+      included), Linux x64 tarball
+- [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
+- [ ] Phase 4: smoke tests against the unpacked packages
+- [ ] Phase 5: `v0.1.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
+- [ ] Phase 6: `v0.1.0`, with Pi hardware results in the notes
 
 ## Taking the useful parts of the remaster
 
@@ -140,6 +132,7 @@ Newest first. `YYYY-MM-DD: what (commit or PR)`.
 - 2026-10-29: cppcheck `nullPointerRedundantCheck`: 8 real check-after-use bugs fixed (ABL static allocation test, inverted `GlobalMap::print` guard, logistics results, tutorial button, ...) (`2aa3591`); baseline 1114 -> 1095.
 - 2026-10-29: Stereo panning works (branch `stereo-panning`): `panToStereoLevels()` (constant-power, full level at centre, 6 unit tests) feeds `Mix_SetPanning`; also fixed `gosAudio_GetChannelSlider` panning falling into the frequency case. Not yet checked by ear.
 - 2026-10-29: cppcheck `uninitMemberVar` 787 -> 170 in three batches (`1d806e5`, `3d11ac6`, `ecab444`), including real copy-constructor bugs in `LogisticsScreen` and `aObject` and an unset `MultiPlayer`; gate keys ignore line numbers in messages (`f6fb2d2`); baseline 1731 -> 1114.
+- 2026-10-29: Release plan written up (`planning/RELEASES.md`): Pi 4/400 as the first-class constrained target, plus Linux x64/arm64 AppImages and a Windows zip for everyone; support levels, phases, licensing checklist.
 - 2026-10-29: Feasibility studies for the upstream gaps: `future-features/SOUND-POSITIONAL.md` (stereo panning is a small fix; doppler needs a new mixer, low value outside VR) and `future-features/NETWORKING.md` (transport and ~80 `MultiPlayer` methods were stubbed in Microsoft's release; large, phased).
 - 2026-10-29: cppcheck bulk cleanup: gate ignores the five "Stuff" registration names for duplInheritedMember (`b72cf00`), printf length modifiers fixed at 433 sites (`0d96de4`, `ba65d34`); baseline 4415 -> 1731.
 - 2026-10-29: Planned: GitHub release packaging; aim recorded to take as much of the remaster as fits, including upscaled game data after a Pi performance check.
