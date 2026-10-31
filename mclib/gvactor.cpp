@@ -738,6 +738,10 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 	activity = NULL;
 	isWaking = false;
 	movedThisFrame = false;
+	// Only setMoverParameters() sets this; SimpleCamera's vehicle view (mech
+	// bay, mechlopedia, briefing) never calls it but turns the shape, so
+	// updateGeometry() read it unset.
+	isInfantry = false;
 	dustCloudStart = false;
 	isActivitying = false;
 
