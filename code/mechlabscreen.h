@@ -60,6 +60,11 @@ class MechLabScreen: public LogisticsScreen
 
 		static MechLabScreen* instance() { return s_instance;}
 
+		// false for a layout this code does not drive, e.g. MechCommander
+		// Omnitech's mcl_mc.fit (15 statics; the code uses up to 55)
+		bool	layoutSupported() const { return staticCount > MAX_STATIC_USED; }
+		enum { MAX_STATIC_USED = 55 };
+
 		bool canRemoveComponent( LogisticsComponent* pComp );
 
 

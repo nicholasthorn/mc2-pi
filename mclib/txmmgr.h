@@ -47,10 +47,10 @@ enum MC_TextureKey
 #define TEXTURE_CACHE_SIZE			(40*1024*1024)	//Extra space here to facilitate editting
 #define MAX_CACHE_SIZE				(40*1024*1024)	//Actual amount map must run in!
 #define MC_MAXFACES					50000
-// One texture file, raw or LZ compressed: up to a 512x512 32-bit TGA with
-// room for its header, ID and footer (MechCommander Omnitech's
-// ObjectTextureRes; stock is at most 256).
-#define MAX_LZ_BUFFER_SIZE			((512*512*4) + 4096)
+// One texture file, raw or LZ compressed: up to a 1024x1024 32-bit TGA with
+// room for its header, ID and footer (MechCommander Omnitech's main menu
+// art, e.g. mcl_mm_o.tga; its ObjectTextureRes is 512, stock at most 256).
+#define MAX_LZ_BUFFER_SIZE			((1024*1024*4) + 4096)
 
 #define MC2_ISTERRAIN				1
 #define MC2_DRAWSOLID				2

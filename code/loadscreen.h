@@ -99,6 +99,7 @@ class LoadScreen: public LogisticsScreen
 		aAnimation	outAnims[5];
 		aAnimation	inAnims[5];
 		aText		text;
+		bool		hasAnimText;	// the stock layout's AnimObject18 text
 		int*		animIndices;
 
 
