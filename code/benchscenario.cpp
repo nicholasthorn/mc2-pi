@@ -118,10 +118,6 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 		seg.strikeEvery = 0;
 		readOptional(fit, "Shot", seg.shot);
 		readOptional(fit, "StrikeEvery", seg.strikeEvery);
-		if (seg.shot >= 0)
-			for (long j = 0; j < i; j++)
-				if (segments[j].shot == seg.shot)
-					return fail(err, errSize, "Shot repeats an earlier segment's frame in", block);
 
 		long n = 0;
 		readOptional(fit, "NumKeys", n);
@@ -130,9 +126,11 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 				return fail(err, errSize, "too many camera keys at", block);
 			char id[32];
 			snprintf(id, sizeof(id), "Key%ld", k);
-			float v[6];
-			if (fit.readIdFloatArray(id, v, 6) != 0)
-				return fail(err, errSize, "bad camera key in", block);
+			// readIdFloatArray accepts fewer values than asked for and leaves
+			// the rest unset, so the element count is checked first
+			float v[6] = {};
+			if (fit.getIdFloatArrayElements(id) != 6 || fit.readIdFloatArray(id, v, 6) != 0)
+				return fail(err, errSize, "camera key missing or not 6 values in", block);
 			BenchCameraKey& key = keys[numKeys++];
 			key.frame = (long)v[0];
 			key.dx = v[1];
@@ -140,6 +138,19 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 			key.tilt = v[3];
 			key.yaw = v[4];
 			key.altitude = v[5];
+		}
+	}
+
+	// A shot outside its own segment's frames would show another segment's
+	// camera. Segments do not overlap, so this also rules out two segments
+	// sharing a shot frame.
+	for (long i = 0; i < numSegments; i++) {
+		const long shot = segments[i].shot;
+		const long end = (i + 1 < numSegments) ? segments[i + 1].start : frames;
+		if (shot >= 0 && (shot < segments[i].start || shot >= end)) {
+			char block[32];
+			snprintf(block, sizeof(block), "Segment%ld", i);
+			return fail(err, errSize, "Shot outside the segment's frames in", block);
 		}
 	}
 

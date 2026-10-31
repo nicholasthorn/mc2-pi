@@ -51,7 +51,7 @@ f[6] Key2 = 1799, 0, 0, 35, 0, 1200
 [Segment2]
 st Name = "closeup"
 l Start = 1800
-l Shot = 2400
+l Shot = 2250
 l StrikeEvery = 0
 l NumKeys = 2
 f[6] Key0 = 1800, 0, 0, 25, 0, 800

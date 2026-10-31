@@ -50,7 +50,7 @@ Added 2026-10-31. Not started.
       CMake config files for SDL2_mixer/ttf). Afterwards, check which
       workarounds can go (the `cmake/FindSDL2_*.cmake` pkg-config fallbacks stay:
       other distros need them) and update `BUILD-LINUX.md`.
-- [ ] **Code-review everything on `pi-port` so far** (83 commits ahead of
+- [x] **Code-review everything on `pi-port` so far** (83 commits ahead of
       `origin/master` as of 2026-10-31). One diff that size reviews badly, so
       review it in batches by area, oldest first: build/CI, GLES renderer and
       shaders, platform layer, engine (`mclib/`), game (`code/`), tests and
@@ -59,8 +59,9 @@ Added 2026-10-31. Not started.
       already had reviewed.
   - 2026-10-31: review done (88 commits, six areas). Findings and their
     status: `planning/REVIEW-PI-PORT.md`. Fixed so far: G1 (#13), P1, T2,
-    T4 and most of T3 (#12), B1-B6 (`fix/review-ci`). Still open: T1, the
-    rest of T3, T5, B7, R1, P2, E1.
+    T4 and most of T3 (#12), B1-B6 (#18), R1, P2, E1 (#20); B7 (mc2_17
+    smoke flake) gone since #19; T1, the rest of T3, T5 (`review/followup`).
+    All 18 findings closed.
 - [ ] **Move all agents onto the updated agent process**: workflows, the
       three-tier process, and PRs into `pi-port` instead of merging or pushing to
       it directly. Update `CLAUDE.md`, `.claude/rules/` and `.claude/skills/` to
@@ -356,6 +357,8 @@ Candidates:
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
+
+- 2026-10-31: last review findings (branch `review/followup`): bench scenarios refuse a `Shot` outside its own segment and a camera key without exactly 6 values (mc2_19's closeup shot moved from 2400, the next segment's first frame, to 2250); the key-sort test now fails without the sort; a unit test loads the shipped `bench/mc2_19.fit`. mc2_17 smoke passes 3 of 3 since #19 (B7 closed). Batch checks (GL and GLES, smoke) on Ubuntu 26.04; not run on the Pi.
 
 - 2026-10-31: cppcheck `uninitMemberVar` / `uninitDerivedMemberVar` cleared in `code/`, `gui/` and `mclib/` outside gosfx/mlr/stuff (branch `fix/uninit-game-engine`): 59 baseline entries, members zeroed in their constructors (`aListItem` gets a constructor, so its five derived-class findings go together), 9 suppressed inline with a reason (7 flexible array members in `multplyr.h`, `MovePath::stepList`, a `HeapManager` false positive), plus three that only cppcheck 2.19 reports (`MoverControl`, `MoverDynamics`, `MasterComponent`). `ABLModule::orderCallFlags` now starts `NULL`, and `WatchManager::init()` sets `numWatches` (it set `maxWatches` twice). Batch checks (GL and GLES, smoke) on Ubuntu 26.04.
 - 2026-10-31: cppcheck `uninitMemberVar` cleared in `mclib/gosfx`, `mlr` and `stuff` (branch `fix/uninit-ms-libs`): of the 45 baseline entries, 42 fixed by initialising the members (gosFX events, seeded curves, effect cloud and singleton specs; MLR effect, card cloud, shape, terrain, triangle meshes, screen quads; `AverageOf`, `Directory`, `MemoryStream`, the `MinMaxHolderOf` test helper; one `MemoryStream` entry was already fixed on `pi-port`), 3 suppressed inline as false positives (`StaticArrayOf` copy constructor and `Matrix4D(int)` fill through helpers cppcheck does not follow; `Record` gets its variable-length tail by `memcpy`). Local cppcheck 2.19: 44 findings in these directories before, 0 after. Batch checks on Ubuntu 26.04.
