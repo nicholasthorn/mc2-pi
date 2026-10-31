@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cstring>
 #include "utils/string_utils.h"
+#include "utils/str_bounded.h"
 
 #ifdef _DEBUG
 static int enter_debugger = 1;
@@ -61,10 +62,10 @@ static void logmsg(const char* header, const char* fmt, va_list ap)
 // and hide the message. Exiting by default is a later step (PROGRESS.md).
 static void stop_exit_if_requested()
 {
-    static const char* env = getenv("MC2_STOP_EXITS");
-    if (!env || !env[0] || !strcmp(env, "0"))
+    static const bool exits = envFlagEnabled(getenv("MC2_STOP_EXITS"));
+    if (!exits)
         return;
-    fprintf(stderr, "\nSTOP: exiting (MC2_STOP_EXITS)\n");
+    fprintf(stderr, "STOP: exiting (MC2_STOP_EXITS)\n");
     fflush(stdout);
     fflush(stderr);
     _Exit(EXIT_FAILURE);
@@ -86,7 +87,11 @@ int __cdecl InternalFunctionStop( const char* fmt, ... )
 
 int __cdecl InternalFunctionStop( const char* Message, const char* value)
 {
+    // Same "STOP: " prefix and trailing newline as logmsg, so smoke's ^STOP:
+    // check also sees STOP(("... %s", str)), which resolves to this overload.
+    fputs("STOP: ", stderr);
     fprintf(stderr, Message, value);
+    fputc('\n', stderr);
     stop_exit_if_requested();
     return enter_debugger;
 }

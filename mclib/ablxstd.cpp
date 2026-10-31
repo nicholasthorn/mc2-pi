@@ -12,6 +12,7 @@
 #include<string.h>
 #include<cassert>
 #include"platform_str.h"
+#include<utils/str_bounded.h>
 #include<math.h>
 #include<time.h>
 
@@ -504,16 +505,17 @@ void execStdPrint (void) {
 	getCodeToken();
 	TypePtr paramTypePtr = execExpression();
 
-	char buffer[20];
+	// "%.4f" of a huge real runs past 40 characters (see execStdConcat)
+	char buffer[64] = {0};
 	char* s = buffer;
 	if (paramTypePtr == IntegerTypePtr)
-		sprintf(buffer, "%d", tos->integer);
+		snprintf(buffer, sizeof(buffer), "%d", tos->integer);
 	else if (paramTypePtr == BooleanTypePtr)
-		sprintf(buffer, "%s", tos->integer ? "true" : "false");
+		snprintf(buffer, sizeof(buffer), "%s", tos->integer ? "true" : "false");
 	else if (paramTypePtr == CharTypePtr)
-		sprintf(buffer, "%c", tos->byte);
+		snprintf(buffer, sizeof(buffer), "%c", tos->byte);
 	else if (paramTypePtr == RealTypePtr)
-		sprintf(buffer, "%.4f", tos->real);
+		snprintf(buffer, sizeof(buffer), "%.4f", tos->real);
 	else if ((paramTypePtr->form == FRM_ARRAY) && (paramTypePtr->info.array.elementTypePtr == CharTypePtr))
 		s = (char*)tos->address;
 	pop();
@@ -599,11 +601,8 @@ TypePtr execStdConcat (void) {
 		src = (char*)tos->address;
 
 	if (src) {
-		if (destSize) {
-			size_t len = strnlen(dest, destSize);
-			if (len < destSize)
-				strncat(dest, src, destSize - len - 1);
-			}
+		if (destSize)
+			appendBounded(dest, destSize, src);
 		else
 			strcat(dest, src);
 		}
