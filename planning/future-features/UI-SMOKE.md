@@ -144,11 +144,14 @@ cannot say why a click did nothing.
    purchase, back to the mech bay, pilot ready, back to the mech bay and
    briefing.
 2. **Built (2026-10-31):** in-screen actions (`<screen>+<action>`): `buy` on
-   mech purchase (`MB_MSG_ADD` on the variant `begin()` selects), `add` on
-   the mech bay (`MB_MSG_ADD`, the mech it selects into the force), `pilot`
-   on pilot ready (`PR_MSG_ADD`, the selected pilot into the selected slot).
-   No list-box access was needed: each screen's `begin()` already selects
-   what the action uses. The purchase screen is left with Accept
+   mech purchase (`MB_MSG_ADD` on the first variant that fits the mission's
+   drop weight and the C-bills), `add` on the mech bay (`MB_MSG_ADD`, the
+   mech it selects into the force), `pilot` on pilot ready (`PR_MSG_ADD`,
+   the selected pilot into the selected slot). Only `buy` picks a list item
+   itself: the variant `begin()` selects may not fit (MechCommander
+   Omnitech's `a_0_2` takes 65 t and lists an Atlas first, so "add" then
+   stays off); the others use what `begin()` selects. The purchase screen
+   is left with Accept
    (`MB_MSG_NEXT`): its Back sells back everything bought there. Default walk
    (2) is now: single mission (mc2_02), briefing, mech bay, purchase + buy,
    mech bay + add, mech lab (Cancel), mech bay, briefing, mech bay, pilot

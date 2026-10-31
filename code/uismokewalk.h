@@ -47,7 +47,7 @@ enum class UiAction {
 	ChangeLoadout,		// mech bay -> mech lab
 	BuyMechs,			// mech bay -> mech purchase
 	// in-screen actions
-	BuyMech,			// mechpurchase+buy: buy the selected variant
+	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force
 	AssignPilot			// pilotready+pilot: give the selected mech slot the selected pilot
 };

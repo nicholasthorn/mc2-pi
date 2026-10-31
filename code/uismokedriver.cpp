@@ -194,8 +194,25 @@ const char* UiSmokeDriver::press(UiAction action)
 	case UiAction::BuyMechs:
 		return pressButton(screen, MB_MSG_BUY);
 	// in-screen actions: each acts on what the screen has selected, which
-	// its begin() sets (the first variant, the first mech, the first pilot)
+	// its begin() sets (the first mech, the first pilot); buy picks its own
+	// variant, below
 	case UiAction::BuyMech:
+		// the first variant may not fit the mission's drop weight
+		// (MechCommander Omnitech's a_0_2 takes 65 t and lists an Atlas
+		// first), and then "add" in the mech bay stays off: pick one that fits
+		if (MechPurchaseScreen* purchase = MechPurchaseScreen::instance()) {
+			MechListBox& list = purchase->variantListBox;
+			long i = 0;
+			for (; i < list.GetItemCount(); i++) {
+				LogisticsMech* mech = ((MechListBoxItem*)list.GetItem(i))->getMech();
+				if (LogisticsData::instance->canAddMechToForceGroup(mech)
+						&& NO_ERR == LogisticsData::instance->canPurchaseMech(mech->getVariant()))
+					break;
+			}
+			if (i == list.GetItemCount())
+				return "no mech fits the drop weight and the C-bills";
+			list.SelectItem(i);
+		}
 		return pressButton(screen, MB_MSG_ADD);
 	case UiAction::AddToForce:
 		return pressButton(screen, MB_MSG_ADD);
