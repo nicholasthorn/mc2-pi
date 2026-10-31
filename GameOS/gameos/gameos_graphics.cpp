@@ -2850,12 +2850,12 @@ void __stdcall gos_SetScreenMode( DWORD Width, DWORD Height, DWORD bitDepth/*=16
     gosASSERT(g_gos_renderer);
     gosASSERT((GotoFullScreen && !GotoWindowMode) || (!GotoFullScreen&&GotoWindowMode) || (!GotoFullScreen&&!GotoWindowMode));
 
-    // -bench always runs windowed at the game resolution. Full screen scales
-    // the frame to the desktop, so the pixel count (and the screenshots)
-    // would depend on the display; and with no window manager (Xvfb) SDL
-    // reports the screen size as the drawable while the window stays at the
-    // game size, so frames and screenshots came out cropped.
-    if(gos_GetFixedFrameLength() > 0.0f)
+    // -autoexit / -bench runs are always windowed at the game resolution.
+    // Full screen scales the frame to the desktop, so the pixel count (and
+    // bench screenshots) would depend on the display; and with no window
+    // manager (Xvfb) SDL reports the screen size as the drawable while the
+    // window stays at the game size, so frames came out cropped.
+    if(gos_IsAutomatedRun())
         GotoFullScreen = false;
 
     g_gos_renderer->setScreenMode(Width, Height, bitDepth, GotoFullScreen, AntiAlias);
