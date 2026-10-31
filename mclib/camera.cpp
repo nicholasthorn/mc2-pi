@@ -40,6 +40,8 @@
 #include"timing.h"
 #endif
 
+#include"render_heuristics.h"
+
 #ifndef USERINPUT_H
 #include"userinput.h"
 #endif
@@ -1791,16 +1793,10 @@ void Camera::cullTerrainLights (const Stuff::Vector3D &boxMin, const Stuff::Vect
 			 (light->lightType == TG_LIGHT_SPOT) ||
 			 (light->lightType == TG_LIGHT_TERRAIN)))
 		{
-			// distance from the light to the nearest point of the box
-			float dx = 0.0f, dy = 0.0f, dz = 0.0f;
-			if (light->position.x < boxMin.x) dx = boxMin.x - light->position.x;
-			else if (light->position.x > boxMax.x) dx = light->position.x - boxMax.x;
-			if (light->position.y < boxMin.y) dy = boxMin.y - light->position.y;
-			else if (light->position.y > boxMax.y) dy = light->position.y - boxMax.y;
-			if (light->position.z < boxMin.z) dz = boxMin.z - light->position.z;
-			else if (light->position.z > boxMax.z) dz = light->position.z - boxMax.z;
-
-			if ((dx*dx + dy*dy + dz*dz) >= (light->farDistance * light->farDistance))
+			const float pos[3] = { light->position.x, light->position.y, light->position.z };
+			const float lo[3] = { boxMin.x, boxMin.y, boxMin.z };
+			const float hi[3] = { boxMax.x, boxMax.y, boxMax.z };
+			if (PointBoxDistanceSquared(pos, lo, hi) >= (light->farDistance * light->farDistance))
 				continue;
 		}
 
