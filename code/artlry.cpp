@@ -182,7 +182,7 @@ void IfaceCallStrike (long strikeID,
 	if (playerStrike) 
 	{
 		commanderID = Commander::home->getId();
-		bRandom = Team::home->teamLineOfSight(*strikeLoc,0.0f) ? 0 : 1;
+		bRandom = Team::home->teamLineOfSight(strikeLocation,0.0f) ? 0 : 1;
 	}
 	else if (clanStrike) 
 	{
@@ -190,9 +190,15 @@ void IfaceCallStrike (long strikeID,
 			Fatal(0, " Iface.CallStrike: Need more info than clanStrike in MPlayer ");
 		//------------------------------------------------------------
 		// In campaign game, clans can strike into unrevealed terrain.
-		bRandom = Team::teams[1]->teamLineOfSight(*strikeLoc,0.0f) ? 0 : 1;
+		bRandom = Team::teams[1]->teamLineOfSight(strikeLocation,0.0f) ? 0 : 1;
 		commanderID = 1;
 	}
+
+	//------------------------------------------------------------
+	// Neither player nor clan (an ABL strike with clan false): no
+	// commander to own it, and CallArtillery would index commanders[-1].
+	if (commanderID < 0)
+		return;
 
 	switch (strikeID) 
 	{
