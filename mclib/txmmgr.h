@@ -47,7 +47,10 @@ enum MC_TextureKey
 #define TEXTURE_CACHE_SIZE			(40*1024*1024)	//Extra space here to facilitate editting
 #define MAX_CACHE_SIZE				(40*1024*1024)	//Actual amount map must run in!
 #define MC_MAXFACES					50000
-#define MAX_LZ_BUFFER_SIZE			((256*256*4) + 1024)
+// One texture file, raw or LZ compressed: up to a 512x512 32-bit TGA with
+// room for its header, ID and footer (MechCommander Omnitech's
+// ObjectTextureRes; stock is at most 256).
+#define MAX_LZ_BUFFER_SIZE			((512*512*4) + 4096)
 
 #define MC2_ISTERRAIN				1
 #define MC2_DRAWSOLID				2
@@ -1095,6 +1098,10 @@ void GatherLightsParameters(TG_HWLightsData* lights);
 
 //----------------------------------------------------------------------
 extern MC_TextureManager *mcTextureManager;
+
+// The folder an object (mech, vehicle, building) texture loads from: see
+// txmmgr.cpp. texturePath must hold 1024 chars.
+void objectTexturePath (char* texturePath, const char* txmName);
 
 //----------------------------------------------------------------------
 #endif

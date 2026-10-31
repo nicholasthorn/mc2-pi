@@ -757,7 +757,7 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			gvShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 	
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -819,7 +819,7 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 				gvShadowShape->GetTextureName(i,txmName,256);
 		
 				char texturePath[1024];
-				sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+				objectTexturePath(texturePath,txmName);
 		
 				FullPathFileName textureName;
 				textureName.init(texturePath,txmName,"");
@@ -861,7 +861,7 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			sensorTriangleShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 	
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -897,7 +897,7 @@ void GVAppearance::init (AppearanceTypePtr tree, GameObjectPtr obj)
 			sensorCircleShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 	
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -1067,7 +1067,7 @@ void GVAppearance::setObjStatus (long oStatus)
 			gvShape->GetTextureName(i,txmName,256);
 
 			char texturePath[1024];
-			sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+			objectTexturePath(texturePath,txmName);
 	
 			FullPathFileName textureName;
 			textureName.init(texturePath,txmName,"");
@@ -1278,7 +1278,7 @@ void GVAppearance::resetPaintScheme (DWORD red, DWORD green, DWORD blue)
 	gvShape->GetTextureName(0,txmName,256);
 
    	char texturePath[1024];
-   	sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+   	objectTexturePath(texturePath,txmName);
 
    	FullPathFileName textureName;
    	textureName.init(texturePath,txmName,"");
@@ -1787,7 +1787,7 @@ bool GVAppearance::recalcBounds (void)
 								gvShape->GetTextureName(j,txmName,256);
 
 								char texturePath[1024];
-								sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+								objectTexturePath(texturePath,txmName);
 
 								FullPathFileName textureName;
 								textureName.init(texturePath,txmName,"");
@@ -1842,7 +1842,7 @@ bool GVAppearance::recalcBounds (void)
 								gvShape->GetTextureName(i,txmName,256);
 										
 								char texturePath[1024];
-								sprintf(texturePath,"%s%d" PATH_SEPARATOR, tglPath, ObjectTextureSize);
+								objectTexturePath(texturePath,txmName);
 						
 								FullPathFileName textureName;
 								textureName.init(texturePath,txmName,"");

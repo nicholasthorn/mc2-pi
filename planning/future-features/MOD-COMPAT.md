@@ -359,8 +359,30 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    missing; Omnitech's own DLL lacks it too.
    A mod install therefore needs `mc2res.dll` in the game folder, as well
    as its `TerrainTextureRes`.
-9. Remaining: the purchasable Omnitech units in logistics and the new
-   units in missions are not checked in the UI or in play yet.
+9. **In play (2026-10-31).** Clan Wars mission 1 under `-bench` with a
+   scripted fight (3 player, 12 enemy units; headless Xvfb at 800x600,
+   llvmpipe), screenshots at three heights. The JPEG colour map and the
+   minimap draw correctly. Found and fixed on the branch:
+   - **Untextured (white) units.** Omnitech's `prefs.cfg` sets
+     `ObjectTextureRes = 512` and ships object textures only in
+     `data/tgl/512`; at the stock 128 they were silently not found.
+     `objectTexturePath()` (`txmmgr.cpp`, used by every actor's texture
+     load) takes the configured size when the texture is there, as for all
+     stock data, else the largest size that has it.
+   - **Heap overrun on 512 textures.** `MAX_LZ_BUFFER_SIZE` held one 256
+     texture and the size check was a `gosASSERT`: Omnitech's 512 textures
+     overran it and crashed later in `ObjectTypeManager::get`. The buffer
+     now takes 512x512, a texture that cannot fit is logged and drawn as
+     missing, and the cache-in decompressions are bounded.
+   - **Pink fog.** The fog colour (D3D 0xAARRGGBB) reached the shaders with
+     red and blue swapped (`uint32_to_vec4`; vertex colours are swizzled,
+     fog was not). Stock fogs are near-grey so it hardly showed; Clan Wars'
+     light blue (0xA0A5FF) came out pink at the map edge. Fixed where
+     `fog_color_` is set; stock mc2_19 checked by screenshot.
+   A mod install should still carry its `ObjectTextureRes` (512) and
+   `TerrainTextureRes` (256) for full detail.
+   Not checked: the logistics screens with Omnitech's units (needs menu
+   input, not scriptable headless yet).
 
 ## Scope if we do this
 
