@@ -4932,9 +4932,15 @@ void execCoreMoveTo (void) {
 		return;
 	}
 
+	// A script bug, not a reason to quit: warn and skip the order rather
+	// than hand a NaN goal to pathing (the mc2_15 crash before #25). 1 is
+	// "done", as for a skipped order, so the brain moves on instead of
+	// retrying every frame.
 	if (isnan(location[0]) || isnan(location[1]))
 	{
-		STOP(("Move to order location is Not a Number in Brain %s.  Check patrol path array indices!",CurWarrior->getBrainString()));
+		PAUSE(("Move to order location is Not a Number in Brain %s.  Check patrol path array indices!",CurWarrior ? CurWarrior->getBrainString() : "(none)"));
+		ABLi_pushInteger(1);
+		return;
 	}
 
 	long result = 0;
