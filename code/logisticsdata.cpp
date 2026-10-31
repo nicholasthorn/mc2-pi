@@ -18,6 +18,7 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #include"mech.h"
 #include"logisticsmissioninfo.h"
 #include"packet.h"
+#include"movobj.h"
 #include"gamesound.h"
 #include"prefs.h"
 #include"comndr.h"
@@ -336,17 +337,13 @@ void LogisticsData::initVariants()
 
 void LogisticsData::addVehicle( long fitID, PacketFile& objectFile, float scale )
 {
-	if ( NO_ERR != objectFile.seekPacket(fitID) )
+	// the pak packet, or the Omnitech type's loose .fit
+	FitIniFile file;
+	if ( NO_ERR != openTypeProfile( fitID, file, &objectFile ) )
 		return;
 
-	int fileSize = objectFile.getPacketSize();
-
-	if ( fileSize )
 	{
 		LogisticsVehicle* pVehicle = new LogisticsVehicle;
-
-		FitIniFile file;
-		 file.open(&objectFile, fileSize);
 
 		pVehicle->init( file );
 		pVehicle->setScale( scale );
@@ -2503,17 +2500,14 @@ LogisticsVehicle*	LogisticsData::getVehicle( const char* pName )
 
 int LogisticsData::addBuilding( long fitID, PacketFile& objectFile, float scale )
 {
-	if ( NO_ERR != objectFile.seekPacket(fitID) )
+	// the pak packet, or the Omnitech type's loose .fit
+	FitIniFile file;
+	if ( NO_ERR != openTypeProfile( fitID, file, &objectFile ) )
 		return -1;
 
-	int fileSize = objectFile.getPacketSize();
-
-	if ( fileSize )
 	{
 		Building bldg;
 
-		FitIniFile file;
-		file.open(&objectFile, fileSize);
 		if ( NO_ERR != file.seekBlock( "ObjectType" ) )
 			gosASSERT( 0 );
 

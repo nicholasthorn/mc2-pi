@@ -14,6 +14,7 @@
 
 #ifndef OBJTYPE_H
 #include"objtype.h"
+#include"movobj.h"
 #endif
 
 #ifndef DOBJNUM_H
@@ -230,8 +231,8 @@ bool ObjectType::handleDestruction (GameObjectPtr collidee, GameObjectPtr collid
 // format. A mech has only its CSV, so its type FIT is built here the way
 // every stock mech type reads: names from CSVname, explosion object 41,
 // destroyed object 101, extent 12, explosion radius 80, destruct and
-// explosion damage by weight class. Absent file: stock behaviour.
-static FitIniFilePtr MovObjFile = NULL;
+// explosion damage by weight class. Absent file: stock behaviour. The
+// movobj.fit lookup itself is in movobj.cpp.
 
 static void buildMechTypeFit (char* fit, size_t fitSize, const char* name, long tonnage) {
 
@@ -264,17 +265,9 @@ static bool openMovObjType (long objTypeNum, long& typeClass, File& looseFile,
 							char* fit, size_t fitSize, File& builtFile,
 							FilePtr& typeFile, unsigned long& typeFileSize) {
 
-	if (!MovObjFile)
-		return(false);
-	char block[32];
-	sprintf(block, "%ld", objTypeNum);
-	if (MovObjFile->seekBlock(block) != NO_ERR)
-		return(false);
 	char name[64];
-	if ((MovObjFile->readIdLong("ObjectTypeNum", typeClass) != NO_ERR) ||
-		(MovObjFile->readIdString("CSVname", name, 63) != NO_ERR) || !name[0])
+	if (!findMovObjType(objTypeNum, typeClass, name, sizeof(name)))
 		return(false);
-	S_strlwr(name);
 
 	if (typeClass == BATTLEMECH_TYPE) {
 		FullPathFileName csvName;
@@ -300,6 +293,12 @@ static bool openMovObjType (long objTypeNum, long& typeClass, File& looseFile,
 		typeFileSize = looseFile.fileSize();
 	}
 	return(true);
+}
+
+//---------------------------------------------------------------------------
+long ObjectTypeManager::openProfile (long objTypeNum, FitIniFile& profile) {
+
+	return(openTypeProfile(objTypeNum, profile, objectFile));
 }
 
 //---------------------------------------------------------------------------
@@ -339,15 +338,8 @@ long ObjectTypeManager::init (const char* objectFileName, long objectTypeCacheSi
 	for (long i = 0; i < numObjectTypes; i++)
 		table[i] = NULL;
 
-	FullPathFileName movObjName;
-	movObjName.init(objectPath, "movobj", ".fit");
-	if (fileExists(movObjName)) {
-		MovObjFile = new FitIniFile;
-		if (MovObjFile->open(movObjName) != NO_ERR) {
-			delete MovObjFile;
-			MovObjFile = NULL;
-		}
-	}
+	// a fresh look at movobj.fit for this mission (movobj.cpp)
+	closeMovObjFile();
 
 	//---------------------------------------------------------------------------
 	// Since MC1 handled all of these MiscTerrainObjectTypes with one ObjectType,
@@ -383,13 +375,8 @@ void ObjectTypeManager::destroy(void)
 		objectFile = NULL;
 	}
 
-	if (MovObjFile)
-	{
-		MovObjFile->close();
-		delete MovObjFile;
-		MovObjFile = NULL;
-	}
-	
+	closeMovObjFile();
+
 	if (objectTypeCache) 
 	{
 		delete objectTypeCache;

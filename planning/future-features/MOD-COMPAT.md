@@ -333,11 +333,22 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    only has to read stock formats. JPEG colour maps did not need this:
    reading them was the original engine's own code path and is invisible to
    stock data.
-7. Remaining noise: `ObjectTypeManager::objectFile->seekPacket(n)` with
-   Omnitech numbers in `Mission` (logs "requested packet number N is
-   bigger than number of packets: 1188", harmless); "Requested string id
-   N not found" for the new units' names (need Omnitech's `mc2res.dll`
-   strings).
+7. **"requested packet number N is bigger than number of packets" (92 per
+   Clan Wars load). Fixed on the branch.** Not harmless:
+   - `Mission` read ground vehicle / elemental profiles by seeking the type
+     number in `object2.pak` (11), so Omnitech vehicles spawned without
+     their profile; `LogisticsData::addVehicle` / `addBuilding` did the same
+     (80), so Omnitech's purchasable vehicles and buildings were missing.
+     Both now use `openTypeProfile` (`code/movobj.cpp`, also built by the
+     viewer): the pak packet, or the loose `.fit` that `movobj.fit` names.
+     The `movobj.fit` lookup moved there too and opens the file on first
+     use (logistics runs before `ObjectTypeManager::init`).
+   - Omnitech's own `sound.snd` lists 126 bites and its `sound.pak` holds
+     125; `preloadSoundBite` skips the missing one quietly (1).
+   Clan Wars mission 1 now passes `scripts/smoke.sh` (no error lines).
+8. Remaining: "Requested string id N not found" for the new units' names
+   (need Omnitech's `mc2res.dll` strings); the purchasable Omnitech units
+   in logistics are not checked in the UI yet.
 
 ## Scope if we do this
 

@@ -232,7 +232,10 @@ class ObjectTypeManager {
 		long init (const char* objectFileName, long objectTypeCacheSize, long objectCacheSize, long maxObjectTypes = 4096);
 			
 		void destroy (void);
-							
+
+		// opens a vehicle / elemental type's profile FIT (movobj.h)
+		static long openProfile (long objTypeNum, FitIniFile& profile);
+
 		~ObjectTypeManager (void) {
 			destroy();
 		}

@@ -1018,14 +1018,14 @@ void Mission::createPartObject (long partIndex, MoverPtr mover) {
 			case GROUNDVEHICLE:
 			case ELEMENTAL:
 			{
-				if (ObjectTypeManager::objectFile->seekPacket(parts[partIndex].objNumber) == NO_ERR) 
+				// object2.pak or, for an Omnitech type number, its loose .fit
 				{
 					//--------------------------------------------------------
 					// All new code here.  This will ask the objectType it is
 					// loading what kind of objectType it is and create it
 					// based on that instead of objTypeNum.
 					FitIniFile profileFile;
-					long result = profileFile.open(ObjectTypeManager::objectFile,ObjectTypeManager::objectFile->getPacketSize());
+					long result = ObjectTypeManager::openProfile(parts[partIndex].objNumber, profileFile);
 					if (result != NO_ERR)
 						STOP((" Mission.createPartObject: can't open file "));
 
@@ -1260,14 +1260,14 @@ typedef struct _MoverInitData {
 				case GROUNDVEHICLE:
 				case ELEMENTAL:	
 				{
-					if (ObjectTypeManager::objectFile->seekPacket(moverSpec->objNumber) == NO_ERR) 
+					// object2.pak or, for an Omnitech type number, its loose .fit
 					{
 						//--------------------------------------------------------
 						// All new code here.  This will ask the objectType it is
 						// loading what kind of objectType it is and create it
 						// based on that instead of objTypeNum.
 						FitIniFile profileFile;
-						long result = profileFile.open(ObjectTypeManager::objectFile,ObjectTypeManager::objectFile->getPacketSize());
+						long result = ObjectTypeManager::openProfile(moverSpec->objNumber, profileFile);
 						if (result != NO_ERR)
 							STOP((" Mission.createPartObject: can't open file "));
 	
