@@ -154,4 +154,109 @@ TEST_CASE("File resolves and reads a loose disk file (base-loose branch)")
 	CHECK(!f.isOpen());
 }
 
+// Writes text to a scratch .fit in the working directory (the build tree),
+// opens it and reads "l Key" from [B]. Removes the file.
+static long readKeyFromScratch(const char* text, long& value)
+{
+	const char* path = "inifile_lastline.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs(text, fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	long result = fit.seekBlock("B");
+	if (result == NO_ERR)
+		result = fit.readIdLong("Key", value);
+	fit.close();
+	remove(path);
+	return result;
+}
+
+TEST_CASE("FitIniFile finds a key on the last line of a block")
+{
+	long value = -1;
+	SUBCASE("block followed by another block, no blank line")
+	{
+		CHECK(readKeyFromScratch("FITini\n[A]\nl X = 1\n[B]\nl Key = 7\n[C]\nl Y = 2\nFITend\n", value) == NO_ERR);
+		CHECK(value == 7);
+	}
+	SUBCASE("last block, then FITend")
+	{
+		CHECK(readKeyFromScratch("FITini\n[A]\nl X = 1\n[B]\nl Key = 7\nFITend\n", value) == NO_ERR);
+		CHECK(value == 7);
+	}
+	SUBCASE("last block, last line of the file with a newline")
+	{
+		CHECK(readKeyFromScratch("FITini\n[A]\nl X = 1\n[B]\nl Key = 7\n", value) == NO_ERR);
+		CHECK(value == 7);
+	}
+	SUBCASE("last block, last line of the file without a newline")
+	{
+		CHECK(readKeyFromScratch("FITini\n[A]\nl X = 1\n[B]\nl Key = 7", value) == NO_ERR);
+		CHECK(value == 7);
+	}
+	SUBCASE("CRLF line endings, key before the next block")
+	{
+		CHECK(readKeyFromScratch("FITini\r\n[A]\r\nl X = 1\r\n[B]\r\nl Key = 7\r\n[C]\r\nl Y = 2\r\nFITend\r\n", value) == NO_ERR);
+		CHECK(value == 7);
+	}
+	SUBCASE("a missing key is still reported missing")
+	{
+		CHECK(readKeyFromScratch("FITini\n[A]\nl Key = 1\n[B]\nl Other = 7\n[C]\nl Key = 2\nFITend\n", value) == (long)VARIABLE_NOT_FOUND);
+	}
+}
+
+TEST_CASE("FitIniFile reads an array and a string on the last line of a file")
+{
+	const char* path = "inifile_lastline2.fit";
+	SUBCASE("float array")
+	{
+		FILE* fp = fopen(path, "wb");
+		REQUIRE(fp != nullptr);
+		fputs("FITini\n[B]\nf[3] Pos = 1.5, 2, 3\n", fp);
+		fclose(fp);
+
+		FitIniFile fit;
+		REQUIRE(fit.open(path) == NO_ERR);
+		REQUIRE(fit.seekBlock("B") == NO_ERR);
+		float pos[3] = {0.0f, 0.0f, 0.0f};
+		CHECK(fit.readIdFloatArray("Pos", pos, 3) == NO_ERR);
+		CHECK(pos[0] == 1.5f);
+		CHECK(pos[2] == 3.0f);
+		fit.close();
+	}
+	SUBCASE("array that continues past the end is still refused")
+	{
+		FILE* fp = fopen(path, "wb");
+		REQUIRE(fp != nullptr);
+		fputs("FITini\n[B]\nl[3] Ids = 1, 2\n", fp);
+		fclose(fp);
+
+		FitIniFile fit;
+		REQUIRE(fit.open(path) == NO_ERR);
+		REQUIRE(fit.seekBlock("B") == NO_ERR);
+		long ids[3] = {0, 0, 0};
+		CHECK(fit.readIdLongArray("Ids", ids, 3) == (long)NOT_ENOUGH_ELEMENTS_FOR_ARRAY);
+		fit.close();
+	}
+	SUBCASE("string")
+	{
+		FILE* fp = fopen(path, "wb");
+		REQUIRE(fp != nullptr);
+		fputs("FITini\n[B]\nst Name = \"last\"", fp);
+		fclose(fp);
+
+		FitIniFile fit;
+		REQUIRE(fit.open(path) == NO_ERR);
+		REQUIRE(fit.seekBlock("B") == NO_ERR);
+		char name[16] = "";
+		CHECK(fit.readIdString("Name", name, sizeof(name)) == NO_ERR);
+		CHECK(strcmp(name, "last") == 0);
+		fit.close();
+	}
+	remove(path);
+}
+
 } // TEST_SUITE("FileStack")
