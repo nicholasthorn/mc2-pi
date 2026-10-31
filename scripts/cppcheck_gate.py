@@ -14,6 +14,8 @@ usage:
 --build-dir must hold compile_commands.json (a CMake configure is enough; no
 build needed). The baseline depends on the cppcheck version: CI generates it
 (see .github/workflows/static.yml), so update it from CI, not locally.
+
+Exit status: 0 nothing new, 1 new findings, 2 cppcheck itself failed.
 """
 import argparse
 import collections
@@ -93,6 +95,13 @@ def run_cppcheck(build_dir, files, jobs):
         if ignored(path, check, message):
             continue
         findings[key(path, severity, check, message)] += 1
+    # Without --error-exitcode cppcheck exits non-zero only when it failed
+    # itself (no file matched the filter, bad project file, crash). Its
+    # findings would then be missing, not zero. Exit 2 (1 means new findings).
+    if r.returncode != 0 and not findings:
+        tail = "\n".join((r.stderr or r.stdout).strip().splitlines()[-5:])
+        print("cppcheck failed (exit %d):\n%s" % (r.returncode, tail))
+        sys.exit(2)
     return findings
 
 

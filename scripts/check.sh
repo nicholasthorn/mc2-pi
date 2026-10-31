@@ -137,6 +137,9 @@ if [ -n "$CPP" ] && command -v cppcheck >/dev/null; then
     base_ver=$(sed -n 's/.*with Cppcheck \([0-9.]*\).*/\1/p' scripts/cppcheck-baseline.txt)
     if [ $gate -eq 0 ]; then
         ok "cppcheck: $(grep -m1 '^cppcheck' "$after")"
+    elif [ $gate -eq 2 ]; then
+        fail "cppcheck itself failed: changed files not checked"
+        sed 's/^/      /' "$after"
     elif [ "$local_ver" = "$base_ver" ]; then
         fail "cppcheck: $(grep -m1 '^cppcheck' "$after")"
         grep '^NEW' "$after" | sed 's/^/      /'
