@@ -240,7 +240,8 @@ long FastFile::open (const char* fName)
 		//----------------------------------------------------------
 		// Archives built on Windows (retail data, MechCommander
 		// Omnitech) name entries "data\\tgl\\x.tgl"; this port looks
-		// them up with '/' (File::open converts). Normalise and rehash.
+		// them up with '/', lowercased (File::open converts). Normalise
+		// and rehash, so the stored hash matches a lookup's.
 		files[i].pfe->name[MAX_FILENAME_SIZE - 1] = 0;
 		bool renamed = false;
 		for (char* c = files[i].pfe->name; *c; c++)
@@ -248,8 +249,10 @@ long FastFile::open (const char* fName)
 				*c = '/';
 				renamed = true;
 			}
-		if (renamed)
+		if (renamed) {
+			S_strlwr(files[i].pfe->name);
 			files[i].pfe->hash = elfHash(files[i].pfe->name);
+		}
 
 		files[i].inuse = FALSE;
 		files[i].pos = 0;

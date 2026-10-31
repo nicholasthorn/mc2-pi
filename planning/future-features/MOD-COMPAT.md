@@ -324,8 +324,9 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      branch:** `LZDecomp` takes an optional output limit; `TerrainTextures::
      init` turns quick load off if a listed cache has the wrong size (the
      full load rebuilds and rewrites them); an unlisted one of another size
-     is resampled (nearest) to the current size. Clan Wars mission 1 now
-     logs no STOP besides the packet noise.
+     is resampled (nearest) to the current size; a corrupt one is drawn
+     blank (a quick load cannot rebuild it). Clan Wars mission 1 now logs
+     no STOP besides the packet noise.
 6. **Mission editor import (idea, 2026-10-31).** When a mission editor
    lands (look at the Remaster and Omnitech editors for inspiration), an
    import step can convert mod data that the engine cannot read in a

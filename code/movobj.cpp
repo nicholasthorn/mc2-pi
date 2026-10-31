@@ -41,13 +41,16 @@ bool findMovObjType (long objTypeNum, long& typeClass, char* name, long nameSize
 	FitIniFilePtr movObj = movObjFile();
 	if (!movObj)
 		return(false);
+	// typeClass is only set on a complete entry
 	char block[32];
 	sprintf(block, "%ld", objTypeNum);
+	long entryClass = 0;
 	if ((movObj->seekBlock(block) != NO_ERR) ||
-		(movObj->readIdLong("ObjectTypeNum", typeClass) != NO_ERR) ||
+		(movObj->readIdLong("ObjectTypeNum", entryClass) != NO_ERR) ||
 		(movObj->readIdString("CSVname", name, nameSize - 1) != NO_ERR) || !name[0])
 		return(false);
 	S_strlwr(name);
+	typeClass = entryClass;
 	return(true);
 }
 

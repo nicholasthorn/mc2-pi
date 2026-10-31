@@ -1195,6 +1195,7 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 				// rebuilds those; this catches the unlisted ones, which a quick
 				// load cannot rebuild. This used to STOP and use a part-filled
 				// buffer, and a larger cache would have overflowed it.
+				// (This block only runs in a quick load.)
 				const size_t txmBytes = mipSize * mipSize * sizeof(DWORD);
 				const size_t maxBytes = (size_t)MAX_CACHED_TXM_SIZE * MAX_CACHED_TXM_SIZE * sizeof(DWORD);
 				const size_t lzBytes = (txmBytes > maxBytes) ? txmBytes : maxBytes;
@@ -1214,24 +1215,26 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 					bufferSize = txmBytes;
 				}
 
-				if (bufferSize == txmBytes)
+				// Corrupt or not resizable: a quick load has no source tiles to
+				// rebuild it from, so draw the transition blank
+				if (bufferSize != txmBytes)
 				{
-					result = textureFromMemoryAlpha(lzBuffer,mipSize);
-					txmResult = result;
+					fprintf(stderr, "terrain: unusable cached transition %s, drawn blank\n", (const char*)testPath);
+					free(lzBuffer);
+					lzBuffer = (MemoryPtr)calloc(1, txmBytes);
 				}
+
+				result = textureFromMemoryAlpha(lzBuffer,mipSize);
+				txmResult = result;
 
 				free(lzBuffer);
 
-				// corrupt: fall through, as for a missing cache
-				if (bufferSize == txmBytes)
-				{
-					transitions[nextTransition].transitionIndex = typeInfo;
-					transitions[nextTransition].baseTXMIndex = txmResult;
-					transitions[nextTransition].overlayIndex = overlayInfo;
-					nextTransition++;
+				transitions[nextTransition].transitionIndex = typeInfo;
+				transitions[nextTransition].baseTXMIndex = txmResult;
+				transitions[nextTransition].overlayIndex = overlayInfo;
+				nextTransition++;
 
-					return (txmResult);
-				}
+				return (txmResult);
 			}
 		}
 

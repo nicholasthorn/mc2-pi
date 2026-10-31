@@ -1688,8 +1688,16 @@ long TerrainColorMap::init (char *fileName)
 			free(jpgData);
 			jpgData = NULL;
 
-			if (jpgColorMap && jpgColorMapWidth != jpgColorMapHeight)
-				STOP(("Color Map %s is not a perfect Square", (const char*)burnInJpg));
+			// The tiling below needs a square, whole number of
+			// COLOR_MAP_TEXTURE_SIZE tiles (STOP only logs): else use the TGAs
+			if (jpgColorMap && ((jpgColorMapWidth != jpgColorMapHeight) ||
+				(jpgColorMapWidth < COLOR_MAP_TEXTURE_SIZE) || (jpgColorMapWidth % COLOR_MAP_TEXTURE_SIZE)))
+			{
+				STOP(("Color Map %s is %ux%u, not a square of %d pixel tiles", (const char*)burnInJpg,
+					(unsigned)jpgColorMapWidth, (unsigned)jpgColorMapHeight, COLOR_MAP_TEXTURE_SIZE));
+				gos_Free(jpgColorMap);
+				jpgColorMap = NULL;
+			}
 		}
 
 		if (jpgColorMap)

@@ -22,6 +22,7 @@
 #include "file.h"
 #include "ffile.h"
 #include "fastfile.h"
+#include "inifile.h"
 #include "lz.h"
 
 #include <cstdio>
@@ -167,8 +168,9 @@ TEST_CASE("an FST written on Windows (backslash names) is found with '/' paths")
 {
 	// Omnitech's (and Windows-built) archives store "data\\tgl\\x.tgl";
 	// FastFile::open normalises entry names so '/' lookups find them.
+	// Mixed case too: lookups hash the lowercased path.
 	const std::string fstPath = scratchPath("archive_bs.fst");
-	authorFst(fstPath, "mvh_scratch_dir\\fst_entry.txt", kFstPayload, (int)strlen(kFstPayload));
+	authorFst(fstPath, "MVH_Scratch_Dir\\Fst_Entry.txt", kFstPayload, (int)strlen(kFstPayload));
 	{
 		FstRegistry reg(fstPath.c_str());
 		REQUIRE(reg.ok);
@@ -178,6 +180,34 @@ TEST_CASE("an FST written on Windows (backslash names) is found with '/' paths")
 		File f;
 		REQUIRE(f.open("mvh_scratch_dir/fst_entry.txt") == NO_ERR);
 		CHECK(readAll(f) == kFstPayload);
+		f.close();
+	}
+	remove(fstPath.c_str());
+}
+
+TEST_CASE("a FIT stored in an FST opens through a FitIniFile parent")
+{
+	// How ObjectTypeManager hands a mod's type .fit to ObjectType::init when
+	// the .fit came from an archive: the FST entry is the parent.
+	static const char fit[] =
+		"FITini\r\n\r\n[ObjectClass]\r\nl ObjectTypeNum = 3\r\n\r\nFITend\r\n";
+	const std::string fstPath = scratchPath("archive_fit.fst");
+	authorFst(fstPath, "mvh_scratch_type.fit", fit, (int)strlen(fit));
+	{
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		File f;
+		REQUIRE(f.open("mvh_scratch_type.fit") == NO_ERR);
+		REQUIRE((f.getMemoryView() != NULL));
+
+		FitIniFile ini;
+		// a size past the image is clamped to it
+		REQUIRE(ini.open(&f, (unsigned long)f.getLength() + 100) == NO_ERR);
+		REQUIRE(ini.seekBlock("ObjectClass") == NO_ERR);
+		long typeNum = 0;
+		CHECK(ini.readIdLong("ObjectTypeNum", typeNum) == NO_ERR);
+		CHECK(typeNum == 3);
+		ini.close();
 		f.close();
 	}
 	remove(fstPath.c_str());

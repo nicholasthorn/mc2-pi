@@ -1694,8 +1694,9 @@ bool File::isOpen (void)
 //---------------------------------------------------------------------------
 MemoryPtr File::getMemoryView (void)
 {
-	// Only a plain memory file: not a disk, FST or child image
-	if (inRAM && fileImage && (parent == NULL) && (fastFile == NULL) &&
+	// A memory file or an FST entry (read whole into RAM on open): not a
+	// disk file or a child image
+	if (inRAM && fileImage && (parent == NULL) &&
 		((handle == CLOSED_HANDLE_VALUE) || (handle == -1)))
 		return(fileImage + logicalPosition);
 	return(NULL);

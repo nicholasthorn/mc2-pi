@@ -464,8 +464,12 @@ ObjectTypePtr ObjectTypeManager::load (ObjectTypeNumber objTypeNum, bool noCache
 		objectFile->seekPacket(objTypeNum);
 		typeFileSize = objectFile->getPacketSize();
 		}
-	else if (!openMovObjType(objTypeNum, objectTypeNum, looseFile, fit, sizeof(fit), builtFile, typeFile, typeFileSize))
+	else if (!openMovObjType(objTypeNum, objectTypeNum, looseFile, fit, sizeof(fit), builtFile, typeFile, typeFileSize)) {
+		// Fatal only logs on this port: never go on to init a type from
+		// nothing (it would read a stale object2.pak packet into 0 bytes)
 		Fatal(objTypeNum, " ObjectTypeManager.load: can't create object ");
+		return(NULL);
+	}
 
 	//-----------------------------------------------------
 	// Now that we know what type it is, let's create it...
