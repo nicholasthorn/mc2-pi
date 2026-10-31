@@ -67,6 +67,18 @@ if(MC2_SANITIZE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${MC2_SANITIZE}")
     message("Sanitizers: ${MC2_SANITIZE}")
 endif()
+# MC2_FRAME_POINTERS: keep frame pointers so "perf record -g" (scripts/bench.sh
+# --perf) can walk call stacks; -O2 drops them. Costs a few percent, so it is
+# off for normal builds and benchmark numbers come from a build without it.
+option(MC2_FRAME_POINTERS "Keep frame pointers for perf call graphs (GCC/Clang)" OFF)
+if(MC2_FRAME_POINTERS)
+    if(MSVC)
+        message(FATAL_ERROR "MC2_FRAME_POINTERS is only wired for GCC/Clang")
+    endif()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer")
+    message("Frame pointers: on")
+endif()
 # -Wno-unused-local-typedefs - to disable "typedef was ignored on this declaration"
 
 if(MSVC)

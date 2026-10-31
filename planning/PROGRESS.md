@@ -19,6 +19,7 @@ belongs in commit messages and PRs.
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice (22 cases)
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24)
+- [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
 - [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`
 
@@ -33,7 +34,8 @@ belongs in commit messages and PRs.
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
 - [ ] cppcheck: `uninitMemberVar` (100), `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs) (roadmap Phase 2)
 - [ ] Sanitized smoke on arm64 too
-- [ ] Deterministic smoke runs (seed the RNG)
+- [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
+- [ ] GPU benchmark phases 2-4: scripted camera and combat, GPU timer queries, compare script (`future-features/GPU-BENCHMARK.md`)
 
 ## Planned: built releases on GitHub
 
@@ -113,6 +115,9 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: `bench.sh --perf`: one `perf record -g` run per mission, sampling switched on/off by the game at the first and last gameplay frame (`MC2_PERF_CTL`/`MC2_PERF_ACK` FIFOs), per-library and top-symbol report, optional flame graph; `-DMC2_FRAME_POINTERS=ON`. Verified in WSL (llvmpipe): sampling covers gameplay only, frame-pointer stacks reach `main` (WSL's perf has no libelf, so names were checked with addr2line). First lead: `FastFile::openFast` and zlib busy during gameplay on mc2_03. Not run on the Pi.
+- 2026-10-30: GPU benchmark phase 1: `-bench <csv>` deterministic mode, per-frame CSV and `[BENCH]` percentiles (`GameOS/gameos/utils/frame_stats.cpp`, unit tested), draw/triangle counters, `bench.sh` wired up. ABL `getLogisticsTime` / `isPlayingVoiceOver` follow mission time under `-bench` (tutorial stages were timed by the wall clock). Verified in WSL (desktop GL, llvmpipe): two runs identical in draws/tris for every frame, mc2_01 900 frames and mc2_03 3000 frames. Not run on the Pi yet.
+- 2026-10-30: fix: every mission crashed at load ("Too Many Standard Functions") after the Omnitech ABL commands took the table past 256; `MAX_STANDARD_FUNCTIONS` now 512 (`mclib/ablsymt.h`).
 - 2026-10-30: GPU benchmark specced (`future-features/GPU-BENCHMARK.md`): deterministic `-bench` mode, scripted camera and combat in segments, per-frame CPU/GPU split and draw counters, checkpoint screenshots. Not built.
 - 2026-10-30: 10 Omnitech ABL commands its base brains need (`code/ablmc2.cpp`); builds and unit tests only, Clan Wars load not re-run yet.
 - 2026-10-30: global pathing packets size-checked; Omnitech's wide layout read and narrowed (`mclib/globalmapio.h`, unit tested); a bad move map now stops the mission with a message instead of corrupting the heap (`43ba20a`). Clan Wars mission 1 on 6.28 data gets past pathing; next blocker is Omnitech ABL commands in its base brains.

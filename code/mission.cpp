@@ -433,7 +433,13 @@ long Mission::update (void)
 			// After that, it increments based on System Time.
 			// NOT the crazy GameOS frameRate.
 			DWORD currentTimeGetTime = timeGetTime();
-			if (LastTimeGetTime != 0xffffffff)
+			if (gos_GetFixedFrameLength() > 0.0f)
+			{
+				// -bench: mission time follows the fixed step, so script
+				// triggers fire on the same frame on every run
+				scenarioTime += frameLength;
+			}
+			else if (LastTimeGetTime != 0xffffffff)
 			{
 				float milliseconds = currentTimeGetTime - LastTimeGetTime;
 				scenarioTime += (milliseconds / 1000.0f);

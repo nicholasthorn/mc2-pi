@@ -77,10 +77,16 @@ scripts/build_gamedata.sh --src-data ../mc2srcdata --build-dir build --out ../mc
 # Run (from the game directory: mc2, libmc2res_64.so, shaders/, data/, assets/, *.fst)
 ./mc2 -mission mc2_01
 ./mc2 -mission mc2_01 -autoexit 600   # quit cleanly after 600 gameplay frames
+./mc2 -mission mc2_01 -autoexit 3000 -bench frames.csv   # deterministic run, per-frame timings + [BENCH] summary
 LIBGL_ALWAYS_SOFTWARE=1 ./mc2     # WSL2 / no GPU: Mesa llvmpipe, closest PC match to the Pi
 
 # Smoke: run missions headless (Xvfb + llvmpipe), fail on crash/hang/GL error/STOP
 scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2_03"]
+
+# Benchmark (on the Pi, own display): -bench runs, results.csv with p50/p95/p99 and the CPU split
+scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --label "fan on"
+# CPU profile of gameplay frames (perf, frame-pointer build: -DMC2_FRAME_POINTERS=ON)
+scripts/bench.sh --game-dir ../mc2game --build-dir build-fp --renderers gpu --runs 0 --perf
 ```
 
 Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.

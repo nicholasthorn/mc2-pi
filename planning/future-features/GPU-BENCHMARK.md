@@ -203,9 +203,22 @@ the Pi; not needed for the numbers.
 
 ## Phases
 
-1. Determinism (fixed `frameLength`, seeds) and per-frame CSV with the
-   logic/submit/swap split, percentiles and draw counters. Small; makes the
-   existing `bench.sh` runs comparable straight away.
+1. **Built** (2026-10-30): `-bench <csv>` (`gameosmain.cpp`): fixed 1/30 s
+   `frameLength` and mission clock (`scenarioTime`), fixed seed at start-up and
+   again at the first gameplay frame, keyboard and mouse events dropped (an
+   edge-scroll would move the camera). Per-frame `total/logic/render/swap` ms,
+   draw calls and triangles (counted at the `glDraw*` calls) written to the CSV
+   at exit; `[BENCH] segment=all ...` summary (`utils/frame_stats.cpp`).
+   `bench.sh` passes `-bench` and stores the summary in `results.csv`.
+   ABL `getLogisticsTime` returns mission time (ms) and `isPlayingVoiceOver`
+   returns false under `-bench`: 12 stock scripts time tutorial stages and
+   camera moves with them, and audio plays in real time. Verified: two runs
+   give identical draws/tris on every frame (mc2_01 900, mc2_03 3000). Not
+   split yet: "render" is game enqueue and GL submit together. Pilot videos
+   in the force group bar still depend on the measured frame rate.
+   **Also built** (2026-10-31): `bench.sh --perf`, a `perf record -g` run
+   per mission that samples gameplay frames only (the game drives perf's
+   control FIFO), with a `MC2_FRAME_POINTERS` build option for call stacks.
 2. Bench director, scenario file, segments, screenshots.
 3. GPU timer queries and `bench.sh` / `bench_compare.py`.
 4. HUD (optional).

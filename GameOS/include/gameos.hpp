@@ -1919,6 +1919,13 @@ int __stdcall gos_rand();
 // counts frames from here (smoke runs, scripts/smoke.sh).
 //
 void __stdcall gos_MarkGameplayStarted( const char* missionName );
+//
+// "-bench <csv>": the fixed game step in seconds, or 0 when not benchmarking.
+// The game uses it for frameLength and mission time (and skips its clock
+// seed), so gameplay frame N is the same moment of the mission on every run
+// whatever the frame rate (scripts/bench.sh).
+//
+float __stdcall gos_GetFixedFrameLength();
 
 
 
