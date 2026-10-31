@@ -60,11 +60,6 @@ class MechLabScreen: public LogisticsScreen
 
 		static MechLabScreen* instance() { return s_instance;}
 
-		// false for a layout this code does not drive, e.g. MechCommander
-		// Omnitech's mcl_mc.fit (15 statics; the code uses up to 55)
-		bool	layoutSupported() const { return staticCount > MAX_STATIC_USED; }
-		enum { MAX_STATIC_USED = 55 };
-
 		bool canRemoveComponent( LogisticsComponent* pComp );
 
 
@@ -100,6 +95,15 @@ class MechLabScreen: public LogisticsScreen
 		LogisticsComponent*	pCurComponent;
 
 		void showJumpJetItems( bool bShow );
+		void setLayoutIndexes();
+
+		// indexes into statics, set from the layout in init: stock
+		// mcl_mc.fit has 56 statics, MechCommander Omnitech's 15 (the same
+		// pieces renumbered, without the mech picture)
+		bool		stockLayout;
+		long		damageIcon, heatLimitIcon, ammoIcon;
+		long		jumpRangeIcon, jumpHeatIcon, armorIcon, heatSinkIcon;
+		long		jumpJetOutline;
 
 		void updateDiagram();
 

@@ -374,6 +374,8 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-10-31: MechCommander Omnitech mech lab (branch `omnitech-mechlab`): the mech lab takes its fixed statics from Omnitech's 15-static `mcl_mc.fit` as Omnitech's code does (stock's 56 otherwise), so "change loadout" in the mech bay is back on. "Buy" on Omnitech's purchase screen works; the UI walk's purchase was a 100 t Atlas on a 65 t mission. Details in `MOD-COMPAT.md` item 12.
+
 - 2026-10-31: MechCommander Omnitech front-end screens (branch `omnitech-ui`): the UI smoke walks crashed at the main menu on Omnitech data. 1024x1024 art fits the texture manager's LZ buffers, `gos_LockTexture` handles texture 0, and the briefing, loading and pilot ready screens take their fixed statics from Omnitech's layouts as its code does (pilot ready wrote past its 40 statics). Its mech lab layout is not supported yet, so the mech bay keeps "change loadout" off for it. Desert Fox (5 missions) installed and smoke-tested. Details in `MOD-COMPAT.md` items 12 and 13.
 
 - 2026-10-31: MechCommander Omnitech's other campaigns (branch `omnitech-campaigns`): 13 Omnitech-only ABL commands (`addmovertoplayer`, `setbrain`, `settextmsg`, `addresourcepoints`, salvage craft, building name and capture RP, mech damage and gesture, ...) from its changelog, brain changes queued to the start of the next frame; colour-mapped TGAs load (Omnitech's sky 12); weapon damage over 255 allowed outside multiplayer; `MAX_OFFMAP_AREAS` 60 -> 120 with the fill bounded (ASan: it overran the `GlobalMap` object). Details in `MOD-COMPAT.md` item 11.

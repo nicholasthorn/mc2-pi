@@ -474,17 +474,30 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    - **Pilot ready (`mcl_pr_layout.fit`):** 40 statics; the pilot picture is
      28, not 67 (writing 67 overran the array and crashed at exit), and
      the stock-only cover hack on 27 / 28 is skipped.
-   - **Mech lab (`mcl_mc.fit`): not done.** 15 statics; our code uses up to
-     55, and Omnitech's `MechLabScreen.cpp` differs by about 850 lines (new
-     layout, damage display, more). The mech bay keeps "change loadout"
-     disabled for that layout (logged once).
+   - **Mech lab (`mcl_mc.fit`, branch `omnitech-mechlab`):** 15 statics,
+     not 56: the same pieces renumbered (weapon info icons 29-34 are 1-6,
+     jump jet / armor icons 47-49 are 7-9, jump jet outline 54 is 11, heat
+     sink icon 55 is 12), chosen from the static count as Omnitech's code
+     ("magic 18022012") has them. The four-piece mech picture 50-53 is gone:
+     Omnitech's static 10 there is a black area (its code still sets the
+     picture on it, which would stretch a 64x64 corner of it), so we leave
+     it alone. Its static 13 is an ammo icon for Omnitech's own ammo
+     readout, which we do not have, so it is hidden. "Change loadout"
+     in the mech bay works again. Omnitech's other mech lab changes (repair
+     buttons, ammo components, the variant name text) are not ported.
    - Other layouts (main menu, mission selection, mech bay, purchase, mech
      info) stay within their counts; whether every in-range index is the
      same piece was not checked.
    Walks now pass on Omnitech data, also under ASan: main menu, the four
    options tabs, new campaign, mission selection, briefing, mech bay, pilot
-   ready, mech purchase. Open: an Omnitech campaign starts with an empty
-   mech bay, and "buy" on the purchase screen adds nothing (not looked at).
+   ready, mech purchase, mech lab. "Buy" did add a mech: the walk's single
+   mission (`a_0_2`, like stock's `mc2_02`) starts with an empty bay and a
+   65 t drop weight, and the walk bought the first variant, an Atlas, which
+   then could not join the force. The UI smoke driver (#32) needs to buy
+   the first variant that fits instead. Open: the front end draws into an 800x600 area whatever the
+   window size, and Omnitech's layouts (made for larger screens, with
+   `HiresOffsets`) run past it, so the right and bottom of its screens are
+   cut off.
 
 13. **Omnitech campaign packs (2026-10-31).** Nine 2012-2016 packs on
    ModDB (`moddb.com/mods/mechcommander-omnitech/downloads`), Inno Setup

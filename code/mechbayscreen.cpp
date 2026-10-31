@@ -6,7 +6,6 @@ MechBayScreen.cpp			: Implementation of the MechBayScreen component.
 \*************************************************************************************************/
 
 #include"mechbayscreen.h"
-#include"mechlabscreen.h"
 #include"logisticsmech.h"
 #include"logisticsdata.h"
 #include"logisticsmechicon.h"
@@ -593,7 +592,7 @@ void MechBayScreen::update()
 		getButton( MB_MSG_CHANGE_LOADOUT )->disable( false );
 		getButton( MB_MSG_BUY )->disable( false );
 
-		if ( !pCurMech || !MechLabScreen::instance() || !MechLabScreen::instance()->layoutSupported() )
+		if ( !pCurMech )
 			getButton( MB_MSG_CHANGE_LOADOUT )->disable( true );
 		else
 		{
