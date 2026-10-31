@@ -555,6 +555,8 @@ MC2Player GetPlayersList[MAX_MC_PLAYERS];
 
 const MC2Player* MultiPlayer::getPlayers (long& playerCount) {
 
+	// networking is stubbed: no players (callers loop to playerCount)
+	playerCount = 0;
 	return(NULL);
 }
 

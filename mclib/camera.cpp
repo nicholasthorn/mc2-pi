@@ -580,6 +580,13 @@ void Camera::getClosestVertex (Stuff::Vector2DOf<long> &screenPos, long &row, lo
 		topVertex++;
 	}
 
+	if (!closestVertex)
+	{
+		// no terrain vertices on screen
+		row = col = 0;
+		return;
+	}
+
 	long block = closestVertex->blockVertex >> 16;
 	long vertex = closestVertex->blockVertex & 0x0000ffff;
 
