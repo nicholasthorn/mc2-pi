@@ -2738,7 +2738,7 @@ DWORD __stdcall gos_NewEmptyTexture( gos_TextureFormat Format, const char* Name,
     gosTexture* ptex = new gosTexture(Format, Hints, w, h, Name);
 
     if(!ptex->createHardwareTexture()) {
-        STOP(("Failed to create texture\n"));
+        STOP(("Failed to create texture %s\n", Name ? Name : "(unnamed)"));
         return INVALID_TEXTURE_ID;
     }
 
@@ -2750,7 +2750,7 @@ DWORD __stdcall gos_NewTextureFromMemory( gos_TextureFormat Format, const char* 
 
     gosTexture* ptex = new gosTexture(Format, FileName, Hints, pBitmap, Size, true);
     if(!ptex->createHardwareTexture()) {
-        STOP(("Failed to create texture\n"));
+        STOP(("Failed to create texture %s\n", FileName ? FileName : "(unnamed)"));
         return INVALID_TEXTURE_ID;
     }
 
@@ -2761,7 +2761,7 @@ DWORD __stdcall gos_NewTextureFromFile( gos_TextureFormat Format, const char* Fi
 {
     gosTexture* ptex = new gosTexture(Format, FileName, Hints, NULL, 0, false);
     if(!ptex->createHardwareTexture()) {
-        STOP(("Failed to create texture\n"));
+        STOP(("Failed to create texture %s\n", FileName ? FileName : "(unnamed)"));
         return INVALID_TEXTURE_ID;
     }
     return g_gos_renderer->addTexture(ptex);

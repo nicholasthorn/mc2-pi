@@ -541,21 +541,36 @@ long FastFile::readFast (DWORD fastFileHandle, void *bfr, DWORD size)
 				//USED to LZ Compress here.  It is NOW zLib Compression.
 				//  We should not try to use old fastfiles becuase version check above should fail when trying to open!!
 				unsigned long decompLength = 0;
+				// bounded by the caller's buffer (size; File reads whole
+				// entries, but readByte/readInt pass 1-4) and the entry's
+				// realSize: a short read fails the size check below
+				// instead of decompressing past bfr
+				const DWORD bound = (size < files[fastFileHandle].pfe->realSize) ? size : files[fastFileHandle].pfe->realSize;
+				// size == realSize may be an entry stored as is: FastFile::create(name,false)
+				// writes them, and so do mod packers when compression does not pay.
+				// It may also be compressed data exactly as long as the original (the
+				// note above), so decode first and copy only if that fails.
+				const bool maybeRaw = (files[fastFileHandle].pfe->size == files[fastFileHandle].pfe->realSize);
 				if (useLZCompress)
 				{
-					// bounded by the caller's buffer (size; File reads whole
-					// entries, but readByte/readInt pass 1-4) and the entry's
-					// realSize: a short read fails the size check below
-					// instead of decompressing past bfr
-					const DWORD bound = (size < files[fastFileHandle].pfe->realSize) ? size : files[fastFileHandle].pfe->realSize;
 					decompLength = LZDecomp((MemoryPtr)bfr,LZPacketBuffer,files[fastFileHandle].pfe->size,bound);
 				}
 				else
 				{
-					decompLength = files[fastFileHandle].pfe->realSize;
+					decompLength = bound;
 					long error = uncompress((MemoryPtr)bfr,&decompLength,LZPacketBuffer,files[fastFileHandle].pfe->size);
 					if (error != Z_OK)
-						STOP(("Error %d UnCompressing File %s from FastFile %s",error,files[fastFileHandle].pfe->name,fileName));
+					{
+						decompLength = 0;
+						if (!maybeRaw)
+							STOP(("Error %d UnCompressing File %s from FastFile %s",error,files[fastFileHandle].pfe->name,fileName));
+					}
+				}
+
+				if (maybeRaw && (long)decompLength != files[fastFileHandle].pfe->realSize && bound == files[fastFileHandle].pfe->realSize)
+				{
+					memcpy(bfr,LZPacketBuffer,bound);
+					decompLength = bound;
 				}
 
 				if ((long)decompLength != files[fastFileHandle].pfe->realSize)

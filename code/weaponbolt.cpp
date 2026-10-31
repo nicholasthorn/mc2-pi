@@ -2475,7 +2475,14 @@ void WeaponBolt::init (bool create, ObjectTypePtr _type)
 
 		FullPathFileName textureName;
 		textureName.init(tPath,((WeaponBoltTypePtr)_type)->textureName,".tga");
-	
+		// Bolt textures are always the 128 ones; MechCommander Omnitech
+		// ships some only at 512 (fx_clan_*): then any size that has it
+		if (!fileExists(textureName)) {
+			char tgaName[256];
+			snprintf(tgaName, sizeof(tgaName), "%s.tga", ((WeaponBoltTypePtr)_type)->textureName);
+			objectTextureName(textureName, tgaName);
+		}
+
 		if (((WeaponBoltTypePtr)_type)->mipTexture)
 			mcTextureHandle = mcTextureManager->loadTexture(textureName,gos_Texture_Alpha,0);
 		else

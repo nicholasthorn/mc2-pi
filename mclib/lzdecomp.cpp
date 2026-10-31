@@ -265,11 +265,118 @@ eof:
 #include"gameos.hpp"
 
 //-------------------------------------------------------------------------------
-// LZ DeCompress Routine
-// Takes a pointer to dest buffer, a pointer to source buffer and len of source.
-// returns length of decompressed image, or 0 if it is corrupt or would
-// exceed destLen.
-size_t LZDecomp (MemoryPtr dest, MemoryPtr src, size_t srcLen, size_t destLen)
+// Microsoft's original LZ: a C port of the asm LZDecomp above, for data
+// written by the asm LZCompress in lzcomp.cpp (retail-era and mod archives,
+// e.g. MechCommander Omnitech's tgl.fst). Codes are packed LSB first: 9 bits
+// after a CLEAR (256), one bit wider each time the next free table code
+// reaches 512, 1024, 2048 (12 bits at most); EOF (257) ends the data and table
+// codes start at 258. Unlike the asm, every write is bounded by destLen:
+// output past it, input that ends before EOF, or a code that is not in the
+// table yet returns 0.
+static size_t LZDecompOriginal (MemoryPtr dest, MemoryPtr src, size_t srcLen, size_t destLen)
+{
+	const unsigned int MAX_CODES = 1 << 12;
+	unsigned short chain[MAX_CODES];	// the code each table entry extends
+	unsigned char suffix[MAX_CODES];	// and the byte it adds
+	unsigned char stack[MAX_CODES];		// one string, last byte first
+
+	size_t srcPos = 0;
+	unsigned int bitBuf = 0;
+	unsigned int bitCount = 0;
+	unsigned int codeBits = BASE_BITS;
+	unsigned int maxIndex = MAX_BIT_INDEX;
+	unsigned int freeIndex = HASH_FREE;
+	bool haveOld = false;			// false straight after a CLEAR
+	unsigned int oldCode = 0;
+	unsigned char oldFirst = 0;		// first byte of the previous string
+	size_t outLen = 0;
+
+	for (;;)
+	{
+		while (bitCount < codeBits)
+		{
+			if (srcPos >= srcLen)
+				return 0;			// truncated: no EOF
+			bitBuf |= (unsigned int)src[srcPos++] << bitCount;
+			bitCount += 8;
+		}
+		const unsigned int code = bitBuf & ((1u << codeBits) - 1);
+		bitBuf >>= codeBits;
+		bitCount -= codeBits;
+
+		if (code == HASH_EOF)
+			return outLen;
+
+		if (code == HASH_CLEAR)
+		{
+			codeBits = BASE_BITS;
+			maxIndex = MAX_BIT_INDEX;
+			freeIndex = HASH_FREE;
+			haveOld = false;
+			continue;
+		}
+
+		if (!haveOld)
+		{
+			// first code after a CLEAR: one byte, no new table entry
+			if (code > 255 || outLen >= destLen)
+				return 0;
+			dest[outLen++] = (unsigned char)code;
+			oldCode = code;
+			oldFirst = (unsigned char)code;
+			haveOld = true;
+			continue;
+		}
+
+		if (code > freeIndex)
+			return 0;
+
+		unsigned int sp = 0;
+		unsigned int c = code;
+		if (code == freeIndex)
+		{
+			// not in the table yet: the previous string plus its first byte
+			stack[sp++] = oldFirst;
+			c = oldCode;
+		}
+		while (c >= HASH_FREE)
+		{
+			// each entry extends a lower code, so this ends, but stay in range
+			if (sp >= MAX_CODES - 1)
+				return 0;
+			stack[sp++] = suffix[c];
+			c = chain[c];
+		}
+		const unsigned char first = (unsigned char)c;
+		stack[sp++] = first;
+
+		if (sp > destLen - outLen)
+			return 0;
+		while (sp)
+			dest[outLen++] = stack[--sp];
+
+		// new entry: the previous string plus the first byte of this one
+		if (freeIndex < MAX_CODES)
+		{
+			chain[freeIndex] = (unsigned short)oldCode;
+			suffix[freeIndex] = first;
+			freeIndex++;
+		}
+		if (freeIndex >= maxIndex && codeBits < 12)
+		{
+			codeBits++;
+			maxIndex <<= 1;
+		}
+
+		oldCode = code;
+		oldFirst = first;
+	}
+}
+
+//-------------------------------------------------------------------------------
+// zlib, as written by LZCompress under LINUX_BUILD (makefst, the texture and
+// packet caches).
+static size_t LZDecompZlib (MemoryPtr dest, MemoryPtr src, size_t srcLen, size_t destLen)
 {
     const int CHUNK = 16384;
     int ret;
@@ -333,5 +440,25 @@ size_t LZDecomp (MemoryPtr dest, MemoryPtr src, size_t srcLen, size_t destLen)
     /* clean up and return */
     (void)inflateEnd(&strm);
     return ret == Z_STREAM_END ? out_size : 0;
+}
+
+//-------------------------------------------------------------------------------
+// LZ DeCompress Routine
+// Takes a pointer to dest buffer, a pointer to source buffer and len of source.
+// returns length of decompressed image, or 0 if it is corrupt or would
+// exceed destLen.
+//
+// The data says which format it is. The asm LZCompress always starts with a
+// 9-bit CLEAR (256): byte 0 is 0x00 and bit 0 of byte 1 is set. A zlib stream
+// starts with its CMF byte, whose low nibble is 8 (deflate), so it never
+// starts with 0x00. The FST version cannot tell them apart: this port's
+// makefst writes zlib under 0xFADDECAF, the original tools wrote LZ.
+size_t LZDecomp (MemoryPtr dest, MemoryPtr src, size_t srcLen, size_t destLen)
+{
+	if (!dest || !src)
+		return 0;
+	if (srcLen >= 2 && src[0] == 0 && (src[1] & 1))
+		return LZDecompOriginal(dest, src, srcLen, destLen);
+	return LZDecompZlib(dest, src, srcLen, destLen);
 }
 #endif // LINUX_BUILD
