@@ -439,6 +439,7 @@ class Mech3DAppearance: public ObjectAppearance
 		DWORD										flashColor;
 
 		long						rotationalNodeIndex;
+		long						shadowRotationalNodeIndex;		//joint_torso in mechShadowShape
 		long						hitLeftNodeIndex;
 		long						hitRightNodeIndex;
 		long						rootNodeIndex;

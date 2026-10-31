@@ -1309,7 +1309,7 @@ bool BldgAppearance::recalcBounds (void)
 						{
 							for (long i=1;i<MAX_LODS;i++)
 							{
-								if (appearType->bldgShape[i] && (distanceToEye > appearType->lodDistance[i]))
+								if (appearType->bldgShape[i] && (distanceToEye > LODSwitchDistance(appearType->lodDistance[i],i,currentLOD)))
 								{
 									baseLOD = false;
 									selectLOD = i;
@@ -3777,7 +3777,7 @@ bool TreeAppearance::recalcBounds (void)
 					{
 						for (long i=1;i<MAX_LODS;i++)
 						{
-							if (appearType->treeShape[i] && (distanceToEye > appearType->lodDistance[i]))
+							if (appearType->treeShape[i] && (distanceToEye > LODSwitchDistance(appearType->lodDistance[i],i,currentLOD)))
 							{
 								baseLOD = false;
 								selectLOD = i;
