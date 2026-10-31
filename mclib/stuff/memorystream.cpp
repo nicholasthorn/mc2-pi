@@ -73,7 +73,10 @@ MemoryStream::MemoryStream(
 	streamSize = stream_size;
 	Verify(initial_offset <= stream_size);
 	currentPosition = streamStart + initial_offset;
-	currentBit = 0;
+	// As the other constructor and Rewind(): with 0 the first ReadBit or
+	// WriteBit used workingBitBuffer before anything had set it.
+	currentBit = Empty_Bit_Buffer;
+	workingBitBuffer = 0x00;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
