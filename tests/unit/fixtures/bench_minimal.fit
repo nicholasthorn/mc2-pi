@@ -1,0 +1,12 @@
+FITini
+
+[Bench]
+l NumSegments = 2
+
+[Segment0]
+l Start = 0
+
+[Segment1]
+l Start = 100
+
+FITend

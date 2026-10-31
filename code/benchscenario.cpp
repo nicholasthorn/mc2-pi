@@ -5,11 +5,55 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 static bool fail(char* err, size_t errSize, const char* what, const char* block)
 {
 	snprintf(err, errSize, "bench scenario: %s %s", what, block);
 	return false;
+}
+
+// FitIniFile's readId* set the value to 0 when the key is missing, so an
+// optional key is read into a temporary and kept only when it was found.
+static bool readOptional(FitIniFile& fit, const char* id, long& value)
+{
+	long v = 0;
+	if (fit.readIdLong(id, v) != NO_ERR)
+		return false;
+	value = v;
+	return true;
+}
+
+static bool readOptional(FitIniFile& fit, const char* id, float& value)
+{
+	float v = 0.0f;
+	if (fit.readIdFloat(id, v) != NO_ERR)
+		return false;
+	value = v;
+	return true;
+}
+
+static bool readOptional(FitIniFile& fit, const char* id, bool& value)
+{
+	bool v = false;
+	if (fit.readIdBoolean(id, v) != NO_ERR)
+		return false;
+	value = v;
+	return true;
+}
+
+// Segment names end up in log lines and file names: [A-Za-z0-9_-] only.
+static bool validSegmentName(const char* name)
+{
+	if (name[0] == '\0')
+		return false;
+	for (const char* c = name; *c; c++) {
+		const bool ok = (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') ||
+				(*c >= '0' && *c <= '9') || *c == '_' || *c == '-';
+		if (!ok)
+			return false;
+	}
+	return true;
 }
 
 bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
@@ -19,16 +63,23 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 
 	// optional values keep their defaults when missing
 	fit.readIdString("Mission", mission, sizeof(mission));
-	fit.readIdLong("Frames", frames);
-	hasArena = (fit.readIdFloat("ArenaX", arenaX) == 0) && (fit.readIdFloat("ArenaY", arenaY) == 0);
-	fit.readIdLong("Gather", gather);
-	fit.readIdFloat("LineGap", lineGap);
-	fit.readIdFloat("Spacing", spacing);
-	fit.readIdLong("ReorderEvery", reorderEvery);
-	fit.readIdFloat("StrikeRadius", strikeRadius);
-	fit.readIdBoolean("Follow", follow);
-	fit.readIdFloat("ScreenX", screenX);
-	fit.readIdFloat("ScreenY", screenY);
+	readOptional(fit, "Frames", frames);
+	float ax = 0.0f, ay = 0.0f;
+	hasArena = readOptional(fit, "ArenaX", ax) && readOptional(fit, "ArenaY", ay);
+	if (hasArena) {
+		arenaX = ax;
+		arenaY = ay;
+	}
+	readOptional(fit, "Gather", gather);
+	readOptional(fit, "LineGap", lineGap);
+	readOptional(fit, "Spacing", spacing);
+	readOptional(fit, "ReorderEvery", reorderEvery);
+	readOptional(fit, "StrikeRadius", strikeRadius);
+	readOptional(fit, "Follow", follow);
+	readOptional(fit, "ScreenX", screenX);
+	readOptional(fit, "ScreenY", screenY);
+	if (gather < 0)
+		return fail(err, errSize, "Gather is negative in", "[Bench]");
 	if (screenX < 0.0f || screenX > 1.0f || screenY < 0.0f || screenY > 1.0f)
 		return fail(err, errSize, "ScreenX / ScreenY outside 0..1 in", "[Bench]");
 	if (fit.readIdLong("NumSegments", numSegments) != 0 || numSegments < 1 || numSegments > MAX_SEGMENTS)
@@ -42,18 +93,32 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 			return fail(err, errSize, "missing block", block);
 
 		BenchSegment& seg = segments[i];
-		fit.readIdString("Name", seg.name, sizeof(seg.name));
+		if (fit.readIdString("Name", seg.name, sizeof(seg.name)) != NO_ERR)
+			snprintf(seg.name, sizeof(seg.name), "seg%ld", i);
+		if (!validSegmentName(seg.name))
+			return fail(err, errSize, "Name is empty or not [A-Za-z0-9_-] in", block);
+		if (strcmp(seg.name, "all") == 0)
+			return fail(err, errSize, "Name \"all\" is reserved in", block);
+		for (long j = 0; j < i; j++)
+			if (strcmp(seg.name, segments[j].name) == 0)
+				return fail(err, errSize, "Name repeats an earlier segment's in", block);
 		if (fit.readIdLong("Start", seg.start) != 0)
 			return fail(err, errSize, "no Start in", block);
 		if (i == 0 && seg.start != 0)
 			return fail(err, errSize, "Start must be 0 in", block);
 		if (i > 0 && seg.start <= segments[i - 1].start)
 			return fail(err, errSize, "Start not after the previous segment's in", block);
-		fit.readIdLong("Shot", seg.shot);
-		fit.readIdLong("StrikeEvery", seg.strikeEvery);
+		seg.shot = -1;
+		seg.strikeEvery = 0;
+		readOptional(fit, "Shot", seg.shot);
+		readOptional(fit, "StrikeEvery", seg.strikeEvery);
+		if (seg.shot >= 0)
+			for (long j = 0; j < i; j++)
+				if (segments[j].shot == seg.shot)
+					return fail(err, errSize, "Shot repeats an earlier segment's frame in", block);
 
 		long n = 0;
-		fit.readIdLong("NumKeys", n);
+		readOptional(fit, "NumKeys", n);
 		for (long k = 0; k < n; k++) {
 			if (numKeys == MAX_KEYS)
 				return fail(err, errSize, "too many camera keys at", block);
