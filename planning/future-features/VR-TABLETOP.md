@@ -1,8 +1,10 @@
 # VR: head-tracked game view, tabletop option (Meta Quest 2)
 
-Status: feasibility study, nothing built. Written 2026-10-29 from a read of the
-code on `pi-port`, revised 2026-11-01 (requirements changed: play the game's
-own view in VR first; tabletop becomes an option; no whole-map rendering).
+Status: Phase 0 in progress. The bench instrumentation (`<stage>_ms`,
+`-benchfov`) and the PC results are in; the Pi runs are not. Phase 1 is
+audited, not started. Written 2026-10-29 from a read of the code on
+`pi-port`, revised 2026-11-01 (requirements changed: play the game's own view
+in VR first; tabletop becomes an option; no whole-map rendering).
 File and function names were checked then, line numbers were not recorded on
 purpose (grep the symbol).
 
@@ -70,8 +72,8 @@ lean. The scale matters more than it looks:
   The view is correct but flat: a 64 mm eye separation gives almost no stereo
   depth at a few hundred metres, and leaning 30 cm barely changes anything.
   It still feels like being there; worth trying.
-- **At roughly 1:100 to 1:300 ("giant")** the camera height becomes 1 to 3 m
-  above the ground, so stereo depth and leaning work, and mechs are a few
+- **At roughly 1:100 to 1:300 ("giant")** the camera's 112 to 320 m becomes
+  1.1 to 3.2 m above the ground at 1:100, or 0.4 to 1.1 m at 1:300, so stereo depth and leaning work, and mechs are a few
   centimetres to a decimetre tall. This is effectively a floor-sized diorama
   seen from the game's usual angle.
 
@@ -289,7 +291,7 @@ on real hardware).
 - Most of `logic_ms` (about 6 of 8.6 ms) is game logic outside the measured
   stages: pathing, AI, sensors, collisions, the mission script. It runs once,
   not per eye.
-- A wider FOV costs little by itself: 7% more CPU per frame. Terrain stays
+- A wider FOV costs little by itself: about 8% more CPU per frame. Terrain stays
   nearly flat because the projected window is a fixed vertex grid
   (`GameVisibleVertices`). The FOV adds about a quarter more triangles, mostly
   objects now in view.
