@@ -909,6 +909,7 @@ const char*	LogisticsData::getBestPilot( long mechWeight )
 	if ( !pilots.Count() )
 		initPilots();
 
+	// cppcheck-suppress allocaCalled ; one pointer per pilot in the roster (tens), not in a loop
 	LogisticsPilot** pPilots = (LogisticsPilot**)_alloca( pilots.Count() * sizeof( LogisticsPilot*) );
 	memset( pPilots, 0, pilots.Count() * sizeof( LogisticsPilot*) );
 
@@ -961,6 +962,7 @@ bool		LogisticsData::gotPilotsLeft()
 	if ( !pilots.Count() )
 		initPilots();
 
+	// cppcheck-suppress allocaCalled ; one pointer per pilot in the roster (tens), not in a loop
 	LogisticsPilot** pPilots = (LogisticsPilot**)_alloca( pilots.Count() * sizeof( LogisticsPilot*) );
 	memset( pPilots, 0, pilots.Count() * sizeof( LogisticsPilot*) );
 
