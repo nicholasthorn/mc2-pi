@@ -177,6 +177,14 @@ jobs:
         run: >
           scripts/smoke.sh --game-dir gamedata --build-dir build --missions "$MISSIONS"
           --frames ${{ matrix.frames || 3000 }} --timeout 1200 --log-dir smoke-logs
+      - name: Deterministic replay
+        # Two runs of a combat mission with a fixed step and seed must end in
+        # the same game state (smoke.sh --deterministic, sound off). One
+        # entry is enough: GL and GLES end in the same state.
+        if: matrix.gles == 'OFF' && !matrix.sanitize
+        run: >
+          scripts/smoke.sh --game-dir gamedata --missions "mc2_10" --frames 1000
+          --ui "" --deterministic --timeout 1200 --log-dir smoke-logs/deterministic
       - uses: actions/upload-artifact@v7
         if: always()
         with:

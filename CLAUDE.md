@@ -85,10 +85,13 @@ scripts/build_gamedata.sh --src-data ../mc2srcdata --build-dir build --out ../mc
 ./mc2 -mission mc2_01
 ./mc2 -mission mc2_01 -autoexit 600   # quit cleanly after 600 gameplay frames
 ./mc2 -mission mc2_01 -autoexit 3000 -bench frames.csv   # deterministic run, per-frame timings + [BENCH] summary
+./mc2 -mission mc2_01 -autoexit 3000 -deterministic      # same fixed step and seed, no CSV; prints [STATEHASH]
 LIBGL_ALWAYS_SOFTWARE=1 ./mc2     # WSL2 / no GPU: Mesa llvmpipe, closest PC match to the Pi
 
 # Smoke: run missions headless (Xvfb + llvmpipe), fail on crash/hang/GL error/STOP
 scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2_03"]
+# ... and each mission twice with a fixed step and seed, failing if the end states differ
+scripts/smoke.sh --game-dir ../mc2game --build-dir build --ui "" --deterministic
 
 # Benchmark (on the Pi, own display): -bench runs, results.csv with p50/p95/p99 and the CPU split
 scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --label "fan on"
