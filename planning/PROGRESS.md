@@ -146,8 +146,11 @@ Added 2026-10-31.
      automated runs) and `_Exit(1)`; `MC2_STOP_EXITS=0` makes them carry on.
      `Fatal()` / `ABL_Fatal()` end through `gos_FatalExit()` even then.
      The exit now calls `SDL_Quit` (after the message) before `_Exit`, so
-     the display mode is put back. Still to check: the message box in a
-     windowed and a fullscreen run, and the Pi console after a `STOP`.
+     the display mode is put back. The box was checked on Linux (Xvfb, no
+     window manager, `FullScreen = TRUE`, missing mission): it shows the
+     `STOP` text over the game window, and OK ends the game with status 1.
+     Still to check: the box on Windows and under a desktop window manager,
+     and the Pi console after a `STOP`.
      Follow-ups from the review: an ABL syntax error now ends the game even
      with `MC2_STOP_EXITS=0`, so mod bring-up sees one compile error per
      run (`syntaxError` could report and let the compile fail instead);
