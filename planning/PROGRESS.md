@@ -34,7 +34,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs, until step 4 of the `STOP` plan) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
+- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (60 left with cppcheck 2.19 after `Fatal()` became `[[noreturn]]`, which cleared 24) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
@@ -108,15 +108,15 @@ Added 2026-10-31.
     after a bounds check that only set a flag. Five `sizeof` of pointer-array
     elements suppressed inline as intended. Baseline regenerated after #33:
     413 -> 310.
-  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
-    better after the STOP/Fatal work below), `memsetClassFloat` (43),
+  - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
+    became `[[noreturn]]`), `memsetClassFloat` (43),
     `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
   - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
     each batch, so the count only goes down.
-- [ ] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
+- [x] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
       the 2026-10-29 "leave as is"). GameOS documents `STOP` as "can not be
       continued"; only the port's commented-out `exit(1)` in
       `InternalFunctionStop` lets code run on into the NULL or full array a
@@ -139,9 +139,14 @@ Added 2026-10-31.
      switch off, no `STOP` fired in the 30 stock missions, both UI walks
      (GL and GLES, 600 frames) or 100 Omnitech missions (GL, 300 frames);
      the NaN move order is a `PAUSE` and skips the order.
-  4. Then make exiting the default, keep an opt-out variable for mod
+  4. [x] Then make exiting the default, keep an opt-out variable for mod
      bring-up, and mark `Fatal()` / `ABL_Fatal()` `[[noreturn]]` so cppcheck
-     and the compilers can see that code after them doesn't run.
+     and the compilers can see that code after them doesn't run. Done
+     2026-11-01: `STOP` (and `Assert`) log, show an SDL message box (not in
+     automated runs) and `_Exit(1)`; `MC2_STOP_EXITS=0` makes them carry on.
+     `Fatal()` / `ABL_Fatal()` end through `gos_FatalExit()` even then.
+     Still to check: the message box in a windowed and a fullscreen run, and
+     the Pi console after a `STOP` (step 1).
 
 ## Tidy up (from the 2026-10-31 transcript sweep)
 
@@ -393,9 +398,8 @@ Candidates:
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
-- `-mission <name>` with a mission that does not exist crashes (SIGSEGV) instead of reporting an error. With `MC2_STOP_EXITS=1` it exits 1 at the first `STOP` ("Unable to open Mission File") instead.
 - Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
-- `Fatal()` / `ABL_Fatal()` return: `STOP` only logs (`InternalFunctionStop`, its `exit(1)` is commented out), so code after a fatal error carries on, usually into the NULL or full array it was guarding (`if (!p) Fatal(...); p->...`; ~35 sites, most of the remaining cppcheck `nullPointerRedundantCheck`, plus some `arrayIndexOutOfBoundsCond`). Making them abort (noreturn) would end the game cleanly instead, but any Fatal that fires harmlessly today would start quitting. Decided 2026-10-29: leave as is for now; reversed 2026-10-31, see "Make `STOP` / `Fatal()` stop again" in the to-do list (step 1, `MC2_STOP_EXITS=1` for smoke and bench, is in).
+- With `MC2_STOP_EXITS=0` (mod bring-up), `STOP` and `Assert` log and carry on, so code after them runs into whatever they were guarding; a missing mission then runs until a `Fatal` ends it.
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
 - Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects); not done, needs a decision.
 
@@ -403,6 +407,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
 - 2026-11-01: MechCommander Omnitech front-end screen size (branch `omnitech-frontend-res`): the front end runs at 1280x1024 when `mcl_mm.fit` has a `[HiresOffsets]` block (Omnitech's layouts reach 1194x896 and were cut off at 800x600), else 800x600 as before; mode switches, the load screen check and the screen slides follow it. Omnitech's full logistics walk passes and every screen shows in full (frames on a 1280x1024 Xvfb).
 - 2026-11-01: agent workflow Tier 2 moves to CI: after `/simplify` + `/code-review`, a batch is pushed to a draft PR and `ci.yml` / `smoke.yml` do the four-configuration build and the smoke missions; local `check.sh --level batch` only for crash debugging or GLES-only changes. Five sessions running batch checks at once were queueing for the same WSL CPUs to repeat what CI runs in 2 to 9 minutes. Also: no `pgrep -f smoke.sh` waits, which matched other sessions' runs.
 - 2026-10-31: MechCommander Omnitech mech lab (branch `omnitech-mechlab`): the mech lab takes its fixed statics from Omnitech's 15-static `mcl_mc.fit` as Omnitech's code does (stock's 56 otherwise), so "change loadout" in the mech bay is back on. "Buy" on Omnitech's purchase screen works; the UI walk's purchase was a 100 t Atlas on a 65 t mission. Details in `MOD-COMPAT.md` item 12.
