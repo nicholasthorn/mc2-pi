@@ -162,10 +162,18 @@ cannot say why a click did nothing.
    ready + pilot, Launch into mc2_02. Still to come here: changing a weapon in
    the mech lab, selling, more than one mech, picking a list item other than
    the default.
-3. Tutorial: pick the tutorial entry of the campaign dialog
-   (`LogisticsSaveDialog` list item 1) before OK; its logistics ABL brain
-   (`MissionBegin::begin`, `startAnimation`) moves the cursor itself, so
-   check it does not fight the pinned cursor.
+3. **Built (2026-11-01):** the tutorial. `campaign+tutorial` picks the
+   new campaign dialog's entry whose file name is "tutorial" (it lists
+   campaigns by display name); OK opens mission selection with the five
+   tutorials (`tutorial.fit`: `PlayLogistics = 0`, no salvage or
+   promotion). Each launches from mission selection (`missionselection,
+   mission`, "Next"), and a win goes straight back there
+   (`mission,missionselection`). The tutorial's logistics brain did not
+   fight the pinned cursor. Default walk 3 wins tut_01 to tut_04 and
+   launches tut_05: winning it would end the campaign (the final video,
+   no results), so the driver refuses that win
+   (`LogisticsData::isLastMission()`; `campaignOver()` only turns true
+   once the win is counted). It runs on stock and Omnitech data.
 4. **Built (2026-11-01):** out of a mission. `mission` leads to `salvage`,
    `pilotreview` or `promotion`: once the mission has been held, the driver
    sets `scenarioResult` to a big win, as `Mission::update`'s

@@ -137,7 +137,8 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::SingleCancel;
 		break;
 	case UiScreen::MissionSelection:
-		if (to == UiScreen::Briefing)
+		// a mission without logistics (the tutorials) launches from here
+		if (to == UiScreen::Briefing || to == UiScreen::Mission)
 			return UiAction::Next;
 		break;
 	case UiScreen::Briefing:
@@ -172,9 +173,10 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::Next;
 		break;
 	case UiScreen::Mission:
-		// the mission's data can skip either results screen, and a promotion
-		// opens over pilot review as it comes up
-		if (to == UiScreen::Salvage || to == UiScreen::PilotReview || to == UiScreen::Promotion)
+		// the mission's data can skip either results screen (the tutorials
+		// skip both), and a promotion opens over pilot review as it comes up
+		if (to == UiScreen::Salvage || to == UiScreen::PilotReview || to == UiScreen::Promotion
+				|| to == UiScreen::MissionSelection)
 			return UiAction::WinMission;
 		if (to == UiScreen::OptionsGraphics)
 			return UiAction::MissionOptions;
@@ -214,6 +216,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::Promotion, "skill", UiAction::PickSkill },
 	{ UiScreen::Save, "name", UiAction::NameSave },
 	{ UiScreen::Load, "pick", UiAction::PickSave },
+	{ UiScreen::CampaignSelect, "tutorial", UiAction::PickTutorial },
 };
 
 } // namespace
