@@ -72,6 +72,12 @@ class LogisticsScreen : public aObject
 	virtual void  moveTo( long xPos, long yPos );
 	virtual void  move( long xPos, long yPos );
 
+	// the screen mode the front end runs in: 800x600 for stock layouts, or
+	// 1280x1024 for layouts made for it (MechCommander Omnitech's, which
+	// carry a [HiresOffsets] block and run past 800x600)
+	static long frontEndWidth();
+	static long frontEndHeight();
+
 
 	bool	inside( long x, long y);
 

@@ -494,10 +494,23 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    mission (`a_0_2`, like stock's `mc2_02`) starts with an empty bay and a
    65 t drop weight, and the walk bought the first variant, an Atlas, which
    then could not join the force. The UI smoke driver's "buy" (#32) needs
-   to pick the first variant that fits instead. Open: the front end draws
-   into an 800x600 area whatever the window size, and Omnitech's layouts
-   (made for larger screens, with `HiresOffsets`) run past it, so the right
-   and bottom of its screens are cut off.
+   to pick the first variant that fits instead (#39).
+   - **Screen size.** The front end ran in an 800x600 mode, and Omnitech's
+     layouts reach 1194x896, so the right and bottom of its screens were
+     cut off. Omnitech's own code runs the front end at 1280x1024 (its
+     `[HiresOffsets]` 320,28 centre that on a 1920x1080 desktop; 6.28
+     uses the desktop size). `LogisticsScreen::frontEndWidth()/Height()`
+     now give 1280x1024 when `mcl_mm.fit` has a `[HiresOffsets]` block
+     (no stock layout has one), else 800x600; the mode switches into the
+     front end, the load screen and the slide animations (stock's 800/600
+     pixel slides, scaled) use them. Omnitech does not ship every layout:
+     the stock ones it uses (the single mission and save dialogs, mission
+     results and salvage) keep their 800x600 positions, in the top left.
+     Still open: front-end movies (credits, `playFullScreenVideo`) keep
+     their 800x600 sizes and stretch; and the load screen picks its enter
+     or exit half by comparing the screen width with the front end's, so
+     a mission mode as wide as the front end keeps the enter half (as
+     stock does with an 800x600 mission mode).
 
 13. **Omnitech campaign packs (2026-10-31).** Nine 2012-2016 packs on
    ModDB (`moddb.com/mods/mechcommander-omnitech/downloads`), Inno Setup
