@@ -24,6 +24,9 @@ struct Pose {
 bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, float& u, float& v,
                  float* distance = nullptr);
 
+// The point on a quad at image coordinates u, v (as rayHitsQuad gives them).
+void quadPoint(const Pose& quad, float width, float height, float u, float v, float out[3]);
+
 // The point distance metres along a ray (its pose's -z).
 void rayPoint(const Pose& ray, float distance, float out[3]);
 
@@ -35,6 +38,20 @@ Pose beamPose(const float from[3], const float to[3], const float eye[3], float&
 // in the direction 'yaw' (radians about +y, so positive is to the left; 0
 // is -z), facing back at origin.
 Pose hudPose(const float origin[3], float yaw, float distance, float down);
+
+// Holding the pointer still through a click. Pulling a trigger moves the
+// hand, and the game takes a press that moves more than 1.7% of the screen
+// for a drag (a selection box instead of a move order). From when a trigger
+// or grip starts to move (pull past 0.15) until it is let go (below 0.1),
+// the pointer stays where the pull started, unless it moves more than
+// dragDistance from there (in u, v units): that is a drag, and the pointer
+// follows the hand until it is let go.
+struct ClickHold {
+    bool holding = false;
+    bool dragging = false;
+    float u = 0.0f, v = 0.0f;
+};
+void holdForClick(ClickHold& hold, float pull, float& u, float& v, float dragDistance = 0.05f);
 
 // The heading of an orientation: the angle about +y of its -z axis, seen
 // from above. Looking up or down and tilting the head do not change it.

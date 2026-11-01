@@ -115,6 +115,23 @@ TEST_CASE("the hit distance runs along the ray to the quad") {
 	CHECK(p[0] == doctest::Approx((u - 0.5f) * 2.0f));
 }
 
+TEST_CASE("quadPoint is where a ray hitting u, v meets the quad, on a turned HUD too") {
+	const float origin[3] = {0.1f, 1.5f, 0.2f};
+	const vr_controls::Pose hud = vr_controls::hudPose(origin, 0.6f, 1.5f, 0.52f);
+	float yq[4], pq[4], q[4];
+	axisQuat(1, 0.7f, yq);
+	axisQuat(0, -0.45f, pq);
+	compose(yq, pq, q);
+	const vr_controls::Pose ray = pose(origin[0], origin[1], origin[2], q);
+	float u = 0.0f, v = 0.0f, distance = 0.0f;
+	REQUIRE(vr_controls::rayHitsQuad(ray, hud, 2.0f, 1.5f, u, v, &distance));
+	float onQuad[3], onRay[3];
+	vr_controls::quadPoint(hud, 2.0f, 1.5f, u, v, onQuad);
+	vr_controls::rayPoint(ray, distance, onRay);
+	for(int i = 0; i < 3; ++i)
+		CHECK(onQuad[i] == doctest::Approx(onRay[i]));
+}
+
 namespace {
 
 // the quad's axis 0 (x), 1 (y) or 2 (z) in the parent frame
@@ -212,6 +229,46 @@ TEST_CASE("yawOf reads the heading and ignores looking up or down and tilting") 
 	CHECK(vr_controls::yawOf(q2) == doctest::Approx(0.7f).epsilon(1e-3));
 	axisQuat(1, -2.5f, yq);
 	CHECK(vr_controls::yawOf(yq) == doctest::Approx(-2.5f));
+}
+
+TEST_CASE("click hold: the pointer stays put while the trigger is pulled") {
+	vr_controls::ClickHold hold;
+	float u = 0.40f, v = 0.50f;
+	// trigger at rest: the pointer follows the hand
+	vr_controls::holdForClick(hold, 0.0f, u, v);
+	CHECK(u == doctest::Approx(0.40f));
+	// the pull starts: held from here
+	u = 0.41f;
+	vr_controls::holdForClick(hold, 0.3f, u, v);
+	CHECK(u == doctest::Approx(0.41f));
+	// the hand wobbles as the trigger goes down: still held
+	u = 0.425f; v = 0.515f;
+	vr_controls::holdForClick(hold, 1.0f, u, v);
+	CHECK(u == doctest::Approx(0.41f));
+	CHECK(v == doctest::Approx(0.50f));
+	// let go: follows again
+	u = 0.43f;
+	vr_controls::holdForClick(hold, 0.05f, u, v);
+	CHECK(u == doctest::Approx(0.43f));
+}
+
+TEST_CASE("click hold: moving well away is a drag, and then the pointer follows") {
+	vr_controls::ClickHold hold;
+	float u = 0.40f, v = 0.50f;
+	vr_controls::holdForClick(hold, 1.0f, u, v);
+	u = 0.50f;
+	vr_controls::holdForClick(hold, 1.0f, u, v);
+	CHECK(u == doctest::Approx(0.50f));
+	// coming back near the start does not hold it again until let go
+	u = 0.41f;
+	vr_controls::holdForClick(hold, 1.0f, u, v);
+	CHECK(u == doctest::Approx(0.41f));
+	vr_controls::holdForClick(hold, 0.0f, u, v);
+	u = 0.45f;
+	vr_controls::holdForClick(hold, 0.5f, u, v);
+	u = 0.46f;
+	vr_controls::holdForClick(hold, 1.0f, u, v);
+	CHECK(u == doctest::Approx(0.45f));
 }
 
 TEST_CASE("sticks: small deflections do nothing, full ones give their direction") {

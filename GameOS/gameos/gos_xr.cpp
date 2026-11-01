@@ -117,6 +117,8 @@ struct State {
     int pointingHand = 1;
     bool selectDown[2] = {false, false};
     bool contextDown[2] = {false, false};
+    bool pulling[2] = {false, false};   // trigger or grip on its way down
+    vr_controls::ClickHold clickHold;
     bool buttonDown[BUTTON_COUNT] = {};
     uint32_t stickActions = 0;
     bool pointerHeld = false;       // a button went down with the ray on the quad
@@ -464,7 +466,8 @@ void releaseInput()
     g.heldButtons = g.ignoredButtons = 0;
     g.pointerVisible = false;
     for(int hand = 0; hand < 2; ++hand)
-        g.selectDown[hand] = g.contextDown[hand] = false;
+        g.selectDown[hand] = g.contextDown[hand] = g.pulling[hand] = false;
+    g.clickHold = vr_controls::ClickHold();
     memset(g.buttonDown, 0, sizeof(g.buttonDown));
 }
 
@@ -733,9 +736,13 @@ int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
     if(!locate(g.aimSpaces[g.pointingHand], aim) || !locate(g.viewSpace, head))
         return 0;
     float u = 0.0f, v = 0.0f, distance = 0.0f;
-    const bool hit = vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
+    const bool hit = g.clickHold.holding
+            || vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
     float end[3];
-    vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
+    if(g.clickHold.holding)     // the beam ends where the click goes
+        vr_controls::quadPoint(g.hud, g.hudWidth, quadHeight(), g.clickHold.u, g.clickHold.v, end);
+    else
+        vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
     float length = 0.0f;
     setLayer(beam, g.beamImage, vr_controls::beamPose(aim.position, end, head.position, length), kBeamWidth, length);
     if(!hit)
@@ -1011,16 +1018,21 @@ void pollInput()
         return;
     }
 
-    // the hand that last pulled its trigger or grip points
+    // the hand that last started to pull its trigger or grip points (from
+    // the start of the pull, so the click hold below covers the whole pull)
+    float pull[2];
     for(int hand = 0; hand < 2; ++hand) {
         const float select = floatInput(g.selectAction, g.hands[hand]);
         const float context = floatInput(g.contextAction, g.hands[hand]);
-        const bool selectDown = select > (g.selectDown[hand] ? 0.35f : 0.6f);
-        const bool contextDown = context > (g.contextDown[hand] ? 0.35f : 0.6f);
-        if((selectDown && !g.selectDown[hand]) || (contextDown && !g.contextDown[hand]))
+        g.selectDown[hand] = select > (g.selectDown[hand] ? 0.35f : 0.6f);
+        g.contextDown[hand] = context > (g.contextDown[hand] ? 0.35f : 0.6f);
+        pull[hand] = std::max(select, context);
+        const bool pulling = pull[hand] > (g.pulling[hand] ? 0.1f : 0.15f);
+        if(pulling && !g.pulling[hand] && hand != g.pointingHand) {
             g.pointingHand = hand;
-        g.selectDown[hand] = selectDown;
-        g.contextDown[hand] = contextDown;
+            g.clickHold = vr_controls::ClickHold();
+        }
+        g.pulling[hand] = pulling;
     }
 
     bool buttons[BUTTON_COUNT];
@@ -1055,6 +1067,12 @@ void pollInput()
     float u = 0.0f, v = 0.0f;
     const bool onQuad = locate(g.aimSpaces[hand], aim)
             && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v);
+    // the pointer stays still through a click (pulling a trigger moves the
+    // hand, and the game takes a press that moves for a drag)
+    if(onQuad)
+        vr_controls::holdForClick(g.clickHold, pull[hand], u, v);
+    else if(!g.pointerHeld)
+        g.clickHold = vr_controls::ClickHold();
     // a button pressed off the quad stays ignored until it is let go: else
     // sweeping the ray onto the panel with the trigger held would click there
     if(!onQuad && !g.pointerHeld)

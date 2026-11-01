@@ -62,6 +62,14 @@ bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, f
     return u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f;
 }
 
+void quadPoint(const Pose& quad, float width, float height, float u, float v, float out[3])
+{
+    const float local[3] = {(u - 0.5f) * width, (0.5f - v) * height, 0.0f};
+    rotate(quad.orientation, local, out);
+    for(int i = 0; i < 3; ++i)
+        out[i] += quad.position[i];
+}
+
 void rayPoint(const Pose& ray, float distance, float out[3])
 {
     const float forward[3] = {0.0f, 0.0f, -1.0f};
@@ -149,6 +157,28 @@ Pose hudPose(const float origin[3], float yaw, float distance, float down)
     pose.position[1] = origin[1] - distance * std::sin(down);
     pose.position[2] = origin[2] - ahead * std::cos(yaw);
     return pose;
+}
+
+void holdForClick(ClickHold& hold, float pull, float& u, float& v, float dragDistance)
+{
+    if(pull < 0.1f) {
+        hold.holding = hold.dragging = false;
+        return;
+    }
+    if(!hold.holding && !hold.dragging && pull > 0.15f) {
+        hold.holding = true;
+        hold.u = u;
+        hold.v = v;
+    }
+    if(!hold.holding)
+        return;
+    if(std::fabs(u - hold.u) > dragDistance || std::fabs(v - hold.v) > dragDistance) {
+        hold.holding = false;
+        hold.dragging = true;
+        return;
+    }
+    u = hold.u;
+    v = hold.v;
 }
 
 float yawOf(const float orientation[4])
