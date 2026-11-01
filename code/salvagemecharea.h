@@ -97,6 +97,9 @@ public:
 	LogisticsVariant*	getMech(){ return pVariant; }
 
 	SalvageListItem( BattleMech* pUnit );
+	// holds heap icon and checkButton pointers: not copyable
+	SalvageListItem( const SalvageListItem& ) = delete;
+	SalvageListItem& operator=( const SalvageListItem& ) = delete;
 
 private:
 	static aAnimButton*	templateCheckButton;

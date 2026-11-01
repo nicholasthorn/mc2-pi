@@ -30,6 +30,10 @@ namespace Stuff {
 			bool find_directories=false
 		);
 		~Directory();
+
+		// owns the entry plugs and the two walkers: not copyable
+		Directory(const Directory&) = delete;
+		Directory& operator=(const Directory&) = delete;
 		
 		void
 			TestInstance() const
