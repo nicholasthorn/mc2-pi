@@ -109,6 +109,7 @@ class MapData : public HeapManager
 			init();
 		}
 
+		// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 		void destroy (void);
 		
 		~MapData (void)

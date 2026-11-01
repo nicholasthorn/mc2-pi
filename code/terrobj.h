@@ -52,6 +52,7 @@ class TerrainObjectType : public ObjectType {
 
 	public:
 
+		// cppcheck-suppress duplInheritedMember ; kept as shipped: TerrainObjectType::handleDestruction reads ObjectType::subType (always 0), so destroyed forests never reopen pathing areas, as in the original game
 		char			subType;
 		float			damageLevel;
 		long			collisionOffsetX;

@@ -217,6 +217,7 @@ class gos_VERTEXManager : public HeapManager
 			init();
 		}
 
+		// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 		void destroy (void)
 		{
 			HeapManager::destroy();
@@ -282,6 +283,7 @@ public:
 		init();
 	}
 
+	// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 	void destroy(void)
 	{
 		HeapManager::destroy();

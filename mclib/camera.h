@@ -398,7 +398,9 @@ class Camera
 
 		long init (FitIniFile *cameraFile);
 
-		void destroy (void);
+		// virtual: mission.cpp calls eye->destroy() on a GameCamera through
+		// this Camera pointer, which must reach GameCamera::destroy
+		virtual void destroy (void);
 		
 		// virtual: GameCamera objects are deleted through Camera pointers
 		// (mission.cpp: delete eye)

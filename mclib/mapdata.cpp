@@ -99,6 +99,7 @@ void MapData::operator delete (void *us)
 }
 		
 //---------------------------------------------------------------------------
+// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 void MapData::destroy (void)
 {
 	HeapManager::destroy();

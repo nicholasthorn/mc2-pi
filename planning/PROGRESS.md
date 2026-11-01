@@ -115,6 +115,19 @@ Added 2026-10-31.
     the source line's fill is 0 and still reports a non-zero one; the two
     real ones, `0xff` fills in the ASE parser (`tgl.cpp`), are now zero
     (a mesh without texture faces kept NaN UVs in `tgl.fst`).
+  - [x] `duplInheritedMember` (41) (branch `fix/cppcheck-dupl`): two real
+    ones, both latent: `Camera::destroy` is now virtual (`eye->destroy()`
+    ran Camera's on a GameCamera), and the accept-variant dialog's own
+    `selectedName` is gone (a delete would have removed the wrong variant;
+    stock data has no delete button there). Dead duplicates removed
+    (`Building::isVisible`, `BattleMech::initOptimalCells`, two MP
+    `isDone`); 28 intended ones suppressed inline with the reason, the two
+    save-game struct fields among them (loads tell types apart by size).
+    `TerrainObjectType::subType` (the shipped-game forest pathing bug) is
+    kept as shipped, decided 2026-11-01, and suppressed with that reason.
+  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
+    better after the STOP/Fatal work below), `allocaCalled` (27) and the
+    rest.
   - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
     became `[[noreturn]]`),
     `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
@@ -449,11 +462,13 @@ Candidates:
 - Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
 - With `MC2_STOP_EXITS=0` (mod bring-up), `STOP` and `Assert` log and carry on, so code after them runs into whatever they were guarding; a missing mission then runs until a `Fatal` ends it.
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
-- Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects); not done, needs a decision.
+- Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects). Decided 2026-11-01: keep the shipped behaviour (cppcheck finding suppressed with that reason).
 
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
+
+- 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing) kept as shipped by decision and suppressed with that reason.
 
 - 2026-11-01: VR Phase 1, first slice (branch `vr-phase1`): `-stereo <separation>` side-by-side debug view. The engine could already draw a frame twice (`renderLists` rewinds its lists); meshes now take the camera and viewport at draw time (the GPU path used the update-time ones), terrain and water are re-projected per eye with the game camera's visibility kept, each eye is an offset applied last in `Camera::setCameraOrigin` (`Camera::renderWorld`), and GameOS points the GL viewport at one half (`gos_SetStereoEye`). Mono screenshots byte-identical to before, game-state checksum unchanged with `-stereo`, eyes checked by measured disparity (first version had them swapped). Overlays, mouse picking, shadows and clouds still follow the game camera: a view for checking the rendering, not for playing. Measured cost on mc2_19 (llvmpipe): CPU frame 1.36 to 1.40x mono. Built and run on GL and GLES; MSVC, Clang and arm64 left to CI.
 - 2026-11-01: STOP follow-ups (branch `fix/stop-followups`): the `STOP:` log line format (prefix, one trailing newline, truncation) moved from `logmsg` to `formatLogLine()` in `str_bounded.cpp` with unit tests, as did the message box's prefix strip (`logLineMessage()`); behaviour unchanged. ABL syntax errors ending the game under the opt-out recorded as a decision (see the `STOP` plan). Ubuntu 26.04: GL and GLES builds and unit tests (117 cases); MSVC, Clang and arm64 left to CI.

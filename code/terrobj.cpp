@@ -323,6 +323,9 @@ bool TerrainObjectType::handleCollision (GameObjectPtr collidee, GameObjectPtr c
 bool TerrainObjectType::handleDestruction (GameObjectPtr collidee, GameObjectPtr collider) {
 
 	TerrainObjectPtr me = (TerrainObjectPtr)collidee;
+	// Never true: this reads ObjectType::subType (always 0), not the
+	// TerrainObjectType one, so forests never reopen their pathing areas.
+	// Kept as shipped on purpose (planning/PROGRESS.md, 2026-11-01).
 	if (me->getObjectType()->getSubType() == TERROBJ_FOREST) {
 		me->openSubAreas();
 	}

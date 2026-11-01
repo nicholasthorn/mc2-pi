@@ -55,6 +55,7 @@ class aEdit: public aObject
 
 		void init( FitIniFile* file, const char* header );
 		long getHighlightColor( ) const { return highlightColor; }
+		// cppcheck-suppress duplInheritedMember ; text colour, a different meaning from aObject::getColor; only called on aEdit
 		long getColor() const { return textColor; }
 		long getCursorColor() const { return cursorColor; }
 		long getSelectedColor() const { return selectedColor; }
