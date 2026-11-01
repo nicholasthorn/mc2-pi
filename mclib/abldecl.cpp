@@ -454,6 +454,7 @@ TypePtr doType (void) {
 						//--------------------------------
 						// Create an array element type...
 						if (curToken == TKN_COMMA) {
+							// cppcheck-suppress nullPointerRedundantCheck ; this dereferences the previous element type, checked when it was made (ABL_Fatal never returns); the check below is on the new one
 							elementTypePtr = elementTypePtr->info.array.elementTypePtr = createType();
 							if (!elementTypePtr)
 								ABL_Fatal(0, " ABL: Unable to AblStackHeap->malloc array element Type ");

@@ -470,6 +470,7 @@ UserHeap::~UserHeap (void)
 }
 
 //---------------------------------------------------------------------------
+// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 void UserHeap::destroy (void)
 {
 	HeapManager::destroy();
@@ -2120,8 +2121,6 @@ void HeapList::dumpLog (void)
 
 bool UserHeap::pointerOnHeap (void *ptr)
 {
-    // sebi NB!
-    ENTER_DEBUGGER;
 #ifndef USE_GOS_HEAP
 	if (IsBadReadPtr(getHeapPtr(),totalSize))
 		return false;

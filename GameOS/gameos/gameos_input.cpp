@@ -78,7 +78,11 @@ extern SDL_Window* g_sdl_window;
 void __stdcall gos_SetMousePosition( float XPosition, float YPosition )
 {
     if(g_sdl_window) {
-        SDL_WarpMouseInWindow(g_sdl_window, (int)XPosition, (int)YPosition);
+        // the position is 0..1: undo gos_GetMouseInfo's divide by the drawable
+        // size, so the next gos_GetMouseInfo returns what was set
+        const float w = (float)Environment.drawableWidth;
+        const float h = (float)Environment.drawableHeight;
+        SDL_WarpMouseInWindow(g_sdl_window, (int)(XPosition * w), (int)(YPosition * h));
     }
 }
 

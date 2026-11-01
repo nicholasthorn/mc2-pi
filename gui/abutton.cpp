@@ -44,6 +44,11 @@ void aButton::destroy()
 
 aButton& aButton::operator=( const aButton& src)
 {
+	// the copy constructor copies these too
+	clickSFX = src.clickSFX;
+	highlightSFX = src.highlightSFX;
+	disabledSFX = src.disabledSFX;
+	holdTime = src.holdTime;
 	copyData( src );
 	aObject::operator=( src );
 	return *this;
@@ -237,11 +242,13 @@ bool aButton::isEnabled()
 	return state == ENABLED || state == PRESSED || state == AMBIGUOUS || state == HIGHLIGHT;
 }
 
+// cppcheck-suppress duplInheritedMember ; buttons keep their ID in data.ID (from the .fit) and report it by value; every call is through a button type
 int aButton::getID()
 {
 	return data.ID;
 }
 
+// cppcheck-suppress duplInheritedMember ; buttons keep their ID in data.ID (from the .fit) and report it by value; every call is through a button type
 void aButton::setID( int newID )
 {
 	data.ID = newID;

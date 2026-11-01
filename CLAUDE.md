@@ -1,8 +1,11 @@
 # MC2 (pi-port)
 
-MechCommander 2 open-source engine (alariq's Linux/Windows port), extended on the
-`pi-port` branch to run on the Raspberry Pi 4/400 through an OpenGL ES 3.1
-renderer. Desktop GL stays the default everywhere else.
+A maintained update of the MechCommander 2 open-source engine (alariq's
+Linux/Windows port): fixes, mod support, tests and CI for 64-bit Linux and
+Windows, plus the Raspberry Pi 4/400 through an OpenGL ES 3.1 renderer, and
+Meta Quest 2 VR in development (`planning/future-features/VR-TABLETOP.md`).
+Desktop GL stays the default everywhere but the Pi. The main branch is
+`pi-port` (historical name; it is the default branch).
 
 ## Repos, remotes and upstream policy
 
@@ -107,9 +110,11 @@ Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
 
 CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
 tests on each, and validates the shaders on every push to `pi-port` and every PR.
-`.github/workflows/smoke.yml` runs five missions nightly (and on demand) on
-x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan. CI also runs the unit
-tests under ASan + UBSan and cppcheck on changed files on every push;
+`.github/workflows/smoke.yml` runs five missions nightly, on demand and on PRs
+that touch code, on x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan.
+`ci.yml` also runs the unit tests under ASan + UBSan and cppcheck on changed
+files; both workflows skip a push that changes only docs or only merges
+`pi-port` in (`scripts/ci_skip.sh`);
 `.github/workflows/static.yml` runs cppcheck on the whole tree nightly. New
 code builds with `-Wall -Wextra -Werror` (`.claude/rules/build-conventions.md`). See `.claude/rules/` for the
 detailed conventions.
@@ -135,9 +140,10 @@ detailed conventions.
 
 Unit tests are doctest in `tests/unit/` (one `mc2_tests` binary under CTest),
 linking real engine files against a heap shim; CI runs them on all four
-configurations. Smoke runs: `scripts/smoke.sh` (needs built game data), nightly
-in CI. Still to come (sanitizers, coverage, benchmarks):
-`planning/QUALITY-ROADMAP.md`. How to write and run tests:
+configurations, also under ASan + UBSan. Smoke runs: `scripts/smoke.sh` (needs
+built game data), in CI nightly and on PRs. Benchmarks: `scripts/bench.sh`.
+Still to come (coverage and more): `planning/QUALITY-ROADMAP.md`. How to write
+and run tests:
 `.claude/rules/testing-conventions.md`.
 
 ## Workflow: worktrees and three tiers of checks
@@ -230,6 +236,7 @@ Then the **Session status** (every branch and PR the session touched), exactly o
 - `planning/QUALITY-ROADMAP.md`: tests, static analysis, CI, performance to-do list
 - `planning/RELEASES.md`: release packages (Pi 4/400 first, plus Linux and Windows for everyone), support levels, how a release is made
 - `planning/PROGRESS.md`: what is built, what is in progress, dated log
+- `planning/HARDWARE-TESTS.md`: checks only a person, a display or the Pi can run; add to it when a PR leaves one
 - `planning/future-features/`: specced, not built
 - `devdoc.txt`, `docs` (a text file, not a folder): alariq's original dev notes
 

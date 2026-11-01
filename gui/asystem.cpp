@@ -570,6 +570,7 @@ aObject::aObject( const aObject& src )
 
 	copyData( src );
 }
+// cppcheck-suppress operatorEqVarError ; pParent is this object's place in the UI tree, copying it would link to the source's parent
 aObject& aObject::operator=( const aObject& src )
 {
 	if ( &src != this )

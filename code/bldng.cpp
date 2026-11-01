@@ -378,29 +378,6 @@ bool BuildingType::handleDestruction (GameObjectPtr collidee, GameObjectPtr coll
 // class Building
 //---------------------------------------------------------------------------
 
-bool Building::isVisible (void) {
-
-	//----------------------------------------------------------------------
-	// This function is the meat and potatoes of the object cull system.
-	// Its job is to determine if the object is on screen or not.
-	// It does this by transforming the position for each active camera to
-	// its screen coords and saving them.  It then checks each set of coords
-	// to see if they are in the viewport of each camera.  Returned value
-	// is number of windows that object can be seen in.
-	bool isVisible = false; //land->getVertexScreenPos(blockNumber, vertexNumber, screenPos);
-	if (appearance)
-		isVisible = appearance->recalcBounds();
-
-	if (isVisible) {
-		windowsVisible = turn;
-		return(true);
-	}
-		
-	return(false);
-}
-
-//---------------------------------------------------------------------------
-
 void Building::openFootPrint (void) {
 }
 

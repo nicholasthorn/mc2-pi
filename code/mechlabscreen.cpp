@@ -284,6 +284,7 @@ void MechLabScreen::begin()
 		if ( maxCount )
 		{
 			maxCount ++;
+			// cppcheck-suppress allocaCalled ; one pointer per variant of one chassis (few), not in a loop
 			pVar = (LogisticsVariant**)_alloca( maxCount* sizeof (LogisticsVariant*) );
 			LogisticsData::instance->getChassisVariants( pVariant->getChassis(),pVar, maxCount );
 
@@ -1070,6 +1071,10 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 	{
 		case MB_MSG_NEXT: // actuall accept
 			{
+				// accept clears pVariant; a second accept before the screen
+				// closes has nothing to accept
+				if ( !pVariant )
+					break;
 				// make sure we have the money...
 				float newCost = pVariant->getCost();
 				// figure out change
@@ -1095,7 +1100,7 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 					{	
 						if ( pCurVar && !pCurVar->allComponentsAvailable() )
 							pCurDialog = acceptDlg;
-						else if ( pVariant && !pVariant->allComponentsAvailable() )
+						else if ( !pVariant->allComponentsAvailable() )
 							pCurDialog = acceptDlg;
 						else
 							pCurDialog = saveDlg; 

@@ -316,7 +316,7 @@ void MechIcon::setDrawBack( bool bSet)
 
 	
 	int iconsPerLine = ((int)s_textureMemory->width/(int)unitIconX);
-	int iconsPerPage = ((int)s_textureMemory->width/(int)unitIconY);
+	int iconsPerPage = ((int)s_textureMemory->height/(int)unitIconY);
 	long textureIndex = 0;
 	long row = (backDamageIndex/iconsPerLine);
 	if ( row >= iconsPerPage )
@@ -358,7 +358,10 @@ void MechIcon::setDrawBack( bool bSet)
 
 	DWORD* pSrcData = pSrcRow;
 
-	for( int j = 0; j < unitIconY; ++j )
+	// an icon index past the atlas (mod data) read beyond s_MechTextures
+	const bool inAtlas = whichMech >= 0 && (whichMech + 1) * unitIconX <= s_MechTextures->width
+		&& 2 * unitIconY <= s_MechTextures->height;
+	for( int j = 0; inAtlas && j < unitIconY; ++j )
 	{
 		pDestData = pDestRow;
 		pSrcData = pSrcRow;
@@ -503,7 +506,7 @@ bool MechIcon::init( long whichIndex )
 
 
 	int iconsPerLine = ((int)s_textureMemory->width/(int)unitIconX);
-	int iconsPerPage = ((int)s_textureMemory->width/(int)unitIconY);
+	int iconsPerPage = ((int)s_textureMemory->height/(int)unitIconY);
 	long textureIndex = 0;
 	long row = (damageIconIndex/iconsPerLine);
 	if ( row >= iconsPerPage )
@@ -537,8 +540,10 @@ bool MechIcon::init( long whichIndex )
 
 	pSrcRow += tmpOffset;
 
-
-	for( int j = 0; j < unitIconY; ++j )
+	// an icon index past the atlas (mod data) read beyond s_MechTextures
+	const bool inAtlas = whichIndex >= 0 && (whichIndex + 1) * unitIconX <= s_MechTextures->width
+		&& unitIconY <= s_MechTextures->height;
+	for( int j = 0; inAtlas && j < unitIconY; ++j )
 	{
 		// the pixels follow an 18-byte TGA header, so the source DWORDs are
 		// not aligned: copy the row bytewise
@@ -793,7 +798,7 @@ void MechIcon::doDraw( char* newDamage, char* oldDamage, unsigned long handle, u
 			// find the icon
 			long texIndex = 0;
 			int iconsPerLine = ((int)s_textureMemory->width/(int)unitIconX);
-			int iconsPerPage = ((int)s_textureMemory->width/(int)unitIconY);
+			int iconsPerPage = ((int)s_textureMemory->height/(int)unitIconY);
 			int yIndex = index / iconsPerLine;
 			if ( yIndex >= iconsPerPage )
 			{
@@ -961,7 +966,7 @@ void ForceGroupIcon::render()
 
 		if ( bMovie )
 		{
-			if ( unit && (unit->getStatus () == OBJECT_STATUS_SHUTDOWN) )
+			if ( unit->getStatus () == OBJECT_STATUS_SHUTDOWN )
 			{
 				bMovie->stop();
 				delete bMovie;
@@ -1025,7 +1030,7 @@ void ForceGroupIcon::renderUnitIcon( float left, float top, float right, float b
 {
 	int texIndex = 0;
 	int iconsPerLine = ((int)s_textureMemory->width/(int)unitIconX);
-	int iconsPerPage= ((int)s_textureMemory->width/(int)unitIconY);
+	int iconsPerPage= ((int)s_textureMemory->height/(int)unitIconY);
 	int yIndex = damageIconIndex / iconsPerLine;
 	if ( yIndex >= iconsPerPage )
 	{
@@ -1159,7 +1164,7 @@ bool VehicleIcon::init( Mover* pMover )
 	
 	long texIndex = 0;
 	int iconsPerLine = ((int)s_textureMemory->width/(int)unitIconX);
-	int iconsPerPage = ((int)s_textureMemory->width/(int)unitIconY);
+	int iconsPerPage = ((int)s_textureMemory->height/(int)unitIconY);
 	long row = damageIconIndex/iconsPerLine;
 	long column = (damageIconIndex % iconsPerLine);
 	if ( row >= iconsPerPage )
@@ -1196,8 +1201,10 @@ bool VehicleIcon::init( Mover* pMover )
 
 	pSrcRow += tmpOffset;
 
-
-	for( int j = 0; j < unitIconY; ++j )
+	// an icon index past the atlas (mod data) read beyond s_VehicleTextures
+	const bool inAtlas = whichMech >= 0 && (whichMech + 1) * unitIconX <= s_VehicleTextures->width
+		&& unitIconY <= s_VehicleTextures->height;
+	for( int j = 0; inAtlas && j < unitIconY; ++j )
 	{
 		// unaligned source (pixels follow the 18-byte TGA header)
 		memcpy( pDestRow, pSrcRow, unitIconX * sizeof(DWORD) );
@@ -1287,7 +1294,7 @@ void VehicleIcon::update()
 		{	
 			long texIndex = 0;
 			int iconsPerLine = ((int)s_textureMemory->width/(int)unitIconX);
-			int iconsPerPage = ((int)s_textureMemory->width/(int)unitIconY);
+			int iconsPerPage = ((int)s_textureMemory->height/(int)unitIconY);
 			int yIndex = damageIconIndex / iconsPerLine;
 			int xIndex = damageIconIndex % iconsPerLine;
 			if ( yIndex >= iconsPerPage )

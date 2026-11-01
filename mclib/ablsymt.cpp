@@ -519,10 +519,12 @@ void enterStandardRoutine (const char* name, long routineKey, bool isOrder, cons
 
 	long tableIndex = routineKey;
 	if (tableIndex == -1) {
-		if (NumStandardFunctions == MAX_STANDARD_FUNCTIONS)
+		if (NumStandardFunctions >= MAX_STANDARD_FUNCTIONS)
 			ABL_Fatal(0, " ABL.enterStandardRoutine: Too Many Standard Functions ");
 		tableIndex = NumStandardFunctions++;
 	}
+	if ((tableIndex < 0) || (tableIndex >= MAX_STANDARD_FUNCTIONS))
+		ABL_Fatal(0, " ABL.enterStandardRoutine: bad routine key ");
 
 	SymTableNodePtr routineIdPtr;
 	enterNameLocalSymTable(routineIdPtr, name);

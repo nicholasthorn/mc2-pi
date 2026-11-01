@@ -1294,6 +1294,7 @@ void LogisticsVariantDialog::initVariantList()
 
 	if ( count )
 	{
+		// cppcheck-suppress allocaCalled ; one pointer per saved player variant (few), not in a loop
 		const char** pNames = (const char**)_alloca( count * sizeof( char*) );
 		LogisticsData::instance->getPlayerVariantNames( pNames, count );
 

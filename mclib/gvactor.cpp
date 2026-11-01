@@ -1290,9 +1290,17 @@ void GVAppearance::resetPaintScheme (DWORD red, DWORD green, DWORD blue)
 				applied. */
 	
 				//Still need to store psRed/psGreen/psBlue!!!!
+				// stored as setPaintScheme(red, green, blue) stores them, so the
+				// getPaintScheme() round trip on an LOD change gives the same colours
+#ifdef BGR
+				psRed = bgrTorgb(red);
+				psGreen = bgrTorgb(green);
+				psBlue = bgrTorgb(blue);
+#else /*BGR*/
 				psRed = red;
 				psGreen = green;
 				psBlue = blue;
+#endif /*BGR*/
 				return;
 			}
 		}
@@ -1312,9 +1320,17 @@ void GVAppearance::resetPaintScheme (DWORD red, DWORD green, DWORD blue)
 				applied. */
 	
 				//Still need to store psRed/psGreen/psBlue!!!!
+				// stored as setPaintScheme(red, green, blue) stores them, so the
+				// getPaintScheme() round trip on an LOD change gives the same colours
+#ifdef BGR
+				psRed = bgrTorgb(red);
+				psGreen = bgrTorgb(green);
+				psBlue = bgrTorgb(blue);
+#else /*BGR*/
 				psRed = red;
 				psGreen = green;
 				psBlue = blue;
+#endif /*BGR*/
 				return;
 			}
 		}

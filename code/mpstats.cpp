@@ -463,7 +463,7 @@ void MPStatsResultsEntry::setData(const MC2Player* data, unsigned long laurelCol
 	rects[4].setColor( MPlayer->colors[data->baseColor[BASECOLOR_TEAM]] );
 	rects[2].setColor( MPlayer->colors[data->stripeColor] );
 
-	if ( data &&  MPlayer->allUnitsDestroyed[data->commanderID] )
+	if ( MPlayer->allUnitsDestroyed[data->commanderID] )
 		overlayColor = 0x7f000000;
 	else
 		overlayColor = 0;

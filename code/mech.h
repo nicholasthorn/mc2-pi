@@ -314,6 +314,7 @@ typedef struct _MechData : public MoverData
 
 	float				maxWeaponDamage;			   
 
+	// cppcheck-suppress duplInheritedMember ; save-game layout: objmgr.cpp tells object types apart by this struct's size, so the field stays
 	char				longName[MAXLEN_MECH_LONGNAME];
 	int32_t				pilotNum;		
 
@@ -390,6 +391,7 @@ class BattleMech : public Mover {
 		
 		float				maxWeaponDamage;				// max total damage possible
 		
+		// cppcheck-suppress duplInheritedMember ; BattleMech keeps its own longName (GroundVehicle uses Mover's); read only through virtual getIfaceName()
 		char				longName[MAXLEN_MECH_LONGNAME];		//Used by logistics (and the interface) to get long name.
 		int32_t             pilotNum;						//Used by logistics to restore pilot on return.
 
@@ -729,8 +731,6 @@ class BattleMech : public Mover {
 		void CopyTo (MechData *data);
 
 		void Load (MechData *data);
-
- 		static void initOptimalCells (long numIncrements);
 
 		virtual void repairAll (void);
 };

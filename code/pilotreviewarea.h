@@ -111,6 +111,9 @@ public:
 	LogisticsPilot*		getPilot(){ return pPilot; }
 
 	DeadPilotListItem( LogisticsPilot* pUnit );
+	// owns liveIcon/deadIcon, deleted by the destructor: not copyable
+	DeadPilotListItem( const DeadPilotListItem& ) = delete;
+	DeadPilotListItem& operator=( const DeadPilotListItem& ) = delete;
 
 private:
 	friend class PilotReviewScreen;
@@ -151,6 +154,9 @@ public:
 
 	static void			init( FitIniFile* file );
 	ActivePilotListItem( LogisticsPilot* pUnit );
+	// owns pilotIcon and the medal icons/texts, deleted by the destructor: not copyable
+	ActivePilotListItem( const ActivePilotListItem& ) = delete;
+	ActivePilotListItem& operator=( const ActivePilotListItem& ) = delete;
 	static long			s_totalWidth;
 
 	float				flashTime();
@@ -260,6 +266,7 @@ public:
 
 	virtual bool		isChecked();
 	virtual void		setCheck( bool );
+	// cppcheck-suppress duplInheritedMember ; own ID, read only through this type; aObject::ID is unused here
 	int					getID();
 	SpecialtyListItem( int ID );
 
@@ -284,6 +291,7 @@ private:
 	aButton			radioButton;
 	aRect				outline;
 
+	// cppcheck-suppress duplInheritedMember ; own ID, read only through this type; aObject::ID is unused here
 	int					ID;
 
 	friend class PilotPromotionArea;

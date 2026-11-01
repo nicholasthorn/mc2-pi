@@ -281,6 +281,7 @@ void MechListBoxItem::assignAnimation( FitIniFile& file, long& curAnim )
 	}
 	curAnim++;
 }
+// cppcheck-suppress operatorEqVarError ; only copies the template layout, pMech/mechCount/animTime are per-item and set by the constructor
 MechListBoxItem& MechListBoxItem::operator=( const MechListBoxItem& src )
 {
 	if ( &src != this )
@@ -500,13 +501,15 @@ long MechListBox::AddItem(aListItem* itemString)
 {
 	itemString->setID( ID );
 	MechListBoxItem* pItem = dynamic_cast<MechListBoxItem*>(itemString);
-	EString addedName;
-	char tmp[256];
-	cLoadString( pItem->getMech()->getChassisName(), tmp, 255 );
-	addedName = tmp;
-	
+
 	if ( pItem )
 	{
+		// pItem is NULL when itemString is not a MechListBoxItem
+		EString addedName;
+		char tmp[256];
+		cLoadString( pItem->getMech()->getChassisName(), tmp, 255 );
+		addedName = tmp;
+
 		pItem->bOrange = bOrange;
 		pItem->bIncludeForceGroup = bIncludeForceGroup;
 
@@ -648,6 +651,7 @@ void MechListBox::disableItemsThatCanNotGoInFG()
 	}
 }
 
+// cppcheck-suppress duplInheritedMember ; also recolours the items; every call is through a MechListBox
 void MechListBox::setOrange( bool bNewOrange )
 {
 	bOrange = bNewOrange ? 1 : 0;

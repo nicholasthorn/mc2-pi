@@ -529,8 +529,9 @@ void SimpleCamera::setObject( const char* pFileName, long type, long base, long 
 {
 	if ( !pFileName || !strlen( pFileName ) )
 	{
-		assert(0 && "SimpleCamera::setObject");// sebi: check if we go here
-		if ( appearanceTypeList && appearanceTypeList->pointerCanBeDeleted(pObject) )
+		// no model: reached from the briefing for an objective without one.
+		// Delete as the other paths here do (pObject comes from new)
+		if ( appearanceTypeList )
 			delete pObject;
 
 		pObject = NULL;

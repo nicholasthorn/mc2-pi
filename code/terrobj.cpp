@@ -323,6 +323,9 @@ bool TerrainObjectType::handleCollision (GameObjectPtr collidee, GameObjectPtr c
 bool TerrainObjectType::handleDestruction (GameObjectPtr collidee, GameObjectPtr collider) {
 
 	TerrainObjectPtr me = (TerrainObjectPtr)collidee;
+	// Never true: this reads ObjectType::subType (always 0), not the
+	// TerrainObjectType one, so forests never reopen their pathing areas.
+	// Kept as shipped on purpose (planning/PROGRESS.md, 2026-11-01).
 	if (me->getObjectType()->getSubType() == TERROBJ_FOREST) {
 		me->openSubAreas();
 	}
@@ -1017,16 +1020,17 @@ void TerrainObject::calcSubAreas (long numCells, short cells[MAX_GAME_OBJECT_CEL
 	numCellsCovered = numCells;
 	if (numCellsCovered) {
 		cellsCovered = (short*)systemHeap->Malloc(4 * numCellsCovered);
-		if (cellsCovered) {
-			short* curCoord = cellsCovered;
-			for (long j = 0; j < numCellsCovered; j++) {
-				*curCoord++ = cells[j][0];
-				*curCoord++ = cells[j][1];
-			}
-		}
-	
-		numSubAreas0 = 0;
+		// The loops below both read cellsCovered.
+		if (!cellsCovered)
+			Fatal(numCellsCovered, " TerrainObject: unable to malloc cellsCovered ");
 		short* curCoord = cellsCovered;
+		for (long j = 0; j < numCellsCovered; j++) {
+			*curCoord++ = cells[j][0];
+			*curCoord++ = cells[j][1];
+		}
+
+		numSubAreas0 = 0;
+		curCoord = cellsCovered;
 		for (long i = 0; i < numCellsCovered; i++) 
 		{
 			long r = *curCoord++;

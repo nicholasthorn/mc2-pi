@@ -127,6 +127,9 @@ class ControlGui
 
 		ControlGui();
 		~ControlGui();
+		// owns heap buttons and statics, freed by the destructor: not copyable
+		ControlGui( const ControlGui& ) = delete;
+		ControlGui& operator=( const ControlGui& ) = delete;
 		bool inRegion( int mouseX, int mouseY, bool bPaused );
 		void render( bool bPaused );
 		void update( bool bPaused, bool bLOS );

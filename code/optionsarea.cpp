@@ -389,19 +389,31 @@ void OptionsGraphics::init(long xOffset, long yOffset)
 	resolutionList.ListBox().setOrange( true );
 
     const int displayIndex = gos_GetWindowDisplayIndex();
-    const int num_modes = gos_GetNumDisplayModes(displayIndex);
+    const int sdl_modes = gos_GetNumDisplayModes(displayIndex);
+    const int num_modes = sdl_modes > 0 ? sdl_modes : 0;	// negative on an SDL error
     gosASSERT(!resolutionModes && !resolutionModesStr);
     resolutionModes = new ResModes[num_modes];
     resolutionModesStr = new char*[num_modes];
-    numResolutionModes = num_modes;
+    numResolutionModes = 0;
 
 
 	for ( int i = 0; i < num_modes; i++ ) {
-        gos_GetDisplayModeByIndex(displayIndex, i, &resolutionModes[i].xRes, &resolutionModes[i].yRes, &resolutionModes[i].bitDepth);
+        ResModes& mode = resolutionModes[numResolutionModes];
+        if (!gos_GetDisplayModeByIndex(displayIndex, i, &mode.xRes, &mode.yRes, &mode.bitDepth))
+            continue;	// SDL could not report this one: do not list the slot's old contents
 
-        resolutionModesStr[i] = new char[256];
-        S_snprintf(resolutionModesStr[i], 256, "%dx%dx%d", resolutionModes[i].xRes, resolutionModes[i].yRes, resolutionModes[i].bitDepth);
-        resolutionList.AddItem( resolutionModesStr[i], 0xffffffff );
+        // SDL lists a mode once per refresh rate: show each size only once
+        bool listed = false;
+        for (int j = 0; j < numResolutionModes && !listed; j++)
+            listed = resolutionModes[j].xRes == mode.xRes && resolutionModes[j].yRes == mode.yRes &&
+                     resolutionModes[j].bitDepth == mode.bitDepth;
+        if (listed)
+            continue;
+
+        resolutionModesStr[numResolutionModes] = new char[256];
+        S_snprintf(resolutionModesStr[numResolutionModes], 256, "%dx%dx%d", mode.xRes, mode.yRes, mode.bitDepth);
+        resolutionList.AddItem( resolutionModesStr[numResolutionModes], 0xffffffff );
+        numResolutionModes++;
     }
 
     /*
@@ -587,7 +599,7 @@ void OptionsGraphics::end()
 	prefs.renderer = getButton( MSG_HARDWARE_RASTERIZER )->isPressed() ? 0 : 3;
 
 	int sel = resolutionList.GetSelectedItem();
-	if ( sel > -1 )
+	if ( sel > -1 && sel < numResolutionModes )	// an empty list still reports item 0
 	{
 		long actualSel = -1;
         gosASSERT(numResolutionModes > sel);

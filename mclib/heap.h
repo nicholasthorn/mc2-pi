@@ -191,6 +191,7 @@ class UserHeap : public HeapManager
 #endif
 		
 		~UserHeap (void);
+		// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 		void destroy (void);
 		
 		unsigned long totalCoreLeft (void);

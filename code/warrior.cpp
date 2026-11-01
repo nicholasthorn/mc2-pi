@@ -6280,6 +6280,8 @@ long MechWarrior::orderPatrolPath (bool unitOrder, bool setTacOrder, long origin
 long MechWarrior::orderPowerUp (bool unitOrder, long origin) {
 
 	MoverPtr myVehicle = getVehicle();
+	if (!myVehicle)		// nothing to power up or down
+		return(TACORDER_SUCCESS);
 	if ((myVehicle->getStatus() != OBJECT_STATUS_SHUTDOWN))
 		return TACORDER_SUCCESS;
 
@@ -6315,6 +6317,8 @@ long MechWarrior::orderPowerUp (bool unitOrder, long origin) {
 long MechWarrior::orderPowerDown (bool unitOrder, long origin) {
 
 	MoverPtr myVehicle = getVehicle();
+	if (!myVehicle)		// nothing to power up or down
+		return(TACORDER_SUCCESS);
 	if ((myVehicle->getStatus() == OBJECT_STATUS_SHUTDOWN) || (myVehicle->getStatus() == OBJECT_STATUS_SHUTTING_DOWN))
 		return(TACORDER_SUCCESS);
 	if (myVehicle->isDisabled())
@@ -7516,10 +7520,10 @@ void MechWarrior::setup (void) {
 	TacOrderQueuePos = 0;
 	for (long i = 0; i < MAX_WARRIORS; i++) {
 		warriorList[i] = new MechWarrior;
-		warriorList[i]->index = i;
-		warriorList[i]->used = false;
 		if (warriorList[i] == NULL)
 			Fatal(i, " MechWarrior.setup: NULL warrior ");
+		warriorList[i]->index = i;
+		warriorList[i]->used = false;
 	}
 
 }

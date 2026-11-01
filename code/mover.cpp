@@ -4199,9 +4199,10 @@ float startLocal = 40.0f;
 			long startCellR = startCellRow;
 
 			land->getCellPos(startCellR,startCellC,currentPos);
-			float localElev = (worldUnitsPerMeter * (float)GameMap->getLocalHeight(startCellR,startCellC));
+			// the last step can land past the map edge, like the getCell() calls below
+			float localElev = GameMap->inBounds(startCellR, startCellC) ? (worldUnitsPerMeter * (float)GameMap->getLocalHeight(startCellR,startCellC)) : 0.0f;
 			currentPos.z += localElev;
-				
+
 			if (startHeight+startLocal < currentPos.z)
 				if (GameMap->inBounds(lastCellR, lastCellC) && GameMap->getCell(lastCellR, lastCellC)->getPassable()) {
 					bestCell[0] = lastCellR;
