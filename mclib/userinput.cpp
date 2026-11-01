@@ -75,7 +75,10 @@ void MouseCursorData::initCursors (const char *cursorFileName)
 	result = cursorFile.readIdLong("NumCursors",numCursors);
 	gosASSERT(result == NO_ERR);
 
-	gosASSERT( numCursors < MAX_MOUSE_STATES );
+	// gosASSERT is compiled out: more cursors than that (mod data) wrote
+	// past mouseHS / numFrames / frameLengths
+	if (numCursors > MAX_MOUSE_STATES)
+		numCursors = MAX_MOUSE_STATES;
 
 	cursorInfos = new StaticInfo[numCursors];
 		

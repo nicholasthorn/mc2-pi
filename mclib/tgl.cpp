@@ -539,6 +539,12 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 
 		for (uint32_t i = 0; i < numTypeTriangles; i++)
 		{
+			// a vertex index past the list (mod data) read beyond it, here and
+			// wherever the triangle is used: point it at vertex 0 instead
+			for (uint32_t j = 0; j < 3; ++j)
+				if ((DWORD)listOfTypeTriangles[i].Vertices[j] >= numTypeVertices)
+					listOfTypeTriangles[i].Vertices[j] = 0;
+
 			TG_TypeTriangle triType = listOfTypeTriangles[i];
 
 			for (uint32_t j = 0; j < 3; ++j)

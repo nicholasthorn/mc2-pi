@@ -288,9 +288,10 @@ void MissionSelectionScreen::begin()
     int i = 0;
 	for (; i < missionCount; i++ )
 	{
-		if ( i > operationScreen.buttonCount )
+		if ( i >= operationScreen.buttonCount )	// was >: wrote buttons[buttonCount]
 		{
 			Assert( 0, 0, "not enough buttons on the operation screen" );
+			break;
 		}
 		else 
 		{
