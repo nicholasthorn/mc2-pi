@@ -145,8 +145,16 @@ Added 2026-10-31.
      2026-11-01: `STOP` (and `Assert`) log, show an SDL message box (not in
      automated runs) and `_Exit(1)`; `MC2_STOP_EXITS=0` makes them carry on.
      `Fatal()` / `ABL_Fatal()` end through `gos_FatalExit()` even then.
-     Still to check: the message box in a windowed and a fullscreen run, and
-     the Pi console after a `STOP` (step 1).
+     The exit now calls `SDL_Quit` (after the message) before `_Exit`, so
+     the display mode is put back. Still to check: the message box in a
+     windowed and a fullscreen run, and the Pi console after a `STOP`.
+     Follow-ups from the review: an ABL syntax error now ends the game even
+     with `MC2_STOP_EXITS=0`, so mod bring-up sees one compile error per
+     run (`syntaxError` could report and let the compile fail instead);
+     screens smoke has not opened (save/load, Mechlopedia, results,
+     salvage) may hold `STOP`s that used to be harmless; a `STOP` off the
+     main thread shows an unparented box; no unit test pins the `STOP:`
+     line format that smoke relies on.
 
 ## Tidy up (from the 2026-10-31 transcript sweep)
 
