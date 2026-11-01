@@ -40,7 +40,17 @@ extern bool useFog;
 
 //---------------------------------------------------------------------------
 // class Appearance
-float Appearance::stereoParallax = 0.0f;
+float Appearance::eyeShift (void)
+{
+	return eye ? eye->overlayShiftX(screenPos.w) : 0.0f;
+}
+
+Stuff::Vector4D Appearance::getEyeScreenPos (void)
+{
+	Stuff::Vector4D result = screenPos;
+	result.x += eyeShift();
+	return result;
+}
 
 void * Appearance::operator new (size_t mySize)
 {
@@ -68,7 +78,7 @@ void Appearance::drawTextHelp (char *text, unsigned long color)
 {
 	DWORD width, height;
 	Stuff::Vector4D moveHere;
-	moveHere = getScreenPos();
+	moveHere = getEyeScreenPos();
 
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
@@ -90,7 +100,7 @@ void Appearance::drawPilotName(char *text, unsigned long color )
 {
 	DWORD width, height;
 	Stuff::Vector4D moveHere;
-	moveHere = getScreenPos();
+	moveHere = getEyeScreenPos();
 
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);

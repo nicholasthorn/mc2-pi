@@ -42,7 +42,6 @@
 
 #include"render_heuristics.h"
 #include"utils/stereo.h"
-#include"appear.h"
 #include"floathelp.h"
 
 #ifndef USERINPUT_H
@@ -1687,17 +1686,15 @@ void Camera::renderWorld (void)
 		return;
 	}
 
-	// Overlays (brackets, bars, floating text) come from the game camera's
-	// screen bounds. An eye differs from it by a sideways shift only, so a
-	// point's screen x moves by a constant times its 1/depth (screen w):
-	// measured here on the camera's look-at point, used by Appearance.
+	// eyeParallax (see overlayShiftX), measured on the point the camera looks
+	// at (getPosition()); projectZ's screen w is never 0
 	Stuff::Vector3D reference = getPosition();
 	Stuff::Vector4D gameScreen;
 	projectZ(reference,gameScreen);
 
 	// eye -1 is the game camera, put back for the interface and for mouse
 	// picking, which reads the terrain's screen positions
-	auto setEye = [this, separation, &reference, &gameScreen](int eyeIndex)
+	auto setEye = [&](int eyeIndex)
 	{
 		eyeOffset = stereo::eyeOffset(eyeIndex, separation);
 		calculateProjectionConstants();
@@ -1706,12 +1703,12 @@ void Camera::renderWorld (void)
 			land->projectForEye();
 		gos_SetStereoEye(eyeIndex);
 
-		Appearance::stereoParallax = 0.0f;
-		if ((eyeIndex >= 0) && (gameScreen.w != 0.0f))
+		eyeParallax = 0.0f;
+		if (eyeIndex >= 0)
 		{
 			Stuff::Vector4D eyeScreen;
 			projectZ(reference,eyeScreen);
-			Appearance::stereoParallax = (eyeScreen.x - gameScreen.x) / gameScreen.w;
+			eyeParallax = (eyeScreen.x - gameScreen.x) / gameScreen.w;
 		}
 	};
 

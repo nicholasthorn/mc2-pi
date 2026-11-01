@@ -75,9 +75,7 @@ void FloatHelp::renderAndResetFrom (DWORD first)
 		floatHelps[i].render();
 		floatHelps[i].reset();
 	}
-
-	if (first < currentFloatHelp)
-		currentFloatHelp = first;
+	currentFloatHelp = first;
 }
 
 //-----------------------------------------------------------------------------------------
