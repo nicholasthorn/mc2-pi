@@ -1,7 +1,10 @@
 # Releases
 
-Status: planned, nothing built. This is the plan for downloadable builds on
-GitHub Releases. Progress is tracked in `PROGRESS.md`.
+Status: phases 1 and 2 built (2026-11-01, branch `release/prep`): packages
+from `scripts/package.sh`, `.github/workflows/release.yml` making a draft
+release from a `v*` tag. Phases 3 onwards (AppImages, package smoke tests,
+the first release candidate) are still to do. This is the plan for
+downloadable builds on GitHub Releases. Progress is tracked in `PROGRESS.md`.
 
 ## Goals
 
@@ -120,6 +123,35 @@ then the release notes say it is untested on hardware.
 |---|---|---|
 | 1. Packaging scripts | `scripts/package.sh` (Linux) and a Windows equivalent; `--tools-dir` for `build_gamedata.sh`; install notes; license bundle | A package built locally runs on a clean machine |
 | 2. Release workflow | `release.yml` with the Pi tarball, Windows zip and a plain Linux x64 tarball; draft release | A test tag produces a draft with all three |
+
+### As built (phases 1 and 2)
+
+- `scripts/package.sh --build-dir DIR --platform rpi-arm64|linux-x86_64|windows-x64
+  --version VER` stages a game directory without data and archives it, one
+  script for all three (bash runs on the Windows runner too). Binaries are
+  stripped; their debug information goes in `<package>-symbols.tar.gz`
+  (Linux `.debug` files with a debuglink, Windows `.pdb`).
+- The package is the game folder: `mc2` (or `mc2.exe`), the resource
+  library, `shaders/`, `license.txt`, `licenses/`, `INSTALL.md` (from
+  `dist/`), `VERSION`. Linux and Pi packages add `tools/` and
+  `build_gamedata.sh`, which uses that `tools/` when given neither
+  `--build-dir` nor `--tools-dir`, so `./build_gamedata.sh --src-data ...
+  --out .` fills the unpacked package with data.
+- **Windows has no data tools,** a change from the plan above: the data build
+  is bash and make, so Windows players build the data with a Linux package
+  (WSL, a Linux PC or the Pi) and copy it over. The zip bundles the five
+  `3rdparty` DLLs and the MSVC runtime from the runner's Visual Studio.
+- Third-party licences are in `dist/licenses/`, fetched from upstream at the
+  versions shipped (SDL 2.30.11, SDL_mixer 2.8.0 with its built-in Timidity,
+  minimp3, dr_flac and stb_vorbis, SDL_ttf 2.24.0 with FreeType and
+  HarfBuzz, GLEW 2.2.0, zlib); pl_mpeg and stb are compiled into every build.
+- `release.yml`: the Pi package in `debian:bookworm` on the arm64 runner with
+  `-mtune=cortex-a72`, Linux x64 on `ubuntu-22.04` (glibc 2.35), Windows on
+  `windows-2022`; unit tests in each; a tag creates a draft release with
+  `SHA256SUMS`, a pre-release for tags with a hyphen. `workflow_dispatch`
+  and pull requests that touch the packaging are dry runs (artifacts only).
+- **`zlib1.dll` in `3rdparty.zip` is zlib 1.2.3 (2005)**, with known security
+  fixes since; update it before the first release.
 | 3. AppImages | Linux x64 and arm64 AppImages on old bases | AppImage runs on Ubuntu 22.04 and a current Fedora |
 | 4. Package smoke tests | Smoke runs against the unpacked packages in `release.yml` | Release fails if a package does not start a mission |
 | 5. First release candidate | `v0.1.0-rc1`, pre-release | Downloaded and run on Windows, Linux x64 and a Pi 400 |

@@ -430,11 +430,16 @@ systems first (Raspberry Pi 4/400 on Raspberry Pi OS), and ready-to-run builds
 for everyone on ordinary Linux and Windows PCs. No game data in any package;
 each ships the data tools instead.
 
-- [ ] Phase 1: packaging scripts, `--tools-dir` for `build_gamedata.sh`, install
-      notes, third-party license bundle
-- [ ] Phase 2: `release.yml` (tag-triggered, draft release): Pi tarball
+- [x] Phase 1: packaging scripts, `--tools-dir` for `build_gamedata.sh`, install
+      notes, third-party license bundle (2026-11-01, branch `release/prep`;
+      a Linux x64 package built, filled with data by its own tools and
+      smoke-run in WSL; not yet run on a clean machine)
+- [x] Phase 2: `release.yml` (tag-triggered, draft release): Pi tarball
       (`debian:bookworm` container), Windows zip (DLLs and C++ runtime
-      included), Linux x64 tarball
+      included), Linux x64 tarball (2026-11-01; dry runs on the PR, no test
+      tag pushed yet)
+- [ ] Before the first release: replace `zlib1.dll` 1.2.3 in `3rdparty.zip`
+      with a current zlib
 - [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
 - [ ] Phase 4: smoke tests against the unpacked packages
 - [ ] Phase 5: `v0.1.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
@@ -515,6 +520,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: Release phases 1 and 2 (branch `release/prep`): `scripts/package.sh` builds the Pi, Linux x64 and Windows packages (stripped, symbols separate), `dist/INSTALL.md` and the third-party licences fetched at the shipped versions, `build_gamedata.sh --tools-dir` (and a package's own `tools/` by default), `release.yml` (draft release from a `v*` tag; dry runs by hand and on packaging PRs). Tried in WSL: a Linux x64 package built its own game data and passed mc2_01, mc2_03 and both UI walks from the unpacked folder. Found: `zlib1.dll` in `3rdparty.zip` is zlib 1.2.3.
 - 2026-11-01: Meta Quest test build (branch `quest-test`), for the VR go/no-go: `scripts/android/fetch_deps.sh` (SDL2 and SDL2_mixer sources, SHA-256 pinned) and `scripts/android/build.sh` (NDK r28c, CMake 3.31.6, then the APK with the SDK's own tools, no Gradle) give a debug-signed `android/mc2-quest-test.apk`; `scripts/android/run_bench.sh` installs it, pushes the data, runs mc2_19 mono and `-stereo` and pulls the results. Under `ANDROID` the game is `libmain.so` for SDL's activity; `android_prepare` (gameosmain.cpp) moves to the app's files folder, sets `HOME`, reads the command line and leading `NAME=value` settings from `mc2args.txt` (`utils/args_file`, unit tested) and logs to `mc2.log`; `libmc2res_64.so` is loaded by name. Clang on arm64 also needed: no x86 `rdtsc` asm off x86 (`gameos.hpp`), the standard placement new instead of a redeclaration (`stuff/style.hpp`), and a map name no longer used as a format string (`logisticsdialog.cpp`). Built on Windows (APK verified: arm64, GLES 3.1, v3 signature); desktop GL and GLES still build and pass on Linux. **To do: run it on a Quest.**
 - 2026-11-01: cppcheck baseline, the rest after `nullPointerRedundantCheck` (122 findings, three PRs): `allocaCalled` (27, branch `fix/cppcheck-alloca`: unbounded `A2W` stack buffers, also too small for Linux's 4-byte `wchar_t`, and the objectives HUD dots now on the heap; 7 bounded uses suppressed); copy / assignment (34, branch `fix/cppcheck-copyassign`: `mouseY = mouseY` typo, three self-assignment hazards, `aButton::operator=` copies its sounds like the copy constructor, 8 never-copied owners made non-copyable); the rest (61, branch `fix/cppcheck-misc`: shader `#include` on the last line read address 1, ABL `setcurrentbrvalue` never popped its arguments, six bounds checked before indexing, the pmesh lightmap V test (`&&` never true), unset text-background `rhw`, signed shifts and punning; dead code removed, false positives suppressed). New "Kept as shipped" list: forest pathing, fog bytes (`comparePilots` was fixed instead, #64).
 - 2026-11-01: `LogisticsData::comparePilots` tested `p1` outranking `p2` twice, so a lower-ranked pilot fell through to the gunnery test and could be auto-assigned ahead of a higher-ranked one. Rank now decides first, as the gunnery and piloting pairs below it do; this changes auto-assignment from the shipped game (decided 2026-11-01). cppcheck `identicalConditionAfterEarlyExit`.

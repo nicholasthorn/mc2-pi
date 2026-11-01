@@ -78,6 +78,17 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## Releases (`RELEASES.md`)
 
+- [ ] **A package on a clean machine** (phase 1 exit): unpack the Linux x64
+      package on a machine that has never built the game, install the apt
+      line from `INSTALL.md`, build the data with `./build_gamedata.sh`,
+      start a mission.
+- [ ] **The Windows zip** on a Windows PC without Visual Studio: it starts
+      (the C++ runtime and DLLs are next to `mc2.exe`), with data copied
+      from a Linux build.
+- [ ] **The Pi package on Raspberry Pi OS 64-bit**: the apt line is enough,
+      and what the first start writes to `options.cfg` (RELEASES.md: ship a
+      low-detail template if it picks too high).
+
 - [ ] **Phase 5, `v0.1.0-rc1`**: run by hand on Windows, Linux x64 and a
       Pi 400.
 - [ ] **Phase 6, `v0.1.0`**: Pi hardware results in the release notes.
