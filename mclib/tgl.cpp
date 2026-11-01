@@ -3001,7 +3001,7 @@ void TG_Shape::MultiTransformShadows (Stuff::Point3D *pos, Stuff::LinearMatrix4D
 								// from a common pool and save us SCADS of RAM!!
 								// Do this!!!!  I DID!
 								// -fs
-								eye->projectZ(listOfShadowVertices[index].position,listOfShadowTVertices[index].transformedPosition);
+								//Screen position: projected at draw time, in RenderShadows.
 								shadowsVisible[shadowNum] = true;
 								
 								//eye->projectZ(listOfShadowVertices[index].position,listOfShadowTVertices[index].transformedPosition);
@@ -3140,7 +3140,7 @@ void TG_Shape::MultiTransformShadows (Stuff::Point3D *pos, Stuff::LinearMatrix4D
 									// from a common pool and save us SCADS of RAM!!
 									// Do this!!!!  I DID!
 									// -fs
-									eye->projectZ(listOfShadowVertices[index].position,listOfShadowTVertices[index].transformedPosition);
+									//Screen position: projected at draw time, in RenderShadows.
 									shadowsVisible[shadowNum] = true;
 	
 									DWORD fogRGB = 0xff000000;
@@ -3272,6 +3272,20 @@ long TG_Shape::RenderShadows (long startFace)
 	else
 	{
 		gos_SetRenderState( gos_State_Fog, 0);
+	}
+
+	//Project the shadow's world positions (set in MultiTransformShadows) for the
+	//camera drawing now, so each eye under -stereo gets its own.
+	for (long i=0;i<MAX_SHADOWS;i++)
+	{
+		if (shadowsVisible[i])
+		{
+			for (long j=0;j<numVertices;j++)
+			{
+				long index = j + (i * numVertices);
+				eye->projectZ(listOfShadowVertices[index].position,listOfShadowTVertices[index].transformedPosition);
+			}
+		}
 	}
 
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
