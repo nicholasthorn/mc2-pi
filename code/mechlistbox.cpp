@@ -160,6 +160,7 @@ MechListBoxItem::MechListBoxItem( LogisticsMech* pRefMech, long count )
 	}
 
 	animTime = 0.f;
+	mechCount = 0;	// the template item (no mech) returns below before setting it
 
 	pMech = pRefMech;
 	if ( !pMech )

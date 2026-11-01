@@ -138,6 +138,7 @@ Record::Record(
 	//------------------
 	//
 	DWORD index=m_ID % Database::e_DataBlockSize;
+    // cppcheck-suppress thisSubtraction ; byte offset of this record from the database base address, as intended
     size_t offset = (size_t)this - db_handle->m_baseAddress;
 	//DWORD offset = (DWORD)this - db_handle->m_baseAddress;
 	m_nextIDRecord = db->m_idOffsets[index];
@@ -306,6 +307,7 @@ void
 	//
 	Verify(!m_record);
 	Record *data =
+		// cppcheck-suppress leakReturnValNotUsed ; placement new into the new[] block; the result is stored in data
 		new(new BYTE[sizeof(*m_record) + m_length + name_length])
 			Record(this, record_hash, name_length);
 	Check_Object(data);
@@ -372,6 +374,7 @@ void
 	//------------------
 	//
 	Record *data =
+		// cppcheck-suppress leakReturnValNotUsed ; placement new into the new[] block; the result is stored in data
 		new(new BYTE[sizeof(*m_record) + m_length + name_length])
 			Record(this, record_hash, name_length);
 	Check_Object(data);

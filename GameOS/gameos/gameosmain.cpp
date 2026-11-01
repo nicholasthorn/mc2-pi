@@ -14,6 +14,7 @@
 #include "utils/timing.h"
 #include "utils/frame_stats.h"
 #include "utils/tga_writer.h"
+#include "utils/args_file.h"
 
 #include <signal.h>
 #include <string>
@@ -382,10 +383,56 @@ static void draw_screen( void )
 
 extern float frameRate;
 
+#ifdef __ANDROID__
+// Android has no shell, no working directory of ours and no HOME: run in the
+// app's files folder (where adb pushes the data), take the command line from
+// mc2args.txt there (format: utils/args_file.h) and log to mc2.log beside it.
+static void android_prepare(int& argc, char**& argv)
+{
+    static std::vector<std::string> args;   // argv points into these
+    static std::vector<char*> argvs;
+    const char* dir = SDL_AndroidGetExternalStoragePath();
+    if(dir && chdir(dir) == 0)
+        setenv("HOME", dir, 1);
+    if(freopen("mc2.log", "w", stdout)) {
+        dup2(fileno(stdout), fileno(stderr));
+        setvbuf(stdout, NULL, _IOLBF, 0);
+    }
+    printf("[ANDROID] files folder: %s\n", dir ? dir : SDL_GetError());
+
+    if(argc > 1)
+        return;
+    size_t len = 0;
+    char* text = (char*)SDL_LoadFile("mc2args.txt", &len);
+    if(!text)
+        return;
+    args = args_file::parse(std::string(text, len));
+    SDL_free(text);
+
+    // e.g. MC2_VSYNC=0 MC2_STOP_EXITS=1 for bench runs
+    for(const auto& setting : args_file::takeEnv(args)) {
+        setenv(setting.first.c_str(), setting.second.c_str(), 1);
+        printf("[ANDROID] %s=%s\n", setting.first.c_str(), setting.second.c_str());
+    }
+    args.insert(args.begin(), (argc > 0 && argv[0]) ? argv[0] : "mc2");
+    for(std::string& a : args)
+        argvs.push_back(&a[0]);
+    argvs.push_back(NULL);
+    argc = (int)args.size();
+    argv = argvs.data();
+    printf("[ANDROID] mc2args.txt:");
+    for(int i = 1; i < argc; ++i)
+        printf(" %s", argv[i]);
+    printf("\n");
+}
+#endif
 
 #ifndef DISABLE_GAMEOS_MAIN
 int main(int argc, char** argv)
 {
+#ifdef __ANDROID__
+    android_prepare(argc, argv);
+#endif
     //signal(SIGTRAP, SIG_IGN);
 
     // gather command line

@@ -319,7 +319,8 @@ say little about an XR2's A77-class cores at up to 2.8 GHz and its Adreno
   with the GLES renderer, running the mc2_19 bench scenario, mono and
   `-stereo`, and writing the frame CSV and `[BENCH]` lines for `adb pull`.
   It measures the real CPU and the real Adreno driver, and is the first part
-  of Phase 4.
+  of Phase 4. **Built (branch `quest-test`, `android/README.md`); to do: run
+  it on the headset** with `scripts/android/run_bench.sh --data <game data>`.
 - **A PC run on a real GPU**: takes llvmpipe's CPU cost out of
   `world_render` and gives clean per-stage CPU times to compare with the
   Quest's.

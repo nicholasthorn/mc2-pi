@@ -3187,16 +3187,11 @@ long MechWarrior::calcMovePath (long selectionIndex, unsigned long moveParams) {
 			startTime = GetCycles();
 			long thruArea[2] = {-1, -1};
 			long goalDoor = -1;
-			if (curGlobalStep == (numGlobalSteps - 2)) {
-				// Second from last, so the actual goal cell instead of the door
-				thruArea[0] = globalStep->thruArea;
-				goalDoor = globalStep->goalDoor;
-			}
-			else {
-				thruArea[0] = globalStep->thruArea;
-				thruArea[1] = moveOrders.globalPath[curGlobalStep+1].thruArea;
-				goalDoor = moveOrders.globalPath[curGlobalStep+1].goalDoor;
-			}
+			// (curGlobalStep < numGlobalSteps - 2 here; the second-from-last
+			// step is handled by the else-if branch below)
+			thruArea[0] = globalStep->thruArea;
+			thruArea[1] = moveOrders.globalPath[curGlobalStep+1].thruArea;
+			goalDoor = moveOrders.globalPath[curGlobalStep+1].goalDoor;
 			numSteps = myVehicle->calcMovePath(
                     moveOrders.path[pathNum], start, thruArea, goalDoor, moveOrders.globalGoalLocation, &goal, globalStep->goalCell, moveParams | MOVEPARAM_STATIONARY_MOVERS);
 #ifdef LAB_ONLY
@@ -8017,7 +8012,10 @@ long MechWarrior::calcTacOrder (long goalAction,
 			newTacOrder.attackParams.type = ATTACK_NONE;
 			newTacOrder.attackParams.method = ATTACKMETHOD_RAMMING;
 			newTacOrder.attackParams.pursue = true;
-			newTacOrder.moveParams.fromArea = globalPath[numSteps - 2].thruArea;
+			// A path shorter than two steps (or an error) has no "from" area:
+			// keep init()'s -1 rather than read before globalPath.
+			if (numSteps > 1)
+				newTacOrder.moveParams.fromArea = globalPath[numSteps - 2].thruArea;
 			newTacOrder.moveParams.wayPath.mode[0] = newestTacOrder.moveParams.wayPath.mode[0];
 			newTacOrder.moveParams.jump = newestTacOrder.moveParams.jump;
 			newTacOrder.moveParams.keepMoving = newestTacOrder.moveParams.keepMoving;

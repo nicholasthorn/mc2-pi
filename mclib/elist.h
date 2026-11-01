@@ -990,6 +990,7 @@ ELIST_TPL_DEF inline T& EList<ELIST_TPL_ARG>::Get(const typename EList<const ELI
 ELIST_TPL_DEF inline T& EList<ELIST_TPL_ARG>::Get(unsigned long Pos)
 {
 	gosASSERT(m_Count > Pos && m_Count);
+	// cppcheck-suppress returnTempReference ; Get() returns the list node's data; only the iterator is a temporary
 	return(Get(Iterator(Pos)));
 }
 /**************************************************************************************************

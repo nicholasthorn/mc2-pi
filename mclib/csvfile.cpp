@@ -669,7 +669,6 @@ long CSVFile::open (FilePtr _parent, unsigned long fileSize, long numChild)
 //---------------------------------------------------------------------------
 long CSVFile::create (char* fName)
 {
-	fName;
 	STOP(("CSV file write is not supported %s",fName));
 	return(-1);
 }
