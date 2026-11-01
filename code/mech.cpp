@@ -6468,13 +6468,13 @@ void BattleMech::render (void)
 				if ( appearance->canBeSeen() )
 				{
 					if (tonnage < 40)
-						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getScreenPos().y+20.0f, IDS_SENSOR_LIGHT_MECH,SD_RED,false);
+						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f, IDS_SENSOR_LIGHT_MECH,SD_RED,false);
 					else if (tonnage < 65)
-						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getScreenPos().y+20.0f, IDS_SENSOR_MEDIUM_MECH,SD_RED,false);
+						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f, IDS_SENSOR_MEDIUM_MECH,SD_RED,false);
 					else if (tonnage < 80)
-						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getScreenPos().y+20.0f, IDS_SENSOR_HEAVY_MECH,SD_RED,false);
+						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f, IDS_SENSOR_HEAVY_MECH,SD_RED,false);
 					else
-						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getScreenPos().y+20.0f, IDS_SENSOR_ASSAULT_MECH,SD_RED,false);
+						drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f, IDS_SENSOR_ASSAULT_MECH,SD_RED,false);
 				}
 			}
 			else if (cStat == CONTACT_SENSOR_QUALITY_4)
@@ -6484,7 +6484,7 @@ void BattleMech::render (void)
 				appearance->render();
 	
 				if ( appearance->canBeSeen() )
-					drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getScreenPos().y+20.0f,descID,SD_RED,false);
+					drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f,descID,SD_RED,false);
 			}
 		}
 		else
