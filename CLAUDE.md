@@ -144,11 +144,13 @@ Details in `.claude/rules/agent-workflow.md`. In short:
   own build directories.
 - **Every commit:** `scripts/check.sh --build-dir <dir>`: incremental build,
   unit tests, shader validation, cppcheck on changed files, diff hygiene.
-- **Every 3 to 5 commits:** `/simplify` and `/code-review`, then push to a
-  draft PR (opened after the first batch). CI runs the full build matrix and
-  the five-mission smoke; local `check.sh --level batch` only for crash
-  debugging or GLES-only changes.
-- **Before marking the PR ready:** `/code-review high` on the branch; CI green.
+- **Every 3 to 5 commits:** push to a draft PR (opened after the first
+  batch), then run `/simplify` and `/code-review` **while** CI runs the full
+  build matrix and the five-mission smoke; never wait for green to start
+  review. Local `check.sh --level batch` only for crash debugging or
+  GLES-only changes.
+- **The PR:** `/code-review high` on the branch alongside CI on the last
+  push; mark it ready when both are done.
 
 Once coverage is measured, the threshold is a **ratchet**:
 
