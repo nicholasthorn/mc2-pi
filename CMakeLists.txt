@@ -130,6 +130,25 @@ else()
     set(MC2_GL_LIBS GLEW::GLEW OpenGL::GL)
 endif()
 
+# MC2_OPENXR: present through OpenXR (VR plan, Phase 2). Android only so far,
+# with the Khronos loader that scripts/android/fetch_deps.sh unpacks; the
+# build passes OPENXR_PREFAB (its prefab/modules folder)
+if(ANDROID)
+    option(MC2_OPENXR "Present through OpenXR (Meta Quest)" ON)
+endif()
+if(MC2_OPENXR)
+    if(NOT OPENXR_PREFAB)
+        message(FATAL_ERROR "MC2_OPENXR needs OPENXR_PREFAB (scripts/android/build.sh sets it)")
+    endif()
+    add_library(openxr_loader SHARED IMPORTED)
+    set_target_properties(openxr_loader PROPERTIES
+        IMPORTED_LOCATION "${OPENXR_PREFAB}/openxr_loader/libs/android.arm64-v8a/libopenxr_loader.so")
+    set(OPENXR_INCLUDE_DIR "${OPENXR_PREFAB}/headers/include")
+    add_definitions(-DMC2_OPENXR)
+    list(APPEND MC2_GL_LIBS openxr_loader)
+    message("Presenting through OpenXR")
+endif()
+
 message("Found SDL2 package ${SDL2_LIBRARIES}" )
 message("SDL2 prefix: ${SDL2_PREFIX}")
 message("OPENGL library found in ${OPENGL}")

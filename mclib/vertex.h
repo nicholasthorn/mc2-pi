@@ -95,7 +95,7 @@ class Vertex
 		float				wAlpha;				//Used to environment Map Sky onto water.
 		float				wElevation;			//Height the water face was projected at (-stereo re-projects it per eye)
 
-		DWORD				calcThisFrame;		//Calced this vertex this frame? 1 light/fog, 2 water, 4 land projected
+		DWORD				calcThisFrame;		//Calced this vertex this frame? 1 light/fog, 2 water, 4 land projected, 8 the game camera sees it
 
 		float				hazeFactor;			//Used to distance fog the terrain.
 		

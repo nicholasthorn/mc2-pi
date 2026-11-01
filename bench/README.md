@@ -24,6 +24,13 @@ machine should match on every frame. It is filled for plain `-bench` runs
 an `-autoexit` run the same fixed step and seed without the CSV
 (`scripts/smoke.sh --deterministic`).
 
+In VR (the Quest build with an OpenXR session) the game steps at 30 Hz
+while the headset draws every frame (`MC2_XR_LOGIC_HZ`), and the CSV, the
+`[BENCH]` lines and `-autoexit` count headset frames: that is what the
+72 Hz budget is about. Rows between game steps repeat the last `state` and
+show a near-zero `logic_ms`, so a VR run does not line up row by row with a
+flat run of the same scenario.
+
 ## Format
 
 FIT, read with the engine's own parser. Distances are world units, angles

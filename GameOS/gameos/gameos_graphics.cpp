@@ -16,12 +16,14 @@
 
 #include "utils/shader_builder.h"
 #include "utils/gl_utils.h"
+#include "utils/logging.h"
 #include "utils/Image.h"
 #include "utils/vec.h"
 #include "utils/stereo.h"
 #include "utils/string_utils.h"
 #include "utils/timing.h"
 #include "gos_render.h"
+#include "gos_xr.h"
 
 graphics::RenderWindowHandle g_win_h;
 
@@ -919,7 +921,7 @@ class gosTexture {
         // changes. The texture must be bound.
         void applySamplerParams(TexAddressMode address_mode, TexFilterMode filter) {
             if(sampler_address_ != address_mode || sampler_filter_ != filter) {
-                setSamplerParams(tex_.type_, address_mode, filter);
+                setSamplerParams(tex_, address_mode, filter);
                 sampler_address_ = address_mode;
                 sampler_filter_ = filter;
             }
@@ -1520,6 +1522,9 @@ void gosRenderer::init() {
         {
             gosRenderMaterial* pmat = gosRenderMaterial::load(shader_list[sh_idx], mvar);
             gosASSERT(pmat);
+            // gosASSERT and SPEW are compiled out of release builds: say it
+            if(!pmat)
+                log_error("material %s (variant %u) failed to load\n", shader_list[sh_idx], combinations[i]);
             materialList_.push_back(pmat);
             materialDB_[ shader_list[sh_idx] ].insert(std::make_pair(combinations[i], pmat));
 
@@ -2914,9 +2919,34 @@ vec4 __stdcall gos_GetRenderViewport() {
 // whole window every frame
 void __stdcall gos_SetStereoEye(int eye)
 {
+    // VR: the eye's own image (its size, its viewport)
+    if(gos_xr::bindEye(eye))
+        return;
     int vp[4];
     stereo::eyeViewport(eye, Environment.drawableWidth, Environment.drawableHeight, vp);
     glViewport(vp[0], vp[1], vp[2], vp[3]);
+}
+
+int __stdcall gos_GetVREyeViews(gosVREyeView views[2])
+{
+    return gos_xr::eyeViews(views);
+}
+
+bool __stdcall gos_IsVR()
+{
+    return gos_xr::active();
+}
+
+bool __stdcall gos_GetVRKeepGamePitch()
+{
+    static const bool keep = getenv("MC2_VR_GAME_PITCH") && getenv("MC2_VR_GAME_PITCH")[0] == '1';
+    return keep;
+}
+
+float __stdcall gos_GetVRWorldScale()
+{
+    static const float scale = getenv("MC2_VR_SCALE") ? (float)atof(getenv("MC2_VR_SCALE")) : 1.0f;
+    return scale > 0.0f ? scale : 1.0f;
 }
 
 const mat4& __stdcall gos_GetProjection() {

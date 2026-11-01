@@ -18,6 +18,7 @@ BAT=""; [ $WIN = 1 ] && BAT=".bat"   # d8 and apksigner are .bat scripts on Wind
 # the Windows build's versions (BUILD-WIN.md)
 SDL2_DIR=SDL2-2.30.11
 SDL2_MIXER_DIR=SDL2_mixer-2.8.0
+OPENXR_DIR=openxr_loader-1.1.65   # the Khronos loader AAR, unpacked
 
 PKG=com.nicholasthorn.mc2
 APK="$ROOT/android/mc2-quest-test.apk"

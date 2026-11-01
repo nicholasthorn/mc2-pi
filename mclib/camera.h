@@ -33,6 +33,8 @@
 
 #include<stuff/stuff.hpp>
 
+struct gosVREyeView;
+
 inline signed short int float2short(float _in)
 {
 	#if 1
@@ -235,6 +237,7 @@ class Camera
 		float 					goalPositionZ;
 		float					eyeOffset;				//-stereo: this eye's sideways offset, applied last in setCameraOrigin
 		float					eyeParallax;			//-stereo: overlay x shift per unit of screen w for this eye (renderWorld)
+		const gosVREyeView*		vrEye;					//VR: the head-tracked eye being drawn (renderWorld), or NULL
 
 		float					fogStart;				//Altitude at which fog starts
 		float					fogFull;				//Altitude at which fog is Full;
@@ -306,6 +309,7 @@ class Camera
 
 			cameraShiftZ = goalPositionZ = 0.0f;
 			eyeOffset = eyeParallax = 0.0f;
+			vrEye = NULL;
 	
 			lightDirection.Zero();
 			
@@ -507,6 +511,14 @@ class Camera
 		float overlayShiftX (float screenW)
 		{
 			return (eyeParallax != 0.0f) ? eyeParallax * screenW : 0.0f;
+		}
+
+		//VR: overlays are drawn from the game camera's screen positions, which a
+		//turned head does not match, so the head-tracked eyes leave them out
+		//(the game frame on the tablet has them)
+		bool hidesOverlays (void)
+		{
+			return vrEye != NULL;
 		}
 
 		virtual long activate (void);
