@@ -2180,10 +2180,13 @@ int calcTextHeight(const char* text, const int count, const gosFont* font, int r
 void addCharacter(gosMesh* text_, const float u, const float v, const float u2, const float v2, const float x, const float y, const float x2, const float y2) {
 
     gos_VERTEX tr, tl, br, bl;
+    // every field set: these are copied whole into the vertex buffer (gos_text.vert
+    // ignores rhw, but it was left uninitialised)
 
     tl.x = x;
     tl.y = y;
     tl.z = 0;
+    tl.rhw = 1.0f;
     tl.u = u;
     tl.v = v;
     tl.argb = 0xffffffff;
@@ -2192,6 +2195,7 @@ void addCharacter(gosMesh* text_, const float u, const float v, const float u2, 
     tr.x = x2;
     tr.y = y;
     tr.z = 0;
+    tr.rhw = 1.0f;
     tr.u = u2;
     tr.v = v;
     tr.argb = 0xffffffff;
@@ -2200,6 +2204,7 @@ void addCharacter(gosMesh* text_, const float u, const float v, const float u2, 
     bl.x = x;
     bl.y = y2;
     bl.z = 0;
+    bl.rhw = 1.0f;
     bl.u = u;
     bl.v = v2;
     bl.argb = 0xffffffff;
@@ -2208,6 +2213,7 @@ void addCharacter(gosMesh* text_, const float u, const float v, const float u2, 
     br.x = x2;
     br.y = y2;
     br.z = 0;
+    br.rhw = 1.0f;
     br.u = u2;
     br.v = v2;
     br.argb = 0xffffffff;
