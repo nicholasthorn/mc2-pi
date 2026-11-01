@@ -75,6 +75,7 @@ set(SOURCES ${SOURCES}
     gvactor.cpp
     mech3d.cpp
     soundsys.cpp
+    waveparse.cpp
     move.cpp
     echarstring.cpp
     estring.cpp
