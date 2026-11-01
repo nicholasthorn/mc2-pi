@@ -280,9 +280,14 @@ static void set_mouse_capture(bool enabled)
     SDL_ShowCursor(enabled ? SDL_DISABLE : SDL_ENABLE);
 }
 
-static void process_events( void ) {
+// sample: the game steps this frame, so read the keys and buttons now. In VR
+// it steps at 30 Hz but frames come at 72: sampling on frames it skips would
+// turn a press into "held" before the game saw it, and the click is lost.
+// reset: the last sample was used, start the mouse motion and wheel afresh.
+static void process_events( bool sample, bool reset ) {
 
-    input::beginUpdateMouseState();
+    if(reset)
+        input::beginUpdateMouseState();
 
     SDL_Event event;
     while( SDL_PollEvent( &event ) ) {
@@ -358,8 +363,10 @@ static void process_events( void ) {
         return;
     }
 
-    input::updateMouseState();
-    input::updateKeyboardState();
+    if(sample) {
+        input::updateMouseState();
+        input::updateKeyboardState();
+    }
 }
 
 extern bool g_disable_quads;
@@ -542,14 +549,12 @@ int main(int argc, char** argv)
     double logic_wait = 0.0;    // seconds since the last game step
     double last_dt = 0.0;
     bool stepped = false;
+    bool input_used = true;     // the last input sample went to a game step
 
     while( !g_exit ) {
 
 		uint64_t start_tick = timing::gettickcount();
 
-        process_events();
-
-		uint64_t logic_tick = timing::gettickcount();
         const double logic_step = gos_xr::logicStep();
         logic_wait += last_dt;
         bool run_logic = true;
@@ -560,6 +565,11 @@ int main(int argc, char** argv)
             if(run_logic)
                 frameRate = (float)(1.0 / logic_wait);
         }
+
+        process_events(run_logic, input_used);
+        input_used = run_logic;
+
+		uint64_t logic_tick = timing::gettickcount();
         if(run_logic) {
             logic_wait = 0.0;
             stepped = true;
