@@ -284,6 +284,7 @@ void MechLabScreen::begin()
 		if ( maxCount )
 		{
 			maxCount ++;
+			// cppcheck-suppress allocaCalled ; one pointer per variant of one chassis (few), not in a loop
 			pVar = (LogisticsVariant**)_alloca( maxCount* sizeof (LogisticsVariant*) );
 			LogisticsData::instance->getChassisVariants( pVariant->getChassis(),pVar, maxCount );
 

@@ -148,6 +148,7 @@ void SalvageMechScreen::init(FitIniFile* file)
 
 	salvageListBox.init( left, top, right - left, bottom - top );
 
+	// cppcheck-suppress allocaCalled ; one pointer per mission mech (bounded by the object manager's maxMechs), not in a loop
 	BattleMech** pSortedMechs = (BattleMech**)_alloca( ObjectManager->numMechs * sizeof( BattleMech* ) );
 	int count = 0;
 	for (int i = 0; i < ObjectManager->numMechs; i++ )
