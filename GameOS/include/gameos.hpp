@@ -1993,6 +1993,28 @@ float __stdcall gos_GetBenchFOV();
 //
 float __stdcall gos_GetStereoSeparation();
 void __stdcall gos_SetStereoEye( int eye );
+//
+// VR (OpenXR, the Meta Quest build; VR plan, Phase 2). gos_GetVREyeViews()
+// fills in the head-tracked eyes the headset wants drawn this frame and
+// returns how many (2), or 0 when not in VR or when nothing is to be drawn.
+// Poses are in metres in OpenXR's LOCAL space (x right, y up, z back, the
+// origin where the head started); fov is angleLeft, angleRight, angleUp,
+// angleDown in radians. In VR, gos_SetStereoEye(0 or 1) makes that eye's
+// image the render target (cleared), and -1 the window again.
+// gos_GetVRWorldScale() is how many world metres one real metre is
+// (MC2_VR_SCALE, default 1). gos_GetVRKeepGamePitch() is true when the eyes
+// keep the game camera's pitch (MC2_VR_GAME_PITCH=1); by default the horizon
+// stays level with the real one.
+//
+struct gosVREyeView
+{
+	float position[3];
+	float orientation[4];	// x, y, z, w
+	float fov[4];
+};
+int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
+float __stdcall gos_GetVRWorldScale();
+bool __stdcall gos_GetVRKeepGamePitch();
 
 
 

@@ -12,6 +12,10 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.gamepad" android:required="false" />
     <uses-feature android:name="android.hardware.vr.headtracking" android:version="1" android:required="true" />
+    <!-- hands are enough to start it: without this the headset refuses to
+         launch unless a controller is awake -->
+    <uses-feature android:name="oculus.software.handtracking" android:required="false" />
+    <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
 
     <!-- the Khronos OpenXR loader (its AAR's manifest, merged by hand: the
          APK is linked without Gradle) -->

@@ -68,11 +68,12 @@ void FloatHelp::renderAll (void)
 }
 
 //-----------------------------------------------------------------------------------------
-void FloatHelp::renderAndResetFrom (DWORD first)
+void FloatHelp::renderAndResetFrom (DWORD first, bool draw)
 {
 	for (DWORD i=first;i<currentFloatHelp;i++)
 	{
-		floatHelps[i].render();
+		if (draw)
+			floatHelps[i].render();
 		floatHelps[i].reset();
 	}
 	currentFloatHelp = first;

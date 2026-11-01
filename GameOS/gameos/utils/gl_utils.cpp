@@ -155,6 +155,28 @@ GLint getTextureFilterMode(TexFilterMode filter_mode) {
     return textureFilterMode[filter_mode];
 }
 
+static bool s_generate_mipmaps = false;
+
+void setGenerateMipmaps(bool on)
+{
+    s_generate_mipmaps = on;
+}
+
+// formats ES 3 can generate mipmaps for (colour-renderable and filterable)
+static bool canMipmap(TexFormat fmt)
+{
+    return fmt == TF_R8 || fmt == TF_RGB8 || fmt == TF_RGBA8;
+}
+
+// a texture just created (bound): mipmaps if they are on and its format can
+static void addMipmaps(Texture& t)
+{
+    if(s_generate_mipmaps && canMipmap(t.fmt_)) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+        t.mipmapped = true;
+    }
+}
+
 void destroyTexture(Texture* tex)
 {
     assert(tex);
@@ -187,6 +209,7 @@ Texture create2DTexture(int w, int h, TexFormat fmt, const uint8_t* texdata)
 	t.fmt_ = fmt;
     t.type_ = TT_2D;
     t.format = (GLenum)-1;
+    addMipmaps(t);
 
 	return t;
 }
@@ -212,6 +235,7 @@ Texture createDynamicTexture(int w, int h, TexFormat fmt)
 	t.fmt_ = fmt;
     t.type_ = TT_2D;
     t.format = (GLenum)-1;
+    addMipmaps(t);
 
 	return t;
 }
@@ -290,7 +314,8 @@ void updateTexture(const Texture& t, void* pdata, TexFormat pdata_format/*= TF_C
         if(!repacked.empty())
             glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 #endif
-		//glGenerateMipmap(GL_TEXTURE_2D);
+		if(t.mipmapped)
+		    glGenerateMipmap(GL_TEXTURE_2D);
     } else {
         // deprecated
 	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t.w, t.h, 0, t.format, GL_UNSIGNED_BYTE, pdata);
@@ -313,6 +338,19 @@ void setSamplerParams(TexType tt, TexAddressMode address_mode, TexFilterMode fil
 	glTexParameteri(tex_type, GL_TEXTURE_MAG_FILTER, tfm);
 	glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, tfm);
 
+}
+
+void setSamplerParams(const Texture& t, TexAddressMode address_mode, TexFilterMode filter) {
+
+    setSamplerParams(t.type_, address_mode, filter);
+    if(t.mipmapped && filter == TFM_LINEAR) {
+        GLuint tex_type = getTexType(t.type_);
+        glTexParameteri(tex_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
+        // terrain and units are seen at grazing angles in the headset
+        glTexParameterf(tex_type, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
+#endif
+    }
 }
 
 void getTextureData(const Texture& t, int lod, unsigned char* poutdata, TexFormat format/*= TF_COUNT*/) {

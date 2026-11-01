@@ -381,6 +381,8 @@ static void draw_screen( void )
     glDepthMask(GL_TRUE);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+    // VR: wait for the headset's frame and find the eyes before drawing
+    gos_xr::beginFrame();
     gos_RendererBeginFrame();
     Environment.UpdateRenderers();
     gos_RendererEndFrame();

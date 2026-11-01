@@ -95,6 +95,10 @@ bool silentMode = false;		//Used for automated builds to keep errors from poppin
 // for now everything seems to be correct thoug, so could enable it by default
 // look into gos_tex_vertex_lighted.vert for where offset is defined
 bool bShadersDrawPathEnabled = false;
+// with it: shapes with alpha textures go that way too, alpha-tested (VR:
+// the GPU path transforms at draw time, so every head-tracked eye sees them
+// from its own pose; Camera::renderWorld turns both on)
+bool bShadersDrawAlphaShapes = false;
 
 //-------------------------------------------------------------------------------
 // Parse Functions
@@ -1704,7 +1708,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 	lastTurnTransformed = turn;
 
 	bool bDrawnByShader = bShadersDrawPathEnabled && !isSpotlight && !isWindow && 
-        !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff);
+        (bShadersDrawAlphaShapes || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
 
 	for (long j=0;j<numVertices;j++)
 	{
@@ -2571,7 +2575,13 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
 
 	bool bDrawnByShader = bShadersDrawPathEnabled && !isSpotlight && !isWindow && 
-        !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff);
+        (bShadersDrawAlphaShapes || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
+
+	//VR: this path's vertices were projected for the game camera during the
+	//update, which a head-tracked eye does not match: leave them out of the
+	//eyes (spotlights, windows, fading shapes; the tablet's frame has them)
+	if (!bDrawnByShader && eye && eye->hidesOverlays())
+		return;
 
 	gos_SetRenderState( gos_State_AlphaTest, theShape->alphaTestOn);
 	gos_SetRenderState( gos_State_Filter, theShape->filterOn ? gos_FilterBiLinear : gos_FilterNone);
@@ -2730,7 +2740,8 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-        if(theShape->alphaTestOn)
+        if(theShape->alphaTestOn ||
+			(bShadersDrawAlphaShapes && theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha))
 		{
 			addFlags |= MC2_ALPHATEST;
 		}

@@ -117,6 +117,10 @@ void Appearance::drawPilotName(char *text, unsigned long color )
 //---------------------------------------------------------------------------
 void Appearance::drawSelectBox (DWORD color)
 {
+	//VR: not in the head-tracked eyes (Camera::hidesOverlays)
+	if (eye && eye->hidesOverlays())
+		return;
+
 	Stuff::Vector4D				ul, br, pos1, pos2;
 	float						offsets;
 
@@ -261,6 +265,10 @@ void Appearance::drawSelectBox (DWORD color)
 //---------------------------------------------------------------------------
 void Appearance::drawSelectBrackets (DWORD color)
 {
+	//VR: not in the head-tracked eyes (Camera::hidesOverlays)
+	if (eye && eye->hidesOverlays())
+		return;
+
 	float					offsets = 5.0 * eye->getScaleFactor();
 	Stuff::Vector4D			pos1;
 	Stuff::Vector4D			pos2;
@@ -447,6 +455,10 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 						  unsigned long bmpHeight, unsigned long color, 
 						  unsigned long where )
 {
+	//VR: not in the head-tracked eyes (Camera::hidesOverlays)
+	if (eye && eye->hidesOverlays())
+		return;
+
 	// ignoring where for now
 	float			offset = 8.0 * eye->getScaleFactor();
 	float			trueHeight = HEIGHT * eye->getScaleFactor();
@@ -483,6 +495,10 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 //---------------------------------------------------------------------------
 void Appearance::drawBars (void)
 {
+	//VR: not in the head-tracked eyes (Camera::hidesOverlays)
+	if (eye && eye->hidesOverlays())
+		return;
+
 	//-----------------------------------------
 	// Change to GOS DrawQuad code for HWare!!
 	float			offset = 8.0 * eye->getScaleFactor();		//Remember, EVEN numbers!!!
