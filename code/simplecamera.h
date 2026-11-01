@@ -25,7 +25,7 @@ public:
 	void setVehicle( const char* vehicle, long base = 0xffff7e00, long highlight = 0xffff7e00, long h2 = 0xffbcbcbc );
 	ObjectAppearance* getObjectAppearance() const { return pObject; }
 
-	void init( float left, float right, float top, float bottom );
+	void init( float left, float top, float right, float bottom );
 
 	void setObject( const char* fileName, long type, long base = 0xffff7e00, long highlight = 0xffff7e00, long h2 = 0xffbcbcbc );
 
