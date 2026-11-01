@@ -656,14 +656,15 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   nothing (unless a drag started on the quad).
 - **Sticks** (`vr_controls::stickActions`, unit-tested): the left stick pans
   (arrow keys), the right stick turns (shift + left / right; turning stops
-  the panning, which would otherwise turn too) and zooms (keypad + / -),
+  the panning, which would otherwise turn too, and the zoom, whose keys do
+  nothing with shift down) and zooms (keypad + / -),
   with hysteresis (on at 0.5, off below 0.3).
 - **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
   button is Escape (pause menu).
 - **The HUD can be moved:** A puts the quad in front of where the head is
   and faces (keeping its distance and angle). Holding A, the left stick
-  moves it nearer or further, the right stick up/down lowers or raises it,
-  left/right makes it narrower or wider; on letting go the log prints the
+  up moves it further (down: nearer), the right stick up raises it (down:
+  lowers), right makes it wider (left: narrower); on letting go the log prints the
   `MC2_XR_HUD=distance,degrees,width` line to keep in `mc2args.txt`, which
   sets where it starts (default `1.5,30,2`).
 
@@ -681,6 +682,10 @@ Not done in this slice:
   shows where the pointer is.
 - Analogue stick speed (the keys give the game's fixed scroll and zoom
   rates).
+- To try in the headset: A takes the head's heading, but the world stays
+  where it is, so pressing A while looking sideways moves the HUD off the
+  battle. If that annoys, keep the HUD's heading at the world's forward and
+  let A change only height and distance.
 - Not yet run in the headset (see `HARDWARE-TESTS.md`).
 
 ## Open questions

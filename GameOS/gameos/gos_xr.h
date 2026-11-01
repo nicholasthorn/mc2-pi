@@ -19,8 +19,9 @@
 // the left button, the grip the right. Left stick: pan (arrow keys); right
 // stick: turn (shift + left / right) and zoom (keypad + / -). B holds Ctrl,
 // X Shift, Y Alt; the left menu button is Escape. A puts the quad in front
-// of the head; holding A, the left stick moves it nearer or further and the
-// right stick lower or higher (up/down) and narrower or wider (left/right),
+// of the head; holding A, the left stick moves it further (up) or nearer
+// (down), the right stick raises it (up) or lowers it (down) and makes it
+// wider (right) or narrower (left),
 // and letting go logs the MC2_XR_HUD value to keep. MC2_XR_HUD=distance,
 // degrees,width sets where it starts (default 1.5 m, 30 degrees below the
 // horizon, 2 m wide; with MC2_XR_EYES=0, 1.5 m ahead and 2 m wide).

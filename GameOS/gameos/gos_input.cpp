@@ -10,6 +10,7 @@ static input::KeyboardInfo g_keyboard_info;
 // what is held now, and what was pressed since the last sample
 static struct {
     bool active;
+    bool was_active;    // at the last sample
     float x, y;
     uint32_t held, latched;
 } g_virtual_mouse;
@@ -115,11 +116,15 @@ void updateMouseState() {
     const uint32_t virtual_buttons = g_virtual_mouse.held | g_virtual_mouse.latched;
     g_virtual_mouse.latched = 0;
     if(g_virtual_mouse.active) {
-        mi->rel_x_ += g_virtual_mouse.x - mi->x_;
-        mi->rel_y_ += g_virtual_mouse.y - mi->y_;
+        // no jump from wherever the cursor was when the pointer comes back
+        if(g_virtual_mouse.was_active) {
+            mi->rel_x_ += g_virtual_mouse.x - mi->x_;
+            mi->rel_y_ += g_virtual_mouse.y - mi->y_;
+        }
         mi->x_ = g_virtual_mouse.x;
         mi->y_ = g_virtual_mouse.y;
     }
+    g_virtual_mouse.was_active = g_virtual_mouse.active;
     int buttons[] = {SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2 };
 
     for(unsigned int b=0; b < sizeof(buttons)/sizeof(buttons[0]); ++b) {

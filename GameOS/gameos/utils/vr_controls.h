@@ -34,8 +34,9 @@ float yawOf(const float orientation[4]);
 // The camera moves the thumbsticks ask for. The left stick pans, the right
 // stick turns (x) and zooms (y, up is in). A direction starts at a
 // deflection of 0.5 and stops below 0.3, given the previous result, so it
-// does not flicker at the threshold. Turning stops the panning: the game
-// turns on shift + arrow, so an arrow held for panning would turn as well.
+// does not flicker at the threshold. Turning stops the panning and the
+// zoom: the game turns on shift + arrow, so an arrow held for panning would
+// turn as well, and its zoom keys do nothing while shift is down.
 enum : uint32_t {
     PAN_UP = 1u << 0,
     PAN_DOWN = 1u << 1,

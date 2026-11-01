@@ -90,16 +90,12 @@ uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint3
     uint32_t actions = 0;
     const int turn = axisDirection(rightStick[0], (previous & ROTATE_RIGHT) != 0, (previous & ROTATE_LEFT) != 0);
     const int zoom = axisDirection(rightStick[1], (previous & ZOOM_IN) != 0, (previous & ZOOM_OUT) != 0);
-    if(turn > 0)
-        actions |= ROTATE_RIGHT;
-    else if(turn < 0)
-        actions |= ROTATE_LEFT;
+    if(turn != 0)
+        return turn > 0 ? ROTATE_RIGHT : ROTATE_LEFT;
     if(zoom > 0)
         actions |= ZOOM_IN;
     else if(zoom < 0)
         actions |= ZOOM_OUT;
-    if(turn != 0)
-        return actions;
 
     const int side = axisDirection(leftStick[0], (previous & PAN_RIGHT) != 0, (previous & PAN_LEFT) != 0);
     const int ahead = axisDirection(leftStick[1], (previous & PAN_UP) != 0, (previous & PAN_DOWN) != 0);

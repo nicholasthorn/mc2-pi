@@ -178,10 +178,12 @@ TEST_CASE("sticks: hysteresis keeps a direction on until the stick is mostly bac
 	CHECK(vr_controls::stickActions(low, centre, vr_controls::PAN_RIGHT) == 0u);
 }
 
-TEST_CASE("sticks: turning wins over panning (turning holds shift, which turns the pan keys too)") {
+TEST_CASE("sticks: turning wins over panning and zoom (turning holds shift, which changes those keys)") {
 	const float up[2] = {0.0f, 1.0f};
 	const float right[2] = {1.0f, 0.0f};
 	CHECK(vr_controls::stickActions(up, right, 0) == vr_controls::ROTATE_RIGHT);
+	const float upRight[2] = {0.8f, 0.8f};
+	CHECK(vr_controls::stickActions(up, upRight, 0) == vr_controls::ROTATE_RIGHT);
 }
 
 }

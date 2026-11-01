@@ -114,6 +114,8 @@ struct State {
     bool buttonDown[BUTTON_COUNT] = {};
     uint32_t stickActions = 0;
     bool pointerHeld = false;       // a button went down with the ray on the quad
+    uint32_t heldButtons = 0;       // the pointing hand's, as mouse button bits
+    uint32_t ignoredButtons = 0;    // pressed off the quad, not yet let go
     float pointerX = 0.0f, pointerY = 0.0f;
 };
 State g;
@@ -447,6 +449,7 @@ void releaseInput()
     input::clearVirtualPointer();
     g.stickActions = 0;
     g.pointerHeld = false;
+    g.heldButtons = g.ignoredButtons = 0;
     for(int hand = 0; hand < 2; ++hand)
         g.selectDown[hand] = g.contextDown[hand] = false;
     memset(g.buttonDown, 0, sizeof(g.buttonDown));
@@ -925,10 +928,19 @@ void pollInput()
 
     // the pointer: where the pointing hand's ray meets the quad
     const int hand = g.pointingHand;
-    const uint32_t mouseButtons = (g.selectDown[hand] ? 1u : 0u) | (g.contextDown[hand] ? 4u : 0u);
+    const uint32_t held = (g.selectDown[hand] ? 1u : 0u) | (g.contextDown[hand] ? 4u : 0u);
     vr_controls::Pose aim;
     float u = 0.0f, v = 0.0f;
-    if(locate(g.aimSpaces[hand], aim) && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v)) {
+    const bool onQuad = locate(g.aimSpaces[hand], aim)
+            && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v);
+    // a button pressed off the quad stays ignored until it is let go: else
+    // sweeping the ray onto the panel with the trigger held would click there
+    if(!onQuad && !g.pointerHeld)
+        g.ignoredButtons |= held & ~g.heldButtons;
+    g.ignoredButtons &= held;
+    g.heldButtons = held;
+    const uint32_t mouseButtons = held & ~g.ignoredButtons;
+    if(onQuad) {
         const float w = (float)Environment.drawableWidth, h = (float)Environment.drawableHeight;
         g.pointerX = std::min(w - kPointerMargin, std::max(kPointerMargin, u * w));
         g.pointerY = std::min(h - kPointerMargin, std::max(kPointerMargin, v * h));
