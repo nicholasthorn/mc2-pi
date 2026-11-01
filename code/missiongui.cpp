@@ -1746,7 +1746,7 @@ int MissionInterfaceManager::update( bool leftClickedClick, bool rightClickedCli
 	}
 
 	mouseX = MouseX;
-	mouseY = mouseY;
+	mouseY = MouseY;
 	setTarget( pTarget );
 
 
