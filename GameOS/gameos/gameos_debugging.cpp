@@ -68,16 +68,23 @@ static void logmsgf(char* out, const char* header, const char* fmt, ...)
     va_end(ap);
 }
 
-// The message box a player sees before the game ends. Not for automated runs
-// (smoke, bench, UI walks): under Xvfb nobody would close it. Fails quietly
-// where SDL has no way to show one (e.g. KMSDRM with no window manager).
-// Parented to the game window, with the mouse let go as set_mouse_capture()
-// does (gameosmain.cpp), so a fullscreen window cannot hide it. Plain SDL
-// calls: the data tools link this file without the window or GL code.
+// The message box a player sees before the game ends. Only once the game has
+// started SDL video (SDL_VideoInit, which SDL_WasInit does not report): the
+// command-line tools (makefst, pak, ...) link this file too and must not block
+// a build script on a box. Not for automated runs (smoke, bench, UI walks):
+// under Xvfb nobody would close it. Fails quietly where SDL has no way to
+// show one (e.g. KMSDRM with no window manager). Parented to the game window,
+// with the mouse let go as set_mouse_capture() does (gameosmain.cpp), so a
+// fullscreen window cannot hide it. Shows the message without the log's
+// "STOP: " prefix.
 static void show_error_box(const char* text)
 {
-    if (gos_IsAutomatedRun())
+    if (gos_IsAutomatedRun() || !SDL_GetCurrentVideoDriver())
         return;
+    if (strncmp(text, "STOP: ", 6) == 0)
+        text += 6;
+    while (*text == ' ')
+        text++;
     SDL_Window* window = SDL_GL_GetCurrentWindow();
     if (window) {
         SDL_SetWindowGrab(window, SDL_FALSE);
@@ -89,15 +96,15 @@ static void show_error_box(const char* text)
 
 // _Exit, not exit: static destructors over a broken engine can crash and hide
 // the message. SDL_Quit first, after the message is out, so a fullscreen or
-// KMSDRM (Pi console) display mode is put back.
+// KMSDRM (Pi console) display mode is put back; it also tears down video
+// started with SDL_VideoInit, and does nothing when SDL never started.
 [[noreturn]] static void exit_after_error(const char* text, const char* reason)
 {
     fprintf(stderr, "STOP: exiting (%s)\n", reason);
     fflush(stdout);
     fflush(stderr);
     show_error_box(text);
-    if (SDL_WasInit(0))
-        SDL_Quit();
+    SDL_Quit();
     _Exit(EXIT_FAILURE);
 }
 
@@ -145,6 +152,10 @@ void __cdecl gos_FatalExit( const char* message )
         logmsgf(text, "STOP", "%s", message);
     else
         snprintf(text, sizeof(text), "A fatal error ended the game.");
+    // As the STOP macro does: a debug build stops in the debugger here, with
+    // the stack of the Fatal() still there.
+    if (enter_debugger)
+        ENTER_DEBUGGER
     exit_after_error(text, "fatal error");
 }
 
