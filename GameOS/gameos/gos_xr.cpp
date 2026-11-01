@@ -803,10 +803,22 @@ int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
     return 2;
 }
 
+// a GL error after one of the probe's calls, logged the first few times
+void probeError(const char* what)
+{
+    static int logged = 0;
+    const GLenum error = glGetError();
+    if(error != GL_NO_ERROR && logged < 8) {
+        ++logged;
+        printf("[XR] alpha probe: %s: GL error 0x%x\n", what, (unsigned)error);
+    }
+}
+
 // Reads back what earlier frames asked for, oldest first, as far as the GPU
 // has finished: the quad's alpha under the ray and at the world pick.
 void collectAlpha()
 {
+    probeError("before");
     AlphaProbe& p = g.probe;
     for(int k = 0; k < AlphaProbe::kSlots; ++k) {
         const int slot = (p.next + k) % AlphaProbe::kSlots;
@@ -819,11 +831,17 @@ void collectAlpha()
         p.fence[slot] = 0;
         glBindBuffer(GL_PIXEL_PACK_BUFFER, p.pbo[slot]);
         const uint8_t* pixels = (const uint8_t*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, 8, GL_MAP_READ_BIT);
+        probeError("glMapBufferRange");
         if(pixels) {
             if(p.wanted[slot][0])
                 g.hudAlpha = pixels[3] / 255.0f;
             if(p.wanted[slot][1])
                 g.worldAlpha = pixels[7] / 255.0f;
+            static int shown = 0;
+            if(shown < 5 && p.wanted[slot][0]) {
+                ++shown;
+                printf("[XR] alpha probe: interface alpha %.2f under the ray\n", g.hudAlpha);
+            }
             glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -841,6 +859,8 @@ void requestAlpha(int width, int height)
             glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
             glBufferData(GL_PIXEL_PACK_BUFFER, 8, nullptr, GL_STREAM_READ);
         }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        probeError("setup");
     }
     const int slot = p.next;
     if(p.fence[slot]) {         // never finished: drop it
@@ -860,9 +880,11 @@ void requestAlpha(int width, int height)
         const int x = std::min(width - 1, std::max(0, (int)(points[i][0] * width)));
         const int y = std::min(height - 1, std::max(0, (int)((1.0f - points[i][1]) * height)));
         glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, (void*)(intptr_t)(i * 4));
+        probeError("glReadPixels");
     }
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     p.fence[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    probeError("glFenceSync");
     p.next = (slot + 1) % AlphaProbe::kSlots;
 }
 
