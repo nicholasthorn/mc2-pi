@@ -160,6 +160,11 @@ class Appearance
 			return screenPos;
 		}
 
+		//-stereo: the overlay x shift for the eye being drawn (0 otherwise),
+		//and the screen position overlays are drawn at
+		float eyeShift (void);
+		Stuff::Vector4D getEyeScreenPos (void);
+
 		virtual bool isMouseOver (float px, float py)
 		{
 			return FALSE;		//Never over a base appearance

@@ -42,6 +42,7 @@
 
 #include"render_heuristics.h"
 #include"utils/stereo.h"
+#include"floathelp.h"
 
 #ifndef USERINPUT_H
 #include"userinput.h"
@@ -1675,7 +1676,7 @@ bool lastZoom = FALSE;
 //---------------------------------------------------------------------------
 // Draws the world: render() once, or under -stereo once per eye, side by side
 // (VR plan, Phase 1). The eyes only draw; world-anchored overlays are drawn
-// once afterwards, from the game camera.
+// in each eye's pass, moved by that eye's parallax.
 void Camera::renderWorld (void)
 {
 	const float separation = gos_GetStereoSeparation();
@@ -1685,9 +1686,15 @@ void Camera::renderWorld (void)
 		return;
 	}
 
+	// eyeParallax (see overlayShiftX), measured on the point the camera looks
+	// at (getPosition()); projectZ's screen w is never 0
+	Stuff::Vector3D reference = getPosition();
+	Stuff::Vector4D gameScreen;
+	projectZ(reference,gameScreen);
+
 	// eye -1 is the game camera, put back for the interface and for mouse
 	// picking, which reads the terrain's screen positions
-	auto setEye = [this, separation](int eyeIndex)
+	auto setEye = [&](int eyeIndex)
 	{
 		eyeOffset = stereo::eyeOffset(eyeIndex, separation);
 		calculateProjectionConstants();
@@ -1695,12 +1702,25 @@ void Camera::renderWorld (void)
 		if (land)
 			land->projectForEye();
 		gos_SetStereoEye(eyeIndex);
+
+		eyeParallax = 0.0f;
+		if (eyeIndex >= 0)
+		{
+			Stuff::Vector4D eyeScreen;
+			projectZ(reference,eyeScreen);
+			eyeParallax = (eyeScreen.x - gameScreen.x) / gameScreen.w;
+		}
 	};
 
+	// floating text set during the update (HUD text) stays full-window;
+	// what an eye's pass adds is drawn in that eye's half, then dropped
+	const DWORD helpsBeforeEyes = FloatHelp::count();
 	for (int eyeIndex=0;eyeIndex<2;eyeIndex++)
 	{
 		setEye(eyeIndex);
 		render();
+		gos_SetRenderState(gos_State_Fog, 0);	// as Mission::render does before FloatHelp::renderAll
+		FloatHelp::renderAndResetFrom(helpsBeforeEyes);
 	}
 	setEye(-1);
 }

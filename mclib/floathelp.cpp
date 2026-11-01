@@ -68,6 +68,17 @@ void FloatHelp::renderAll (void)
 }
 
 //-----------------------------------------------------------------------------------------
+void FloatHelp::renderAndResetFrom (DWORD first)
+{
+	for (DWORD i=first;i<currentFloatHelp;i++)
+	{
+		floatHelps[i].render();
+		floatHelps[i].reset();
+	}
+	currentFloatHelp = first;
+}
+
+//-----------------------------------------------------------------------------------------
 void FloatHelp::setFloatHelp(char * txt, 
 								Stuff::Vector4D screenPos, 
 								DWORD fClr, 
