@@ -668,6 +668,25 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   `MC2_XR_HUD=distance,degrees,width` line to keep in `mc2args.txt`, which
   sets where it starts (default `1.5,30,2`).
 
+- **A VR pointer instead of the mouse cursor:** the pointing hand shows a
+  beam, ending in a dot where it meets the HUD (1.5 m long when it meets
+  nothing). Both are quad layers over the HUD (static 8x4 and 32x32
+  images filled once, `vr_controls::beamPose` turns the beam about its
+  line to face the eye), so they need no GL drawing in the eye passes; with
+  no depth they draw over the world too, which is right for a hand nearer
+  than anything else. The game draws no cursor while they show
+  (`gos_VRPointerActive`, one check in `UserInput::render`); the cursor
+  shapes (move, attack, cannot) are lost with it, to bring back as the
+  dot's colour.
+
+First headset run (2026-11-01, Quest 2, mc2_01): clicking on the panel
+works, the sticks feel right. The mouse cursor on the HUD felt wrong, so
+the beam and dot replaced it. Mechs disappeared while moving around the
+map: the known gap above (objects are still culled to the game camera's
+40-degree view), not the controllers. Not tried yet: dragging onto the
+panel with the trigger held, the menu button, moving the HUD, the system
+menu.
+
 Not done in this slice:
 
 - **Picking in the world.** Pointing through the HUD at the battle does
@@ -678,8 +697,6 @@ Not done in this slice:
   terrain: ray against `getTerrainElevation`, the hit projected through the
   game camera as the mouse (see "Approach"), with a ray test against object
   bounds first for tall units.
-- A visible ray or a marker at the hit point; the game's cursor on the HUD
-  shows where the pointer is.
 - Analogue stick speed (the keys give the game's fixed scroll and zoom
   rates).
 - To try in the headset: A takes the head's heading, but the world stays
