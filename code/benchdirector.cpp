@@ -352,11 +352,21 @@ void moveCamera (void) {
 
 void BenchDirector::update (const char* missionName) {
 
-	if (off)
+	// state as left by the previous frame's updates, on every fixed-step frame
+	// (-bench, -deterministic) with or without a scenario
+	if (gos_GetFixedFrameLength() > 0.0f) {
+		gos_BenchStateHash(stateHash());
+		dumpState();
+	}
+
+	if (off) {
+		frame++;
 		return;
+	}
 	if (!loaded) {
 		if (!load(missionName)) {
 			off = true;
+			frame++;
 			return;
 		}
 		loaded = true;
@@ -367,10 +377,6 @@ void BenchDirector::update (const char* missionName) {
 	for (long t = 0; t < MAX_TEAMS; t++)
 		Team::noPain[t] = true;
 	ShowMovers = true;
-
-	// state as left by the previous frame's updates
-	gos_BenchStateHash(stateHash());
-	dumpState();
 
 	if (frame == 0)
 		gather();

@@ -46,10 +46,26 @@ public:
 
 protected:
 
+		// with a front end larger than 800x600 (MechCommander Omnitech's), a
+		// dialog laid out for 800x600 (every stock one) moves to the middle
+		// of the screen each time it begins: the OK dialogs also show in a
+		// mission, at the mission's resolution. Call at the end of init with
+		// the dialog's layout file and a widget it keeps outside the
+		// LogisticsScreen arrays, if any.
+		void	centreOnFrontEnd( FitIniFile& file, aObject* extra = NULL );
+
 		aAnimation	enterAnim;
 		aAnimation	exitAnim;
 		bool		bDone;
 		int								oldFont;
+
+private:
+
+		void		centreOnScreen();
+
+		bool		bCentre;
+		long		centreX, centreY;	// how far it has been moved
+		aObject*	centreExtra;
 
 };
 

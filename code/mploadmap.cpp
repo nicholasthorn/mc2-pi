@@ -96,6 +96,8 @@ void MPLoadMap::init(FitIniFile* file)
 	}
 
 	mapList.setOrange( true );
+
+	centreOnFrontEnd( *file, &mapList );
 }
 
 void MPLoadMap::begin()

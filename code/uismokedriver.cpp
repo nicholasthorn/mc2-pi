@@ -22,6 +22,9 @@
 #include <mechlabscreen.h>
 #include <mechpurchasescreen.h>
 #include <pilotreadyscreen.h>
+#include <missionresults.h>
+#include <salvagemecharea.h>
+#include <pilotreviewarea.h>
 #include <abutton.h>
 
 #include <gameos.hpp>
@@ -48,6 +51,9 @@ void finish(const char* line, bool failed)
 		gos_SetExitCode(1);
 	gos_TerminateApplication();
 }
+
+// SalvageMechScreen::handleMessage's "Done" (its id in mcui_mr_layout.fit)
+const long SALVAGE_DONE = 101;
 
 // Press a button the way a click does (aButton::update sends its parent the
 // same message), but only if a player could: it must exist and be enabled.
@@ -77,8 +83,38 @@ LogisticsScreen* UiSmokeDriver::gridScreen(MissionBegin* begin)
 	return begin->screens[begin->curScreenX][begin->curScreenY];
 }
 
+// The mission results MissionResults shows after a campaign mission, or NULL.
+MissionResults* UiSmokeDriver::results()
+{
+	if (!logistics || logistics->logisticsState != log_RESULTS)
+		return NULL;
+	return logistics->missionResults;
+}
+
 UiScreen UiSmokeDriver::currentScreen()
 {
+	if (MissionResults* r = results()) {
+		// salvage first, then pilot review once salvage's Done was pressed
+		if (SalvageMechScreen* salvage = r->pSalvageScreen) {
+			if (salvage->bDone || salvage->getStatus() != LogisticsScreen::RUNNING)
+				return UiScreen::Unknown;
+			return UiScreen::Salvage;
+		}
+		PilotReviewScreen* review = r->pPilotScreen;
+		if (!review || !r->bPilotStarted || review->bDone)
+			return UiScreen::Unknown;
+		// a promotion opens over pilot review as that pilot's entry slides in
+		if (PilotPromotionArea* promotion = PilotReviewScreen::s_curPromotion) {
+			if (promotion->bDone || !promotion->leftInfo.isDone() || !promotion->rightInfo.isDone())
+				return UiScreen::Unknown;
+			return UiScreen::Promotion;
+		}
+		// Done only works once the screen and its pilot list have slid in
+		if (!review->entryAnim.isDone() || !review->pilotListBox.isDone())
+			return UiScreen::Unknown;
+		return UiScreen::PilotReview;
+	}
+
 	if (mission && mission->isActive() && mission->gameplayMarked)
 		return UiScreen::Mission;
 
@@ -193,6 +229,37 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, MB_MSG_CHANGE_LOADOUT);
 	case UiAction::BuyMechs:
 		return pressButton(screen, MB_MSG_BUY);
+	case UiAction::WinMission:
+		// a single mission goes back to the main menu when it ends, and the
+		// campaign's last one plays the final video instead
+		if (LogisticsData::instance->isSingleMission())
+			return "only a campaign mission shows the results";
+		if (LogisticsData::instance->campaignOver())
+			return "the campaign's last mission shows no results";
+		scenarioResult = mis_PLAYER_WIN_BIG;	// what Mission::update's win cheat sets
+		return NULL;
+	case UiAction::SalvageDone:
+		return pressButton(results() ? results()->pSalvageScreen : NULL, SALVAGE_DONE);
+	case UiAction::PilotReviewDone:
+		// its Done button has no id: the screen's update() sends aMSG_DONE
+		// for a click on any enabled button
+		if (PilotReviewScreen* review = results() ? results()->pPilotScreen : NULL) {
+			if (review->buttonCount < 1 || !review->buttons[0].isEnabled())
+				return "button is disabled";
+			review->handleMessage(aMSG_DONE, aMSG_DONE);
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::PromotionConfirm:
+		// its update() sends aMSG_DONE for a press of its confirm button,
+		// which is enabled once a skill is checked
+		if (PilotPromotionArea* promotion = results() ? PilotReviewScreen::s_curPromotion : NULL) {
+			if (promotion->areaRight.buttonCount < 1 || !promotion->areaRight.buttons[0].isEnabled())
+				return "button is disabled";
+			promotion->handleMessage(aMSG_DONE, aMSG_DONE);
+			return NULL;
+		}
+		return "screen is gone";
 	// in-screen actions: each acts on what the screen has selected, which
 	// its begin() sets (the first mech, the first pilot); buy picks its own
 	// variant, below
@@ -218,6 +285,19 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, MB_MSG_ADD);
 	case UiAction::AssignPilot:
 		return pressButton(screen, PR_MSG_ADD);
+	case UiAction::PickSkill:
+		// the list holds the skills the pilot's new rank allows and it does
+		// not have yet, under a heading per rank
+		if (PilotPromotionArea* promotion = results() ? PilotReviewScreen::s_curPromotion : NULL) {
+			aListBox& list = promotion->skillListBox;
+			for (long i = 0; i < list.GetItemCount(); i++)
+				if (SpecialtyListItem* skill = dynamic_cast<SpecialtyListItem*>(list.GetItem(i))) {
+					skill->setCheck(true);
+					return NULL;
+				}
+			return "no skill to pick";
+		}
+		return "screen is gone";
 	case UiAction::None:
 		break;
 	}
