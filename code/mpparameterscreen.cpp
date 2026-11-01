@@ -1541,6 +1541,9 @@ aPlayerParams::~aPlayerParams()
 
 aPlayerParams& aPlayerParams::operator=( const aPlayerParams& src )
 {
+	if ( &src == this )	// the code below re-adds children and news over statics/rects
+		return *this;
+
 	aObject::operator=( src );
 
 	addChild(&ReadyButton);

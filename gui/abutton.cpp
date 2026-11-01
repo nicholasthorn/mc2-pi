@@ -44,6 +44,11 @@ void aButton::destroy()
 
 aButton& aButton::operator=( const aButton& src)
 {
+	// the copy constructor copies these too
+	clickSFX = src.clickSFX;
+	highlightSFX = src.highlightSFX;
+	disabledSFX = src.disabledSFX;
+	holdTime = src.holdTime;
 	copyData( src );
 	aObject::operator=( src );
 	return *this;

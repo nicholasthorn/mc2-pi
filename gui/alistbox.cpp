@@ -626,6 +626,9 @@ aDropList::aDropList(void)
 
 aDropList& aDropList::operator=( const aDropList& src)
 {
+	if ( &src == this )	// rects is deleted below before src.rects is read
+		return *this;
+
 	aObject::operator =( src );
 
 	
@@ -964,6 +967,9 @@ aComboBox::aComboBox(void) : templateItem( 27333 )
 
 aComboBox& aComboBox::operator=(const aComboBox& src )
 {
+	if ( &src == this )	// rects is deleted below before src.rects is read
+		return *this;
+
 	aObject::operator =( src );
 
 	
