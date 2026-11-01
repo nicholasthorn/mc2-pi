@@ -541,6 +541,71 @@ the -stereo debug view, where it is a sliver.
 Each half keeps the full window's aspect ratio, so the eyes are squashed 2:1
 in this view; Phase 2 gives each eye its own projection and viewport size.
 
+## Phase 2 progress: OpenXR on the Quest (2026-11-01)
+
+Done straight on the Quest 2 (the adb loop already worked; PC over Link can
+follow, the code is platform-neutral). Branch `vr-openxr`.
+
+- **Session:** `GameOS/gameos/gos_xr.{h,cpp}` (`MC2_OPENXR`, on for
+  Android): the Khronos loader (Maven Central, SHA-256 pinned), an instance
+  and session on SDL's EGL context, a LOCAL reference space. The manifest
+  makes it an immersive app with optional hand tracking (without that the
+  headset refuses to launch unless a controller is awake).
+- **Frame:** `gos_xr::beginFrame()` (in `draw_screen`) waits for the
+  headset's frame and locates the eyes; `Camera::renderWorld` draws each eye
+  into its own swapchain image (1440x1584 on a Quest 2, 4x MSAA rendered to
+  texture). The window gets no world, only the interface drawn after it;
+  `present()` sends the eyes as a projection layer and the window's frame
+  as a see-through HUD quad (alpha-blended, transparent where there is no
+  interface) 30 degrees below the horizon, where the player looks at the
+  battle. `MC2_XR_EYES=0` shows the whole game frame on a big screen ahead
+  instead.
+- **Eyes:** `utils/vr_eye.cpp` (GL-free, unit-tested). The engine camera's
+  axes are x screen left, y screen down, z forward (as `projectZ` maps them,
+  whatever `UP_AXIS` says), a point reflection of OpenXR's. The eye is the
+  game camera's yaw, then the head; by default the horizon stays level with
+  the real one and the player looks down at the battle (with the game's
+  pitch kept, `MC2_VR_GAME_PITCH=1`, turning the head swung the world about
+  a tilted axis). Head movement is level with the ground, times
+  `worldUnitsPerMeter` and `MC2_VR_SCALE`. The frustum is the eye's own,
+  asymmetric field of view.
+- **Meshes:** the CPU path projects shape vertices once, during the update,
+  for the game camera, so in the eyes they were head-locked. In VR the GPU
+  path (alariq's, off by default) is switched on, alpha-textured shapes
+  included (alpha-tested); shapes it cannot take (spotlights, windows,
+  fading) are left out of the eyes. Its textured lit shader did not link on
+  the Adreno driver: `calc_light` copied a whole light record (sixteen
+  `mat4`s) into a local; it now reads the fields in place.
+- **Overlays:** brackets, bars and floating text from the world are left
+  out (screen positions from the game camera do not survive a turned head);
+  they need drawing in world space. The interface's own text is in the HUD.
+- **Textures:** in VR, 8-bit textures get mipmaps and trilinear, 4x
+  anisotropic minification (object textures asked for none, and the
+  renderer never made any): distant mechs shimmered.
+
+Verified in the headset (mc2_19 bench battle): world fixed as the head
+turns and leans, stereo fuses, up/down and side to side right, the HUD
+frames the battle. The flat game is unchanged (llvmpipe screenshots and
+state checksums against the previous branch). Debugging switches: `MC2_XR_POSE=yaw,pitch` fixes the head
+rotation, `MC2_XR_SHOT=n` saves the left eye and the window frame.
+
+Known gaps:
+
+- **47.6 fps, not 72:** game logic 11 ms and rendering 9.4 ms a frame (two
+  eyes; a third world pass for a tablet cost 1 ms more and was dropped for
+  the HUD). Next: the game update at 30 Hz, drawing at the headset's rate.
+- **Culling is the game camera's:** terrain ends in a jagged edge outside
+  its 40-degree view, objects outside it are missing. The draw-only cull
+  result (above) is now the biggest visual gap.
+- Some shimmer remains on distant mechs; spotlights are missing in the
+  eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
+  when the bench camera passes through the bombers.
+- No controllers yet (Phase 3): the mouse and keyboard do not reach the
+  headset build.
+- The Guardian (boundary) takes the headset to passthrough when it thinks
+  it is outside its play area; the session then stays VISIBLE, not
+  FOCUSED.
+
 ## Open questions
 
 - (Answered by the Phase 1 audit: projection is mixed with state in every
