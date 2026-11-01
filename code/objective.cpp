@@ -1533,8 +1533,10 @@ CObjective &CObjective::operator=(const CObjective &master) {
 		while (!it.IsDone()) {
 			condition_species_type conditionSpecies = (*it)->Species();
 			CObjectiveCondition *pTmpCondition = new_CObjectiveCondition(conditionSpecies, m_alignment);
-			(*pTmpCondition).CastAndCopy(*it);
-			Append(pTmpCondition);
+			if (pTmpCondition) {	// NULL for a species the factory has no case for
+				(*pTmpCondition).CastAndCopy(*it);
+				Append(pTmpCondition);
+			}
 			it++;
 		}
 	}
@@ -1544,8 +1546,10 @@ CObjective &CObjective::operator=(const CObjective &master) {
 		while (!it.IsDone()) {
 			action_species_type actionSpecies = (*it)->Species();
 			CObjectiveAction *pTmpAction = new_CObjectiveAction(actionSpecies, m_alignment);
-			(*pTmpAction).CastAndCopy(*it);
-			m_actionList.Append(pTmpAction);
+			if (pTmpAction) {	// NULL for a species the factory has no case for
+				(*pTmpAction).CastAndCopy(*it);
+				m_actionList.Append(pTmpAction);
+			}
 			it++;
 		}
 	}
@@ -1555,8 +1559,10 @@ CObjective &CObjective::operator=(const CObjective &master) {
 		while (!it.IsDone()) {
 			condition_species_type conditionSpecies = (*it)->Species();
 			CObjectiveCondition *pTmpCondition = new_CObjectiveCondition(conditionSpecies, m_alignment);
-			(*pTmpCondition).CastAndCopy(*it);
-			m_failureConditionList.Append(pTmpCondition);
+			if (pTmpCondition) {	// NULL for a species the factory has no case for
+				(*pTmpCondition).CastAndCopy(*it);
+				m_failureConditionList.Append(pTmpCondition);
+			}
 			it++;
 		}
 	}
@@ -1566,8 +1572,10 @@ CObjective &CObjective::operator=(const CObjective &master) {
 		while (!it.IsDone()) {
 			action_species_type actionSpecies = (*it)->Species();
 			CObjectiveAction *pTmpAction = new_CObjectiveAction(actionSpecies, m_alignment);
-			(*pTmpAction).CastAndCopy(*it);
-			m_failureActionList.Append(pTmpAction);
+			if (pTmpAction) {	// NULL for a species the factory has no case for
+				(*pTmpAction).CastAndCopy(*it);
+				m_failureActionList.Append(pTmpAction);
+			}
 			it++;
 		}
 	}

@@ -100,7 +100,11 @@ screen has been held, then the screen is held again (`buy` on `mechpurchase`,
   through `gos_GetUiSmokeWalk()` (as `-benchscenario`), and makes the run an
   automated one (input ignored, windowed). Nothing game-specific lives there.
 - **smoke.sh**: `--ui "<walk> <walk> ..."` (default: the two walks of slice
-  1, below; `--ui ""` skips). A walk passes when the game
+  1, below; `--ui ""` skips). On MechCommander Omnitech data (its loose
+  `data/art/mcl_mm.fit` has a `[HiresOffsets]` block) walk 1 ends
+  differently: Omnitech's new campaign opens mission selection with no
+  mechs, so it goes on through the briefing and mech bay, buys a mech,
+  adds it, gives it a pilot and launches. A walk passes when the game
   exits 0, prints `[UISMOKE] done`, shows exactly the walk's screens in
   order, and logs no error lines (`BAD`, same as missions). `check.sh --level
   batch` and the nightly `smoke.yml` get it with no change.
@@ -170,8 +174,8 @@ cannot say why a click did nothing.
    the temporary config directory only), the in-mission options (Ctrl+O
    wrapper in `mechcmd2.cpp`), main menu from a logistics screen
    (`MB_MSG_MAINMENU`) and back.
-6. Screenshots per screen (reuse `bench_capture` / `tga_writer`), and the
-   same walks on the Omnitech data folder.
+6. Screenshots per screen (reuse `bench_capture` / `tga_writer`). The
+   default walks already run on the Omnitech data folder (2026-11-01).
 
 ## Verification
 

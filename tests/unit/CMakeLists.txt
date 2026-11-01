@@ -33,6 +33,7 @@ add_executable(mc2_tests
     test_render_heuristics.cpp
     test_uismokewalk.cpp
     test_image_tga.cpp
+    test_csvfield.cpp
 
     # Real engine TUs: the file / ini / packet / FST / CSV stack. This is the
     # whole link frontier; nothing else from mclib or GameOS is needed.
@@ -86,6 +87,7 @@ set_source_files_properties(
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp
     test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp
+    test_csvfield.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
