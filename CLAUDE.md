@@ -59,6 +59,10 @@ cmake --build build-gles
 cmake -S . -B build64 -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=<abs path>/3rdparty -DCMAKE_LIBRARY_ARCHITECTURE=x64
 cmake --build build64 --config RelWithDebInfo --target mc2 mc2_tests
 
+# Meta Quest test APK (Android NDK; Git Bash on Windows or Linux; android/README.md)
+scripts/android/build.sh                         # needs JAVA_HOME and the SDK's NDK r28c + CMake 3.31.6
+scripts/android/run_bench.sh --data ../mc2game   # headset on adb: install, push, bench mono + stereo
+
 # Unit tests (doctest, built by default; Windows adds -C RelWithDebInfo)
 ctest --test-dir build --output-on-failure
 
