@@ -50,7 +50,9 @@ namespace Stuff {
 	{
 		Verify(in >= 0.0f && in < 65536.0f);
 		in += 12582912.0f;
-		return *Cast_Pointer(WORD*, &in);
+		WORD out;
+		memcpy(&out, &in, sizeof(out));	// low mantissa bits (little-endian), without type punning
+		return out;
 	}
 
 	inline BYTE
@@ -75,7 +77,9 @@ namespace Stuff {
 		Verify(in >= 0.0f && in < 65536.0f);
 		in -= 0.5f;
 		in += 12582912.0f;
-		return *Cast_Pointer(WORD*, &in);
+		WORD out;
+		memcpy(&out, &in, sizeof(out));	// low mantissa bits (little-endian), without type punning
+		return out;
 	}
 
 	inline BYTE

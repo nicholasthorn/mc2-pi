@@ -816,8 +816,11 @@ long Debugger::sprintArrayValue (char* dest, SymTableNodePtr symbol, char* subsc
 				sprintf(dest, "%d", *((int*)elementAddress));
 			else if (typePtr == CharTypePtr)
 				sprintf(dest, "\"%c\"", *((char*)elementAddress));
-			else
-				sprintf(dest, "%.4f", *((float*)elementAddress));
+			else {
+				float value;
+				memcpy(&value, elementAddress, sizeof(value));	// packed ABL data area
+				sprintf(dest, "%.4f", value);
+			}
 			}
 		else if (typePtr->info.array.elementTypePtr == CharTypePtr)
 			sprintf(dest, "\"%s\"", (char*)elementAddress);

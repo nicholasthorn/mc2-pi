@@ -459,8 +459,6 @@ long FastFile::seekFast (DWORD fastFileHandle, DWORD off, DWORD how)
 //---------------------------------------------------------------------------
 long FastFile::readFast (DWORD fastFileHandle, void *bfr, DWORD size)
 {
-	size;
-
 	long result = 0;
 
 	if ((fastFileHandle >= 0) && (fastFileHandle < numFiles) && files[fastFileHandle].inuse)
@@ -692,8 +690,6 @@ long FastFile::writeFast (const char* fastFileName, void* buffer, int nbytes)
 // have to decompress them!!
 long FastFile::readFastRAW (DWORD fastFileHandle, void *bfr, DWORD size)
 {
-	size;
-
 	long result = 0;
 
 	if ((fastFileHandle >= 0) && (fastFileHandle < numFiles) && files[fastFileHandle].inuse)

@@ -54,6 +54,7 @@ namespace MidLevelRenderer {
 		virtual	void	InitializeDrawPrimitive(unsigned char, int=0);
 
 		virtual int
+			// cppcheck-suppress virtualCallInConstructor ; the constructor wants this class's own triangle count; static binding is intended
 			GetNumPrimitives()
 				{ Check_Object(this); return numOfTriangles; }
 

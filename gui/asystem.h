@@ -130,7 +130,7 @@ public:
 	virtual aObject*	findObject(long xPos, long yPos);
 	virtual int			handleMessage( unsigned long, unsigned long ){ return 0; }
 	virtual bool		pointInside(long xPos, long yPos) const;
-	bool				rectIntersect(long top, long left, long bottom, long right) const;
+	bool				rectIntersect(long left, long top, long right, long bottom) const;
 	bool				rectIntersect(const GUI_RECT& testRect) const;
 	
 	aObject*	children();

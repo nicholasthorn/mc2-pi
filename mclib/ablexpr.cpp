@@ -188,8 +188,7 @@ TypePtr variable (SymTableNodePtr variableIdPtr) {
 	//-----------
 	// Subscripts
 	while (curToken == TKN_LBRACKET) {
-		if (curToken == TKN_LBRACKET)
-			typePtr = arraySubscriptList(typePtr);
+		typePtr = arraySubscriptList(typePtr);
 	}
 
 	return(typePtr);

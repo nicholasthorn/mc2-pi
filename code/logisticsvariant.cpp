@@ -74,8 +74,7 @@ int LogisticsChassis::init( CSVFile* file, int chassisID )
 	file->readLong( 12, 2, iconPictureIndex );
 	gosASSERT( result == NO_ERR );
 
-	
-	houseID;
+
 	result = file->readLong( 4, 2, houseID );
 	ID |= (((unsigned long)houseID << 8) & 0x0000ff00);	// houseID can be -1
 	gosASSERT( result == NO_ERR );
@@ -812,9 +811,6 @@ int		LogisticsVariant::removeComponent( long xCoord, long yCoord )
 			return INSUFFICIENT_HEAT;
 	}
 
-	
-	if ( !info )
-		return INVALID_LOCATION;
 
 	for ( int i = 0; i < componentCount; i++ )
 	{
