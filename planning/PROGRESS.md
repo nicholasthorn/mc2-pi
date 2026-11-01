@@ -18,6 +18,7 @@ belongs in commit messages and PRs.
 - [x] CI: Linux x64 GCC, Linux x64 Clang, Linux arm64 GLES, Windows MSVC, shader validation (GLSL ES 3.10 + GLSL 4.20); Dependabot
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
 - [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings, bench stages, stereo viewports (116 cases)
+- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings, bench stages (117 cases)
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); a `STOP` ends the game by default (#46; smoke and bench pin `MC2_STOP_EXITS=1`, #22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, mech lab, pilot ready, launch)
 - [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, plus named stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`), `-benchfov` / `--fov` to force the camera FOV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Stereo debug view (VR Phase 1, first slice): `-stereo <separation>` draws the world side by side from two eye cameras; game state unchanged (bench checksum), shadows, clouds and overlays still from the game camera (`future-features/VR-TABLETOP.md`)
@@ -157,13 +158,21 @@ Added 2026-10-31.
      `STOP` text over the game window, and OK ends the game with status 1.
      Still to check: the box on Windows and under a desktop window manager,
      and the Pi console after a `STOP`.
-     Follow-ups from the review: an ABL syntax error now ends the game even
-     with `MC2_STOP_EXITS=0`, so mod bring-up sees one compile error per
-     run (`syntaxError` could report and let the compile fail instead);
-     screens smoke has not opened (save/load, Mechlopedia, results,
-     salvage) may hold `STOP`s that used to be harmless; a `STOP` off the
-     main thread shows an unparented box; no unit test pins the `STOP:`
-     line format that smoke relies on.
+     Follow-ups from the review:
+     - [x] The `STOP:` line format smoke relies on is unit tested
+       (`formatLogLine`, 2026-11-01).
+     - Decided, not a bug: an ABL syntax error ends the game even with
+       `MC2_STOP_EXITS=0`, so mod bring-up sees one compile error (with
+       file and line) per run. Listing more would need `syntaxError` (131
+       callers) to keep parsing after an error and every
+       `ABLi_preProcess` / `ABLi_loadLibrary` caller (9) to check the
+       error count, which none does today; `MAX_SYNTAX_ERRORS` was cut
+       from 20 to 1 in the original source.
+     - [ ] Screens smoke has not opened (save/load, Mechlopedia, results,
+       salvage) may hold `STOP`s that used to be harmless (UI smoke
+       slices).
+     - [ ] A `STOP` off the main thread shows an unparented box (none
+       known: no game code runs on an SDL callback thread).
 
 ## Tidy up (from the 2026-10-31 transcript sweep)
 
@@ -447,6 +456,7 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-01: VR Phase 1, first slice (branch `vr-phase1`): `-stereo <separation>` side-by-side debug view. The engine could already draw a frame twice (`renderLists` rewinds its lists); meshes now take the camera and viewport at draw time (the GPU path used the update-time ones), terrain and water are re-projected per eye with the game camera's visibility kept, each eye is an offset applied last in `Camera::setCameraOrigin` (`Camera::renderWorld`), and GameOS points the GL viewport at one half (`gos_SetStereoEye`). Mono screenshots byte-identical to before, game-state checksum unchanged with `-stereo`, eyes checked by measured disparity (first version had them swapped). Overlays, mouse picking, shadows and clouds still follow the game camera: a view for checking the rendering, not for playing. Measured cost on mc2_19 (llvmpipe): CPU frame 1.36 to 1.40x mono. Built and run on GL and GLES; MSVC, Clang and arm64 left to CI.
+- 2026-11-01: STOP follow-ups (branch `fix/stop-followups`): the `STOP:` log line format (prefix, one trailing newline, truncation) moved from `logmsg` to `formatLogLine()` in `str_bounded.cpp` with unit tests, as did the message box's prefix strip (`logLineMessage()`); behaviour unchanged. ABL syntax errors ending the game under the opt-out recorded as a decision (see the `STOP` plan). Ubuntu 26.04: GL and GLES builds and unit tests (117 cases); MSVC, Clang and arm64 left to CI.
 - 2026-11-01: Full sweep of the remaster's history (branch `fix/backport-sweep`): 419 fix-like commits on shared files checked, 23 ported. Stock data: a leftover `ENTER_DEBUGGER` in `UserHeap::pointerOnHeap` (SIGTRAP from the briefing's empty-model `SimpleCamera::setObject`), `gos_SetMousePosition` warped to 0..1 as pixels, `calcAttackPlan` divided by a zero threat rating, `GlobalMap::destroy` leaked its three pointer arrays every mission, an unbounded height read in `calcBestGoalFromTarget`, the `txmmgr` vertex and shape pools handed out memory past their heap when full (and the untextured copies wrote one slot past their block), mech and vehicle paint colours swapped on an LOD change (cache-hit branches stored them unconverted under `BGR`), `iconsPerPage` used the atlas width, and the logistics CSV reader stepped past a short row's NUL (now `code/csvfield.h`, unit tested). Mod data: missing terrain textures and masks, ABL assignment from broken bytecode, the pilot-ready screen lost after a first mission without logistics, objective copies of an unknown species, icon indexes past the atlas, more than 256 cursors, short or oversized briefing TGAs, unknown TGL node types and vertex indices, the mission-selection button off-by-one, and out-of-range ABL routine keys and full routine tables.
 - 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
 - 2026-11-01: CI also skips pushes that only merge `pi-port` into a PR: `scripts/ci_docs_only.sh` becomes `scripts/ci_skip.sh`, which also skips when the PR's own non-docs patch (merge-base to head) has the same patch id before and after the push, so the push only brought `pi-port` in plus docs. Merging one PR used to rerun every open PR, as each session synced `pi-port` and its `PROGRESS.md` conflict; those syncs now skip. A conflict fix that changes code still runs in full. Accepted risk: the combination with code from `pi-port` is first tested by `pi-port`'s own run after the merge.
