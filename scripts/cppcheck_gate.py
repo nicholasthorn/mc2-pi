@@ -19,6 +19,7 @@ Exit status: 0 nothing new, 1 new findings, 2 cppcheck itself failed.
 """
 import argparse
 import collections
+import linecache
 import os
 import re
 import subprocess
@@ -52,7 +53,9 @@ CTOR_DTOR_CALLS = {"init", "destroy", "close"}
 VIRTUAL_CALL = re.compile(r"^Virtual function '([^']+)' is called from (con|de)structor")
 # memset() with a zero fill on a struct holding floats: all-bits-zero is 0.0f
 # on IEEE 754, which every target is (x86-64, arm64), so only a non-zero fill
-# (which makes NaNs) is reported. The fill is read from the source line.
+# (which makes NaNs) is reported. The fill is read from the source line, and
+# every memset on that line must be a zero fill.
+MEMSET_CALL = re.compile(r"\bmemset\s*\(")
 ZERO_FILL_MEMSET = re.compile(r"\bmemset\s*\([^,]+,\s*(0+|0[xX]0+|'\\0')\s*,")
 # some messages name a line ("called from constructor 'Camera()' at line
 # 389"); keys must not move when unrelated edits shift the code
@@ -64,20 +67,14 @@ def key(path, severity, check, message):
                      LINE_IN_MESSAGE.sub("at line N", message)])
 
 
-def source_line(path, line):
-    try:
-        with open(os.path.join(ROOT, path), encoding="latin-1") as f:
-            for n, text in enumerate(f, 1):
-                if n == line:
-                    return text
-    except (OSError, ValueError):
-        pass
-    return ""
+def zero_fill_only(text):
+    calls = len(MEMSET_CALL.findall(text))
+    return calls > 0 and len(ZERO_FILL_MEMSET.findall(text)) == calls
 
 
 def ignored(path, line, check, message):
     if check == "memsetClassFloat":
-        return bool(ZERO_FILL_MEMSET.search(source_line(path, line)))
+        return zero_fill_only(linecache.getline(os.path.join(ROOT, path), line))
     if check == "duplInheritedMember":
         if path.startswith(DELIBERATE_HIDING_DIRS):
             return True
