@@ -1017,6 +1017,11 @@ int LogisticsData::comparePilots( LogisticsPilot* p1, LogisticsPilot* p2, long w
 	if ( p1->getRank() > p2->getRank() )
 		return 1;
 	
+	// Kept as shipped on purpose (planning/PROGRESS.md, "Kept as shipped"):
+	// this repeats the test above, so it never fires and a lower-ranked p1
+	// falls through to gunnery. Making it '>' would change which pilots the
+	// game auto-assigns.
+	// cppcheck-suppress identicalConditionAfterEarlyExit ; kept as shipped, see the comment above
 	else if ( p2->getRank() < p1->getRank() )
 		return -1;
 
