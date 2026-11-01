@@ -36,24 +36,33 @@
 
 set -u
 
-# 1: the four options tabs, then a new campaign (its first mission, mc2_01,
-#    skips logistics and loads at once). The walk wins it (the driver's
-#    win, not a fight): pilot review (mc2_01 skips salvage), mission
-#    selection, launch mc2_02 and win it too: salvage, a pilot promotion
-#    (pick a skill), pilot review, back to mission selection.
+# 1: the four options tabs and the six Mechlopedia tabs, then a new campaign
+#    (its first mission, mc2_01, skips logistics and loads at once). The
+#    mission's options (Ctrl+O, two tabs, Cancel), then the walk wins it
+#    (the driver's win, not a fight): pilot review (mc2_01 skips salvage),
+#    mission selection. The main menu from there: save the campaign (as
+#    "uismoke", in the temporary config directory), back, main menu again,
+#    load that save. Launch mc2_02 and win it too: salvage, a pilot
+#    promotion (pick a skill), pilot review, back to mission selection.
 # 2: a single mission (mc2_02), which starts with no mechs: buy one, put it
 #    in the force, open the mech lab (Cancel), back to the briefing, give
 #    the mech a pilot and launch.
 UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
+UI_OPTIONS="$UI_OPTIONS,mechlopedia-mechs,mechlopedia-buildings,mechlopedia-vehicles"
+UI_OPTIONS="$UI_OPTIONS,mechlopedia-weapons,mechlopedia-pilots,mechlopedia-history,mainmenu"
 UI_OPTIONS_MCO="$UI_OPTIONS"
-UI_OPTIONS="$UI_OPTIONS,campaign,mission,pilotreview,missionselection"
+UI_SAVE_LOAD="mainmenu,save+name,missionselection,mainmenu,load+pick,missionselection"
+UI_OPTIONS="$UI_OPTIONS,campaign,mission,options-graphics,options-hotkeys,mission"
+UI_OPTIONS="$UI_OPTIONS,pilotreview,missionselection,$UI_SAVE_LOAD"
 UI_OPTIONS="$UI_OPTIONS,briefing,mechbay,pilotready,mission"
 UI_OPTIONS="$UI_OPTIONS,salvage,promotion+skill,pilotreview,missionselection"
 # MechCommander Omnitech's new campaign opens mission selection instead, with
-# no mechs: buy one, put it in the force, give it a pilot, launch, win:
-# salvage, pilot review, mission selection.
-UI_OPTIONS_MCO="$UI_OPTIONS_MCO,campaign,missionselection,briefing,mechbay"
+# no mechs: save and load there, buy a mech, put it in the force, give it a
+# pilot, launch, the mission's options, win: salvage, pilot review, mission
+# selection.
+UI_OPTIONS_MCO="$UI_OPTIONS_MCO,campaign,missionselection,$UI_SAVE_LOAD,briefing,mechbay"
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,mechpurchase+buy,mechbay+add,pilotready+pilot,mission"
+UI_OPTIONS_MCO="$UI_OPTIONS_MCO,options-graphics,options-hotkeys,mission"
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,salvage,pilotreview,missionselection"
 UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab"
 UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing,mechbay,pilotready+pilot,mission"
@@ -239,6 +248,8 @@ done
 # and quits. Each walk gets a fresh config directory (XDG_CONFIG_HOME) holding
 # only tests/smoke/campaign-save.fit, so the "Single Mission" list has a
 # mission in it, and nothing the walk saves reaches the real one.
+# MC2_UISMOKE_SAVES tells the driver it may save there: without it, a walk
+# that saves fails rather than write into a player's config.
 # The path must be lower case: the game lowercases the save path
 # (FullPathFileName), so a TMPDIR with capitals falls back to /tmp.
 CFG_BASE="${TMPDIR:-/tmp}"
@@ -255,7 +266,7 @@ for w in $UI_WALKS; do
         echo "FAIL ui$n: cannot set up a config directory in $CFG_BASE"
         continue
     fi
-    XDG_CONFIG_HOME="$cfg" run_game "$log" -uismoke "$w"
+    XDG_CONFIG_HOME="$cfg" MC2_UISMOKE_SAVES=1 run_game "$log" -uismoke "$w"
     rm -rf "$cfg"
     why=$(grep -m1 '^\[UISMOKE\] FAIL' "$log" | sed 's/^\[UISMOKE\] FAIL: //')
     [ -n "$why" ] && reasons+=("$why")

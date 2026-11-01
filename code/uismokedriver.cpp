@@ -25,13 +25,21 @@
 #include <missionresults.h>
 #include <salvagemecharea.h>
 #include <pilotreviewarea.h>
+#include <mechlopedia.h>
 #include <abutton.h>
+#include <aedit.h>
 
 #include <gameos.hpp>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <chrono>
+
+// mechcmd2.cpp: the options screen of a mission (Ctrl+O), and the flag that
+// asks for it
+extern OptionsScreenWrapper* optionsScreenWrapper;
+extern bool bInvokeOptionsScreenFlag;
 
 namespace {
 
@@ -54,6 +62,15 @@ void finish(const char* line, bool failed)
 
 // SalvageMechScreen::handleMessage's "Done" (its id in mcui_mr_layout.fit)
 const long SALVAGE_DONE = 101;
+
+// Mechlopedia's buttons (ENCYCLO_* in mechlopedia.cpp): six tabs, then
+// "Main Menu"
+const long MECHLOPEDIA_FIRST_TAB = 130;
+const long MECHLOPEDIA_EXIT = 136;
+
+// the save game the walk writes (in smoke.sh's temporary config directory)
+// and loads again
+const char* const WALK_SAVE = "uismoke";
 
 // Press a button the way a click does (aButton::update sends its parent the
 // same message), but only if a player could: it must exist and be enabled.
@@ -91,6 +108,25 @@ MissionResults* UiSmokeDriver::results()
 	return logistics->missionResults;
 }
 
+// The options screen up now: the main menu's, or the one a mission opens.
+OptionsXScreen* UiSmokeDriver::optionsScreen(MainMenu* menu)
+{
+	if (menu && menu->bOptions && menu->optionsScreenWrapper)
+		return menu->optionsScreenWrapper->pOptionsScreen;
+	if (::optionsScreenWrapper && !::optionsScreenWrapper->isDone())
+		return ::optionsScreenWrapper->pOptionsScreen;
+	return NULL;
+}
+
+// A settled options tab, or Unknown.
+UiScreen UiSmokeDriver::optionsTab(OptionsXScreen* options)
+{
+	if (!options || options->bDone || options->bShowWarning
+			|| options->curTab < 0 || options->curTab > 3)
+		return UiScreen::Unknown;
+	return (UiScreen)((int)UiScreen::OptionsGraphics + options->curTab);
+}
+
 UiScreen UiSmokeDriver::currentScreen()
 {
 	if (MissionResults* r = results()) {
@@ -115,8 +151,12 @@ UiScreen UiSmokeDriver::currentScreen()
 		return UiScreen::PilotReview;
 	}
 
-	if (mission && mission->isActive() && mission->gameplayMarked)
+	if (mission && mission->isActive() && mission->gameplayMarked) {
+		// the mission's options screen sits over it
+		if (::optionsScreenWrapper && !::optionsScreenWrapper->isDone())
+			return optionsTab(::optionsScreenWrapper->pOptionsScreen);
 		return UiScreen::Mission;
+	}
 
 	MissionBegin* begin = logistics ? logistics->getMissionBegin() : NULL;
 	if (!begin)
@@ -129,20 +169,26 @@ UiScreen UiSmokeDriver::currentScreen()
 		if (menu->bDrawBackground && !menu->introOver)
 			return UiScreen::Unknown;	// the intro animation still plays
 
-		if (menu->bOptions) {
-			OptionsXScreen* options = menu->optionsScreenWrapper ?
-				menu->optionsScreenWrapper->pOptionsScreen : NULL;
-			if (!options || options->bDone || options->bShowWarning
-					|| options->curTab < 0 || options->curTab > 3)
+		if (menu->bOptions)
+			return optionsTab(optionsScreen(menu));
+		if (MainMenu::bDrawMechlopedia) {
+			// drawn once the main menu has faded out (MainMenu::render)
+			Mechlopedia* pedia = menu->mechlopedia;
+			const bool drawn = menu->fadeTime > menu->fadeOutTime || !menu->fadeOutTime;
+			if (!pedia || !drawn || pedia->getStatus() != LogisticsScreen::RUNNING
+					|| pedia->currentScreen < 0 || pedia->currentScreen > 5)
 				return UiScreen::Unknown;
-			return (UiScreen)((int)UiScreen::OptionsGraphics + options->curTab);
+			return (UiScreen)((int)UiScreen::MechlopediaMechs + pedia->currentScreen);
 		}
-		if (menu->bLoadCampaign) {
+		if (menu->bLoadCampaign || menu->bSave || menu->bLoad) {
+			// one dialog, three uses
 			LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance();
 			if (!menu->endAnim.isDone() || !dialog || dialog->isDone()
-					|| dialog->getStatus() != LogisticsScreen::RUNNING)
+					|| dialog->getStatus() != LogisticsScreen::RUNNING
+					|| dialog->bPromptOverwrite || dialog->bDeletePrompt)
 				return UiScreen::Unknown;
-			return UiScreen::CampaignSelect;
+			return menu->bSave ? UiScreen::Save
+					: menu->bLoad ? UiScreen::Load : UiScreen::CampaignSelect;
 		}
 		if (menu->bLoadSingle) {
 			if (!menu->endAnim.isDone() || menu->singleLoadDlg.isDone()
@@ -150,9 +196,8 @@ UiScreen UiSmokeDriver::currentScreen()
 				return UiScreen::Unknown;
 			return UiScreen::SingleMission;
 		}
-		if (menu->bSave || menu->bLoad || menu->promptToQuit
-				|| menu->promptToDisconnect || menu->bLegal || menu->bHostLeftDlg
-				|| MainMenu::bDrawMechlopedia)
+		if (menu->promptToQuit || menu->promptToDisconnect || menu->bLegal
+				|| menu->bHostLeftDlg)
 			return UiScreen::Unknown;
 		return UiScreen::MainMenu;
 	}
@@ -182,8 +227,7 @@ const char* UiSmokeDriver::press(UiAction action)
 	if (!begin)
 		return "no front end";
 	MainMenu* menu = begin->mainMenu;
-	OptionsXScreen* options = (menu && menu->optionsScreenWrapper) ?
-		menu->optionsScreenWrapper->pOptionsScreen : NULL;
+	OptionsXScreen* options = optionsScreen(menu);
 	LogisticsScreen* screen = gridScreen(begin);
 
 	switch (action) {
@@ -229,6 +273,38 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, MB_MSG_CHANGE_LOADOUT);
 	case UiAction::BuyMechs:
 		return pressButton(screen, MB_MSG_BUY);
+	case UiAction::MissionOptions:
+		bInvokeOptionsScreenFlag = true;	// what Ctrl+O sets (mechcmd2.cpp)
+		return NULL;
+	case UiAction::OpenMechlopedia:
+		return pressButton(menu, MM_MSG_ENCYCLOPEDIA);
+	case UiAction::MechlopediaTab0:
+	case UiAction::MechlopediaTab1:
+	case UiAction::MechlopediaTab2:
+	case UiAction::MechlopediaTab3:
+	case UiAction::MechlopediaTab4:
+	case UiAction::MechlopediaTab5:
+		return pressButton(menu ? menu->mechlopedia : NULL,
+				MECHLOPEDIA_FIRST_TAB + (int)action - (int)UiAction::MechlopediaTab0);
+	case UiAction::MechlopediaExit:
+		return pressButton(menu ? menu->mechlopedia : NULL, MECHLOPEDIA_EXIT);
+	case UiAction::MainMenu:
+		return pressButton(screen, MB_MSG_MAINMENU);
+	case UiAction::ReturnToGame:
+		// the button stays on at the start menu, where it does nothing
+		if (menu && menu->bDrawBackground)
+			return "no game to return to (the start menu)";
+		return pressButton(menu, MM_MSG_RETURN_TO_GAME);
+	case UiAction::OpenSave:
+		// savePath is the player's config unless smoke.sh made a throwaway one
+		if (!getenv("MC2_UISMOKE_SAVES"))
+			return "saving needs smoke.sh's throwaway config directory (MC2_UISMOKE_SAVES)";
+		return pressButton(menu, MM_MSG_SAVE);
+	case UiAction::OpenLoad:
+		return pressButton(menu, MM_MSG_LOAD);
+	case UiAction::SaveAccept:
+	case UiAction::LoadAccept:
+		return pressButton(LogisticsSaveDialog::instance(), LogisticsScreen::YES);
 	case UiAction::WinMission:
 		// a single mission goes back to the main menu when it ends, and the
 		// campaign's last one plays the final video instead
@@ -296,6 +372,32 @@ const char* UiSmokeDriver::press(UiAction action)
 					return NULL;
 				}
 			return "no skill to pick";
+		}
+		return "screen is gone";
+	case UiAction::NameSave:
+		// a new name: the dialog suggests the first save in the list, and
+		// saving over one asks first. Save is enabled for a name from the
+		// next update() on.
+		if (LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance()) {
+			dialog->edits[0].setEntry(WALK_SAVE);
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::PickSave:
+		// the list holds every save in the config directory: pick the walk's
+		// own as a click would (selected, its name in the box, as listed: the
+		// file name). Load is enabled for it from the next update() on.
+		if (LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance()) {
+			aListBox& list = dialog->gameListBox;
+			for (long i = 0; i < list.GetItemCount(); i++) {
+				const char* name = ((aTextListItem*)list.GetItem(i))->getText();
+				if (0 == S_stricmp(name, WALK_SAVE)) {
+					list.SelectItem(i);
+					dialog->edits[0].setEntry(name);
+					return NULL;
+				}
+			}
+			return "the walk's save is not in the list (save+name first)";
 		}
 		return "screen is gone";
 	case UiAction::None:
