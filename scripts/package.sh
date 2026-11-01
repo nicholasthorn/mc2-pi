@@ -55,12 +55,18 @@ SYMS="$OUT/$NAME-symbols"
 rm -rf "$STAGE" "$SYMS"
 mkdir -p "$STAGE" "$SYMS"
 
-# first file under the build tree with this name (Visual Studio puts outputs
-# in per-configuration folders)
+# the built file with this name. Visual Studio puts outputs in
+# per-configuration folders: only RelWithDebInfo's count, so a tree that also
+# holds Debug or Release builds cannot mix them into one package
 find_built() {
-    local f
-    f=$(find "$BUILD_DIR" -name "$1" -type f -not -path "*/CMakeFiles/*" | grep -v -i "/debug/" | head -1)
-    [ -n "$f" ] || { echo "package: $1 not found under $BUILD_DIR" >&2; exit 2; }
+    local f n
+    if [ $WINDOWS -eq 1 ]; then
+        f=$(find "$BUILD_DIR" -name "$1" -type f -path "*/RelWithDebInfo/*" -not -path "*/CMakeFiles/*")
+    else
+        f=$(find "$BUILD_DIR" -name "$1" -type f -not -path "*/CMakeFiles/*")
+    fi
+    n=$(printf '%s' "$f" | grep -c . || true)
+    [ "$n" -eq 1 ] || { echo "package: expected one $1 under $BUILD_DIR, found $n" >&2; exit 2; }
     echo "$f"
 }
 

@@ -440,6 +440,11 @@ each ships the data tools instead.
       tag pushed yet)
 - [ ] Before the first release: replace `zlib1.dll` 1.2.3 in `3rdparty.zip`
       with a current zlib
+- [ ] The data build is not reproducible: `aseconv` gives a different
+      `tgl.fst` on two runs of the same tools (62 bytes apart here; the
+      other FSTs, `data/` and `assets/` are identical). Probably
+      uninitialised padding written into the binary shapes. Both data
+      builds smoke-run. (2026-11-01)
 - [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
 - [ ] Phase 4: smoke tests against the unpacked packages
 - [ ] Phase 5: `v0.1.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400

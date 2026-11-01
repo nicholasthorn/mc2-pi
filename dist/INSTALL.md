@@ -44,8 +44,9 @@ cd mc2-<version>-<platform>
 ./build_gamedata.sh --src-data ../mc2srcdata --out . --no-movies
 ```
 
-For the movies, install `git-lfs`, run `git lfs pull` in `mc2srcdata`, and
-leave out `--no-movies`.
+For the movies, install `git-lfs` and `ffmpeg`, run `git lfs pull` in
+`mc2srcdata`, and leave out `--no-movies`. The data build needs no display:
+it works over SSH and in WSL.
 
 This fills the folder with `data/`, `assets/`, `*.fst` and `*.cfg`. For
 Windows, copy those into the unpacked Windows folder.

@@ -28,13 +28,13 @@ their licences through the system package manager.
 | | dr_flac (FLAC), built in | MIT-0 or public domain | `SDL2_mixer-dr_flac.txt` |
 | | stb_vorbis (Ogg Vorbis), built in | MIT or public domain | `SDL2_mixer-stb_vorbis.txt` |
 | `SDL2_ttf.dll` | SDL_ttf 2.24.0 | zlib | `SDL2_ttf.txt` |
-| | FreeType, built in | FreeType License (FTL) | `SDL2_ttf-freetype.txt` |
+| | FreeType 2.13.2, built in | FreeType License (FTL) | `SDL2_ttf-freetype.txt` |
 | | HarfBuzz, built in | Old MIT | `SDL2_ttf-harfbuzz.txt` |
 | `glew32.dll` | GLEW 2.2.0 | Modified BSD, MIT, Khronos | `GLEW.txt` |
 | `zlib1.dll` | zlib 1.2.3 | zlib | `zlib.txt` |
 | `vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll` | Microsoft Visual C++ runtime | Distributable code under the Visual Studio licence terms | |
 
-Portions of this software are copyright (c) 2024 The FreeType Project
+Portions of this software are copyright (c) 2023 The FreeType Project
 (https://freetype.org). All rights reserved. (FreeType is used under the
 FreeType License, which asks for this credit.)
 

@@ -5,9 +5,11 @@
 # and SHA256SUMS. Nothing is published until someone reviews the draft.
 # Tags with a hyphen (v0.1.0-rc1) become pre-releases.
 #
-# Run by hand (workflow_dispatch), or on a pull request that changes the
-# packaging, it is a dry run: the same builds and packages, uploaded as
-# workflow artifacts only, no tag and no release.
+# Run by hand (workflow_dispatch), nightly, or on a pull request that
+# changes the packaging, it is a dry run: the same builds and packages,
+# uploaded as workflow artifacts only, no tag and no release. The nightly run
+# keeps the release toolchains building (Debian bookworm's GCC 12, Ubuntu
+# 22.04's GCC 11): ordinary PRs only build with CI's newer compilers.
 
 name: Release
 
@@ -20,6 +22,8 @@ on:
       - "scripts/package.sh"
       - "scripts/build_gamedata.sh"
       - "dist/**"
+  schedule:
+    - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       version:
@@ -70,6 +74,7 @@ jobs:
           name: package-rpi-arm64
           path: dist/*.tar.gz
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || 7 }}
 
   linux:
     name: Linux x64 (desktop GL)
@@ -97,6 +102,7 @@ jobs:
           name: package-linux-x86_64
           path: dist/*.tar.gz
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || 7 }}
 
   windows:
     name: Windows x64 (MSVC, desktop GL)
@@ -135,10 +141,11 @@ jobs:
         id: crt
         run: |
           vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
-          for d in $("$vswhere" -latest -find 'VC\Redist\MSVC\*\x64\Microsoft.VC143.CRT' | tr -d '\r'); do
-            d=$(cygpath -u "$d")
+          # one path per line, with spaces in it (C:\Program Files\...): read by line
+          while IFS= read -r d; do
+            d=$(cygpath -u "${d%$'\r'}")
             if [ -f "$d/vcruntime140_1.dll" ]; then echo "dir=$d" >> "$GITHUB_OUTPUT"; echo "CRT: $d"; exit 0; fi
-          done
+          done < <("$vswhere" -latest -find 'VC\Redist\MSVC\*\x64\Microsoft.VC143.CRT')
           echo "no Microsoft.VC143.CRT folder found" >&2; exit 1
       - name: Package
         run: >
@@ -151,6 +158,7 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || 7 }}
 
   release:
     name: Draft release
