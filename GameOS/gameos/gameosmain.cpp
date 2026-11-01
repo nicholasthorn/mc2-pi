@@ -51,6 +51,9 @@ static bool g_gameplay_started = false;
 static const float BENCH_FRAME_LENGTH = 1.0f / 30.0f;
 static const unsigned int BENCH_SEED = 1;
 static bool g_bench = false;
+// -bench or -deterministic: the fixed game step and seed above, so every run
+// of a mission plays out the same (sound off, see InitializeGameEngine)
+static bool g_fixed_step = false;
 
 void gos_SetFixedFrameLength(float seconds);	// gameos.cpp
 void gos_SetAutomatedRun(bool automated);	// gameos.cpp
@@ -102,10 +105,14 @@ void __stdcall gos_BenchScreenshot(const char* name)
 }
 
 static uint32_t g_bench_state = 0;      // this frame's gos_BenchStateHash
+static uint32_t g_last_state = 0;       // the latest one, for [STATEHASH] at -autoexit
+static bool g_have_state = false;
 
 void __stdcall gos_BenchStateHash(unsigned int hash)
 {
     g_bench_state = hash;
+    g_last_state = hash;
+    g_have_state = true;
 }
 
 // <csv without .csv>_<name>.tga, so shots sit next to the run's frame CSV
@@ -240,7 +247,7 @@ void __stdcall gos_MarkGameplayStarted(const char* missionName)
     g_gameplay_started = true;
     perf_control(true);
     // same random sequence from the first gameplay frame, whatever loading used
-    if(g_bench)
+    if(g_fixed_step)
         gos_srand(BENCH_SEED);
 }
 #if 0
@@ -426,8 +433,17 @@ int main(int argc, char** argv)
         if(0 == strcmp(argv[i], "-stereo"))
             gos_SetStereoSeparation((float)atof(argv[i+1]));
     }
+    // -deterministic: -bench's fixed step and seed without its CSV, so two
+    // -autoexit runs of a mission end in the same state (scripts/smoke.sh
+    // --deterministic compares the [STATEHASH] lines). Takes no value, so it is
+    // looked for in every argument.
+    bool deterministic = false;
+    for(int i=1;i<argc;++i)
+        if(0 == strcmp(argv[i], "-deterministic"))
+            deterministic = true;
     g_bench = bench_csv != NULL;
-    gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
+    g_fixed_step = g_bench || deterministic;
+    gos_SetFixedFrameLength(g_fixed_step ? BENCH_FRAME_LENGTH : 0.0f);
     gos_SetAutomatedRun(g_bench || autoexit_frames > 0 || g_uismoke_walk != NULL);
     if(bench_fov < 0.0f || bench_fov >= 170.0f) {
         // tan(fov / 2) in the projection breaks down towards 180
@@ -441,11 +457,11 @@ int main(int argc, char** argv)
     g_bench_csv = bench_csv;
     perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;
-    if(g_bench) {
+    if(g_bench)
         bench_frames.reserve(autoexit_frames > 0 ? autoexit_frames : 10000);
-        // the game skips its timeGetTime() seed under -bench
+    // the game skips its timeGetTime() seed with a fixed step
+    if(g_fixed_step)
         gos_srand(BENCH_SEED);
-    }
 
     // fills in Environment structure
     GetGameOSEnvironment(cmdline);
@@ -536,6 +552,10 @@ int main(int argc, char** argv)
             const long peak_mb = peak_resident_mb();
             if(peak_mb >= 0)
                 printf("[MEM] peak resident %ld MB\n", peak_mb);
+            // the game-state checksum after the last frame (fixed step only:
+            // otherwise it differs between runs anyway)
+            if(g_fixed_step && g_have_state)
+                printf("[STATEHASH] %08x\n", (unsigned)g_last_state);
             fflush(stdout);
             g_exit = true;
         }

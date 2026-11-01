@@ -1955,7 +1955,9 @@ void __stdcall gos_SetExitCode( int code );
 //
 //   gos_BenchStateHash(h): checksum of the game state this frame (the "state"
 //     CSV column); two runs that differ here diverged in game logic, not
-//     just in what was drawn.
+//     just in what was drawn. Reported on every fixed-step frame, with or
+//     without a scenario; -autoexit prints the last one as "[STATEHASH] h"
+//     (-bench or -deterministic, scripts/smoke.sh --deterministic).
 //
 const char* __stdcall gos_GetBenchScenario();
 void __stdcall gos_BenchSegment( const char* name );
