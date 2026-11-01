@@ -236,7 +236,10 @@ long TG_TypeMultiShape::LoadBinaryCopy (const char *fileName)
 				break;
 			}
 		}
-	
+
+		if (numTG_TypeShapes == 0)
+			return -1;	// nothing usable: fail as a missing file does
+
 		//Setup Heirarchy again because pointers are not valid!
 		for (int i=0;i<numTG_TypeShapes;i++)
 		{

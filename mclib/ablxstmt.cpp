@@ -277,7 +277,7 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
 	// Grab the expression value...
 	pop();
 
-	if (debugger)
+	if (debugger && targetPtr && targetTypePtr)
 		debugger->traceDataStore(idPtr, idPtr->typePtr, targetPtr, targetTypePtr);
 }
 
