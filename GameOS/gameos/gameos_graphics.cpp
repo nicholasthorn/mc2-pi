@@ -834,6 +834,10 @@ class gosTexture {
             destroyTexture(&tex_);
         }
 
+        // owns its buffers and the GL texture, freed by the destructor: not copyable
+        gosTexture(const gosTexture&) = delete;
+        gosTexture& operator=(const gosTexture&) = delete;
+
         uint32_t getTextureId() const { return tex_.id; }
         TexType getTextureType() const { return tex_.type_; }
 

@@ -56,6 +56,10 @@ struct gosFileStream
 
 	~gosFileStream();
 
+	// owns m_hFile, which the destructor closes: not copyable
+	gosFileStream( const gosFileStream& ) = delete;
+	gosFileStream& operator=( const gosFileStream& ) = delete;
+
 	DWORD Seek( int where, gosEnum_FileSeekType from_end );
 
 	DWORD Read( void *buffer, DWORD length );

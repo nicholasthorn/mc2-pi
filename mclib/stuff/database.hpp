@@ -101,6 +101,10 @@ namespace Stuff {
 		);
 		~DatabaseHandle();
 
+		// owns m_dataBase and the file mapping: not copyable
+		DatabaseHandle(const DatabaseHandle&) = delete;
+		DatabaseHandle& operator=(const DatabaseHandle&) = delete;
+
 		void
 			Save();
 

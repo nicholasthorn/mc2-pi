@@ -28,6 +28,7 @@ LogisticsMechIcon::LogisticsMechIcon( )
 	bDisabled = 0;
 }
 
+// cppcheck-suppress operatorEqVarError ; only copies the template layout, pMech/state are per-icon and set by the constructor
 LogisticsMechIcon& LogisticsMechIcon::operator =( const LogisticsMechIcon& src )
 {
 	if ( &src != this )

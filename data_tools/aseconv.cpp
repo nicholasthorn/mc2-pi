@@ -578,7 +578,7 @@ void __stdcall DoGameLogic() { }
 //
 void __stdcall GetGameOSEnvironment(const char* CommandLine)
 {
-	CommandLine = CommandLine;
+	(void)CommandLine;	// unused
 	Environment.applicationName = "MechCmdr2";
 	Environment.screenWidth = 640;
 	Environment.screenHeight = 480;

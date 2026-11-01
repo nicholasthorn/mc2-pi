@@ -281,6 +281,7 @@ void MechListBoxItem::assignAnimation( FitIniFile& file, long& curAnim )
 	}
 	curAnim++;
 }
+// cppcheck-suppress operatorEqVarError ; only copies the template layout, pMech/mechCount/animTime are per-item and set by the constructor
 MechListBoxItem& MechListBoxItem::operator=( const MechListBoxItem& src )
 {
 	if ( &src != this )

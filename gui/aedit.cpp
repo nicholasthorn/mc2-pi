@@ -81,6 +81,7 @@ aEdit::aEdit(  )
 	//MarkForBackSurfaceUpdate();
 }
 
+// cppcheck-suppress operatorEqVarError ; cursorTime is this edit's blink timer, transient state like bCursorVisible
 aEdit& aEdit::operator =( const aEdit& src )
 {
 
