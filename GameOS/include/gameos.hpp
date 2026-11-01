@@ -2022,6 +2022,18 @@ bool __stdcall gos_IsVR();
 // pointer (a beam and a dot): the game then draws no mouse cursor.
 //
 bool __stdcall gos_VRPointerActive();
+//
+// VR world picking. While the pointer is on the world (through the
+// see-through HUD, or beside it), gos_GetVRPointerRay() gives the pointing
+// controller's aim pose (as gosVREyeView's position and orientation: OpenXR
+// LOCAL space, the ray along the pose's -z) and returns true. The game picks
+// along it with the game camera and answers with gos_SetVRWorldPointer():
+// where the pick is on its screen (x, y from 0 to 1) and how far along the
+// ray (real metres), or valid false when the ray meets nothing it can pick.
+// The answer becomes the mouse position on the next input sample.
+//
+bool __stdcall gos_GetVRPointerRay( float position[3], float orientation[4] );
+void __stdcall gos_SetVRWorldPointer( bool valid, float x, float y, float metres );
 
 
 

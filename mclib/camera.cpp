@@ -2314,6 +2314,46 @@ void Camera::setCameraOrigin (void)
 }
 
 //---------------------------------------------------------------------------
+// VR: a controller's aim pose (OpenXR LOCAL space, the ray along its -z) as
+// a ray in the game's world (z up), moved and turned with the game camera as
+// the head-tracked eyes are (vr_eye::eyeBasis). Call with the game camera in
+// place (outside an eye's pass). unitsPerMetre: world units per real metre.
+bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
+	Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre)
+{
+	if (vrEye)
+		return false;
+	vr_eye::Basis game;
+	for (int c=0;c<3;c++)
+	{
+		game.x[c] = cameraOrigin(LEFT_AXIS,c);
+		game.y[c] = cameraOrigin(UP_AXIS,c);
+		game.z[c] = cameraOrigin(FORWARD_AXIS,c);
+	}
+	Stuff::Point3D gamePosition(cameraOrigin);
+	game.position[0] = gamePosition.x;
+	game.position[1] = gamePosition.y;
+	game.position[2] = gamePosition.z;
+
+	float position[3], orientation[4];
+	vr_eye::fromXr(xrPosition, xrOrientation, position, orientation);
+	const float worldUp[3] = {0.0f, 1.0f, 0.0f};
+	unitsPerMetre = worldUnitsPerMeter * gos_GetVRWorldScale();
+	const vr_eye::Basis ray = vr_eye::eyeBasis(game, worldUp, orientation, position,
+		unitsPerMetre, gos_GetVRKeepGamePitch());
+
+	// the camera frame is (-x, z, y) of the game's world (see projectZ); the
+	// aim pose's -z is the engine camera's forward axis
+	origin.x = -ray.position[0];
+	origin.y = ray.position[2];
+	origin.z = ray.position[1];
+	direction.x = -ray.z[0];
+	direction.y = ray.z[2];
+	direction.z = ray.z[1];
+	return true;
+}
+
+//---------------------------------------------------------------------------
 void Camera::calculateProjectionConstants (void)
 {
 	cameraDirection.yaw = cameraRotation * DEGREES_TO_RADS;

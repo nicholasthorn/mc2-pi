@@ -58,6 +58,10 @@ void pollInput();
 // The controllers stand in for the mouse, with their own pointer drawn as
 // a beam and a dot: the game draws no cursor.
 bool pointerActive();
+// World picking (gos_GetVRPointerRay, gos_SetVRWorldPointer): the pointing
+// hand's aim pose when the pointer is on the world, and the game's answer.
+bool pointerRay(float position[3], float orientation[4]);
+void setWorldPointer(bool valid, float x, float y, float metres);
 void shutdown();
 #else
 inline bool init() { return false; }
@@ -70,6 +74,8 @@ inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
 inline void pollInput() {}
 inline bool pointerActive() { return false; }
+inline bool pointerRay(float*, float*) { return false; }
+inline void setWorldPointer(bool, float, float, float) {}
 inline void shutdown() {}
 #endif
 

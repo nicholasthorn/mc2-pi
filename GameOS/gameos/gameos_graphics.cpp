@@ -2948,6 +2948,16 @@ bool __stdcall gos_VRPointerActive()
     return gos_xr::pointerActive();
 }
 
+bool __stdcall gos_GetVRPointerRay(float position[3], float orientation[4])
+{
+    return gos_xr::pointerRay(position, orientation);
+}
+
+void __stdcall gos_SetVRWorldPointer(bool valid, float x, float y, float metres)
+{
+    gos_xr::setWorldPointer(valid, x, y, metres);
+}
+
 float __stdcall gos_GetVRWorldScale()
 {
     static const float scale = getenv("MC2_VR_SCALE") ? (float)atof(getenv("MC2_VR_SCALE")) : 1.0f;

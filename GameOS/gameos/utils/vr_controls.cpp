@@ -1,5 +1,6 @@
 #include "vr_controls.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace vr_controls {
@@ -179,6 +180,51 @@ void holdForClick(ClickHold& hold, float pull, float& u, float& v, float dragDis
     }
     u = hold.u;
     v = hold.v;
+}
+
+bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(void* context, float x, float y),
+                   void* context, float step, float maxDistance, float& distance)
+{
+    // above the ground at t, by how much (negative: below)
+    auto above = [&](float t) {
+        return origin[2] + t * dir[2] - height(context, origin[0] + t * dir[0], origin[1] + t * dir[1]);
+    };
+    float tNear = 0.0f;
+    if(above(tNear) <= 0.0f)
+        return false;       // starts under the ground
+    for(float tFar = step; tNear < maxDistance; tFar += step) {
+        tFar = std::min(tFar, maxDistance);
+        if(above(tFar) <= 0.0f) {
+            // the crossing is between tNear and tFar
+            for(int i = 0; i < 16; ++i) {
+                const float mid = 0.5f * (tNear + tFar);
+                if(above(mid) > 0.0f)
+                    tNear = mid;
+                else
+                    tFar = mid;
+            }
+            distance = tFar;
+            return true;
+        }
+        tNear = tFar;
+    }
+    return false;
+}
+
+bool rayHitsSphere(const float origin[3], const float dir[3], const float centre[3], float radius,
+                   float& distance)
+{
+    const float oc[3] = {centre[0] - origin[0], centre[1] - origin[1], centre[2] - origin[2]};
+    const float along = oc[0] * dir[0] + oc[1] * dir[1] + oc[2] * dir[2];
+    const float offAxis2 = oc[0] * oc[0] + oc[1] * oc[1] + oc[2] * oc[2] - along * along;
+    const float r2 = radius * radius;
+    if(offAxis2 > r2)
+        return false;
+    const float t = along - std::sqrt(r2 - offAxis2);
+    if(t < 0.0f)
+        return false;       // behind, or the origin is inside it
+    distance = t;
+    return true;
 }
 
 float yawOf(const float orientation[4])

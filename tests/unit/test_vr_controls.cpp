@@ -271,6 +271,57 @@ TEST_CASE("click hold: moving well away is a drag, and then the pointer follows"
 	CHECK(u == doctest::Approx(0.45f));
 }
 
+namespace {
+
+// ground for the world pick tests: flat at 10, with a 50 high wall for x > 500
+float testGround(void*, float x, float)
+{
+	return x > 500.0f ? 50.0f : 10.0f;
+}
+
+}
+
+TEST_CASE("world pick: a ray down onto flat ground meets it where it should") {
+	// from (0, 0, 110), 45 degrees down along +x: meets z = 10 at x = 100
+	const float s = std::sqrt(0.5f);
+	const float origin[3] = {0.0f, 0.0f, 110.0f};
+	const float dir[3] = {s, 0.0f, -s};
+	float distance = 0.0f;
+	REQUIRE(vr_controls::rayHitsGround(origin, dir, testGround, nullptr, 25.0f, 5000.0f, distance));
+	CHECK(distance * s == doctest::Approx(100.0f).epsilon(0.01));
+}
+
+TEST_CASE("world pick: a wall in the way stops the ray at the wall") {
+	// level at height 30: passes over the ground at 10, meets the wall at x = 500
+	const float origin[3] = {0.0f, 0.0f, 30.0f};
+	const float dir[3] = {1.0f, 0.0f, 0.0f};
+	float distance = 0.0f;
+	REQUIRE(vr_controls::rayHitsGround(origin, dir, testGround, nullptr, 25.0f, 5000.0f, distance));
+	CHECK(distance == doctest::Approx(500.0f).epsilon(0.01));
+}
+
+TEST_CASE("world pick: a ray up, or one that runs out, meets nothing") {
+	const float origin[3] = {0.0f, 0.0f, 30.0f};
+	const float up[3] = {0.0f, 0.0f, 1.0f};
+	float distance = 0.0f;
+	CHECK_FALSE(vr_controls::rayHitsGround(origin, up, testGround, nullptr, 25.0f, 5000.0f, distance));
+	const float level[3] = {1.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsGround(origin, level, testGround, nullptr, 25.0f, 400.0f, distance));
+}
+
+TEST_CASE("world pick: spheres are hit on their near side, missed beside, ignored behind") {
+	const float origin[3] = {0.0f, 0.0f, 0.0f};
+	const float dir[3] = {1.0f, 0.0f, 0.0f};
+	const float centre[3] = {100.0f, 0.0f, 0.0f};
+	float distance = 0.0f;
+	REQUIRE(vr_controls::rayHitsSphere(origin, dir, centre, 20.0f, distance));
+	CHECK(distance == doctest::Approx(80.0f));
+	const float beside[3] = {100.0f, 30.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsSphere(origin, dir, beside, 20.0f, distance));
+	const float behind[3] = {-100.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsSphere(origin, dir, behind, 20.0f, distance));
+}
+
 TEST_CASE("sticks: small deflections do nothing, full ones give their direction") {
 	const float centre[2] = {0.0f, 0.0f};
 	const float nudge[2] = {0.2f, -0.2f};

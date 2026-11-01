@@ -118,6 +118,7 @@
 
 #include<gameos.hpp>
 #include "benchdirector.h"
+#include "utils/vr_controls.h"
 
 //----------------------------------------------------------------------------------
 // Macro Definitions
@@ -804,6 +805,64 @@ long Mission::getStatus (void) {
 }
 
 //----------------------------------------------------------------------------------
+// VR: the controller's ray picks in the world (VR plan, Phase 3). The ray
+// meets a unit (a sphere about each mover, so pointing at a mech's body picks
+// it) or else the ground; that point, projected through the game camera, is
+// where the mouse goes, so the game's own picking and orders work as they
+// are. Points the game camera does not see cannot be picked.
+static float vrGroundHeight (void*, float x, float y)
+{
+	return land->getTerrainElevation(Stuff::Vector3D(x,y,0.0f));
+}
+
+static void vrPickWorld (void)
+{
+	float position[3], orientation[4];
+	if (!gos_GetVRPointerRay(position,orientation))
+		return;
+	Stuff::Vector3D origin, direction;
+	float unitsPerMetre = 1.0f;
+	if (!eye || !land || !eye->vrRayToWorld(position,orientation,origin,direction,unitsPerMetre))
+	{
+		gos_SetVRWorldPointer(false,0.0f,0.0f,0.0f);
+		return;
+	}
+	const float o[3] = {origin.x, origin.y, origin.z};
+	const float d[3] = {direction.x, direction.y, direction.z};
+
+	float best = 0.0f;
+	bool hit = vr_controls::rayHitsGround(o,d,vrGroundHeight,NULL,32.0f,8000.0f,best);
+	Stuff::Vector3D target(o[0] + best * d[0], o[1] + best * d[1], o[2] + best * d[2]);
+	for (long i=0;i<ObjectManager->getNumMovers();i++)
+	{
+		MoverPtr mover = ObjectManager->getMover(i);
+		if (!mover || !mover->getExists() || mover->isDestroyed())
+			continue;
+		// a mech is 10 to 12 m tall, a vehicle about 4 m (0.2 m a world unit)
+		const float halfHeight = mover->isMech() ? 30.0f : 12.0f;
+		Stuff::Vector3D centre = mover->getPosition();
+		centre.z += halfHeight;
+		const float c[3] = {centre.x, centre.y, centre.z};
+		float distance = 0.0f;
+		if (vr_controls::rayHitsSphere(o,d,c,halfHeight * 1.2f,distance) && (!hit || (distance < best)))
+		{
+			hit = true;
+			best = distance;
+			target = centre;
+		}
+	}
+
+	Stuff::Vector4D screen;
+	if (!hit || !eye->projectZ(target,screen))
+	{
+		gos_SetVRWorldPointer(false,0.0f,0.0f,0.0f);
+		return;
+	}
+	gos_SetVRWorldPointer(true,screen.x / Environment.screenWidth,screen.y / Environment.screenHeight,
+		best / unitsPerMetre);
+}
+
+//----------------------------------------------------------------------------------
 
 long Mission::render (void)
 {
@@ -819,6 +878,7 @@ long Mission::render (void)
 			eye->ambientBlue = 0xFF;
 		}
 		BenchStage("world_render",eye->renderWorld());
+		vrPickWorld();
 		GameMap->clearCellDebugs(0);
 	
 		//-----------------------------------------------------

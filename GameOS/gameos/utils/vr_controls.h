@@ -53,6 +53,17 @@ struct ClickHold {
 };
 void holdForClick(ClickHold& hold, float pull, float& u, float& v, float dragDistance = 0.05f);
 
+// World picking (in the game's world: z up, any units). Where a ray from
+// origin along the unit vector dir first meets the ground: height(context,
+// x, y) is the ground's height there. Marches in steps of 'step' up to
+// maxDistance, then narrows the crossing down. False when it meets nothing.
+bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(void* context, float x, float y),
+                   void* context, float step, float maxDistance, float& distance);
+
+// Where a ray (unit dir) first meets a sphere in front of its origin.
+bool rayHitsSphere(const float origin[3], const float dir[3], const float centre[3], float radius,
+                   float& distance);
+
 // The heading of an orientation: the angle about +y of its -z axis, seen
 // from above. Looking up or down and tilting the head do not change it.
 float yawOf(const float orientation[4]);

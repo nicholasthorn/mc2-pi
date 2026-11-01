@@ -62,6 +62,25 @@ const float kDotSize = 0.025f;
 // the controllers' buttons that are not per hand
 enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_COUNT };
 
+// What the pointer is on: the interface on the quad (where its alpha shows
+// something drawn), the world (through the quad's see-through parts, or
+// beside it), or nothing (no controller pose).
+enum PointerTarget { TARGET_NONE, TARGET_HUD, TARGET_WORLD };
+// the window's alpha above which the quad shows interface
+const float kInterfaceAlpha = 0.1f;
+
+// The window frame's alpha at up to two points (the quad under the ray, and
+// where the world pick lands on the game's screen), read back without
+// waiting: each frame's request is read on a later frame, once the GPU has
+// finished it.
+struct AlphaProbe {
+    static const int kSlots = 3;
+    GLuint pbo[kSlots] = {};
+    GLsync fence[kSlots] = {};
+    bool wanted[kSlots][2] = {};
+    int next = 0;
+};
+
 struct Image {
     XrSwapchain swapchain = XR_NULL_HANDLE;
     int32_t width = 0, height = 0;
@@ -121,9 +140,23 @@ struct State {
     vr_controls::ClickHold clickHold;
     bool buttonDown[BUTTON_COUNT] = {};
     uint32_t stickActions = 0;
-    bool pointerHeld = false;       // a button went down with the ray on the quad
+    bool pointerHeld = false;       // a button went down with the pointer on a target
     uint32_t heldButtons = 0;       // the pointing hand's, as mouse button bits
-    uint32_t ignoredButtons = 0;    // pressed off the quad, not yet let go
+    uint32_t ignoredButtons = 0;    // pressed with no target, not yet let go
+    PointerTarget target = TARGET_NONE;
+    PointerTarget pressTarget = TARGET_NONE;    // kept while a button is held
+    float hudU = 0.5f, hudV = 0.5f; // the quad under the ray, when on it
+    bool onQuad = false;
+    // the game's world pick (gos_SetVRWorldPointer): where on its screen
+    // (0 to 1) and how far along the ray (metres); stale after a frame
+    // without an answer
+    bool worldValid = false;
+    float worldX = 0.0f, worldY = 0.0f, worldMetres = 0.0f;
+    int worldAge = 0;
+    // the window's alpha at the quad point and at the world pick
+    AlphaProbe probe;
+    float hudAlpha = 1.0f;
+    float worldAlpha = 0.0f;
     // the pointer drawn as a beam and a dot (layers over the quad), shown
     // while the game has the controllers
     Image beamImage;
@@ -465,6 +498,7 @@ void releaseInput()
     g.pointerHeld = false;
     g.heldButtons = g.ignoredButtons = 0;
     g.pointerVisible = false;
+    g.target = g.pressTarget = TARGET_NONE;
     for(int hand = 0; hand < 2; ++hand)
         g.selectDown[hand] = g.contextDown[hand] = g.pulling[hand] = false;
     g.clickHold = vr_controls::ClickHold();
@@ -726,8 +760,9 @@ void setLayer(XrCompositionLayerQuad& layer, const Image& image, const vr_contro
 }
 
 // The pointer at this frame's display time: the beam from the pointing hand
-// (to the quad, or kBeamLength), and the dot where it meets the quad.
-// Returns how many of the two layers are filled.
+// to the quad (the interface) or to the world pick (the ground or a unit),
+// with a dot there; kBeamLength and no dot when it meets nothing. Returns
+// how many of the two layers are filled.
 int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
 {
     if(!g.pointerVisible || !g.pointerImagesReady)
@@ -735,22 +770,100 @@ int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
     vr_controls::Pose aim, head;
     if(!locate(g.aimSpaces[g.pointingHand], aim) || !locate(g.viewSpace, head))
         return 0;
-    float u = 0.0f, v = 0.0f, distance = 0.0f;
-    const bool hit = g.clickHold.holding
-            || vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
     float end[3];
-    if(g.clickHold.holding)     // the beam ends where the click goes
-        vr_controls::quadPoint(g.hud, g.hudWidth, quadHeight(), g.clickHold.u, g.clickHold.v, end);
-    else
-        vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
+    bool hit = false;
+    vr_controls::Pose at = g.hud;
+    float dotSize = kDotSize;
+    if(g.target == TARGET_HUD) {
+        float u = 0.0f, v = 0.0f, distance = 0.0f;
+        hit = g.clickHold.holding
+                || vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
+        if(g.clickHold.holding)     // the beam ends where the click goes
+            vr_controls::quadPoint(g.hud, g.hudWidth, quadHeight(), g.clickHold.u, g.clickHold.v, end);
+        else
+            vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
+    } else {
+        hit = g.target == TARGET_WORLD && g.worldValid;
+        vr_controls::rayPoint(aim, hit ? g.worldMetres : kBeamLength, end);
+        if(hit) {
+            // turned to the eye about the vertical, as large to the eye as on the quad
+            float length = 0.0f;
+            const float below[3] = {end[0], end[1] - 0.01f, end[2]};
+            const float above[3] = {end[0], end[1] + 0.01f, end[2]};
+            at = vr_controls::beamPose(below, above, head.position, length);
+            dotSize = kDotSize * g.worldMetres / g.hudDistance;
+        }
+    }
     float length = 0.0f;
     setLayer(beam, g.beamImage, vr_controls::beamPose(aim.position, end, head.position, length), kBeamWidth, length);
     if(!hit)
         return 1;
-    vr_controls::Pose at = g.hud;
     memcpy(at.position, end, sizeof(at.position));
-    setLayer(dot, g.dotImage, at, kDotSize, kDotSize);
+    setLayer(dot, g.dotImage, at, dotSize, dotSize);
     return 2;
+}
+
+// Reads back what earlier frames asked for, oldest first, as far as the GPU
+// has finished: the quad's alpha under the ray and at the world pick.
+void collectAlpha()
+{
+    AlphaProbe& p = g.probe;
+    for(int k = 0; k < AlphaProbe::kSlots; ++k) {
+        const int slot = (p.next + k) % AlphaProbe::kSlots;
+        if(!p.fence[slot])
+            continue;
+        const GLenum state = glClientWaitSync(p.fence[slot], 0, 0);
+        if(state != GL_ALREADY_SIGNALED && state != GL_CONDITION_SATISFIED)
+            return;     // the newer ones are not done either
+        glDeleteSync(p.fence[slot]);
+        p.fence[slot] = 0;
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, p.pbo[slot]);
+        const uint8_t* pixels = (const uint8_t*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, 8, GL_MAP_READ_BIT);
+        if(pixels) {
+            if(p.wanted[slot][0])
+                g.hudAlpha = pixels[3] / 255.0f;
+            if(p.wanted[slot][1])
+                g.worldAlpha = pixels[7] / 255.0f;
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    }
+}
+
+// Asks for the window's alpha at the quad point under the ray and at the
+// world pick, if there are such points (the window's frame is bound).
+void requestAlpha(int width, int height)
+{
+    AlphaProbe& p = g.probe;
+    if(!p.pbo[0]) {
+        glGenBuffers(AlphaProbe::kSlots, p.pbo);
+        for(GLuint pbo : p.pbo) {
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+            glBufferData(GL_PIXEL_PACK_BUFFER, 8, nullptr, GL_STREAM_READ);
+        }
+    }
+    const int slot = p.next;
+    if(p.fence[slot]) {         // never finished: drop it
+        glDeleteSync(p.fence[slot]);
+        p.fence[slot] = 0;
+    }
+    p.wanted[slot][0] = g.onQuad;
+    p.wanted[slot][1] = g.worldValid;
+    if(!p.wanted[slot][0] && !p.wanted[slot][1])
+        return;
+    const float points[2][2] = {{g.hudU, g.hudV}, {g.worldX, g.worldY}};
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, p.pbo[slot]);
+    for(int i = 0; i < 2; ++i) {
+        if(!p.wanted[slot][i])
+            continue;
+        // GL's rows count from the bottom
+        const int x = std::min(width - 1, std::max(0, (int)(points[i][0] * width)));
+        const int y = std::min(height - 1, std::max(0, (int)((1.0f - points[i][1]) * height)));
+        glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, (void*)(intptr_t)(i * 4));
+    }
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    p.fence[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    p.next = (slot + 1) % AlphaProbe::kSlots;
 }
 
 } // namespace
@@ -928,6 +1041,12 @@ bool present(int width, int height)
     release(g.eyes[0]);
     release(g.eyes[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // the window's frame now holds this frame's interface: where it shows
+    // something decides whether the pointer is on the interface (pollInput)
+    if(g.actionSet != XR_NULL_HANDLE && g.useEyes) {
+        collectAlpha();
+        requestAlpha(width, height);
+    }
 
     XrCompositionLayerProjectionView projViews[2];
     XrCompositionLayerProjection projection = xrStruct<XrCompositionLayerProjection>(XR_TYPE_COMPOSITION_LAYER_PROJECTION);
@@ -1060,41 +1179,90 @@ void pollInput()
     setKeys(g.stickActions, buttons);
     g.pointerVisible = true;
 
-    // the pointer: where the pointing hand's ray meets the quad
+    // the pointer: on the interface where the pointing hand's ray meets the
+    // quad over something drawn; else in the world, where the game's pick
+    // (gos_SetVRWorldPointer, answering pointerRay) puts it on its screen
     const int hand = g.pointingHand;
     const uint32_t held = (g.selectDown[hand] ? 1u : 0u) | (g.contextDown[hand] ? 4u : 0u);
+    if(g.worldAge++ > 2)
+        g.worldValid = false;       // the game stopped answering (no mission)
     vr_controls::Pose aim;
     float u = 0.0f, v = 0.0f;
-    const bool onQuad = locate(g.aimSpaces[hand], aim)
-            && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v);
+    const bool located = locate(g.aimSpaces[hand], aim);
+    g.onQuad = located && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v);
+    if(g.onQuad) {
+        g.hudU = u;
+        g.hudV = v;
+    }
+    // without eyes the quad is the whole game, the world included
+    PointerTarget target = !located ? TARGET_NONE
+            : (g.onQuad && (!g.useEyes || g.hudAlpha > kInterfaceAlpha)) ? TARGET_HUD : TARGET_WORLD;
+    // a press stays with what it started on until it is let go
+    if(g.heldButtons && g.pressTarget != TARGET_NONE)
+        target = g.pressTarget;
+    if(target != g.target)
+        g.clickHold = vr_controls::ClickHold();
+    g.target = target;
+    bool valid = target == TARGET_HUD && g.onQuad;
+    if(target == TARGET_WORLD && g.worldValid && g.worldAlpha <= kInterfaceAlpha) {
+        // (not where the interface covers the game's screen: the click
+        // would go to the panel)
+        u = g.worldX;
+        v = g.worldY;
+        valid = true;
+    }
+
     // the pointer stays still through a click (pulling a trigger moves the
     // hand, and the game takes a press that moves for a drag)
-    if(onQuad)
+    if(valid)
         vr_controls::holdForClick(g.clickHold, pull[hand], u, v);
     else if(!g.pointerHeld)
         g.clickHold = vr_controls::ClickHold();
-    // a button pressed off the quad stays ignored until it is let go: else
-    // sweeping the ray onto the panel with the trigger held would click there
-    if(!onQuad && !g.pointerHeld)
+    // a button pressed with nothing to click stays ignored until it is let
+    // go: else sweeping onto a target with the trigger held would click there
+    if(!valid && !g.pointerHeld)
         g.ignoredButtons |= held & ~g.heldButtons;
     g.ignoredButtons &= held;
+    if(held && !g.heldButtons)
+        g.pressTarget = valid ? target : TARGET_NONE;
+    else if(!held)
+        g.pressTarget = TARGET_NONE;
     g.heldButtons = held;
     const uint32_t mouseButtons = held & ~g.ignoredButtons;
-    if(onQuad) {
+    if(valid) {
         const float w = (float)Environment.drawableWidth, h = (float)Environment.drawableHeight;
         g.pointerX = std::min(w - kPointerMargin, std::max(kPointerMargin, u * w));
         g.pointerY = std::min(h - kPointerMargin, std::max(kPointerMargin, v * h));
         input::setVirtualPointer(g.pointerX, g.pointerY, mouseButtons);
         g.pointerHeld = mouseButtons != 0;
     } else if(g.pointerHeld && mouseButtons) {
-        // dragged off the quad: the cursor stays where the ray left it
-        // until the button is let go
+        // dragged off its target: the cursor stays where it was until the
+        // button is let go
         input::setVirtualPointer(g.pointerX, g.pointerY, mouseButtons);
     } else {
-        // the world (picking there is still to come) or nowhere: no clicks
+        // nothing to point at (the sky, outside the game camera's view)
         input::clearVirtualPointer();
         g.pointerHeld = false;
     }
+}
+
+bool pointerRay(float position[3], float orientation[4])
+{
+    vr_controls::Pose aim;
+    if(g.target != TARGET_WORLD || !locate(g.aimSpaces[g.pointingHand], aim))
+        return false;
+    memcpy(position, aim.position, sizeof(aim.position));
+    memcpy(orientation, aim.orientation, sizeof(aim.orientation));
+    return true;
+}
+
+void setWorldPointer(bool valid, float x, float y, float metres)
+{
+    g.worldValid = valid;
+    g.worldX = x;
+    g.worldY = y;
+    g.worldMetres = metres;
+    g.worldAge = 0;
 }
 
 
@@ -1109,6 +1277,11 @@ void shutdown()
         if(image->swapchain != XR_NULL_HANDLE)
             xrDestroySwapchain(image->swapchain);
     }
+    for(GLsync& fence : g.probe.fence)
+        if(fence)
+            glDeleteSync(fence);
+    if(g.probe.pbo[0])
+        glDeleteBuffers(AlphaProbe::kSlots, g.probe.pbo);
     for(XrSpace space : g.aimSpaces)
         if(space != XR_NULL_HANDLE)
             xrDestroySpace(space);

@@ -465,7 +465,10 @@ class Camera
 		}
 				
 		void inverseProjectZ (Stuff::Vector4D &screen, Stuff::Vector3D &point);
-		
+
+		bool vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
+			Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre);
+
 		void projectCamera (Stuff::Vector3D &point);
 
 		unsigned long inverseProject (Stuff::Vector2DOf<long> &screenPos, Stuff::Vector3D &point);
