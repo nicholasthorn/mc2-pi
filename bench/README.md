@@ -111,7 +111,7 @@ and a column in the frame CSV, averaged per frame:
 `terrain_geom`, `shape_xform` and `world_render` are the work VR stereo
 would repeat per eye (`planning/future-features/VR-TABLETOP.md`).
 `-benchfov <degrees>` forces the camera's field of view for the whole run
-(a headset sees about 100 degrees, the game 40), to measure the wider view.
+(a headset sees about 100 degrees, the game 40), to measure the wider view. It is applied each frame after the bench director, before the camera update.
 
 ## Scenarios
 

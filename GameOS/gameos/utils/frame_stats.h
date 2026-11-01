@@ -67,7 +67,8 @@ inline int stageSlot(std::vector<std::string>& names, const char* name)
 }
 
 std::string csvHeader(const std::vector<std::string>& stages = std::vector<std::string>());
-std::string csvRow(long frame, const FrameSample& s, size_t numStages = 0);
+std::string csvRow(long frame, const FrameSample& s,
+		const std::vector<std::string>& stages = std::vector<std::string>());
 
 // "[BENCH] segment=<name> frames=... fps=... avg_ms=... ..." on one line.
 std::string summaryLine(const char* segment, const Summary& s,

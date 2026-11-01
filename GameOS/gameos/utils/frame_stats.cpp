@@ -74,14 +74,14 @@ std::string csvHeader(const std::vector<std::string>& stages)
 	return header;
 }
 
-std::string csvRow(long frame, const FrameSample& s, size_t numStages)
+std::string csvRow(long frame, const FrameSample& s, const std::vector<std::string>& stages)
 {
 	char buf[176];
 	snprintf(buf, sizeof(buf), "%ld,%.3f,%.3f,%.3f,%.3f,%u,%u,%u,%08x", frame,
 			s.total_ms, s.logic_ms, s.render_ms, s.swap_ms,
 			(unsigned)s.draws, (unsigned)s.tris, (unsigned)s.segment, (unsigned)s.state);
 	std::string row = buf;
-	for (size_t i = 0; i < numStages && i < kMaxStages; ++i) {
+	for (size_t i = 0; i < stages.size() && i < kMaxStages; ++i) {
 		snprintf(buf, sizeof(buf), ",%.3f", s.stage_ms[i]);
 		row += buf;
 	}

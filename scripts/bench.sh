@@ -100,7 +100,7 @@ while [ $# -gt 0 ]; do
         --frames)    FRAMES="$2"; FRAMES_SET=1; shift 2 ;;
         --scenario)  SCENARIO="$2"; shift 2 ;;
         --fov)       FOV="$2"; shift 2 ;;
-        --runs)     RUNS="$2"; shift 2 ;;
+        --runs)      RUNS="$2"; shift 2 ;;
         --vsync)     VSYNC="$2"; shift 2 ;;
         --cool-to)   COOL_TO="$2"; shift 2 ;;
         --timeout)   TIMEOUT="$2"; shift 2 ;;

@@ -158,7 +158,7 @@ TEST_CASE("stages are averaged and become extra columns and keys")
 
 	CHECK(frame_stats::csvHeader(stages) ==
 			"frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris,segment,state,camera_ms,terrain_geom_ms");
-	CHECK(frame_stats::csvRow(7, frames[0], stages.size()) ==
+	CHECK(frame_stats::csvRow(7, frames[0], stages) ==
 			"7,10.000,2.500,5.000,2.500,100,1000,0,00000000,1.000,2.500");
 	CHECK(frame_stats::summaryLine("all", s, stages) ==
 			"[BENCH] segment=all frames=2 fps=50.0 avg_ms=20.00 p50_ms=10.00"

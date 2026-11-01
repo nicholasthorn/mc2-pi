@@ -271,10 +271,14 @@ static uint64_t g_bench_stage_start[frame_stats::kMaxStages];
 static double g_bench_stage_ms[frame_stats::kMaxStages];   // this frame
 static float g_bench_fov = 0.0f;
 
-void gos_SetBenchStages(bool on, float fov)
+void gos_EnableBenchStages()
 {
-    g_bench_stages_on = on;
-    g_bench_fov = on ? fov : 0.0f;
+    g_bench_stages_on = true;
+}
+
+void gos_SetBenchFOV(float fov)
+{
+    g_bench_fov = fov;
 }
 
 const std::vector<std::string>& gos_GetBenchStageNames()
