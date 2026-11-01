@@ -460,12 +460,34 @@ mc2_19 is a night map, whose shadows come from point and spot lights.) The
 cloud layer needs nothing: `Clouds::update` never sets `renderClouds`, so it
 is not drawn in this build.
 
-Worse in this debug view: world-anchored overlays (selection brackets,
-health bars, `FloatHelp`) are part of the interface, drawn once over the
-whole window at the game camera's positions, so they match neither squashed
-half (a unit at mono x = 600 is at 300 and 700 in the halves, its bracket at
-600). Mouse picking and the cursor are full-window too. `-stereo` is for
-looking at the rendering, not for playing; Phase 2 draws overlays per eye.
+World-anchored overlays are per eye too (third slice, `vr-overlays`).
+Selection brackets, health bars, icons and select boxes were already drawn
+inside each eye's pass, but from the screen bounds `recalcBounds` computes
+with the game camera, so they had no parallax: both halves showed them at
+the same x, in the screen plane. Floating text (`FloatHelp`: unit names,
+sensor labels) was queued and drawn once over the whole window, matching
+neither half. Now:
+
+- An eye differs from the game camera by a sideways shift only, so a point's
+  screen x moves by a constant times its 1/depth (`screenPos.w`).
+  `Camera::renderWorld` measures that constant per eye on the camera's
+  look-at point (`Appearance::stereoParallax`); the `Appearance` draw
+  functions and `getScreenPos()` add it, times the object's `screenPos.w`.
+  It is 0 outside an eye's pass, so picking, drag-select and culling, which
+  read the bounds during the update, are unchanged.
+- Floating text added during an eye's pass is drawn in that eye's half and
+  dropped (`FloatHelp::renderAndResetFrom`); text set during the update (HUD
+  text) is still drawn once over the whole window.
+
+Measured on mc2_19 screenshots (green bars and brackets only): the shift
+between the halves went from 0 px to -15 px (engage) and -30 px (close-up),
+matching the scene's -12 to -32 px. Mono is byte-identical, the state
+checksum unchanged. The whole box shifts by its centre's parallax, a close
+enough fit for a box a few metres deep.
+
+Still full-window: mouse picking and the cursor, and the interface panels.
+`-stereo` is for looking at the rendering, not for playing; Phase 2 puts the
+interface on its own layer and picks with a controller ray.
 
 Not covered by an automated check yet: the eye order. It rests on one
 measured sign in `setCameraOrigin`; a flip passes the unit tests and the
