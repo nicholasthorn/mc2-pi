@@ -180,7 +180,7 @@ bool parse_include(const char* str, const char*& include, size_t& size, const ch
     const char* begin = strchr(str, '<');
     const char* end = strchr(str, '>');
     const char* eol = strchr(str, '\n');
-    ieol = eol+1; // skip \n
+    ieol = eol ? eol+1 : nullptr; // skip \n; NULL tells the caller the include was the last line
 
     if(!begin || !end || (eol && end > eol) || end - begin <= 1)
         return false;
@@ -261,7 +261,7 @@ bool parse_includes(const char* fname, const char* psource, std::vector<std::str
             break;
     }
 
-    if(*start)
+    if(start && *start)
     {
         append_line_directive(parsed_source, current_line, fname);
         parsed_source.append(std::string(start));
