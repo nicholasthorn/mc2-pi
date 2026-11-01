@@ -571,8 +571,8 @@ follow, the code is platform-neutral). Branch `vr-openxr`.
   asymmetric field of view.
 - **Meshes:** the CPU path projects shape vertices once, during the update,
   for the game camera, so in the eyes they were head-locked. In VR the GPU
-  path (alariq's, off by default) is switched on, alpha-textured shapes
-  included (alpha-tested); shapes it cannot take (spotlights, windows,
+  path (alariq's, off by default) is used while `gos_IsVR()`, alpha-textured
+  shapes included (alpha-tested); shapes it cannot take (spotlights, windows,
   fading) are left out of the eyes. Its textured lit shader did not link on
   the Adreno driver: `calc_light` copied a whole light record (sixteen
   `mat4`s) into a local; it now reads the fields in place.
@@ -599,7 +599,7 @@ Known gaps:
   thread, or cheaper eyes. (Before: 47.6 fps stepping every frame; a third
   world pass for a tablet cost 1 ms more and was dropped for the HUD.)
 - **Culling, terrain done:** in VR `Terrain::geometry` projects and draws
-  every vertex in the terrain window (`Terrain::drawWholeWindow`), while
+  every vertex in the terrain window (while `gos_IsVR()`), while
   the gameplay decision (which object blocks are active) keeps the game
   camera's view; no frame-time cost (67.0 fps), flat game byte-identical.
   The draw-only cull for **objects** is still to do: units and trees outside
