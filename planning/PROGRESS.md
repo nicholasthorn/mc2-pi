@@ -275,6 +275,23 @@ on 2026-10-31.
       following bytes as another pointer. (10-29)
 - [x] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29, done
       10-31)
+- [ ] From the 2026-11-01 sweep, waiting on step 4 of the `STOP` plan (once
+      `STOP` exits these end cleanly; porting them would let the game carry
+      on instead): `80e98102` (`ObjectTypeManager::load` uses NULL after a
+      CRAPPY_OBJECT `Fatal`), `424b2ce7` (`Mission::addMover` treats a
+      vehicle in the force group as a mech; the one-argument overload has
+      the same pattern), `9356f8e3` + `6daa0905` (a module with compile
+      errors still runs).
+- [ ] Leads from the same sweep, not ported as they are: a mission with no
+      MOVE data runs on with `GameMap == NULL` after its `STOP` (`f1eaa6ee`;
+      exit like the bad-packet branch instead); the graphics options list
+      each resolution about four times (`9cbe2ea7`); the briefing minimap may
+      upload alpha-0 water and concrete cells (`3c8dd69e`, check by eye
+      first); `shader_builder.cpp` `parse_uniforms` reads past `typeNames`
+      for a `sampler2DArray` uniform (`7c3a382a`, latent: no shader has one);
+      `controlgui.cpp` adds `hiResOffsetX` but not `hiResOffsetY` to the
+      video box (`51ddcf25`, check in game). Never port `c92175fd`: it
+      treats real callback addresses on Linux and arm64 as bogus.
 - [x] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
       `84e1774a`, `d21e7855`, `1cf8c7b8`. (10-29, done 10-31: `294fd42e`,
       `d21e7855`, `1cf8c7b8` ported; `a03e13a2` and `aa20a308` not needed
@@ -365,8 +382,12 @@ Taken so far:
 
 Candidates:
 
-- [ ] Keep sweeping the remaster's history for fixes to shared `code/` and
-      `mclib/` files.
+- [x] Full sweep of the remaster's history (2026-11-01, `fork/main` at
+      `63bb0832`, no commits since 2026-07-05): the 419 fix-like commits that
+      touch files both repos have, checked against this code. 23 applied
+      (stock-data fixes and mod-data guards, branch `fix/backport-sweep`),
+      21 were already fixed here, 375 are remaster-only. Left open: see
+      "Back-ports from the remaster not yet done".
 - [ ] **Later game data: upscaled textures and art.** The remaster ships
       AI-upscaled (4x) terrain, building, mech and UI art. This port's
       `File::open` already loads a loose file in preference to the FST archive,
@@ -403,6 +424,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: Full sweep of the remaster's history (branch `fix/backport-sweep`): 419 fix-like commits on shared files checked, 23 ported. Stock data: a leftover `ENTER_DEBUGGER` in `UserHeap::pointerOnHeap` (SIGTRAP from the briefing's empty-model `SimpleCamera::setObject`), `gos_SetMousePosition` warped to 0..1 as pixels, `calcAttackPlan` divided by a zero threat rating, `GlobalMap::destroy` leaked its three pointer arrays every mission, an unbounded height read in `calcBestGoalFromTarget`, the `txmmgr` vertex and shape pools handed out memory past their heap when full (and the untextured copies wrote one slot past their block), mech and vehicle paint colours swapped on an LOD change (cache-hit branches stored them unconverted under `BGR`), `iconsPerPage` used the atlas width, and the logistics CSV reader stepped past a short row's NUL (now `code/csvfield.h`, unit tested). Mod data: missing terrain textures and masks, ABL assignment from broken bytecode, the pilot-ready screen lost after a first mission without logistics, objective copies of an unknown species, icon indexes past the atlas, more than 256 cursors, short or oversized briefing TGAs, unknown TGL node types and vertex indices, the mission-selection button off-by-one, and out-of-range ABL routine keys and full routine tables.
 - 2026-11-01: agent workflow Tier 2 moves to CI: after `/simplify` + `/code-review`, a batch is pushed to a draft PR and `ci.yml` / `smoke.yml` do the four-configuration build and the smoke missions; local `check.sh --level batch` only for crash debugging or GLES-only changes. Five sessions running batch checks at once were queueing for the same WSL CPUs to repeat what CI runs in 2 to 9 minutes. Also: no `pgrep -f smoke.sh` waits, which matched other sessions' runs.
 - 2026-10-31: MechCommander Omnitech mech lab (branch `omnitech-mechlab`): the mech lab takes its fixed statics from Omnitech's 15-static `mcl_mc.fit` as Omnitech's code does (stock's 56 otherwise), so "change loadout" in the mech bay is back on. "Buy" on Omnitech's purchase screen works; the UI walk's purchase was a 100 t Atlas on a 65 t mission. Details in `MOD-COMPAT.md` item 12.
 
