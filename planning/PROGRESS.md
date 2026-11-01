@@ -113,9 +113,19 @@ Added 2026-10-31.
     the source line's fill is 0 and still reports a non-zero one; the two
     real ones, `0xff` fills in the ASE parser (`tgl.cpp`), are now zero
     (a mesh without texture faces kept NaN UVs in `tgl.fst`).
+  - [x] `duplInheritedMember` (41) (branch `fix/cppcheck-dupl`): two real
+    ones, both latent: `Camera::destroy` is now virtual (`eye->destroy()`
+    ran Camera's on a GameCamera), and the accept-variant dialog's own
+    `selectedName` is gone (a delete would have removed the wrong variant;
+    stock data has no delete button there). Dead duplicates removed
+    (`Building::isVisible`, `BattleMech::initOptimalCells`, two MP
+    `isDone`); 28 intended ones suppressed inline with the reason, the two
+    save-game struct fields among them (loads tell types apart by size).
+    Left: `TerrainObjectType::subType`, the shipped-game forest pathing
+    bug (fixing it changes gameplay: needs a decision).
   - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
-    better after the STOP/Fatal work below), `duplInheritedMember` (41),
-    `allocaCalled` (27) and the rest.
+    better after the STOP/Fatal work below), `allocaCalled` (27) and the
+    rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
@@ -407,6 +417,8 @@ Candidates:
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
+
+- 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing, shipped behaviour) left for a gameplay decision.
 
 - 2026-11-01: cppcheck `memsetClassFloat` (43) closed (branch `fix/cppcheck-memset`): the ASE shape parser zero-fills its vertex and triangle lists instead of `0xff`, so a mesh without texture faces no longer keeps NaN UVs (game data differs only in `tgl.fst`); the gate drops `memsetClassFloat` for zero fills (all-bits-zero is 0.0f on IEEE 754) and still reports non-zero ones. Baseline to regenerate from CI after merge.
 - 2026-11-01: CI skips docs-only pushes: a "changes" job in `ci.yml` and `smoke.yml` runs `scripts/ci_docs_only.sh`, and the build, test and smoke jobs skip when everything changed since the previous push is docs (`*.md`, `planning/`, `.claude/`, `docs`, `devdoc.txt`) and that previous commit passed the same workflow. A cancelled or failed run, a force push or a new branch always runs in full. Docs-only PRs no longer start `ci.yml` at all (`paths-ignore`) (#45). Same PR: agents run `/simplify`, `/code-review` and `/code-review high` while CI runs on the push, instead of waiting for green first.
