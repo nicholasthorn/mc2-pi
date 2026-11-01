@@ -47,6 +47,16 @@ void pinMouse(float x, float y);
 void handleKeyEvent(const SDL_Event* event);
 void updateKeyboardState();
 
+// VR controllers (gos_xr) stand in for the mouse and keyboard: a pointer in
+// drawable pixels with the buttons held (bit 0 left, 1 middle, 2 right, as
+// gos_GetMouseInfo reports them), and keys held by SDL scancode.
+// updateMouseState and updateKeyboardState put them over SDL's own state.
+// A press that starts and ends between two samples still counts once.
+void setVirtualPointer(float x, float y, uint32_t buttons);
+// the pointer is off the interface: the cursor stays, the buttons go up
+void clearVirtualPointer();
+void setVirtualKey(int scancode, bool down);
+
 void resetKeypress();
 
 }

@@ -6,6 +6,17 @@
 static input::MouseInfo g_mouse_info;
 static input::KeyboardInfo g_keyboard_info;
 
+// the VR controllers' pointer and keys (setVirtualPointer, setVirtualKey):
+// what is held now, and what was pressed since the last sample
+static struct {
+    bool active;
+    float x, y;
+    uint32_t held, latched;
+} g_virtual_mouse;
+static const int NUM_VIRTUAL_KEYS = 512;
+static bool g_virtual_keys[NUM_VIRTUAL_KEYS];
+static bool g_virtual_keys_latched[NUM_VIRTUAL_KEYS];
+
 namespace input {
 
 MouseInfo::MouseInfo()
@@ -101,6 +112,14 @@ void updateMouseState() {
     MouseInfo* mi = &g_mouse_info;
 
     Uint32 button_state = SDL_GetMouseState(NULL, NULL);
+    const uint32_t virtual_buttons = g_virtual_mouse.held | g_virtual_mouse.latched;
+    g_virtual_mouse.latched = 0;
+    if(g_virtual_mouse.active) {
+        mi->rel_x_ += g_virtual_mouse.x - mi->x_;
+        mi->rel_y_ += g_virtual_mouse.y - mi->y_;
+        mi->x_ = g_virtual_mouse.x;
+        mi->y_ = g_virtual_mouse.y;
+    }
     int buttons[] = {SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2 };
 
     for(unsigned int b=0; b < sizeof(buttons)/sizeof(buttons[0]); ++b) {
@@ -111,7 +130,7 @@ void updateMouseState() {
 
         KeyState prev_ks = mi->button_state_[idx];
 
-        if(button_state & SDL_BUTTON(buttons[b])) {
+        if((button_state & SDL_BUTTON(buttons[b])) || (virtual_buttons & (1u << idx))) {
             mi->button_state_[idx] = 
                 (prev_ks==KS_FREE||prev_ks==KS_RELEASED) ? KS_PRESSED : KS_HELD;
         } else {
@@ -155,7 +174,12 @@ void updateKeyboardState() {
 
         uint8_t ls = ki->last_state_[i];
 
-        if(state[i]) {
+        bool virtual_down = false;
+        if(i < NUM_VIRTUAL_KEYS) {
+            virtual_down = g_virtual_keys[i] || g_virtual_keys_latched[i];
+            g_virtual_keys_latched[i] = false;
+        }
+        if(state[i] || virtual_down) {
            ls = (ls==KS_FREE||ls==KS_RELEASED) ? KS_PRESSED : KS_HELD;
         } else {
            ls = (ls==KS_HELD||ls==KS_PRESSED) ? KS_RELEASED : KS_FREE;
@@ -172,6 +196,31 @@ void updateKeyboardState() {
             ki->first_pressed_ = i;
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// VR controllers
+//
+
+void setVirtualPointer(float x, float y, uint32_t buttons) {
+    g_virtual_mouse.active = true;
+    g_virtual_mouse.x = x;
+    g_virtual_mouse.y = y;
+    g_virtual_mouse.latched |= buttons & ~g_virtual_mouse.held;
+    g_virtual_mouse.held = buttons;
+}
+
+void clearVirtualPointer() {
+    g_virtual_mouse.active = false;
+    g_virtual_mouse.held = 0;
+}
+
+void setVirtualKey(int scancode, bool down) {
+    if(scancode < 0 || scancode >= NUM_VIRTUAL_KEYS)
+        return;
+    if(down && !g_virtual_keys[scancode])
+        g_virtual_keys_latched[scancode] = true;
+    g_virtual_keys[scancode] = down;
 }
 
 } // namespace

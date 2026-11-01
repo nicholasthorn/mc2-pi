@@ -363,6 +363,9 @@ static void process_events( bool sample, bool reset ) {
         return;
     }
 
+    // VR controllers: every frame, so a quick press is held until sampled
+    gos_xr::pollInput();
+
     if(sample) {
         input::updateMouseState();
         input::updateKeyboardState();
