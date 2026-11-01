@@ -19,7 +19,10 @@ Everything depends only on the gameplay frame number, so every run of a
 scenario renders the same frames: `-bench` fixes the game step and the
 random seed, turns sound off and ignores input. The frame CSV's `state`
 column is a checksum of every unit's position and status; two runs on one
-machine should match on every frame.
+machine should match on every frame. It is filled for plain `-bench` runs
+(no scenario) too, as is `MC2_BENCH_DUMP` below, and `-deterministic` gives
+an `-autoexit` run the same fixed step and seed without the CSV
+(`scripts/smoke.sh --deterministic`).
 
 ## Format
 

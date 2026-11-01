@@ -504,9 +504,15 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      (no stock layout has one), else 800x600; the mode switches into the
      front end, the load screen and the slide animations (stock's 800/600
      pixel slides, scaled) use them. Omnitech does not ship every layout:
-     the stock ones it uses (the single mission and save dialogs, mission
-     results and salvage) keep their 800x600 positions, in the top left.
-     Still open: front-end movies (credits, `playFullScreenVideo`) keep
+     it keeps stock's dialogs (single mission, new campaign / load / save,
+     OK and one-button prompts, legal, mech lab variant save, map info),
+     laid out for 800x600. `LogisticsDialog::centreOnFrontEnd()` moves
+     each one, with the list box it keeps outside its arrays, to the
+     middle of the screen each time it opens (the OK prompts also open in
+     a mission, at the mission's resolution); a dialog layout with its own
+     `[HiresOffsets]` block stays put, and stock data moves nothing. Omnitech ships its own results
+     layout (`mcui_mr_layout.fit`). Still top left: the Mechlopedia
+     (`mcl_en*`) and the multiplayer screens. Still open: front-end movies (credits, `playFullScreenVideo`) keep
      their 800x600 sizes and stretch; and the load screen picks its enter
      or exit half by comparing the screen width with the front end's, so
      a mission mode as wide as the front end keeps the enter half (as
