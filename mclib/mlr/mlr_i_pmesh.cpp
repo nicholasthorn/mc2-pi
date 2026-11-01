@@ -727,7 +727,7 @@ void
                     //sebi:  what was the idea? why no ()?
 					if(
 						(*lightMapUVs)[k][0] < -1.5f || (*lightMapUVs)[k][0] > 1.5f ||
-						(*lightMapUVs)[k][1] < -1.5f && (*lightMapUVs)[k][1] > 1.5f
+						(*lightMapUVs)[k][1] < -1.5f || (*lightMapUVs)[k][1] > 1.5f	// was &&: never true, so V was never checked
 
 					) 
 					{

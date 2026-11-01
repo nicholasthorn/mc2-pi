@@ -559,7 +559,7 @@ const char* MissionBegin::update()
 				screens[curScreenX][curScreenY]->begin();
 			
 			}
-			if ( screens[curScreenX][curScreenY] && curScreenX != -1  )
+			if ( curScreenX != -1 && screens[curScreenX][curScreenY] )
 			{
 				screens[curScreenX][curScreenY]->begin();
 			}

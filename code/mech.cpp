@@ -910,19 +910,14 @@ bool BattleMechType::handleCollision (GameObjectPtr collidee, GameObjectPtr coll
 						//-----------------------
 						// First, the collidee...
 						// I jumped on the below, therefore, my legs should be preferentially damaged!!!
+						// (only reached when !sameTeam, so the same-team 1/100 damage case was dead code)
 						long hitLocation = collidee->calcHitLocation(collider, -1, ATTACKSOURCE_MINE, 0);
-						if (sameTeam)
-							shotInfo.init(collider->getWatchID(), -1, collider->getTonnage() / 100.0 + 0.5, hitLocation, collidee->relFacingTo(collider->getPosition()));
-						else
-							shotInfo.init(collider->getWatchID(), -1, collider->getTonnage() / 10.0 + 0.5, hitLocation, collidee->relFacingTo(collider->getPosition()));
+						shotInfo.init(collider->getWatchID(), -1, collider->getTonnage() / 10.0 + 0.5, hitLocation, collidee->relFacingTo(collider->getPosition()));
 						collidee->handleWeaponHit(&shotInfo, (MPlayer != NULL));
 						//----------------------
 						// Next, the collider...
 						hitLocation = collider->calcHitLocation(collidee, -1, ATTACKSOURCE_DFA, 0);
-						if (sameTeam)
-							shotInfo.init(collidee->getWatchID(), -1, collider->getTonnage() / 100.0 + 0.5, hitLocation, collider->relFacingTo(collidee->getPosition()));
-						else
-							shotInfo.init(collidee->getWatchID(), -1, collider->getTonnage() / 10.0 + 0.5, hitLocation, collider->relFacingTo(collidee->getPosition()));
+						shotInfo.init(collidee->getWatchID(), -1, collider->getTonnage() / 10.0 + 0.5, hitLocation, collider->relFacingTo(collidee->getPosition()));
 						collider->handleWeaponHit(&shotInfo, (MPlayer != NULL));
 						Stuff::Vector3D tmpPosition = collider->getPosition();
 						ObjectManager->createExplosion(DFA_BOOM_EFFECT, NULL, tmpPosition);
