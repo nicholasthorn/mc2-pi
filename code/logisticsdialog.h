@@ -119,6 +119,7 @@ class LogisticsLegalDialog : public LogisticsOneButtonDialog
 {
 public:
 	 
+	// cppcheck-suppress duplInheritedMember ; one singleton per dialog class: both dialogs exist at once
 	static LogisticsLegalDialog* instance(){ return s_instance; }
 	static int init( FitIniFile& file );
 
@@ -130,6 +131,7 @@ private:
 	virtual ~LogisticsLegalDialog(){}
 	LogisticsLegalDialog& operator=( const LogisticsLegalDialog& ogisticsDialog );
 
+	// cppcheck-suppress duplInheritedMember ; one singleton per dialog class: both dialogs exist at once
 	static LogisticsLegalDialog*		s_instance;
 
 	 friend void endDialogs();
@@ -251,7 +253,8 @@ public:
  
 private:
 
-	EString		selectedName;
+	// no selectedName of its own: the base's handleMessage fills
+	// LogisticsVariantDialog::selectedName, and update() deletes that variant
 	bool		bNameUsedPrompt;
 
 };
