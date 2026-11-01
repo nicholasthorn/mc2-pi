@@ -1020,16 +1020,17 @@ void TerrainObject::calcSubAreas (long numCells, short cells[MAX_GAME_OBJECT_CEL
 	numCellsCovered = numCells;
 	if (numCellsCovered) {
 		cellsCovered = (short*)systemHeap->Malloc(4 * numCellsCovered);
-		if (cellsCovered) {
-			short* curCoord = cellsCovered;
-			for (long j = 0; j < numCellsCovered; j++) {
-				*curCoord++ = cells[j][0];
-				*curCoord++ = cells[j][1];
-			}
-		}
-	
-		numSubAreas0 = 0;
+		// The loops below both read cellsCovered.
+		if (!cellsCovered)
+			Fatal(numCellsCovered, " TerrainObject: unable to malloc cellsCovered ");
 		short* curCoord = cellsCovered;
+		for (long j = 0; j < numCellsCovered; j++) {
+			*curCoord++ = cells[j][0];
+			*curCoord++ = cells[j][1];
+		}
+
+		numSubAreas0 = 0;
+		curCoord = cellsCovered;
 		for (long i = 0; i < numCellsCovered; i++) 
 		{
 			long r = *curCoord++;

@@ -1243,12 +1243,9 @@ void TerrainColorMap::recalcLight(const char *fileName)
 	
 	colorMapRAMHeap->Free(ColorMap);
 	ColorMap = NULL;
-	
-	if (colorMapRAMHeap)
-	{
-		delete colorMapRAMHeap;
-		colorMapRAMHeap = NULL;
-	}
+
+	delete colorMapRAMHeap;
+	colorMapRAMHeap = NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -1397,12 +1394,9 @@ void TerrainColorMap::resetBaseTexture (const char *fileName)
 	
 	colorMapRAMHeap->Free(ColorMap);
 	ColorMap = NULL;
-	
-	if (colorMapRAMHeap)
-	{
-		delete colorMapRAMHeap;
-		colorMapRAMHeap = NULL;
-	}
+
+	delete colorMapRAMHeap;
+	colorMapRAMHeap = NULL;
 }
 
 //---------------------------------------------------------------------------

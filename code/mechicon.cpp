@@ -966,7 +966,7 @@ void ForceGroupIcon::render()
 
 		if ( bMovie )
 		{
-			if ( unit && (unit->getStatus () == OBJECT_STATUS_SHUTDOWN) )
+			if ( unit->getStatus () == OBJECT_STATUS_SHUTDOWN )
 			{
 				bMovie->stop();
 				delete bMovie;

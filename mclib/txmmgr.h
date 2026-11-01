@@ -568,7 +568,7 @@ class MC_TextureManager
 					hardwareVertexData->flags = flags;
 					hardwareVertexData->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					!hardwareVertexData2)
 				{
 					hardwareVertexData2 = &(masterHardwareVertexNodes[nextAvailableHardwareVertexNode]);
@@ -579,7 +579,7 @@ class MC_TextureManager
 					hardwareVertexData2->flags = flags;
 					hardwareVertexData2->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					hardwareVertexData2 && (hardwareVertexData2->flags != flags) &&
 					!hardwareVertexData3)
 				{
@@ -591,7 +591,7 @@ class MC_TextureManager
 					hardwareVertexData3->flags = flags;
 					hardwareVertexData3->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					hardwareVertexData2 && (hardwareVertexData2->flags != flags) &&
 					hardwareVertexData3 && (hardwareVertexData3->flags != flags) &&
 					!hardwareVertexData4)
@@ -604,7 +604,7 @@ class MC_TextureManager
 					hardwareVertexData4->flags = flags;
 					hardwareVertexData4->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					hardwareVertexData2 && (hardwareVertexData2->flags != flags) &&
 					hardwareVertexData3 && (hardwareVertexData3->flags != flags) &&
 					hardwareVertexData4 && (hardwareVertexData4->flags != flags) &&
@@ -703,7 +703,7 @@ class MC_TextureManager
 					vertexData->flags = flags;
 					vertexData->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 						!vertexData2)
 				{
 					vertexData2 = &(masterVertexNodes[nextAvailableVertexNode]);
@@ -714,7 +714,7 @@ class MC_TextureManager
 					vertexData2->flags = flags;
 					vertexData2->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 						vertexData2 && (vertexData2->flags != flags) && 
 						!vertexData3)
 				{
@@ -726,7 +726,7 @@ class MC_TextureManager
 					vertexData3->flags = flags;
 					vertexData3->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 						vertexData2 && (vertexData2->flags != flags) && 
 						vertexData3 && (vertexData3->flags != flags) && 
 						!vertexData4)
@@ -739,7 +739,7 @@ class MC_TextureManager
 					vertexData4->flags = flags;
 					vertexData4->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 					vertexData2 && (vertexData2->flags != flags) &&
 					vertexData3 && (vertexData3->flags != flags) &&
 					vertexData4 && (vertexData4->flags != flags) &&

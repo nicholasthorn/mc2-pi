@@ -499,8 +499,7 @@ long Mission::update (void)
 
 		mcTextureManager->clearArrays();
 		
-		if (missionInterface)
-			ProfileTime(MCTimeInterfaceUpdate,missionInterface->update());
+		ProfileTime(MCTimeInterfaceUpdate,missionInterface->update());
 
 		// -benchscenario: scripted battle and camera; after the interface
 		// (input) and before the camera update, so its camera wins
