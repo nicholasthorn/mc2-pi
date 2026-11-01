@@ -37,6 +37,9 @@ extern long SaveGameVersionNumber;
 
 void LogisticsDialog::begin()
 {
+	if ( bCentre )
+		centreOnScreen();
+
 	enterAnim.begin();
 	exitAnim.end();
 	status = RUNNING;
@@ -52,6 +55,9 @@ LogisticsDialog::LogisticsDialog()
 {
 	oldFont = -1;
 	bDone = false;
+	bCentre = false;
+	centreX = centreY = 0;
+	centreExtra = NULL;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -79,6 +85,34 @@ void LogisticsDialog::setFont( int newFontResID )
 		oldFont = textObjects[0].font.getFontID();
 		textObjects[0].font.init( newFontResID );
 	}
+}
+
+void LogisticsDialog::centreOnFrontEnd( FitIniFile& file, aObject* extra )
+{
+	// stock data keeps its dialogs where they were; a layout made for the
+	// larger screen says so with this block
+	if ( frontEndWidth() == 800 || NO_ERR == file.seekBlock( "HiresOffsets" ) )
+		return;
+
+	bCentre = true;
+	centreExtra = extra;
+	centreOnScreen();
+}
+
+void LogisticsDialog::centreOnScreen()
+{
+	long x = ( Environment.screenWidth - 800 ) / 2;
+	long y = ( Environment.screenHeight - 600 ) / 2;
+	if ( x < 0 )
+		x = 0;
+	if ( y < 0 )
+		y = 0;
+
+	move( x - centreX, y - centreY );
+	if ( centreExtra )
+		centreExtra->move( x - centreX, y - centreY );
+	centreX = x;
+	centreY = y;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -229,6 +263,7 @@ int LogisticsOKDialog::init( FitIniFile& file )
 
 		s_instance->oldFont = s_instance->textObjects[0].font.getFontID();
 
+		s_instance->centreOnFrontEnd( file );
 	}
 
 	return 0;
@@ -296,6 +331,7 @@ int LogisticsOneButtonDialog::init( FitIniFile& file )
 
 		s_instance->oldFont = s_instance->textObjects[0].font.getFontID();
 
+		s_instance->centreOnFrontEnd( file );
 	}
 
 	return 0;
@@ -318,6 +354,8 @@ int LogisticsLegalDialog::init( FitIniFile& file )
 
 		for ( int i = 0; i < s_instance->buttonCount; i++ )
 			s_instance->buttons[i].setMessageOnRelease();
+
+		s_instance->centreOnFrontEnd( file );
 	}
 
 	return 0;
@@ -402,6 +440,7 @@ int LogisticsSaveDialog::init( FitIniFile& file )
 			s_instance->edits[i].allowWierdChars( 0 );
 		}
 
+		s_instance->centreOnFrontEnd( file, &s_instance->gameListBox );
 	}
 
 	s_instance->getButton( YES )->setPressFX( LOG_NEXTBACKBUTTONS );
@@ -1204,7 +1243,9 @@ int LogisticsVariantDialog::init( FitIniFile& file )
 	{
 		edits[i].allowWierdChars( 0 );
 	}
-	return 0;		
+
+	centreOnFrontEnd( file, &gameListBox );
+	return 0;
 }
 
 void LogisticsVariantDialog::begin()
@@ -1760,6 +1801,8 @@ int LogisticsAcceptVariantDialog::init( FitIniFile& file )
 	{
 		edits[i].allowWierdChars( 0 );
 	}
+
+	centreOnFrontEnd( file );
 	return 0;
 }
 
@@ -1887,6 +1930,7 @@ int LogisticsMapInfoDialog::init()
 	file.seekBlock( "OutAnim" );
 	exitAnim.init( &file, "" );
 
+	centreOnFrontEnd( file );
 	return 1;
 
 }
