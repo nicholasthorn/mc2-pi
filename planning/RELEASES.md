@@ -8,9 +8,10 @@ GitHub Releases. Progress is tracked in `PROGRESS.md`.
 Two audiences, one release:
 
 1. **Constrained systems, first-class:** the Raspberry Pi 4 and Pi 400 (4 GB,
-   shared with the GPU; V3D GPU with OpenGL ES 3.1) on Raspberry Pi OS. This is
-   what the fork exists for, so the Pi package gets the most care: small,
-   tuned defaults, tested on hardware before a release is called supported.
+   shared with the GPU; V3D GPU with OpenGL ES 3.1) on Raspberry Pi OS. It is
+   the hardest target and where the fork started, so the Pi package gets the
+   most care: small, tuned defaults, tested on hardware before a release is
+   called supported.
 2. **Everyone else:** ready-to-run builds for ordinary Linux and Windows PCs, so
    anyone can play without compiling anything.
 
