@@ -1,0 +1,7 @@
+deps/
+build/
+*.apk
+*.idsig
+debug.keystore
+# the root .gitignore ignores "mc2" (the binary); the Java package dir is source
+!/java/com/nicholasthorn/mc2/

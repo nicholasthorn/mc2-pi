@@ -175,4 +175,6 @@ namespace Stuff {
 
 }
 
-void* operator new(size_t size, void* where) noexcept;
+// placement new: the standard one (style.cpp's own was compiled out). libc++
+// rejects redeclaring it here, libstdc++ did not.
+#include <new>
