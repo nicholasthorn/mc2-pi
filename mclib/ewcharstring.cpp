@@ -245,12 +245,34 @@ const int EWCharString::s_Force_Unicode = 0x20000;
 EWCharString::EBuffer	EWCharString::EBuffer::s_Empty_Buffer = { 0, 0, 0 };
 EWCharString::EBuffer*   EWCharString::EBuffer::s_p_Empty_Buffer = &EWCharString::EBuffer::s_Empty_Buffer;
 
-// this must be a macro because the debug versions won't expand
-// inlines
-#define A2W(p_String) (\
-	((const char*)p_String == NULL) ? NULL : (\
-	EWCharString::ToUnicode( (LPWSTR)alloca((lstrlenA(p_String)+1)*2),\
-	(const unsigned char*)p_String, (lstrlenA(p_String)+1)*2)))
+// A2W used to alloca a buffer sized by the string (unbounded stack use),
+// and only (len+1)*2 bytes: too small for len+1 4-byte wchar_t on Linux.
+// This temporary owns a heap buffer of len+1 wide chars instead. It is
+// freed at the end of the full expression, the lifetime callers rely on.
+class EWA2WBuffer
+{
+public:
+	explicit EWA2WBuffer( const char* p_String ) : m_p_Buffer( NULL )
+	{
+		if ( p_String )
+		{
+			int Num_Chars = lstrlenA( p_String ) + 1;
+			m_p_Buffer = new wchar_t[Num_Chars];
+			m_p_Buffer[0] = 0;
+			MultiByteToWideChar( CP_ACP, 0, p_String, -1, m_p_Buffer, Num_Chars );
+		}
+	}
+	~EWA2WBuffer() { delete [] m_p_Buffer; }
+	wchar_t* Get() const { return m_p_Buffer; }
+
+private:
+	EWA2WBuffer( const EWA2WBuffer& );
+	EWA2WBuffer& operator=( const EWA2WBuffer& );
+
+	wchar_t* m_p_Buffer;
+};
+
+#define A2W(p_String) (EWA2WBuffer( (const char*)(p_String) ).Get())
 
 // if this doesn't want to link properly, this will have to become
 // a macro.
