@@ -532,7 +532,7 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 	{
 		// no real index buffer for now...
 		uint32_t num_vertices = numTypeTriangles * 3;
-		uint32_t num_indices = numTypeTriangles * 3;
+		uint32_t num_indices = num_vertices;
 
 		uint16_t* ib = new uint16_t[num_indices];
 		TG_HWTypeVertex* vb = new TG_HWTypeVertex[num_vertices];

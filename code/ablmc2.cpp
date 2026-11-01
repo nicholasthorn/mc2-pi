@@ -325,7 +325,9 @@ GameObjectPtr calcBestTarget (MoverPtr attacker, long numAttackers, MoverPtr* at
 inline signed int double2long(double _in) {
 
 	_in+=6755399441055744.0;
-	return(*(signed int*)&_in);
+	signed int out;
+	memcpy(&out, &_in, sizeof(out));	// low word of the mantissa (little-endian), without type punning
+	return(out);
 }
 
 //-----------------------------------------------------------------------------
@@ -3139,8 +3141,10 @@ void execSetCurrentBRValue (void) {
 	//
 	//		Returns: None
 
-	long objectNum = tos->integer;
-	long newBRValue = tos->integer;
+	// Pop both parameters: reading tos twice left the argument expressions
+	// unparsed in the code stream.
+	long objectNum = ABLi_popInteger();
+	long newBRValue = ABLi_popInteger();
 
 	//------------------------------------------------
 	// Code to make this work goes here

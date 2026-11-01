@@ -435,9 +435,10 @@ bool
 	if (*current_position != '\\')
 	{
 	
-		if ((current_position + 1) != NULL)
+		// test the characters, not the pointers (a pointer + n is never NULL)
+		if (*(current_position + 1) != '\0')
 		{
-			if((current_position + 2) != NULL)
+			if(*(current_position + 2) != '\0')
 			{
 				if ( *(current_position + 1) == ':' && *(current_position + 2) == '\\')
 				{

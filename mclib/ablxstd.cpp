@@ -223,6 +223,7 @@ long ABLi_popAnything (ABLStackItem* value) {
 			}
 		else if (paramTypePtr->info.array.elementTypePtr == RealTypePtr) {
 			value->type = type = ABL_STACKITEM_REAL_PTR;
+			// cppcheck-suppress invalidPointerCast ; tos->address points at an ABL real array, which is stored as floats
 			value->data.realPtr = (float*)tos->address;
 			}
 		else if (paramTypePtr->info.array.elementTypePtr == BooleanTypePtr) {

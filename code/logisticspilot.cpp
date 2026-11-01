@@ -143,11 +143,6 @@ int LogisticsPilot::init( char* pilotFileName )
 const char* LogisticsPilot::getSkillText( int skillID )
 {
 	gosASSERT( skillID <= NUM_SKILLS );
-	
-	if ( skillTexts[skillID] )
-	{
-		return skillTexts[skillID];
-	}
 
 //	char tmp[256];
  

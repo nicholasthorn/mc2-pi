@@ -770,6 +770,7 @@ void
 //#############################################################################
 //
 UnitQuaternion&
+	// cppcheck-suppress funcArgOrderDifferent ; the definition swaps the names on purpose so the body reads as the Hamilton product (second * first)
 	UnitQuaternion::Multiply(const UnitQuaternion &q2, const UnitQuaternion &q1)
 {
 	Check_Pointer(this);

@@ -21,6 +21,7 @@ belongs in commit messages and PRs.
 - [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); a `STOP` ends the game by default (#46; smoke and bench pin `MC2_STOP_EXITS=1`, #22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, mech lab, pilot ready, launch)
 - [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, plus named stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`), `-benchfov` / `--fov` to force the camera FOV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Stereo debug view (VR Phase 1): `-stereo <separation>` draws the world side by side from two eye cameras, shadows included; game state unchanged (bench checksum); world-anchored overlays and mouse picking still from the game camera (`future-features/VR-TABLETOP.md`)
+- [ ] Meta Quest test build: a flat Android APK (NDK r28c, arm64, GLES 3.1, SDL2 2.30.11 and SDL2_mixer 2.8.0 from source) that runs the bench on the headset (`android/README.md`); built, **not yet run on a headset**
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
 - [x] Mods: MechCommander Omnitech data (object types past `object2.pak`, wide map packets, `.burnin.jpg` colour maps, `mc2res.dll` strings, 512 object textures) loads and plays; Clan Wars mission 1 checked in play (PR 17, `future-features/MOD-COMPAT.md`)
 - [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`; 413 after every `uninitMemberVar` was initialised or suppressed with a reason (#23, #24)
@@ -235,6 +236,21 @@ on 2026-10-31.
 
 **Bugs noticed in passing**
 
+- [ ] Found by the 2026-11-01 cppcheck batches, outside their checks, not
+      fixed: `aObject::rectIntersect(const GUI_RECT&)` (`gui/asystem.cpp`)
+      compares x with y (`testRect.left < location[0].y`), used by mech bay
+      drag-and-drop; `mech.cpp`'s death-from-above "both jumping" block is
+      gated by `!sameTeam` although its comment suggests every case;
+      `SalvageListItem::icon` is never deleted; `LogisticsData::getBestPilot`
+      reads `pPilots[0]` with an empty roster; `EWCharString::Format`
+      over-reads and leaks `pTmp` (no callers; fixed in #60); a zero font metric makes
+      `renderObjective`'s dot count infinite (guarded in #60).
+- [ ] `aAnimButton`'s scaled-render path is broken: it resizes to about
+      0.5 * scale * width squared (`gui/abutton.cpp`, `resize(width() *
+      scaleX, ...)`). #60 made the animation read `getScaleY()` for Y (it
+      read X twice), which only changes which animations take that path;
+      it does not fix the scaling. No shipped `.fit` sets X and Y scales
+      separately, as far as checked. (2026-11-01)
 - [x] `streamToBuffer` (`gameos_graphics.cpp`): a failed `glMapBufferRange`
       only `gosASSERT`s (compiled out) and draws stale data. (PR #5 review)
       Fixed on `fix/passing-bugs`: the draw is skipped, also when
@@ -465,22 +481,43 @@ Candidates:
       documenting it (upscales derive from the original EULA data; mod content
       has its own authors).
 
+## Kept as shipped
+
+Behaviour of the original game that looks like a bug but is kept on
+purpose, because changing it would change how the game plays or looks.
+Each one is marked in the code (a comment, and a `cppcheck-suppress` with
+the reason where cppcheck flags it). Revisit only as a deliberate gameplay
+change, not as a bug fix.
+
+- **Destroyed forests never reopen their pathing areas** (decided
+  2026-11-01). `TerrainObjectType` declares its own `subType`, shadowing
+  `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s
+  `getObjectType()->getSubType() == TERROBJ_FOREST` reads the base field
+  (always 0) and `openSubAreas()` never runs. Same in the original source.
+  Removing the shadow would make destroyed forests passable (and change
+  `ObjectManager::getSpecificObjects` for terrain objects). Marked in
+  `code/terrobj.h` and at the test in `code/terrobj.cpp`.
+- **Fog byte semantics differ between actors and terrain** (original
+  behaviour, kept): actors (and crater/gvactor/mech3d) turn "no fog"
+  (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Worth checking
+  visually on the Pi.
+
 ## Known issues
 
 - Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
-- Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
 - With `MC2_STOP_EXITS=0` (mod bring-up), `STOP` and `Assert` log and carry on, so code after them runs into whatever they were guarding; a missing mission then runs until a `Fatal` ends it.
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
-- Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects). Decided 2026-11-01: keep the shipped behaviour (cppcheck finding suppressed with that reason).
 
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-01: MechCommander Omnitech's stock dialogs centred (branch `omnitech-centre-dialogs`): on the 1280x1024 front end, the dialogs Omnitech keeps from stock (single mission, new campaign / load / save, prompts, legal, variant save, map info) move from the top left to the middle (`LogisticsDialog::centreOnFrontEnd`, with their list boxes); stock data is unchanged. Default walks pass on stock and Omnitech.
+- 2026-11-01: Meta Quest test build (branch `quest-test`), for the VR go/no-go: `scripts/android/fetch_deps.sh` (SDL2 and SDL2_mixer sources, SHA-256 pinned) and `scripts/android/build.sh` (NDK r28c, CMake 3.31.6, then the APK with the SDK's own tools, no Gradle) give a debug-signed `android/mc2-quest-test.apk`; `scripts/android/run_bench.sh` installs it, pushes the data, runs mc2_19 mono and `-stereo` and pulls the results. Under `ANDROID` the game is `libmain.so` for SDL's activity; `android_prepare` (gameosmain.cpp) moves to the app's files folder, sets `HOME`, reads the command line and leading `NAME=value` settings from `mc2args.txt` (`utils/args_file`, unit tested) and logs to `mc2.log`; `libmc2res_64.so` is loaded by name. Clang on arm64 also needed: no x86 `rdtsc` asm off x86 (`gameos.hpp`), the standard placement new instead of a redeclaration (`stuff/style.hpp`), and a map name no longer used as a format string (`logisticsdialog.cpp`). Built on Windows (APK verified: arm64, GLES 3.1, v3 signature); desktop GL and GLES still build and pass on Linux. **To do: run it on a Quest.**
+- 2026-11-01: cppcheck baseline, the rest after `nullPointerRedundantCheck` (122 findings, three PRs): `allocaCalled` (27, branch `fix/cppcheck-alloca`: unbounded `A2W` stack buffers, also too small for Linux's 4-byte `wchar_t`, and the objectives HUD dots now on the heap; 7 bounded uses suppressed); copy / assignment (34, branch `fix/cppcheck-copyassign`: `mouseY = mouseY` typo, three self-assignment hazards, `aButton::operator=` copies its sounds like the copy constructor, 8 never-copied owners made non-copyable); the rest (61, branch `fix/cppcheck-misc`: shader `#include` on the last line read address 1, ABL `setcurrentbrvalue` never popped its arguments, six bounds checked before indexing, the pmesh lightmap V test (`&&` never true), unset text-background `rhw`, signed shifts and punning; dead code removed, false positives suppressed). New "Kept as shipped" list: forest pathing, fog bytes (`comparePilots` was fixed instead, #64).
 - 2026-11-01: `LogisticsData::comparePilots` tested `p1` outranking `p2` twice, so a lower-ranked pilot fell through to the gunnery test and could be auto-assigned ahead of a higher-ranked one. Rank now decides first, as the gunnery and piloting pairs below it do; this changes auto-assignment from the shipped game (decided 2026-11-01). cppcheck `identicalConditionAfterEarlyExit`.
 - 2026-11-01: VR Phase 1, second slice (branch `vr-phase1b`): shadows per eye under `-stereo`. `TG_Shape::RenderShadows` projects the shadow vertices' world positions for the drawing camera (the update used to, once per vertex as now). Mono with shadows on byte-identical, state checksum unchanged with `-stereo` (GL and GLES, llvmpipe, mc2_19 with `Shadows` and `UseLocalShadows` on; CI smoke runs with shadows off, so it does not exercise this path). Clouds need nothing: the cloud layer is never drawn. Also: the VR go/no-go drops the Pi bench (a poor proxy for the XR2) for a sideloaded Quest 2 test build plus a PC run on a real GPU.
 - 2026-11-01: `planning/HARDWARE-TESTS.md`: one checklist of the tests CI cannot run (in the game, the `STOP` message box, the Pi, releases), gathered from this file, the `STOP` and VR plans and #43 / #53.
