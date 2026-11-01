@@ -21,7 +21,12 @@ enum class UiScreen {
 	MechLab,
 	MechPurchase,
 	PilotReady,
-	Mission,			// gameplay has started (the "[MISSION]" marker); no way out
+	Mission,			// gameplay has started (the "[MISSION]" marker); a win
+						// leads to the results screens (campaign missions only)
+	Salvage,			// mission results: salvage (SalvageMechScreen)
+	PilotReview,		// mission results: pilot review (PilotReviewScreen)
+	Promotion,			// pilot review's promotion dialog (PilotPromotionArea), which
+						// opens by itself when a pilot gains a rank
 	Count
 };
 
@@ -46,10 +51,16 @@ enum class UiAction {
 	Previous,			// logistics screen "Back" / mech lab "Cancel"
 	ChangeLoadout,		// mech bay -> mech lab
 	BuyMechs,			// mech bay -> mech purchase
+	WinMission,			// mission -> results: no button, the driver wins the
+						// mission as the Ctrl+Alt+Shift+W cheat does
+	SalvageDone,		// salvage "Done"
+	PilotReviewDone,	// pilot review "Done"
+	PromotionConfirm,	// promotion "Confirm", back to pilot review
 	// in-screen actions
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force
-	AssignPilot			// pilotready+pilot: give the selected mech slot the selected pilot
+	AssignPilot,		// pilotready+pilot: give the selected mech slot the selected pilot
+	PickSkill			// promotion+skill: check the first specialty skill
 };
 
 const char* uiScreenName(UiScreen s);

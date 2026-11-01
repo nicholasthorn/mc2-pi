@@ -6,7 +6,8 @@
 // them fighting and alive, calls in artillery, flies the camera, and tells
 // GameOS which segment each frame belongs to and when to take screenshots.
 // Called once per frame from Mission::update(), before the camera update.
-// Does nothing without -benchscenario.
+// Without -benchscenario it only reports the game-state checksum
+// (gos_BenchStateHash) on fixed-step frames (-bench, -deterministic).
 namespace BenchDirector {
 	void update (const char* missionName);
 }
