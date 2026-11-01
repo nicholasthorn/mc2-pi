@@ -14,7 +14,7 @@
 #   --out DIR         where the archives go (default: dist)
 #   --vcredist DIR    Windows: folder with the MSVC runtime DLLs
 #                     (...\VC\Redist\MSVC\<ver>\x64\Microsoft.VC143.CRT)
-#   --thirdparty DIR  Windows: 3rdparty/lib/x64 with the SDL2, GLEW and zlib DLLs
+#   --thirdparty DIR  Windows: 3rdparty/lib/x64 with the SDL2 and GLEW DLLs
 #
 # Writes <out>/mc2-<ver>-<platform>.tar.gz (Linux) or .zip (Windows), and
 # <out>/mc2-<ver>-<platform>-symbols.tar.gz with the debug information.
@@ -96,7 +96,9 @@ else
     for pdb in "${exe%.exe}.pdb" "${res%.dll}.pdb"; do
         [ -f "$pdb" ] && cp "$pdb" "$SYMS/"
     done
-    for dll in SDL2.dll SDL2_mixer.dll SDL2_ttf.dll glew32.dll zlib1.dll; do
+    # what mc2.exe imports: zlib is linked statically (zlib.lib) and SDL2_ttf is
+    # only used by text_tool, which the Windows package does not carry
+    for dll in SDL2.dll SDL2_mixer.dll glew32.dll; do
         cp "$THIRDPARTY/$dll" "$STAGE/" || { echo "package: $dll missing from $THIRDPARTY" >&2; exit 2; }
     done
     for dll in vcruntime140.dll vcruntime140_1.dll msvcp140.dll; do

@@ -139,19 +139,23 @@ then the release notes say it is untested on hardware.
   --out .` fills the unpacked package with data.
 - **Windows has no data tools,** a change from the plan above: the data build
   is bash and make, so Windows players build the data with a Linux package
-  (WSL, a Linux PC or the Pi) and copy it over. The zip bundles the five
-  `3rdparty` DLLs and the MSVC runtime from the runner's Visual Studio.
+  (WSL, a Linux PC or the Pi) and copy it over. The zip bundles only the
+  DLLs `mc2.exe` imports, `SDL2.dll`, `SDL2_mixer.dll` and `glew32.dll`
+  (zlib is linked statically from `zlib.lib`; SDL2_ttf is used only by
+  `text_tool`), and the MSVC runtime from the runner's Visual Studio.
 - Third-party licences are in `dist/licenses/`, fetched from upstream at the
   versions shipped (SDL 2.30.11, SDL_mixer 2.8.0 with its built-in Timidity,
-  minimp3, dr_flac and stb_vorbis, SDL_ttf 2.24.0 with FreeType and
-  HarfBuzz, GLEW 2.2.0, zlib); pl_mpeg and stb are compiled into every build.
+  minimp3, dr_flac and stb_vorbis, GLEW 2.2.0, zlib 1.3.1); pl_mpeg and
+  stb are compiled into every build.
 - `release.yml`: the Pi package in `debian:bookworm` on the arm64 runner with
   `-mtune=cortex-a72`, Linux x64 on `ubuntu-22.04` (glibc 2.35), Windows on
   `windows-2022`; unit tests in each; a tag creates a draft release with
   `SHA256SUMS`, a pre-release for tags with a hyphen. `workflow_dispatch`
   and pull requests that touch the packaging are dry runs (artifacts only).
-- **`zlib1.dll` in `3rdparty.zip` is zlib 1.2.3 (2005)**, with known security
-  fixes since; update it before the first release.
+- `3rdparty.zip` had zlib 1.2.3 (2005), linked statically into `mc2.exe`;
+  replaced 2026-11-01 with zlib 1.3.1 built from the official tag
+  (`madler/zlib` `51b7f2ab`) with its own `win32/Makefile.msc` on a GitHub
+  `windows-2022` runner, x64 and x86, same file names.
 | 3. AppImages | Linux x64 and arm64 AppImages on old bases | AppImage runs on Ubuntu 22.04 and a current Fedora |
 | 4. Package smoke tests | Smoke runs against the unpacked packages in `release.yml` | Release fails if a package does not start a mission |
 | 5. First release candidate | `v0.1.0-rc1`, pre-release | Downloaded and run on Windows, Linux x64 and a Pi 400 |

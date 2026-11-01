@@ -438,8 +438,9 @@ each ships the data tools instead.
       (`debian:bookworm` container), Windows zip (DLLs and C++ runtime
       included), Linux x64 tarball (2026-11-01; dry runs on the PR, no test
       tag pushed yet)
-- [ ] Before the first release: replace `zlib1.dll` 1.2.3 in `3rdparty.zip`
-      with a current zlib
+- [x] Before the first release: replace zlib 1.2.3 in `3rdparty.zip` with a
+      current zlib (2026-11-01: 1.3.1, built from the official tag on a
+      GitHub Windows runner; it is linked statically into `mc2.exe`)
 - [ ] The data build is not reproducible: `aseconv` gives a different
       `tgl.fst` on two runs of the same tools (62 bytes apart here; the
       other FSTs, `data/` and `assets/` are identical). Probably
@@ -525,7 +526,8 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
-- 2026-11-01: Release phases 1 and 2 (branch `release/prep`): `scripts/package.sh` builds the Pi, Linux x64 and Windows packages (stripped, symbols separate), `dist/INSTALL.md` and the third-party licences fetched at the shipped versions, `build_gamedata.sh --tools-dir` (and a package's own `tools/` by default), `release.yml` (draft release from a `v*` tag; dry runs by hand and on packaging PRs). Tried in WSL: a Linux x64 package built its own game data and passed mc2_01, mc2_03 and both UI walks from the unpacked folder. Found: `zlib1.dll` in `3rdparty.zip` is zlib 1.2.3.
+- 2026-11-01: `3rdparty.zip`: zlib 1.2.3 (2005) replaced with 1.3.1, built from the official `madler/zlib` tag (`51b7f2ab`) with its `win32/Makefile.msc` on a GitHub `windows-2022` runner (x64 and x86, same file names; `zlib.lib` is what `mc2.exe` links). The Windows package drops `zlib1.dll` and `SDL2_ttf.dll`, which nothing in it loads (branch `release/prep`).
+- 2026-11-01: Release phases 1 and 2 (branch `release/prep`): `scripts/package.sh` builds the Pi, Linux x64 and Windows packages (stripped, symbols separate), `dist/INSTALL.md` and the third-party licences fetched at the shipped versions, `build_gamedata.sh --tools-dir` (and a package's own `tools/` by default), `release.yml` (draft release from a `v*` tag; dry runs by hand and on packaging PRs). Tried in WSL: a Linux x64 package built its own game data and passed mc2_01, mc2_03 and both UI walks from the unpacked folder. Found: `3rdparty.zip`'s zlib was 1.2.3 (2005), linked statically into `mc2.exe`; replaced with 1.3.1 the same day.
 - 2026-11-01: UI smoke, slice 4 (branch `uismoke-results`): walks go on from `mission` to the results: the driver wins the mission (as the Ctrl+Alt+Shift+W cheat), then `salvage`, `pilotreview` and the `promotion` dialog (`promotion+skill`), back to `missionselection`. Default walk 1 wins stock mc2_01 and mc2_02 (pilot review; salvage, a promotion, pilot review); on Omnitech its first campaign mission (salvage, pilot review). Both default walks pass on stock and Omnitech.
 - 2026-11-01: MechCommander Omnitech's stock dialogs centred (branch `omnitech-centre-dialogs`): on the 1280x1024 front end, the dialogs Omnitech keeps from stock (single mission, new campaign / load / save, prompts, legal, variant save, map info) move from the top left to the middle (`LogisticsDialog::centreOnFrontEnd`, with their list boxes); stock data is unchanged. Default walks pass on stock and Omnitech.
 - 2026-11-01: Deterministic smoke runs (branch `test/deterministic-smoke`): `-deterministic` gives an `-autoexit` run `-bench`'s fixed step and seed without the CSV (sound off, as for `-bench`: audio runs in real time and feeds the RNG), and GameOS prints `[STATEHASH] <hex>`, the game-state checksum after the last frame; the bench director now reports that checksum on every fixed-step frame, scenario or not (so plain `-bench` CSVs get a state column too). `smoke.sh --deterministic` runs each mission twice and fails when the end states differ. Ubuntu 26.04: the five CI missions at 3000 frames, twice each, on GL and GLES: 10/10 pass, and every mission ends in the same state on both renderers. Not the default (plain smoke keeps sound covered); `smoke.yml` replays mc2_10 at 1000 frames this way on x64 desktop GL.
