@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stdlib.h> // rand
 #include "utils/timing.h"
+#include "utils/frame_stats.h"
 
 #ifndef PLATFORM_WINDOWS
 #include <sys/statvfs.h> // statvfs
@@ -260,6 +261,60 @@ void gos_SetAutomatedRun(bool automated)
 bool __stdcall gos_IsAutomatedRun()
 {
     return g_automated_run;
+}
+
+// -bench named stages and -benchfov: set up and read by gameosmain.cpp, here
+// for the same reason (mclib's TG_MultiShape times a stage)
+static bool g_bench_stages_on = false;
+static std::vector<std::string> g_bench_stages;     // index = stage id
+static uint64_t g_bench_stage_start[frame_stats::kMaxStages];
+static double g_bench_stage_ms[frame_stats::kMaxStages];   // this frame
+static float g_bench_fov = 0.0f;
+
+void gos_EnableBenchStages()
+{
+    g_bench_stages_on = true;
+}
+
+void gos_SetBenchFOV(float fov)
+{
+    g_bench_fov = fov;
+}
+
+const std::vector<std::string>& gos_GetBenchStageNames()
+{
+    return g_bench_stages;
+}
+
+// this frame's time per stage into out[kMaxStages], then starts a new frame
+void gos_TakeBenchStageTimes(double* out)
+{
+    for(size_t i = 0; i < frame_stats::kMaxStages; ++i) {
+        out[i] = g_bench_stage_ms[i];
+        g_bench_stage_ms[i] = 0.0;
+    }
+}
+
+int __stdcall gos_BenchStageId(const char* name)
+{
+    return g_bench_stages_on ? frame_stats::stageSlot(g_bench_stages, name) : -1;
+}
+
+void __stdcall gos_BenchStageStart(int id)
+{
+    if(id >= 0 && id < (int)frame_stats::kMaxStages)
+        g_bench_stage_start[id] = timing::gettickcount();
+}
+
+void __stdcall gos_BenchStageStop(int id)
+{
+    if(id >= 0 && id < (int)frame_stats::kMaxStages)
+        g_bench_stage_ms[id] += timing::ticks2ms(timing::gettickcount() - g_bench_stage_start[id]);
+}
+
+float __stdcall gos_GetBenchFOV()
+{
+    return g_bench_fov;
 }
 
 void __stdcall gos_srand(unsigned int seed)

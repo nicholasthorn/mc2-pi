@@ -1299,6 +1299,9 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
     __int64 x;
     x=GetCycles();
 #endif
+    // -bench: per-eye cost of VR stereo includes this (gos_BenchStageId)
+    static const int benchId = gos_BenchStageId("shape_xform");
+    gos_BenchStageStart(benchId);
 
     Stuff::LinearMatrix4D 	shapeOrigin;
     Stuff::LinearMatrix4D	shadowOrigin;
@@ -1700,6 +1703,7 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
     // the caller's list stays in effect for anything drawn after this shape
     TG_Shape::s_listOfLights = allLights;
     TG_Shape::s_numLights = numAllLights;
+    gos_BenchStageStop(benchId);
     return(0);
 }
 
