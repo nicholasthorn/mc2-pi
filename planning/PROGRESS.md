@@ -36,7 +36,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (60 left with cppcheck 2.19 after `Fatal()` became `[[noreturn]]`, which cleared 24) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
+- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` cleared (2026-11-01: 25 sites with cppcheck 2.19 after `Fatal()` became `[[noreturn]]`; 23 fixed, 5 of them real bugs, 2 suppressed as false positives) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
@@ -125,12 +125,18 @@ Added 2026-10-31.
     save-game struct fields among them (loads tell types apart by size).
     `TerrainObjectType::subType` (the shipped-game forest pathing bug) is
     kept as shipped, decided 2026-11-01, and suppressed with that reason.
-  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
-    better after the STOP/Fatal work below), `allocaCalled` (27) and the
-    rest.
-  - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
-    became `[[noreturn]]`),
-    `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
+  - [x] `nullPointerRedundantCheck` (branch `fix/cppcheck-nullptr-redundant`):
+    the 2.13 baseline's 84 came down to 25 sites with 2.19 once `Fatal()`
+    was `[[noreturn]]` (#46). Real ones: `MechListBox::AddItem` read a
+    `dynamic_cast` result before its NULL check, `TerrainObject` read
+    `cellsCovered` after a failed `Malloc` (now `Fatal`), MechWarrior
+    power up/down used the vehicle before checking it, `MechWarrior::setup`
+    checked `new` after use. The rest were checks made redundant by an
+    earlier unconditional use (mech appearance, force-group icon unit,
+    mech lab variant, mission interface, MP stats, terrain colour map heap,
+    texture manager vertex lists), now removed; two false positives
+    suppressed inline (ABL array types, `Stuff::Tree`).
+  - Next: `allocaCalled` (27) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
@@ -467,6 +473,8 @@ Candidates:
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
+
+- 2026-11-01: cppcheck `nullPointerRedundantCheck` cleared (branch `fix/cppcheck-nullptr-redundant`): 25 sites with cppcheck 2.19 after #46 made `Fatal()` `[[noreturn]]` (the 2.13 baseline still lists 84 until it is regenerated). Five real bugs: `MechListBox::AddItem` dereferenced a `dynamic_cast` before its NULL check; `TerrainObject::calcSubAreas` read `cellsCovered` after a failed `Malloc` (now a `Fatal`); `MechWarrior::orderPowerUp` / `orderPowerDown` used the vehicle before checking it (now `TACORDER_FAILURE`); `MechWarrior::setup` checked `new` after using it. Redundant checks after an earlier unconditional use removed (mech appearance, force-group icon, mech lab variant, mission interface, MP stats, terrain colour map heap, texture manager vertex lists); two false positives suppressed with reasons. Ubuntu 26.04: GL and GLES builds and unit tests; MSVC, Clang, arm64 and smoke left to CI.
 
 - 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing) kept as shipped by decision and suppressed with that reason.
 
