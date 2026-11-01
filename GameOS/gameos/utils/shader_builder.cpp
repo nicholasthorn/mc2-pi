@@ -475,10 +475,21 @@ void parse_uniforms(GLuint pprogram, glsl_program::UniArr_t* puniforms, glsl_pro
                 puni->num_el_ = 1;
                 break;
             default:
+                // only GL_FLOAT_VEC2..GL_FLOAT_MAT4 map onto ConstantType; any
+                // other type (sampler2DArray, uint, ...) indexed past
+                // constantSizes and typeNames
+                if (type < GL_FLOAT_VEC2 || type > GL_FLOAT_MAT4) {
+                    log_error("parse_uniforms: %s has unsupported type 0x%x, ignored\n", buf, (unsigned)type);
+                    delete puni;
+                    puni = nullptr;
+                    break;
+                }
                 puni->type_ = (ConstantType)(CONSTANT_VEC2 + (type - GL_FLOAT_VEC2));
                 puni->num_el_ = size;
                 break;
         }
+        if (!puni)
+            continue;
 
 
         size_t datasize = constantSizes[ puni->type_ ] * puni->num_el_;

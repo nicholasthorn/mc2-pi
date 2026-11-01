@@ -47,7 +47,9 @@ public:
 	
 	void hide( bool );
 
+	// cppcheck-suppress duplInheritedMember ; buttons keep their ID in data.ID (from the .fit) and report it by value; every call is through a button type
 	int getID();
+	// cppcheck-suppress duplInheritedMember ; buttons keep their ID in data.ID (from the .fit) and report it by value; every call is through a button type
 	void setID( int ID );
 	void setText( int newID ) { data.textID = newID; }
 

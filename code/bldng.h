@@ -115,6 +115,7 @@ typedef struct _BuildingData : public TerrainObjectData
 	GameObjectWatchID		refitBuddyWID;
 	DWORD					parentId;
 	GameObjectWatchID		parent;
+	// cppcheck-suppress duplInheritedMember ; save-game layout: objmgr.cpp tells object types apart by this struct's size, so the field stays
 	unsigned char			listID;
 	float					captureTime;
 
@@ -135,6 +136,7 @@ class Building : public TerrainObject
 		GameObjectWatchID		refitBuddyWID;
 		DWORD					parentId;
 		GameObjectWatchID		parent;
+		// cppcheck-suppress duplInheritedMember ; Building keeps its own listID; TerrainObject's is never read on a building, and Building::Load sets this one after the base Load
 		unsigned char			listID;
 		float					captureTime;
 		float					scoreTime;
@@ -293,8 +295,6 @@ class Building : public TerrainObject
 		virtual void openFootPrint (void);
 
 		virtual void closeFootPrint (void);
-
-		bool isVisible (void);
 
 		virtual bool isCaptureable (long capturingTeamID);
 

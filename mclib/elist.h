@@ -208,8 +208,10 @@ public:
 		inline EIterator() : EConstIterator() {}
 		inline EIterator(const EIterator& rIter) : EConstIterator(rIter) {}
 
+		// cppcheck-suppress duplInheritedMember ; non-const iterator over the const one: returns a writable reference
 		inline T& Item()				{ return(EConstIterator::m_pCur_Node->m_Data); }
 
+		// cppcheck-suppress duplInheritedMember ; non-const iterator over the const one: returns a writable reference
 		inline T& operator*()
 		{
 			return Item();

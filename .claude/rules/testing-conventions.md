@@ -2,18 +2,18 @@
 
 ## Current state
 
-CI builds all four configurations, runs the unit tests (`ctest`) on all four,
-and compiles every shader as GLSL ES 3.10 and GLSL 4.20. A nightly workflow runs
-smoke missions. Sanitizers and coverage are still to come
-(`planning/QUALITY-ROADMAP.md`).
+CI builds all four configurations, runs the unit tests (`ctest`) on all four
+and under ASan + UBSan, and compiles every shader as GLSL ES 3.10 and GLSL
+4.20. `smoke.yml` runs smoke missions nightly and on PRs that touch code.
+Coverage is still to come (`planning/QUALITY-ROADMAP.md`).
 
 ## Sanitizers (ASan + UBSan)
 
 - `-DMC2_SANITIZE=address,undefined` (GCC/Clang) instruments every target.
   UBSan reports and carries on, so one run lists every finding.
-- **Unit tests** run sanitized on every push (`ci.yml`, job "Unit tests (ASan +
+- **Unit tests** run sanitized with the rest of `ci.yml` (job "Unit tests (ASan +
   UBSan)") with leak checking on and `UBSAN_OPTIONS=halt_on_error=1`.
-- **Smoke missions** run sanitized nightly (`smoke.yml`, x64 desktop GL) with
+- **Smoke missions** run sanitized nightly and on PRs (`smoke.yml`, x64 desktop GL) with
   `ASAN_OPTIONS=alloc_dealloc_mismatch=0:detect_leaks=0` (Mesa's swrast driver
   trips the mismatch check while loading; the game and Mesa leak at exit).
   `smoke.sh` fails on any `runtime error:` or sanitizer `ERROR:` line.

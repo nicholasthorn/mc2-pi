@@ -217,6 +217,7 @@ class gos_VERTEXManager : public HeapManager
 			init();
 		}
 
+		// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 		void destroy (void)
 		{
 			HeapManager::destroy();
@@ -240,10 +241,13 @@ class gos_VERTEXManager : public HeapManager
 		
 		gos_VERTEX *getVertexBlock(long numVertices)
 		{
+			// check before advancing: gosASSERT is compiled out, so a full pool
+			// handed out memory past the heap. Callers skip the copy on NULL.
+			if ((numVertices < 0) || (currentVertex + numVertices > totalVertices))
+				return NULL;
 			gos_VERTEX *start = reinterpret_cast<gos_VERTEX *>(getHeapPtr());
 			start = &(start[currentVertex]);
 			currentVertex += numVertices;
-			gosASSERT(currentVertex < totalVertices);
 			return start;
 		}
 
@@ -279,6 +283,7 @@ public:
 		init();
 	}
 
+	// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 	void destroy(void)
 	{
 		HeapManager::destroy();
@@ -302,10 +307,12 @@ public:
 
 	T *getBlock(uint32_t num)
 	{
+		// as getVertexBlock: NULL when the pool is full
+		if (current + (long)num > count)
+			return NULL;
 		T *start = reinterpret_cast<T*>(getHeapPtr());
 		start = &(start[current]);
 		current += num;
-		gosASSERT(current < count);
 		return start;
 	}
 
@@ -561,7 +568,7 @@ class MC_TextureManager
 					hardwareVertexData->flags = flags;
 					hardwareVertexData->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					!hardwareVertexData2)
 				{
 					hardwareVertexData2 = &(masterHardwareVertexNodes[nextAvailableHardwareVertexNode]);
@@ -572,7 +579,7 @@ class MC_TextureManager
 					hardwareVertexData2->flags = flags;
 					hardwareVertexData2->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					hardwareVertexData2 && (hardwareVertexData2->flags != flags) &&
 					!hardwareVertexData3)
 				{
@@ -584,7 +591,7 @@ class MC_TextureManager
 					hardwareVertexData3->flags = flags;
 					hardwareVertexData3->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					hardwareVertexData2 && (hardwareVertexData2->flags != flags) &&
 					hardwareVertexData3 && (hardwareVertexData3->flags != flags) &&
 					!hardwareVertexData4)
@@ -597,7 +604,7 @@ class MC_TextureManager
 					hardwareVertexData4->flags = flags;
 					hardwareVertexData4->textureIndex = 0;
 				}
-				else if (hardwareVertexData && (hardwareVertexData->flags != flags) &&
+				else if ((hardwareVertexData->flags != flags) &&
 					hardwareVertexData2 && (hardwareVertexData2->flags != flags) &&
 					hardwareVertexData3 && (hardwareVertexData3->flags != flags) &&
 					hardwareVertexData4 && (hardwareVertexData4->flags != flags) &&
@@ -696,7 +703,7 @@ class MC_TextureManager
 					vertexData->flags = flags;
 					vertexData->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 						!vertexData2)
 				{
 					vertexData2 = &(masterVertexNodes[nextAvailableVertexNode]);
@@ -707,7 +714,7 @@ class MC_TextureManager
 					vertexData2->flags = flags;
 					vertexData2->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 						vertexData2 && (vertexData2->flags != flags) && 
 						!vertexData3)
 				{
@@ -719,7 +726,7 @@ class MC_TextureManager
 					vertexData3->flags = flags;
 					vertexData3->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 						vertexData2 && (vertexData2->flags != flags) && 
 						vertexData3 && (vertexData3->flags != flags) && 
 						!vertexData4)
@@ -732,7 +739,7 @@ class MC_TextureManager
 					vertexData4->flags = flags;
 					vertexData4->textureIndex = 0;
 				}
-				else if (vertexData && (vertexData->flags != flags) &&
+				else if ((vertexData->flags != flags) &&
 					vertexData2 && (vertexData2->flags != flags) &&
 					vertexData3 && (vertexData3->flags != flags) &&
 					vertexData4 && (vertexData4->flags != flags) &&
@@ -781,7 +788,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(masterTextureNodes[nodeId].vertexData->numVertices);
 					}
 	
-					if (vertices < (masterTextureNodes[nodeId].vertexData->vertices + masterTextureNodes[nodeId].vertexData->numVertices))
+					if (vertices && ((vertices + 3) <= (masterTextureNodes[nodeId].vertexData->vertices + masterTextureNodes[nodeId].vertexData->numVertices)))
 					{
 						#if 0
 						if ((data[0].u > 64.0f) ||
@@ -832,7 +839,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(masterTextureNodes[nodeId].vertexData2->numVertices);
 					}
 	
-					if (vertices < (masterTextureNodes[nodeId].vertexData2->vertices + masterTextureNodes[nodeId].vertexData2->numVertices))
+					if (vertices && ((vertices + 3) <= (masterTextureNodes[nodeId].vertexData2->vertices + masterTextureNodes[nodeId].vertexData2->numVertices)))
 					{
 						#if 0
 						if ((data[0].u > 64.0f) ||
@@ -881,7 +888,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(masterTextureNodes[nodeId].vertexData3->numVertices);
 					}
 	
-					if (vertices < (masterTextureNodes[nodeId].vertexData3->vertices + masterTextureNodes[nodeId].vertexData3->numVertices))
+					if (vertices && ((vertices + 3) <= (masterTextureNodes[nodeId].vertexData3->vertices + masterTextureNodes[nodeId].vertexData3->numVertices)))
 					{
 						#if 0
 						if ((data[0].u > 64.0f) ||
@@ -931,7 +938,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(vertexData->numVertices);
 					}
 	
-					if (vertices <= (vertexData->vertices + vertexData->numVertices))
+					if (vertices && ((vertices + 3) <= (vertexData->vertices + vertexData->numVertices)))
 					{
 						memcpy(vertices,data,sizeof(gos_VERTEX) * 3);
 						vertices += 3;
@@ -950,7 +957,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(vertexData2->numVertices);
 					}
 	
-					if (vertices <= (vertexData2->vertices + vertexData2->numVertices))
+					if (vertices && ((vertices + 3) <= (vertexData2->vertices + vertexData2->numVertices)))
 					{
 						memcpy(vertices,data,sizeof(gos_VERTEX) * 3);
 						vertices += 3;
@@ -969,7 +976,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(vertexData3->numVertices);
 					}
 	
-					if (vertices <= (vertexData3->vertices + vertexData3->numVertices))
+					if (vertices && ((vertices + 3) <= (vertexData3->vertices + vertexData3->numVertices)))
 					{
 						memcpy(vertices,data,sizeof(gos_VERTEX) * 3);
 						vertices += 3;
@@ -988,7 +995,7 @@ class MC_TextureManager
 						gvManager->getVertexBlock(vertexData4->numVertices);
 					}
 
-					if (vertices <= (vertexData4->vertices + vertexData4->numVertices))
+					if (vertices && ((vertices + 3) <= (vertexData4->vertices + vertexData4->numVertices)))
 					{
 						memcpy(vertices,data,sizeof(gos_VERTEX) * 3);
 						vertices += 3;
@@ -1007,7 +1014,7 @@ class MC_TextureManager
 							gvManager->getVertexBlock(vertexData5->numVertices);
 					}
 
-					if (vertices <= (vertexData5->vertices + vertexData5->numVertices))
+					if (vertices && ((vertices + 3) <= (vertexData5->vertices + vertexData5->numVertices)))
 					{
 						memcpy(vertices, data, sizeof(gos_VERTEX) * 3);
 						vertices += 3;

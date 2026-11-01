@@ -1742,6 +1742,7 @@ bool				SpecialtyListItem::isChecked()
 	return radioButton.isPressed();
 }
 
+// cppcheck-suppress duplInheritedMember ; own ID, read only through this type; aObject::ID is unused here
 int					SpecialtyListItem::getID()
 {
 	return ID;

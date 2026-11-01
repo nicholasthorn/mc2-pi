@@ -1003,7 +1003,7 @@ TypePtr execStandardRoutineCall (SymTableNodePtr routineIdPtr, bool skipOrder) {
 		case RTN_CONCAT:
 			return(execStdConcat());
 		default: {
-			if (key >= NumStandardFunctions) {
+			if ((key < 0) || (key >= NumStandardFunctions)) {
 				char err[255];
 				sprintf(err, " ABL: Undefined ABL RoutineKey in %s:%d", CurModule->getName(), execLineNumber);
 				ABL_Fatal(0, err);

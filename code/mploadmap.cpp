@@ -490,10 +490,6 @@ int	MPLoadMap::handleMessage( unsigned long message, unsigned long who)
 
 }
 
-bool MPLoadMap::isDone()
-{
-	return bDone;
-}
 
 void MPLoadMap::update()
 {

@@ -6075,22 +6075,20 @@ long BattleMech::update (void)
 		if (withdrawing && !inView && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
 			ObjectManager->getObjectType(typeHandle)->handleDestruction(this, NULL);
 
-		if (appearance) {
-			MovePathPtr path = pilot->getMovePath();
-			bool brake = true;
-			if (path && path->numSteps && (path->curStep < path->numSteps))
-				brake = false;
-			appearance->setBrake(brake);
-			if ((pilot->getCurrentTarget()) || (pilot->getCurTacOrder()->code == TACTICAL_ORDER_ATTACK_OBJECT) || (pilot->getCurTacOrder()->code == TACTICAL_ORDER_ATTACK_POINT))
-				appearance->setCombatMode(true);
-			else
-				appearance->setCombatMode(false);
+		MovePathPtr path = pilot->getMovePath();
+		bool brake = true;
+		if (path && path->numSteps && (path->curStep < path->numSteps))
+			brake = false;
+		appearance->setBrake(brake);
+		if ((pilot->getCurrentTarget()) || (pilot->getCurTacOrder()->code == TACTICAL_ORDER_ATTACK_OBJECT) || (pilot->getCurTacOrder()->code == TACTICAL_ORDER_ATTACK_POINT))
+			appearance->setCombatMode(true);
+		else
+			appearance->setCombatMode(false);
 
-			if (isJumping())
-				setTangible(false);
-			else if (!isDestroyed() && !isDisabled())
-				setTangible(true);
-		}
+		if (isJumping())
+			setTangible(false);
+		else if (!isDestroyed() && !isDisabled())
+			setTangible(true);
 
 		#ifdef MC_PROFILE
 		QueryPerformanceCounter(endCk);
@@ -6138,11 +6136,8 @@ long BattleMech::update (void)
 		if (inView)
 			windowsVisible = turn;
 	
-		if (appearance)
-		{
-			appearance->setInView(inView);
-			appearance->setCombatMode(false);
-		}
+		appearance->setInView(inView);
+		appearance->setCombatMode(false);
 	
 		if (!fallen)
 		{
@@ -6210,14 +6205,11 @@ long BattleMech::update (void)
 		if (inView)
 			windowsVisible = turn;
 	
-		if (appearance)
-		{
-			appearance->setGestureGoal(GestureGoalFallenBackward);
+		appearance->setGestureGoal(GestureGoalFallenBackward);
 
-			appearance->setInView(inView);
-			
-			appearance->setCombatMode(false);
-		}
+		appearance->setInView(inView);
+
+		appearance->setCombatMode(false);
 
 		if (!fallen)
 		{
