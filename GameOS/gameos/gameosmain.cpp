@@ -424,6 +424,11 @@ int main(int argc, char** argv)
     g_bench = bench_csv != NULL;
     gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
     gos_SetAutomatedRun(g_bench || autoexit_frames > 0 || g_uismoke_walk != NULL);
+    if(bench_fov < 0.0f || bench_fov >= 170.0f) {
+        // tan(fov / 2) in the projection breaks down towards 180
+        fprintf(stderr, "-benchfov %g: must be between 0 (off) and 170 degrees\n", bench_fov);
+        return 2;
+    }
     if(g_bench) {
         gos_EnableBenchStages();
         gos_SetBenchFOV(bench_fov);

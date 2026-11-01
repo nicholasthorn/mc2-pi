@@ -505,10 +505,12 @@ long Mission::update (void)
 		// -benchscenario: scripted battle and camera; after the interface
 		// (input) and before the camera update, so its camera wins
 		BenchDirector::update(missionFileName);
-		// -benchfov: a headset-wide view for VR cost estimates
+		// -benchfov: a headset-wide view for VR cost estimates. Cancel any
+		// scripted FOV goal too, or eye->update() would move off it.
 		if (gos_GetBenchFOV() > 0.0f)
 		{
 			eye->setFieldOfView(gos_GetBenchFOV());
+			eye->setFieldOfViewGoal(gos_GetBenchFOV(), 0.0f);
 			eye->cosHalfFOV = cos(gos_GetBenchFOV() * 0.7071f * DEGREES_TO_RADS);
 		}
 

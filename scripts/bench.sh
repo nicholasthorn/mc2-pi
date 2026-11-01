@@ -168,7 +168,13 @@ if [ -n "$SCENARIO" ]; then
     [ $MISSIONS_SET = 0 ] && [ -n "$m" ] && MISSIONS="$m"
     [ $FRAMES_SET = 0 ] && [ -n "$f" ] && FRAMES="$f"
 fi
-[ -n "$FOV" ] && SCENARIO_ARGS+=(-benchfov "$FOV")
+if [ -n "$FOV" ]; then
+    if ! [[ "$FOV" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        echo "bench: --fov wants degrees as a number, got '$FOV'" >&2
+        exit 2
+    fi
+    SCENARIO_ARGS+=(-benchfov "$FOV")
+fi
 
 # Same first-launch config step as smoke.sh (see there). The settings in
 # options.cfg change the numbers, so its hash goes into every result row.

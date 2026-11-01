@@ -264,7 +264,7 @@ bool __stdcall gos_IsAutomatedRun()
 }
 
 // -bench named stages and -benchfov: set up and read by gameosmain.cpp, here
-// for the same reason (Camera and TG_MultiShape call them)
+// for the same reason (mclib's TG_MultiShape times a stage)
 static bool g_bench_stages_on = false;
 static std::vector<std::string> g_bench_stages;     // index = stage id
 static uint64_t g_bench_stage_start[frame_stats::kMaxStages];
