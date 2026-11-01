@@ -46,7 +46,11 @@ void main(void)
     p.x = (p.x * rhw) * vp.z + vp.x + debug_offset;
     p.y = (p.y * rhw) * vp.w + vp.y;
     p.z = p.z * rhw;
-    p.w = abs(rhw);
+    // the engine's w is negative in front of the camera: -rhw is abs(rhw)
+    // there, and negative behind it, so the GPU clips what is behind
+    // (abs() drew it mirrored; seen in VR, where objects behind the game
+    // camera are drawn)
+    p.w = -rhw;
 
     WorldPos = (world_ * vec4(pos.xyz, 1.0)).xyz;
 
