@@ -21,7 +21,8 @@
 #                     comma-separated list of screens for -uismoke, each
 #                     optionally "<screen>+<action>" (names in
 #                     code/uismokewalk.cpp). "" skips them. Default: the two
-#                     walks in $UI_WALKS below
+#                     walks below (walk 1 for MechCommander Omnitech data
+#                     when the game dir has it)
 #   --timeout S       seconds before a run counts as hung (default: 300)
 #   --log-dir DIR     where to keep per-run logs (default: ./smoke-logs)
 #   --display         run on the current display instead of Xvfb (to watch)
@@ -36,14 +37,20 @@ set -u
 #    in the force, open the mech lab (Cancel), back to the briefing, give
 #    the mech a pilot and launch.
 UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
+UI_OPTIONS_MCO="$UI_OPTIONS"
 UI_OPTIONS="$UI_OPTIONS,campaign,mission"
+# MechCommander Omnitech's new campaign opens mission selection instead, with
+# no mechs: buy one, put it in the force, give it a pilot and launch.
+UI_OPTIONS_MCO="$UI_OPTIONS_MCO,campaign,missionselection,briefing,mechbay"
+UI_OPTIONS_MCO="$UI_OPTIONS_MCO,mechpurchase+buy,mechbay+add,pilotready+pilot,mission"
 UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab"
 UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing,mechbay,pilotready+pilot,mission"
 
 GAME_DIR=""
 BUILD_DIR=""
 MISSIONS="mc2_01 mc2_03"
-UI_WALKS="$UI_OPTIONS $UI_LOGISTICS"
+UI_WALKS=""
+UI_SET=0
 FRAMES=600
 TIMEOUT=300
 LOG_DIR="$PWD/smoke-logs"
@@ -56,7 +63,7 @@ while [ $# -gt 0 ]; do
         --build-dir) BUILD_DIR="$2"; shift 2 ;;
         --missions)  MISSIONS="$2"; shift 2 ;;
         --frames)    FRAMES="$2"; shift 2 ;;
-        --ui)        UI_WALKS="$2"; shift 2 ;;
+        --ui)        UI_WALKS="$2"; UI_SET=1; shift 2 ;;
         --timeout)   TIMEOUT="$2"; shift 2 ;;
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
         --display)   USE_DISPLAY=1; shift ;;
@@ -68,6 +75,16 @@ done
 if [ -z "$GAME_DIR" ] || [ ! -d "$GAME_DIR/data" ]; then
     echo "smoke: --game-dir must point at built game data (no data/ in '$GAME_DIR')" >&2
     exit 2
+fi
+
+# Omnitech ships its front-end layouts as loose files, each with a
+# [HiresOffsets] block that no stock layout has
+if [ "$UI_SET" = 0 ]; then
+    if grep -qs HiresOffsets "$GAME_DIR/data/art/mcl_mm.fit"; then
+        UI_WALKS="$UI_OPTIONS_MCO $UI_LOGISTICS"
+    else
+        UI_WALKS="$UI_OPTIONS $UI_LOGISTICS"
+    fi
 fi
 
 if [ -n "$BUILD_DIR" ]; then
