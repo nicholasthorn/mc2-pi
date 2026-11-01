@@ -42,6 +42,8 @@
 
 #include"render_heuristics.h"
 #include"utils/stereo.h"
+#include"appear.h"
+#include"floathelp.h"
 
 #ifndef USERINPUT_H
 #include"userinput.h"
@@ -1675,7 +1677,7 @@ bool lastZoom = FALSE;
 //---------------------------------------------------------------------------
 // Draws the world: render() once, or under -stereo once per eye, side by side
 // (VR plan, Phase 1). The eyes only draw; world-anchored overlays are drawn
-// once afterwards, from the game camera.
+// in each eye's pass, moved by that eye's parallax.
 void Camera::renderWorld (void)
 {
 	const float separation = gos_GetStereoSeparation();
@@ -1685,9 +1687,17 @@ void Camera::renderWorld (void)
 		return;
 	}
 
+	// Overlays (brackets, bars, floating text) come from the game camera's
+	// screen bounds. An eye differs from it by a sideways shift only, so a
+	// point's screen x moves by a constant times its 1/depth (screen w):
+	// measured here on the camera's look-at point, used by Appearance.
+	Stuff::Vector3D reference = getPosition();
+	Stuff::Vector4D gameScreen;
+	projectZ(reference,gameScreen);
+
 	// eye -1 is the game camera, put back for the interface and for mouse
 	// picking, which reads the terrain's screen positions
-	auto setEye = [this, separation](int eyeIndex)
+	auto setEye = [this, separation, &reference, &gameScreen](int eyeIndex)
 	{
 		eyeOffset = stereo::eyeOffset(eyeIndex, separation);
 		calculateProjectionConstants();
@@ -1695,12 +1705,24 @@ void Camera::renderWorld (void)
 		if (land)
 			land->projectForEye();
 		gos_SetStereoEye(eyeIndex);
+
+		Appearance::stereoParallax = 0.0f;
+		if ((eyeIndex >= 0) && (gameScreen.w != 0.0f))
+		{
+			Stuff::Vector4D eyeScreen;
+			projectZ(reference,eyeScreen);
+			Appearance::stereoParallax = (eyeScreen.x - gameScreen.x) / gameScreen.w;
+		}
 	};
 
+	// floating text set during the update (HUD text) stays full-window;
+	// what an eye's pass adds is drawn in that eye's half, then dropped
+	const DWORD helpsBeforeEyes = FloatHelp::count();
 	for (int eyeIndex=0;eyeIndex<2;eyeIndex++)
 	{
 		setEye(eyeIndex);
 		render();
+		FloatHelp::renderAndResetFrom(helpsBeforeEyes);
 	}
 	setEye(-1);
 }

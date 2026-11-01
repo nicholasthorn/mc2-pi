@@ -78,6 +78,11 @@ class Appearance
 		float						barStatus;		//Status Bar Length.
 		DWORD						barColor;		//Status Bar Color.
 	
+		//-stereo: screen x shift per unit of screenPos.w (1/depth) for the eye
+		//being drawn, so overlays from the game camera's bounds sit at the
+		//eye's parallax. Set by Camera::renderWorld; 0 outside an eye pass.
+		static float				stereoParallax;
+
 	//Member Functions
 	//-----------------
 	public:
@@ -155,9 +160,17 @@ class Appearance
 			inView = viewStatus;
 		}
 				
+		//Sideways shift of this object's overlays for the eye being drawn.
+		float eyeShift (void)
+		{
+			return (stereoParallax != 0.0f) ? stereoParallax * screenPos.w : 0.0f;
+		}
+
 		Stuff::Vector4D getScreenPos (void)
 		{
-			return screenPos;
+			Stuff::Vector4D result = screenPos;
+			result.x += eyeShift();
+			return result;
 		}
 
 		virtual bool isMouseOver (float px, float py)
