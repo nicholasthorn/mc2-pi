@@ -330,12 +330,9 @@ on 2026-10-31.
       errors still runs).
 - [ ] Leads from the same sweep, not ported as they are: a mission with no
       MOVE data runs on with `GameMap == NULL` after its `STOP` (`f1eaa6ee`;
-      exit like the bad-packet branch instead); the graphics options list
-      each resolution about four times (`9cbe2ea7`); the briefing minimap may
-      upload alpha-0 water and concrete cells (`3c8dd69e`, check by eye
-      first); `shader_builder.cpp` `parse_uniforms` reads past `typeNames`
-      for a `sampler2DArray` uniform (`7c3a382a`, latent: no shader has one);
-      `controlgui.cpp` adds `hiResOffsetX` but not `hiResOffsetY` to the
+      exit like the bad-packet branch instead; `STOP` now ends the game, #46);
+      the briefing minimap may upload alpha-0 water and concrete cells
+      (`3c8dd69e`, check by eye first); `controlgui.cpp` adds `hiResOffsetX` but not `hiResOffsetY` to the
       video box (`51ddcf25`, check in game). Never port `c92175fd`: it
       treats real callback addresses on Linux and arm64 as bogus.
 - [x] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
@@ -469,6 +466,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: Two leads from the remaster sweep (branch `fix/sweep-leads`): `parse_uniforms` logs and skips a uniform type outside `GL_FLOAT_VEC2..GL_FLOAT_MAT4` (a `sampler2DArray` indexed past `constantSizes`; latent, no shader has one), and the graphics options list each resolution once instead of once per refresh rate. Both renderers built and unit-tested on Ubuntu 26.04; the options screen not checked in the game.
 - 2026-11-01: README and repository description reframed: a maintained update of the MC2 engine for Linux and Windows that also runs on the Raspberry Pi 4/400, with Meta Quest 2 VR in development. Consistency pass: `CLAUDE.md` intro and CI/testing lines, `testing-conventions.md` (sanitizers and PR smoke were listed as still to come), `RELEASES.md` framing, a duplicated "Built" line here; README drops the fixed missing-mission crash and the "nothing built" VR line.
 - 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing) kept as shipped by decision and suppressed with that reason.
 
