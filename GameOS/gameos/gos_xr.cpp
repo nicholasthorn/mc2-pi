@@ -578,6 +578,11 @@ bool exitRequested()
     return g.exit;
 }
 
+bool active()
+{
+    return g.session != XR_NULL_HANDLE;
+}
+
 double logicStep()
 {
     if(g.session == XR_NULL_HANDLE)

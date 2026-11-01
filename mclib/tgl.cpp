@@ -95,10 +95,10 @@ bool silentMode = false;		//Used for automated builds to keep errors from poppin
 // for now everything seems to be correct thoug, so could enable it by default
 // look into gos_tex_vertex_lighted.vert for where offset is defined
 bool bShadersDrawPathEnabled = false;
-// with it: shapes with alpha textures go that way too, alpha-tested (VR:
-// the GPU path transforms at draw time, so every head-tracked eye sees them
-// from its own pose; Camera::renderWorld turns both on)
-bool bShadersDrawAlphaShapes = false;
+// VR (gos_IsVR) takes that path too, alpha-textured shapes included
+// (alpha-tested): it transforms when drawn, so every head-tracked eye sees
+// them from its own pose, where the CPU path projects them once, during the
+// update, for the game camera
 
 //-------------------------------------------------------------------------------
 // Parse Functions
@@ -1707,8 +1707,8 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 
 	lastTurnTransformed = turn;
 
-	bool bDrawnByShader = bShadersDrawPathEnabled && !isSpotlight && !isWindow && 
-        (bShadersDrawAlphaShapes || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
+	bool bDrawnByShader = (bShadersDrawPathEnabled || gos_IsVR()) && !isSpotlight && !isWindow && 
+        (gos_IsVR() || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
 
 	for (long j=0;j<numVertices;j++)
 	{
@@ -2574,8 +2574,8 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
 
-	bool bDrawnByShader = bShadersDrawPathEnabled && !isSpotlight && !isWindow && 
-        (bShadersDrawAlphaShapes || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
+	bool bDrawnByShader = (bShadersDrawPathEnabled || gos_IsVR()) && !isSpotlight && !isWindow && 
+        (gos_IsVR() || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
 
 	//VR: this path's vertices were projected for the game camera during the
 	//update, which a head-tracked eye does not match: leave them out of the
@@ -2741,7 +2741,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 		}
 
         if(theShape->alphaTestOn ||
-			(bShadersDrawAlphaShapes && theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha))
+			(gos_IsVR() && theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha))
 		{
 			addFlags |= MC2_ALPHATEST;
 		}

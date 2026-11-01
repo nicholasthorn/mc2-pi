@@ -39,6 +39,8 @@ bool exitRequested();
 // Seconds between game updates in VR (MC2_XR_LOGIC_HZ, default 30), or 0
 // when the game should step every frame (not in VR, or MC2_XR_LOGIC_HZ=0).
 double logicStep();
+// An OpenXR session exists (gos_IsVR).
+bool active();
 void shutdown();
 #else
 inline bool init() { return false; }
@@ -48,6 +50,7 @@ inline bool bindEye(int) { return false; }
 inline bool present(int, int) { return false; }
 inline bool exitRequested() { return false; }
 inline double logicStep() { return 0.0; }
+inline bool active() { return false; }
 inline void shutdown() {}
 #endif
 

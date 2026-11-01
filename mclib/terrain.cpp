@@ -99,7 +99,6 @@ char * 						Terrain::colorMapName = NULL;
 long		   				Terrain::numObjBlocks = 0;
 ObjBlockInfo				*Terrain::objBlockInfo = NULL;
 bool						*Terrain::objVertexActive = NULL;
-bool						Terrain::drawWholeWindow = false;
 
 float 						*Terrain::tileRowToWorldCoord = NULL;
 float 						*Terrain::tileColToWorldCoord = NULL;
@@ -961,7 +960,7 @@ void Terrain::geometry (void)
 		// Figure out if we are in front of camera or not.  Should be faster then actual project!
 		// Should weed out VAST overwhelming majority of vertices!
 		bool onScreen = false;
-		bool gameOnScreen = true;		//the game camera's own answer (drawWholeWindow)
+		bool gameOnScreen = true;		//the game camera's own answer (VR: see below)
 	
 		//-----------------------------------------------------------------
 		// Find angle between lookVector of Camera and vector from camPos
@@ -1014,7 +1013,7 @@ void Terrain::geometry (void)
 			//projectForEye); the gameplay decision below, which object blocks
 			//are active, keeps the game camera's view
 			gameOnScreen = onScreen;
-			if (drawWholeWindow)
+			if (gos_IsVR())
 				onScreen = true;
 
 			if (onScreen)
@@ -1089,6 +1088,11 @@ void Terrain::geometry (void)
 		else
 			currentVertex->clipInfo = inView;
 		
+		//the game camera's own view, for picking (Camera::inverseProject):
+		//in VR clipInfo covers the whole window, behind the camera too
+		if (currentVertex->clipInfo && gameOnScreen)
+			currentVertex->calcThisFrame |= 8;
+
 		if (currentVertex->clipInfo && gameOnScreen)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
 		{
 			setObjBlockActive(currentVertex->getBlockNumber(), true);

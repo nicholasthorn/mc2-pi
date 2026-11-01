@@ -2004,7 +2004,8 @@ void __stdcall gos_SetStereoEye( int eye );
 // gos_GetVRWorldScale() is how many world metres one real metre is
 // (MC2_VR_SCALE, default 1). gos_GetVRKeepGamePitch() is true when the eyes
 // keep the game camera's pitch (MC2_VR_GAME_PITCH=1); by default the horizon
-// stays level with the real one.
+// stays level with the real one. gos_IsVR() is true while an OpenXR session
+// exists: the meshes' GPU path and the whole terrain window are drawn then.
 //
 struct gosVREyeView
 {
@@ -2015,6 +2016,7 @@ struct gosVREyeView
 int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
 float __stdcall gos_GetVRWorldScale();
 bool __stdcall gos_GetVRKeepGamePitch();
+bool __stdcall gos_IsVR();
 
 
 

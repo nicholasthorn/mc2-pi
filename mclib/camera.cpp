@@ -764,10 +764,13 @@ unsigned long Camera::inverseProject (Stuff::Vector2DOf<long> &screenPos, Stuff:
 		
 	for (long i=0;i<(long)numTiles;i++)
 	{
-		if ((currentTile->vertices[0]->clipInfo) ||
-			(currentTile->vertices[1]->clipInfo) || 
-			(currentTile->vertices[2]->clipInfo) || 
-			(currentTile->vertices[3]->clipInfo))
+		//tiles the game camera sees (calcThisFrame 8, see Terrain::geometry):
+		//in VR every tile in the window is clipped in, and projectZ mirrors
+		//the ones behind the camera onto the screen
+		if ((currentTile->vertices[0]->calcThisFrame & 8) ||
+			(currentTile->vertices[1]->calcThisFrame & 8) || 
+			(currentTile->vertices[2]->calcThisFrame & 8) || 
+			(currentTile->vertices[3]->calcThisFrame & 8))
 		{
 			bool isOver = overThisTile(currentTile, screenPos.x, screenPos.y);
 			
@@ -1732,22 +1735,8 @@ void Camera::renderWorld (void)
 
 	// VR: the eyes were drawn into the headset's images. The window gets no
 	// world, only the interface drawn after this, which the headset shows as
-	// a see-through HUD (gos_xr).
-	if (vrEyes)
-	{
-		// meshes from the next frame on go through the GPU path, which
-		// transforms them when drawn, so each eye sees them from its own pose
-		// (the CPU path projects them once, during the update, for the game
-		// camera). From the next frame: the update and the draw must agree.
-		extern bool bShadersDrawPathEnabled;
-		extern bool bShadersDrawAlphaShapes;
-		bShadersDrawPathEnabled = true;
-		bShadersDrawAlphaShapes = true;
-
-		// and the terrain draws its whole window, which the eyes may look at
-		// anywhere (gameplay keeps the game camera's view: Terrain::geometry)
-		Terrain::drawWholeWindow = true;
-	}
+	// a see-through HUD (gos_xr). Meshes take the GPU path and the terrain
+	// draws its whole window while VR is on (gos_IsVR in tgl.cpp, terrain.cpp).
 }
 
 //---------------------------------------------------------------------------

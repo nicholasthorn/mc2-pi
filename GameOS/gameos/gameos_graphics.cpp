@@ -2932,6 +2932,11 @@ int __stdcall gos_GetVREyeViews(gosVREyeView views[2])
     return gos_xr::eyeViews(views);
 }
 
+bool __stdcall gos_IsVR()
+{
+    return gos_xr::active();
+}
+
 bool __stdcall gos_GetVRKeepGamePitch()
 {
     static const bool keep = getenv("MC2_VR_GAME_PITCH") && getenv("MC2_VR_GAME_PITCH")[0] == '1';
