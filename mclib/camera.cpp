@@ -1674,8 +1674,8 @@ bool lastZoom = FALSE;
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 // Draws the world: render() once, or under -stereo once per eye, side by side
-// (VR plan, Phase 1). The eyes only draw; shadows and clouds still come from
-// the game camera (they are projected during the update).
+// (VR plan, Phase 1). The eyes only draw; world-anchored overlays are drawn
+// once afterwards, from the game camera.
 void Camera::renderWorld (void)
 {
 	const float separation = gos_GetStereoSeparation();
