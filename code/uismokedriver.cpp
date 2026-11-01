@@ -310,7 +310,8 @@ const char* UiSmokeDriver::press(UiAction action)
 		// campaign's last one plays the final video instead
 		if (LogisticsData::instance->isSingleMission())
 			return "only a campaign mission shows the results";
-		if (LogisticsData::instance->campaignOver())
+		// (campaignOver() only turns true once the win is counted)
+		if (LogisticsData::instance->isLastMission())
 			return "the campaign's last mission shows no results";
 		scenarioResult = mis_PLAYER_WIN_BIG;	// what Mission::update's win cheat sets
 		return NULL;

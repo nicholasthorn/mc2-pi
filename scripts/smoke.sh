@@ -49,7 +49,8 @@ set -u
 #    the mech a pilot and launch.
 # 3: the tutorial, from the new campaign dialog: its five missions launch
 #    from mission selection (no logistics, no results); win the first four,
-#    launch the fifth (the driver does not win a campaign's last mission).
+#    launch the fifth (winning it would end the campaign: the final video,
+#    no results; the driver refuses that win).
 UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
 UI_OPTIONS="$UI_OPTIONS,mechlopedia-mechs,mechlopedia-buildings,mechlopedia-vehicles"
 UI_OPTIONS="$UI_OPTIONS,mechlopedia-weapons,mechlopedia-pilots,mechlopedia-history,mainmenu"

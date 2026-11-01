@@ -170,8 +170,10 @@ cannot say why a click did nothing.
    mission`, "Next"), and a win goes straight back there
    (`mission,missionselection`). The tutorial's logistics brain did not
    fight the pinned cursor. Default walk 3 wins tut_01 to tut_04 and
-   launches tut_05 (the driver does not win a campaign's last mission);
-   it runs on stock and Omnitech data.
+   launches tut_05: winning it would end the campaign (the final video,
+   no results), so the driver refuses that win
+   (`LogisticsData::isLastMission()`; `campaignOver()` only turns true
+   once the win is counted). It runs on stock and Omnitech data.
 4. **Built (2026-11-01):** out of a mission. `mission` leads to `salvage`,
    `pilotreview` or `promotion`: once the mission has been held, the driver
    sets `scenarioResult` to a big win, as `Mission::update`'s

@@ -156,6 +156,11 @@ TEST_CASE("parse reads screen+action steps") {
 			r.err, sizeof(r.err)));
 	CHECK(r.walk.step(3) == UiScreen::Promotion);
 	CHECK(r.walk.stepAction(3) == UiAction::PickSkill);
+	// the tutorial: no logistics, no results
+	REQUIRE(r.walk.parse("mainmenu,campaign+tutorial,missionselection,mission,missionselection,mission",
+			r.err, sizeof(r.err)));
+	CHECK(r.walk.stepAction(1) == UiAction::PickTutorial);
+	CHECK(std::strcmp(uiActionName(UiAction::PickTutorial), "tutorial") == 0);
 	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,pilotreview+skill", r.err, sizeof(r.err)));
 	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,briefing", r.err, sizeof(r.err)));
 	CHECK(std::strstr(r.err, "no route from mission to briefing") != nullptr);
