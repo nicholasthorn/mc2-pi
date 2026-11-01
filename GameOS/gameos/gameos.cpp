@@ -317,6 +317,20 @@ float __stdcall gos_GetBenchFOV()
     return g_bench_fov;
 }
 
+// -stereo <separation>: set by gameosmain.cpp, here so mclib's Camera links
+// into the data tools
+static float g_stereo_separation = 0.0f;
+
+void gos_SetStereoSeparation(float separation)
+{
+    g_stereo_separation = separation;
+}
+
+float __stdcall gos_GetStereoSeparation()
+{
+    return g_stereo_separation;
+}
+
 void __stdcall gos_srand(unsigned int seed)
 {
     return srand(seed);

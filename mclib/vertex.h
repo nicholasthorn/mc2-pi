@@ -93,8 +93,9 @@ class Vertex
 		float				wx,wy;				//Screen Coordinates of water face if there is one!
 		float				wz,ww;				//Depth of vertex for water if there is one!
 		float				wAlpha;				//Used to environment Map Sky onto water.
+		float				wElevation;			//Height the water face was projected at (-stereo re-projects it per eye)
 
-		DWORD				calcThisFrame;		//Calced this vertex this frame?
+		DWORD				calcThisFrame;		//Calced this vertex this frame? 1 light/fog, 2 water, 4 land projected
 
 		float				hazeFactor;			//Used to distance fog the terrain.
 		
@@ -130,6 +131,7 @@ class Vertex
 			blockVertex = 0;
 			clipInfo = 0;
 			wAlpha = 0.0f;
+			wElevation = 0.0f;
 			hazeFactor = 0.0f;
 			init();
 		}

@@ -2748,10 +2748,12 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 				Stuff::Matrix4D forceZMatrix = Stuff::Matrix4D::Identity;
 				forceZMatrix(2, 2) = 0.0f;
 				forceZMatrix(3, 2) = forceZ;
-				mvp.Multiply(cur_shape2clip, forceZMatrix);
+				mvp.Multiply(*shapeToClip, forceZMatrix);
 			}
 			else {
-				mvp = cur_shape2clip;
+				// the matrix for the camera drawing now (each eye under -stereo),
+				// not cur_shape2clip from the update-time transform
+				mvp = *shapeToClip;
 			}
 
 			TG_RenderShape rs;

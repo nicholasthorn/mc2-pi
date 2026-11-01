@@ -22,6 +22,7 @@ set(SOURCES ${SOURCES}
     utils/stb_image_impl.cpp
     utils/pe_strings.cpp
     utils/str_bounded.cpp
+    utils/stereo.cpp
     utils/gl_render_constants.cpp
     utils/Image.cpp
     utils/logging.cpp
@@ -51,6 +52,6 @@ add_library(gameos_main ${MAIN_SRC})
 
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
-    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp
+    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 

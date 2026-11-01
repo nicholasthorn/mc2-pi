@@ -521,6 +521,7 @@ void TerrainQuad::setupTextures (void)
 					vertices[0]->clipInfo = clipData;
 		
 				vertices[0]->wx = screenPos.x;
+				vertices[0]->wElevation = vertex3D.z;
 				vertices[0]->wy = screenPos.y;
 				vertices[0]->wz = screenPos.z;
 				vertices[0]->ww = screenPos.w;
@@ -588,6 +589,7 @@ void TerrainQuad::setupTextures (void)
 					vertices[1]->clipInfo = clipData;
  
 				vertices[1]->wx = screenPos.x;
+				vertices[1]->wElevation = vertex3D.z;
 				vertices[1]->wy = screenPos.y;
 				vertices[1]->wz = screenPos.z;
 				vertices[1]->ww = screenPos.w;
@@ -655,6 +657,7 @@ void TerrainQuad::setupTextures (void)
 					vertices[2]->clipInfo = clipData;
 					
 				vertices[2]->wx = screenPos.x;
+				vertices[2]->wElevation = vertex3D.z;
 				vertices[2]->wy = screenPos.y;
 				vertices[2]->wz = screenPos.z;
 				vertices[2]->ww = screenPos.w;
@@ -722,6 +725,7 @@ void TerrainQuad::setupTextures (void)
 					vertices[3]->clipInfo = clipData;
 				 
 				vertices[3]->wx = screenPos.x;
+				vertices[3]->wElevation = vertex3D.z;
 				vertices[3]->wy = screenPos.y;
 				vertices[3]->wz = screenPos.z;
 				vertices[3]->ww = screenPos.w;

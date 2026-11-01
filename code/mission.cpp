@@ -815,7 +815,14 @@ long Mission::render (void)
 			eye->ambientGreen = 0xFF;
 			eye->ambientBlue = 0xFF;
 		}
-		BenchStage("world_render",eye->render());
+		if (gos_GetStereoSeparation() > 0.0f)
+		{
+			BenchStage("world_render",eye->renderStereo());
+		}
+		else
+		{
+			BenchStage("world_render",eye->render());
+		}
 		GameMap->clearCellDebugs(0);
 	
 		//-----------------------------------------------------

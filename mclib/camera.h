@@ -492,6 +492,7 @@ class Camera
 		
 		virtual long update (void);
 		virtual void render (void);
+		void renderStereo (void);		//-stereo: render() once per eye, side by side
 
 		virtual long activate (void);
 		virtual void reset (void)

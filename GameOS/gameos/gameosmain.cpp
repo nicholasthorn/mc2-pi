@@ -59,6 +59,7 @@ void gos_EnableBenchStages();
 void gos_SetBenchFOV(float fov);
 const std::vector<std::string>& gos_GetBenchStageNames();
 void gos_TakeBenchStageTimes(double* out);
+void gos_SetStereoSeparation(float separation);	// gameos.cpp: -stereo
 
 // -benchscenario <fit>: the scripted scenario code/benchdirector.cpp plays.
 // It names segments (timed separately) and asks for screenshots.
@@ -420,6 +421,10 @@ int main(int argc, char** argv)
             bench_fov = (float)atof(argv[i+1]);
         if(0 == strcmp(argv[i], "-uismoke"))
             g_uismoke_walk = argv[i+1];
+        // -stereo <separation>: side-by-side stereo debug view, eye
+        // cameras <separation> world units apart (VR plan, Phase 1)
+        if(0 == strcmp(argv[i], "-stereo"))
+            gos_SetStereoSeparation((float)atof(argv[i+1]));
     }
     g_bench = bench_csv != NULL;
     gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
