@@ -1007,7 +1007,6 @@ TypePtr execStandardRoutineCall (SymTableNodePtr routineIdPtr, bool skipOrder) {
 				char err[255];
 				sprintf(err, " ABL: Undefined ABL RoutineKey in %s:%d", CurModule->getName(), execLineNumber);
 				ABL_Fatal(0, err);
-				return(NULL);	// ABL_Fatal can return: do not index the tables with it
 			}
 			if (FunctionInfoTable[key].numParams > 0)
 				getCodeToken();

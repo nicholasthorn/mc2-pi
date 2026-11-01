@@ -296,9 +296,10 @@ on 2026-10-31.
       following bytes as another pointer. (10-29)
 - [x] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29, done
       10-31)
-- [ ] From the 2026-11-01 sweep, waiting on step 4 of the `STOP` plan (once
-      `STOP` exits these end cleanly; porting them would let the game carry
-      on instead): `80e98102` (`ObjectTypeManager::load` uses NULL after a
+- [ ] From the 2026-11-01 sweep, settled by step 4 of the `STOP` plan
+      (#46): these now end the game cleanly instead of crashing, and only
+      run on with `MC2_STOP_EXITS=0` (mod bring-up). Port them only if mods
+      should carry on past them: `80e98102` (`ObjectTypeManager::load` uses NULL after a
       CRAPPY_OBJECT `Fatal`), `424b2ce7` (`Mission::addMover` treats a
       vehicle in the force group as a mech; the one-argument overload has
       the same pattern), `9356f8e3` + `6daa0905` (a module with compile
