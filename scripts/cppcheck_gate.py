@@ -86,6 +86,11 @@ def ignored(path, line, check, message):
     return False
 
 
+# where each finding key was seen (path:line), so a NEW finding can be found;
+# keys stay line-free so the baseline does not move with unrelated edits
+LOCATIONS = collections.defaultdict(list)
+
+
 def run_cppcheck(build_dir, files, jobs):
     cmd = ["cppcheck", "--project=" + os.path.join(build_dir, "compile_commands.json"),
            "--enable=warning,portability", "--inline-suppr", "--quiet",
@@ -109,6 +114,7 @@ def run_cppcheck(build_dir, files, jobs):
         if ignored(path, int(line_no) if line_no.isdigit() else 0, check, message):
             continue
         findings[key(path, severity, check, message)] += 1
+        LOCATIONS[key(path, severity, check, message)].append("%s:%s" % (path, line_no))
     # Without --error-exitcode cppcheck exits non-zero only when it failed
     # itself (no file matched the filter, bad project file, crash). Its
     # findings would then be missing, not zero. Exit 2 (1 means new findings).
@@ -179,6 +185,8 @@ def main():
         path, severity, check, message = key.split(SEP)
         print("NEW %s: %s [%s/%s]%s" % (path, message, severity, check,
                                         " (x%d)" % extra if extra > 1 else ""))
+        # indented, not "NEW": check.sh compares only the NEW lines
+        print("    at " + ", ".join(LOCATIONS[key][:5]))
     if fixed and not new:
         print("Findings went down: consider lowering the baseline "
               "(Actions > Static analysis > Run workflow, update_baseline).")
