@@ -54,6 +54,11 @@ static bool g_bench = false;
 
 void gos_SetFixedFrameLength(float seconds);	// gameos.cpp
 void gos_SetAutomatedRun(bool automated);	// gameos.cpp
+// gameos.cpp: -bench named stages (gos_BenchStageId) and -benchfov
+void gos_EnableBenchStages();
+void gos_SetBenchFOV(float fov);
+const std::vector<std::string>& gos_GetBenchStageNames();
+void gos_TakeBenchStageTimes(double* out);
 
 // -benchscenario <fit>: the scripted scenario code/benchdirector.cpp plays.
 // It names segments (timed separately) and asks for screenshots.
@@ -403,6 +408,7 @@ int main(int argc, char** argv)
     // The game's own command-line parser ignores it.
     long autoexit_frames = 0;
     const char* bench_csv = NULL;
+    float bench_fov = 0.0f;
     for(int i=1;i<argc-1;++i) {
         if(0 == strcmp(argv[i], "-autoexit"))
             autoexit_frames = atol(argv[i+1]);
@@ -410,12 +416,23 @@ int main(int argc, char** argv)
             bench_csv = argv[i+1];
         if(0 == strcmp(argv[i], "-benchscenario"))
             g_bench_scenario = argv[i+1];
+        if(0 == strcmp(argv[i], "-benchfov"))
+            bench_fov = (float)atof(argv[i+1]);
         if(0 == strcmp(argv[i], "-uismoke"))
             g_uismoke_walk = argv[i+1];
     }
     g_bench = bench_csv != NULL;
     gos_SetFixedFrameLength(g_bench ? BENCH_FRAME_LENGTH : 0.0f);
     gos_SetAutomatedRun(g_bench || autoexit_frames > 0 || g_uismoke_walk != NULL);
+    if(bench_fov < 0.0f || bench_fov >= 170.0f) {
+        // tan(fov / 2) in the projection breaks down towards 180
+        fprintf(stderr, "-benchfov %g: must be between 0 (off) and 170 degrees\n", bench_fov);
+        return 2;
+    }
+    if(g_bench) {
+        gos_EnableBenchStages();
+        gos_SetBenchFOV(bench_fov);
+    }
     g_bench_csv = bench_csv;
     perf_open_control();
     std::vector<frame_stats::FrameSample> bench_frames;
@@ -486,6 +503,8 @@ int main(int argc, char** argv)
 
         uint32_t draws = 0, tris = 0;
         gos_TakeRenderStats(&draws, &tris);
+        double stage_ms[frame_stats::kMaxStages];
+        gos_TakeBenchStageTimes(stage_ms);
 
         if(g_gameplay_started) {
             ++frame_count;
@@ -501,6 +520,7 @@ int main(int argc, char** argv)
                 s.segment = g_bench_segments.empty() ? 0 : (uint32_t)(g_bench_segments.size() - 1);
                 s.state = g_bench_state;
                 g_bench_state = 0;
+                memcpy(s.stage_ms, stage_ms, sizeof(stage_ms));
                 bench_frames.push_back(s);
             }
         }
@@ -521,6 +541,7 @@ int main(int argc, char** argv)
 
     // written after the loop so file IO never lands inside a measured frame
     if(g_bench) {
+        const std::vector<std::string>& stages = gos_GetBenchStageNames();
         // one line per scenario segment, then the whole run
         for(size_t seg = 0; seg < g_bench_segments.size(); ++seg) {
             std::vector<frame_stats::FrameSample> part;
@@ -528,14 +549,15 @@ int main(int argc, char** argv)
                 if(bench_frames[i].segment == seg)
                     part.push_back(bench_frames[i]);
             printf("%s\n", frame_stats::summaryLine(g_bench_segments[seg].c_str(),
-                        frame_stats::summarize(part)).c_str());
+                        frame_stats::summarize(part), stages).c_str());
         }
-        printf("%s\n", frame_stats::summaryLine("all", frame_stats::summarize(bench_frames)).c_str());
+        printf("%s\n", frame_stats::summaryLine("all", frame_stats::summarize(bench_frames),
+                    stages).c_str());
         FILE* f = fopen(bench_csv, "w");
         if(f) {
-            fprintf(f, "%s\n", frame_stats::csvHeader().c_str());
+            fprintf(f, "%s\n", frame_stats::csvHeader(stages).c_str());
             for(size_t i = 0; i < bench_frames.size(); ++i)
-                fprintf(f, "%s\n", frame_stats::csvRow((long)i, bench_frames[i]).c_str());
+                fprintf(f, "%s\n", frame_stats::csvRow((long)i, bench_frames[i], stages).c_str());
             fclose(f);
         } else {
             printf("[BENCH] ERROR: cannot write %s\n", bench_csv);

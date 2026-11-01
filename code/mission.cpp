@@ -302,6 +302,10 @@ extern __int64 x;
 #define ProfileTime(x,y)	y;
 #endif
 
+// -bench: time y as a named stage, its own "<name>_ms" [BENCH] key and CSV
+// column (gos_BenchStageId). Used to estimate the cost of VR stereo.
+#define BenchStage(name,y)	{ static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); }
+
 long GameVisibleVertices		= 60;
 float BaseHeadShotElevation		= 1.0f;
 
@@ -501,8 +505,16 @@ long Mission::update (void)
 		// -benchscenario: scripted battle and camera; after the interface
 		// (input) and before the camera update, so its camera wins
 		BenchDirector::update(missionFileName);
+		// -benchfov: a headset-wide view for VR cost estimates. Cancel any
+		// scripted FOV goal too, or eye->update() would move off it.
+		if (gos_GetBenchFOV() > 0.0f)
+		{
+			eye->setFieldOfView(gos_GetBenchFOV());
+			eye->setFieldOfViewGoal(gos_GetBenchFOV(), 0.0f);
+			eye->cosHalfFOV = cos(gos_GetBenchFOV() * 0.7071f * DEGREES_TO_RADS);
+		}
 
-		ProfileTime(MCTimeCameraUpdate,eye->update());
+		BenchStage("camera",ProfileTime(MCTimeCameraUpdate,eye->update()));
 		
 		missionInterface->updateVTol();
 		
@@ -532,12 +544,15 @@ long Mission::update (void)
 		land->terrainTextures->update();
 
 
-		ProfileTime(MCTimeTerrainGeometry,land->geometry());
+		BenchStage("terrain_geom",ProfileTime(MCTimeTerrainGeometry,land->geometry()));
 
+		static const int benchObjects = gos_BenchStageId("objects");
+		gos_BenchStageStart(benchObjects);
 		if ( missionInterface->isPaused() && !MPlayer )
 			ObjectManager->updateAppearancesOnly( true, true, true );
 		else
 			ObjectManager->update(true, true, true);
+		gos_BenchStageStop(benchObjects);
 
 		ProfileTime(MCTimeCraterUpdate,craterManager->update());
 		
@@ -800,7 +815,7 @@ long Mission::render (void)
 			eye->ambientGreen = 0xFF;
 			eye->ambientBlue = 0xFF;
 		}
-		eye->render();
+		BenchStage("world_render",eye->render());
 		GameMap->clearCellDebugs(0);
 	
 		//-----------------------------------------------------
@@ -817,12 +832,15 @@ long Mission::render (void)
 		
 		gos_SetRenderState( gos_State_Fog, 0);
 		
+		static const int benchUiRender = gos_BenchStageId("ui_render");
+		gos_BenchStageStart(benchUiRender);
 		FloatHelp::renderAll();
 	
 		currentFloatHelp = 0;
 	
 		if (missionInterface)
 			missionInterface->render();
+		gos_BenchStageStop(benchUiRender);
 
 		if (KillAmbientLight) {
 			eye->ambientRed = tempAmbientLight[0];
