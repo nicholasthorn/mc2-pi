@@ -13,6 +13,9 @@ LogisticsScreen.cpp			: Implementation of the LogisticsScreen component.
 #include"aedit.h"
 #include"err.h"
 #include"aanimobject.h"
+#include"paths.h"
+
+#include<string.h>
 
 extern long helpTextID;
 extern long helpTextHeaderID;
@@ -604,10 +607,34 @@ void  LogisticsScreen::moveTo( long xPos, long yPos )
 	long xOffset = xPos - globalX();
 	long yOffset = yPos - globalY();
 
-	aObject::init( xPos, yPos, 800, 600 );
+	aObject::init( xPos, yPos, frontEndWidth(), frontEndHeight() );
 
 
 	move( xOffset, yOffset );
+}
+
+static bool hiresFrontEnd()
+{
+	static int hires = -1;
+	if ( hires < 0 )
+	{
+		char path[256];
+		strcpy( path, artPath );
+		strcat( path, "mcl_mm.fit" );
+		FitIniFile file;
+		hires = NO_ERR == file.open( path ) && NO_ERR == file.seekBlock( "HiresOffsets" );
+	}
+	return hires;
+}
+
+long LogisticsScreen::frontEndWidth()
+{
+	return hiresFrontEnd() ? 1280 : 800;
+}
+
+long LogisticsScreen::frontEndHeight()
+{
+	return hiresFrontEnd() ? 1024 : 600;
 }
 
 void  LogisticsScreen::move( long xOffset, long yOffset )
