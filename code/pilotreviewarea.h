@@ -260,6 +260,7 @@ public:
 
 	virtual bool		isChecked();
 	virtual void		setCheck( bool );
+	// cppcheck-suppress duplInheritedMember ; own ID, read only through this type; aObject::ID is unused here
 	int					getID();
 	SpecialtyListItem( int ID );
 
@@ -284,6 +285,7 @@ private:
 	aButton			radioButton;
 	aRect				outline;
 
+	// cppcheck-suppress duplInheritedMember ; own ID, read only through this type; aObject::ID is unused here
 	int					ID;
 
 	friend class PilotPromotionArea;

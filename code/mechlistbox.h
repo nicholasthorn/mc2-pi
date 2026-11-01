@@ -121,6 +121,7 @@ public:
 	void	disableItemsThatCostMoreThanRP();
 	void	disableItemsThatCanNotGoInFG();
 
+	// cppcheck-suppress duplInheritedMember ; also recolours the items; every call is through a MechListBox
 	void	setOrange( bool bOrange );
 
 

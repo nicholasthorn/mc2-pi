@@ -648,6 +648,7 @@ void MechListBox::disableItemsThatCanNotGoInFG()
 	}
 }
 
+// cppcheck-suppress duplInheritedMember ; also recolours the items; every call is through a MechListBox
 void MechListBox::setOrange( bool bNewOrange )
 {
 	bOrange = bNewOrange ? 1 : 0;

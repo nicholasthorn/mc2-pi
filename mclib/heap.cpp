@@ -470,6 +470,7 @@ UserHeap::~UserHeap (void)
 }
 
 //---------------------------------------------------------------------------
+// cppcheck-suppress duplInheritedMember ; called through this type only; each destructor calls its own destroy(), which calls HeapManager::destroy()
 void UserHeap::destroy (void)
 {
 	HeapManager::destroy();

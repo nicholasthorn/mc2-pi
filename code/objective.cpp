@@ -1583,6 +1583,7 @@ CObjective &CObjective::operator=(const CObjective &master) {
 	return (*this);
 }
 
+// cppcheck-suppress duplInheritedMember ; deletes the owned elements, then calls inherited::Clear; every call is through this type
 void CObjective::Clear() {
 	m_resolved = false;
 	m_changedStatus = false;
@@ -2086,6 +2087,7 @@ CObjectives &CObjectives::operator=(const CObjectives &master) {
 	return (*this);
 }
 
+// cppcheck-suppress duplInheritedMember ; deletes the owned elements, then calls inherited::Clear; every call is through this type
 void CObjectives::Clear() {
 	EIterator it = Begin();
 	while (!it.IsDone()) {

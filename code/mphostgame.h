@@ -44,7 +44,6 @@ public:
 	virtual ~MPHostGame();
 	
 	void init();
-	bool isDone();
 	virtual void		begin();
 	virtual void		end();
  	virtual void render( int xOffset, int yOffset );

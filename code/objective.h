@@ -693,6 +693,7 @@ public:
 	~CObjective() { Clear(); }
 	CObjective &operator=(const CObjective &master);
 	void Init() {}
+	// cppcheck-suppress duplInheritedMember ; deletes the owned elements, then calls inherited::Clear; every call is through this type
 	void Clear();
 	int Alignment() { return m_alignment; }
 	void Alignment(int alignment);
@@ -776,6 +777,7 @@ public:
 	~CObjectives() { Clear(); }
 	CObjectives &operator=(const CObjectives &master);
 	void Init();
+	// cppcheck-suppress duplInheritedMember ; deletes the owned elements, then calls inherited::Clear; every call is through this type
 	void Clear();
 	int Alignment() { return m_alignment; }
 	void Alignment(int alignment);
