@@ -131,11 +131,12 @@ void Appearance::drawSelectBox (DWORD color)
 	}
 	else
 	{
-		ul.x = upperLeft.x + eyeShift();
+		const float shift = eyeShift();
+		ul.x = upperLeft.x + shift;
 		ul.y = upperLeft.y;
 		ul.z = HUD_DEPTH;
 
-		br.x = lowerRight.x + eyeShift();
+		br.x = lowerRight.x + shift;
 		br.y = lowerRight.y;
 		br.z = HUD_DEPTH;
 	}
@@ -265,11 +266,12 @@ void Appearance::drawSelectBrackets (DWORD color)
 	Stuff::Vector4D			pos2;
 	Stuff::Vector4D			ul, br;
 
-	ul.x = upperLeft.x + eyeShift();
+	const float shift = eyeShift();
+	ul.x = upperLeft.x + shift;
 	ul.y = upperLeft.y;
 	ul.z = HUD_DEPTH;
 
-	br.x = lowerRight.x + eyeShift();
+	br.x = lowerRight.x + shift;
 	br.y = lowerRight.y;
 	br.z = HUD_DEPTH;
 

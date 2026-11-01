@@ -1719,6 +1719,7 @@ void Camera::renderWorld (void)
 	{
 		setEye(eyeIndex);
 		render();
+		gos_SetRenderState(gos_State_Fog, 0);	// as Mission::render does before FloatHelp::renderAll
 		FloatHelp::renderAndResetFrom(helpsBeforeEyes);
 	}
 	setEye(-1);
