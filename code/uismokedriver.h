@@ -5,6 +5,7 @@
 
 class LogisticsScreen;
 class MissionBegin;
+class MissionResults;
 
 // Walks the front end for a UI smoke run ("-uismoke <walk>", scripts/smoke.sh):
 // each frame it works out which screen has settled, prints
@@ -22,6 +23,7 @@ public:
 
 private:
 	static LogisticsScreen* gridScreen (MissionBegin* begin);
+	static MissionResults* results ();
 	static UiScreen currentScreen ();
 	static const char* press (UiAction action);
 };

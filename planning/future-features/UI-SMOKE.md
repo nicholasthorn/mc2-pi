@@ -166,10 +166,23 @@ cannot say why a click did nothing.
    (`LogisticsSaveDialog` list item 1) before OK; its logistics ABL brain
    (`MissionBegin::begin`, `startAnimation`) moves the cursor itself, so
    check it does not fight the pinned cursor.
-4. Out of a mission: end it from the driver after N frames (a win through
-   `mission->update()`'s result or the objectives) to reach mission results,
-   salvage and pilot promotion (`log_RESULTS`, `code/missionresults.cpp`,
-   `salvagemecharea.cpp`, `pilotreviewarea.cpp`), then mission selection.
+4. **Built (2026-11-01):** out of a mission. `mission` leads to `salvage`,
+   `pilotreview` or `promotion`: once the mission has been held, the driver
+   sets `scenarioResult` to a big win, as `Mission::update`'s
+   Ctrl+Alt+Shift+W cheat does (a campaign mission only: a single mission
+   ends at the main menu). `MissionResults` then shows salvage (Done, id
+   101), pilot review (Done once the screen and its pilot list have slid
+   in; it sends `aMSG_DONE`) and, over pilot review, a promotion dialog for
+   each pilot who gained a rank (`promotion+skill` checks the first
+   specialty skill, then Confirm), then mission selection. The mission's
+   data can skip salvage or pilot review: stock mc2_01 skips salvage;
+   mc2_02 shows salvage and promotes a pilot. Default walk 1 now wins
+   mc2_01 and mc2_02 through all of these; on Omnitech it wins its first
+   campaign mission (salvage, pilot review). A walk cannot list one screen
+   twice in a row, so a mission that promotes two pilots cannot be walked
+   yet. Still to come: picking salvage, a lost mission
+   (`mis_PLAYER_LOST_BIG`), the campaign's end (its last mission plays the
+   final video, no results; the driver refuses that win).
 5. Mechlopedia (`MM_MSG_ENCYCLOPEDIA`), load/save (`MM_MSG_SAVE`/`LOAD`, in
    the temporary config directory only), the in-mission options (Ctrl+O
    wrapper in `mechcmd2.cpp`), main menu from a logistics screen

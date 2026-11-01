@@ -56,6 +56,7 @@ class MissionResults
 		bool					bPilotStarted;
 
 		friend class Logistics;
+		friend class UiSmokeDriver;	// -uismoke reads which results screen is up
 
 };
 

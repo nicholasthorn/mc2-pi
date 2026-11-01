@@ -41,6 +41,13 @@ Coverage is still to come (`planning/QUALITY-ROADMAP.md`).
   `gos_MarkGameplayStarted()` on a mission's first frame (`code/mission.cpp`),
   which prints `[MISSION] <name> started`; GameOS prints `[AUTOEXIT] ...` and
   exits cleanly after N more frames.
+- `-deterministic` gives an `-autoexit` run `-bench`'s fixed 1/30 s step and
+  fixed seed (no CSV), so it plays out the same every time; sound is off,
+  because audio runs in real time and feeds the RNG. GameOS then prints
+  `[STATEHASH] <hex>`, the game-state checksum after the last frame.
+  `smoke.sh --deterministic` runs each mission twice and fails when the two
+  differ; `MC2_BENCH_DUMP=<frame>` prints every unit's state from that frame
+  to find where they part. Not the default: plain runs keep sound covered.
 - A run fails on: non-zero exit, a hang (killed after `--timeout`), no
   `[MISSION]` before `[AUTOEXIT]`, or any `OpenGL Error`, `: ERROR: `,
   `STOP: ` or `FATAL` line. Logs go to `--log-dir`. A new error that is

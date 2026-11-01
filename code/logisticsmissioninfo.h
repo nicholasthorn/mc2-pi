@@ -159,10 +159,12 @@ class LogisticsMissionInfo
 			EString operationFileName;
 			EString bigVideoName;
 			EString ablBrainName;
-			long logisticsTuneId;
+			long logisticsTuneId = 0;
 			MISSION_LIST infos;
-			bool	bigVideoShown;
-			bool	videoShown;
+			// only a group with a "PreVideo" set this, and saving a campaign
+			// (after each mission's results) wrote it for every group
+			bool	bigVideoShown = false;
+			bool	videoShown = false;
 		};
 
 
