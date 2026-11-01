@@ -713,16 +713,42 @@ A move order through the see-through HUD still goes to the ground the game
 camera sees at that screen position, not to what is behind the dot in the
 headset: world picking (below) is the real fix.
 
+Fourth run: the menu button, the Guardian and held A on the left stick
+work (grip and B not tried yet); world selection is what was missing.
+
+**World picking** (after the fourth run):
+
+- **Interface or world:** each frame `gos_xr` reads back the window's
+  alpha at the quad point under the ray (a pixel-pack buffer and a fence,
+  read on a later frame, so it never waits for the GPU). Where something
+  is drawn the pointer is on the interface, as before; through the quad's
+  see-through parts, or beside the quad, it is on the world. A press stays
+  with what it started on until let go, so a drag-select box can cross the
+  panel's edge.
+- **The ray in the world:** `Camera::vrRayToWorld` puts the aim pose
+  through `vr_eye::eyeBasis` with the game camera, exactly as the eyes are
+  placed, so the ray matches what the eyes show.
+- **The pick** (`vrPickWorld` in `mission.cpp`, after the eyes are drawn,
+  every headset frame): the ray against a sphere about each mover (mechs
+  30 world units, 6 m, half height; vehicles 12), so pointing at a mech's
+  body picks it, then against the ground (`vr_controls::rayHitsGround`,
+  32-unit steps then bisection, up to 8000 units). The nearest hit,
+  projected through the game camera, goes back to GameOS
+  (`gos_SetVRWorldPointer`) and becomes the mouse position on the next
+  sample, so selection, orders, attack targets and drag boxes are the
+  game's own. A point under the interface on the game's screen (its
+  window alpha, read back too) is not clickable: the click would go to
+  the panel.
+- **The beam** ends on the ground or unit, with the dot there, turned to
+  the eye and as large to the eye as on the quad.
+- Limits: only what the game camera sees can be picked (the game's
+  picking reads its own projected terrain); the sky or a point outside
+  that view leaves the pointer with nothing to click. Unit spheres are
+  fixed sizes, not the models' bounds. Buildings are picked through the
+  ground under them.
+
 Not done in this slice:
 
-- **Picking in the world.** Pointing through the HUD at the battle does
-  nothing: the HUD quad covers the battle and is see-through where there is
-  no interface, so a hit on it must count as the interface only where
-  something is drawn (the game's own "is the mouse over the panel" test, or
-  a one-pixel alpha readback a frame late), and otherwise go on to the
-  terrain: ray against `getTerrainElevation`, the hit projected through the
-  game camera as the mouse (see "Approach"), with a ray test against object
-  bounds first for tall units.
 - Analogue stick speed (the keys give the game's fixed scroll and zoom
   rates).
 - To try in the headset: A takes the head's heading, but the world stays
