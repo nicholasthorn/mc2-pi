@@ -550,7 +550,10 @@ size_t gosMesh::streamToBuffer(GLuint buf, GLenum target, size_t buf_size,
 {
     gosASSERT(bytes <= buf_size);
 
-    GLbitfield access = GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_INVALIDATE_RANGE_BIT;
+    // No GL_MAP_INVALIDATE_RANGE_BIT: the range is unused already, and the
+    // Adreno driver (Quest 2) answers it with a kernel allocation per map,
+    // which made every draw cost about 0.4 ms (4 fps instead of 76)
+    GLbitfield access = GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
     if(*offset + bytes > buf_size) {
         *offset = 0;
         access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;

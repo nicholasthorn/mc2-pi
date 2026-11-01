@@ -319,11 +319,36 @@ say little about an XR2's A77-class cores at up to 2.8 GHz and its Adreno
   with the GLES renderer, running the mc2_19 bench scenario, mono and
   `-stereo`, and writing the frame CSV and `[BENCH]` lines for `adb pull`.
   It measures the real CPU and the real Adreno driver, and is the first part
-  of Phase 4. **Built (branch `quest-test`, `android/README.md`); to do: run
-  it on the headset** with `scripts/android/run_bench.sh --data <game data>`.
+  of Phase 4. **Run on a Quest 2, 2026-11-01** (results below).
 - **A PC run on a real GPU**: takes llvmpipe's CPU cost out of
   `world_render` and gives clean per-stage CPU times to compare with the
   Quest's.
+
+### Quest 2 results (2026-11-01)
+
+mc2_19 bench scenario, 3600 frames, game at 800x600 in a flat window, GLES
+3.1 on the Adreno 650, CPU at 1.8 to 1.86 GHz (the clocks a flat app gets):
+
+| | fps | avg ms | p95 ms | logic ms | render ms | swap ms | draws |
+|---|---|---|---|---|---|---|---|
+| mono | 58.6 | 17.1 | 21.9 | 12.9 | 3.8 | 0.3 | 691 |
+| `-stereo 40` | 52.1 | 19.2 | 24.4 | 12.8 | 6.0 | 0.3 | 1081 |
+
+- The first run did 2 to 5 fps: 78 % of the CPU time was the Adreno driver
+  allocating kernel memory for each `glMapBufferRange` with
+  `GL_MAP_INVALIDATE_RANGE_BIT` (one per draw, about 0.4 ms each, found with
+  `simpleperf`). Without the bit (the range is unused anyway) the render
+  stage went from 199 ms to 3 ms; `glBufferSubData` is as slow as the
+  original. llvmpipe screenshots and state checksums are unchanged by the fix.
+- **Rendering is cheap:** the second eye adds 2.2 ms of CPU.
+- **Game logic is the cost:** 12.9 ms against the 13.9 ms a 72 Hz frame has.
+  The bench steps the game every frame; stepping it at 30 Hz and drawing the
+  eyes at 72 Hz leaves about 6 to 7 ms of CPU per displayed frame.
+- Not measured: GPU load at headset resolution (about 1832x1920 per eye);
+  that needs the OpenXR path.
+
+**Decision: go on the CPU route.** Phase 6 is not needed before OpenXR;
+decoupling the game update from the display rate is.
 
 ## Phases
 
