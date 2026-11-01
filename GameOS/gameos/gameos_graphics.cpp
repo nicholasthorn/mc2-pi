@@ -1498,7 +1498,7 @@ void gosRenderer::init() {
         std::vector<std::string> defines;
         for(size_t bit = 0; bit < 32; ++bit)
         {
-            uint32_t bit_mask = 1<<bit;
+            uint32_t bit_mask = 1u<<bit;
             if(bit_mask & combinations[i])
             {
                 std::string s = g_shader_flags[bit];
@@ -2952,6 +2952,7 @@ void __stdcall gos_TextDrawBackground( int Left, int Top, int Right, int Bottom,
     v[0].x = (float)Left;
     v[0].y = (float)Top;
     v[0].z = 0;
+	v[0].rhw = 1.0f; // the vertex shader divides gl_Position by it
 	v[0].argb = Color;
 	v[0].frgb = 0;
 	v[0].u = 0;	

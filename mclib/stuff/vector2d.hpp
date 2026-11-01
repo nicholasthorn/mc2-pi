@@ -83,6 +83,7 @@ namespace Stuff {
 				{
 					Check_Object(this);
 					Verify(static_cast<unsigned>(index) <= Y_Axis);
+					// cppcheck-suppress objectIndex ; Stuff math types index their consecutive float members as an array by design
 					return (&x)[index];
 				}
 		T&
@@ -90,6 +91,7 @@ namespace Stuff {
 				{
 					Check_Object(this);
 					Verify(static_cast<unsigned>(index) <= Y_Axis);
+					// cppcheck-suppress objectIndex ; Stuff math types index their consecutive float members as an array by design
 					return (&x)[index];
 				}
 

@@ -1015,7 +1015,7 @@ long SoundSystem::findOpenChannel (long start, long end)
 {
 	long channel = start;
 	
-	while (channelInUse[channel] && (channel < end))
+	while ((channel < end) && channelInUse[channel])
 		channel++;
 		
 	if (channel == end)
@@ -1103,8 +1103,7 @@ void SoundSystem::stopDigitalMusic (void)
 	{
 		if (stream1Active && stream1Handle)
 		{
-			if (stream1Handle) 
-				gosAudio_DestroyResource(&stream1Handle);
+			gosAudio_DestroyResource(&stream1Handle);
 				
 			stream1Handle = NULL;
 			stream1Time = 0.0;
@@ -1113,8 +1112,7 @@ void SoundSystem::stopDigitalMusic (void)
 		
 		if (stream2Active && stream2Handle)
 		{
-			if (stream2Handle) 
-				gosAudio_DestroyResource(&stream2Handle);
+			gosAudio_DestroyResource(&stream2Handle);
 				
 			stream2Handle = NULL;
 		 	stream2Time = 0.0;

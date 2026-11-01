@@ -52,9 +52,11 @@ namespace Stuff {
 
 		const Scalar&
 			operator[](int index) const
+				// cppcheck-suppress objectIndex ; Stuff math types index their consecutive float members as an array by design
 				{Check_Object(this); return (&minX)[index];}
 		Scalar&
 			operator[](int index)
+				// cppcheck-suppress objectIndex ; Stuff math types index their consecutive float members as an array by design
 				{Check_Object(this); return (&minX)[index];}
 
 		ExtentBox&

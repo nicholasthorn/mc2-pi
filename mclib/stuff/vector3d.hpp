@@ -203,6 +203,7 @@ namespace Stuff {
 				{
 					Check_Pointer(this);
 					Verify(static_cast<unsigned>(index) <= Z_Axis);
+					// cppcheck-suppress objectIndex ; Stuff math types index their consecutive float members as an array by design
 					return (&x)[index];
 				}
 		Scalar&
@@ -210,6 +211,7 @@ namespace Stuff {
 				{
 					Check_Pointer(this);
 					Verify(static_cast<unsigned>(index) <= Z_Axis);
+					// cppcheck-suppress objectIndex ; Stuff math types index their consecutive float members as an array by design
 					return (&x)[index];
 				}
 
