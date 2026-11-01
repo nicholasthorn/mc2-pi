@@ -121,8 +121,8 @@ Added 2026-10-31.
     (`Building::isVisible`, `BattleMech::initOptimalCells`, two MP
     `isDone`); 28 intended ones suppressed inline with the reason, the two
     save-game struct fields among them (loads tell types apart by size).
-    Left: `TerrainObjectType::subType`, the shipped-game forest pathing
-    bug (fixing it changes gameplay: needs a decision).
+    `TerrainObjectType::subType` (the shipped-game forest pathing bug) is
+    kept as shipped, decided 2026-11-01, and suppressed with that reason.
   - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
     better after the STOP/Fatal work below), `allocaCalled` (27) and the
     rest.
@@ -412,13 +412,13 @@ Candidates:
 - Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
 - `Fatal()` / `ABL_Fatal()` return: `STOP` only logs (`InternalFunctionStop`, its `exit(1)` is commented out), so code after a fatal error carries on, usually into the NULL or full array it was guarding (`if (!p) Fatal(...); p->...`; ~35 sites, most of the remaining cppcheck `nullPointerRedundantCheck`, plus some `arrayIndexOutOfBoundsCond`). Making them abort (noreturn) would end the game cleanly instead, but any Fatal that fires harmlessly today would start quitting. Decided 2026-10-29: leave as is for now; reversed 2026-10-31, see "Make `STOP` / `Fatal()` stop again" in the to-do list (step 1, `MC2_STOP_EXITS=1` for smoke and bench, is in).
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
-- Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects); not done, needs a decision.
+- Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects). Decided 2026-11-01: keep the shipped behaviour (cppcheck finding suppressed with that reason).
 
 ## Log
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
-- 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing, shipped behaviour) left for a gameplay decision.
+- 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing) kept as shipped by decision and suppressed with that reason.
 
 - 2026-11-01: cppcheck `memsetClassFloat` (43) closed (branch `fix/cppcheck-memset`): the ASE shape parser zero-fills its vertex and triangle lists instead of `0xff`, so a mesh without texture faces no longer keeps NaN UVs (game data differs only in `tgl.fst`); the gate drops `memsetClassFloat` for zero fills (all-bits-zero is 0.0f on IEEE 754) and still reports non-zero ones. Baseline to regenerate from CI after merge.
 - 2026-11-01: CI skips docs-only pushes: a "changes" job in `ci.yml` and `smoke.yml` runs `scripts/ci_docs_only.sh`, and the build, test and smoke jobs skip when everything changed since the previous push is docs (`*.md`, `planning/`, `.claude/`, `docs`, `devdoc.txt`) and that previous commit passed the same workflow. A cancelled or failed run, a force push or a new branch always runs in full. Docs-only PRs no longer start `ci.yml` at all (`paths-ignore`) (#45). Same PR: agents run `/simplify`, `/code-review` and `/code-review high` while CI runs on the push, instead of waiting for green first.
