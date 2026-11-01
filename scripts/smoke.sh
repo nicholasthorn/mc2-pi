@@ -26,6 +26,11 @@
 #   --timeout S       seconds before a run counts as hung (default: 300)
 #   --log-dir DIR     where to keep per-run logs (default: ./smoke-logs)
 #   --display         run on the current display instead of Xvfb (to watch)
+#   --deterministic   run each mission with -deterministic (fixed game step
+#                     and seed, sound off) twice, and fail when the two end
+#                     in a different game state ([STATEHASH] lines differ).
+#                     Off by default: it drops sound, which the plain runs
+#                     cover.
 #
 # Exit status: 0 if every run passed, 1 otherwise.
 
@@ -55,6 +60,7 @@ FRAMES=600
 TIMEOUT=300
 LOG_DIR="$PWD/smoke-logs"
 USE_DISPLAY=0
+DETERMINISTIC=0
 SRC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 while [ $# -gt 0 ]; do
@@ -67,6 +73,7 @@ while [ $# -gt 0 ]; do
         --timeout)   TIMEOUT="$2"; shift 2 ;;
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
         --display)   USE_DISPLAY=1; shift ;;
+        --deterministic) DETERMINISTIC=1; shift ;;
         -h|--help)   sed -n '2,/^$/p' "$0"; exit 0 ;;
         *) echo "smoke: unknown option $1" >&2; exit 2 ;;
     esac
@@ -169,18 +176,55 @@ report() {
     fi
 }
 
-for m in $MISSIONS; do
-    log="$LOG_DIR/$m.log"
-    run_game "$log" -mission "$m" -autoexit "$FRAMES"
+EXTRA=()
+[ "$DETERMINISTIC" = 1 ] && EXTRA=(-deterministic)
+
+# mission_checks LOG: add to reasons when the run never reached [AUTOEXIT],
+# or spent its frames before the mission started. code/mission.cpp prints
+# [MISSION] on the mission's first frame; it must come before [AUTOEXIT] or
+# the frames were spent in menus / loading.
+mission_checks() {
+    local log="$1" mline aline
     grep -q '^\[AUTOEXIT\]' "$log" || reasons+=("never reached $FRAMES frames")
-    # code/mission.cpp prints [MISSION] on the mission's first frame; it must
-    # come before [AUTOEXIT] or the frames were spent in menus / loading.
     mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
     aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
     if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
         reasons+=("mission never started")
     fi
-    report "$m" "$log" "$(grep -m1 '^\[AUTOEXIT\]' "$log")"
+}
+
+for m in $MISSIONS; do
+    log="$LOG_DIR/$m.log"
+    run_game "$log" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
+    mission_checks "$log"
+    summary="$(grep -m1 '^\[AUTOEXIT\]' "$log")"
+    if [ "$DETERMINISTIC" = 1 ]; then
+        # A second run must end in the same game state: [STATEHASH] is the
+        # game-state checksum after the last frame (GameOS, fixed step only).
+        # MC2_BENCH_DUMP=<frame> prints every unit's state from that frame
+        # on, to find where two runs part (code/benchdirector.cpp).
+        first=("${reasons[@]}"); first_secs=$secs
+        log2="$LOG_DIR/$m.again.log"
+        run_game "$log2" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
+        mission_checks "$log2"
+        nbad2=$(grep -cE "$BAD" "$log2")
+        [ "$nbad2" -gt 0 ] && reasons+=("$nbad2 error line(s) ($log2)")
+        second=("${reasons[@]}")
+        reasons=("${first[@]}")
+        for r in "${second[@]}"; do reasons+=("second run: $r"); done
+        secs=$((first_secs + secs))
+        h1=$(grep -m1 '^\[STATEHASH\]' "$log" | cut -d' ' -f2)
+        h2=$(grep -m1 '^\[STATEHASH\]' "$log2" | cut -d' ' -f2)
+        if [ ${#reasons[@]} -gt 0 ]; then
+            :   # a run failed on its own; its reasons say why
+        elif [ -z "$h1" ] || [ -z "$h2" ]; then
+            reasons+=("no [STATEHASH] line")
+        elif [ "$h1" != "$h2" ]; then
+            reasons+=("game state differs between two runs ($h1, $h2; second log $log2)")
+        fi
+        summary="$summary state $h1 (twice)"
+    fi
+    report "$m" "$log" "$summary"
 done
 
 # Front-end walks: code/uismokedriver.cpp prints "[SCREEN] <name> shown" as
