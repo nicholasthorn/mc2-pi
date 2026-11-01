@@ -48,8 +48,6 @@ No missions and no review agents at this tier.
 
 A batch is 3 to 5 commits or one finished logical step.
 
-- Review the batch locally: `/simplify`, then `/code-review` on the commits
-  since the last batch. Fix what it finds, or say why not.
 - Push to `pi`. After the first batch, open a **draft PR** against `pi-port`:
   `ci.yml` runs only on PRs (and pushes to `pi-port`), so the draft PR is
   what puts the branch on CI. Later batches are pushes to the same PR.
@@ -57,8 +55,16 @@ A batch is 3 to 5 commits or one finished logical step.
   also under ASan + UBSan, shader validation, cppcheck on changed files) and,
   when code changed, `smoke.yml` (five missions at 3000 frames on x64 desktop
   GL, arm64 GLES and x64 sanitized). Do not repeat those locally.
-- Keep working while it runs; the app reports the result. A red run is fixed
-  before the next batch.
+- **Review while CI runs, not after it.** As soon as the batch is pushed, run
+  `/simplify`, then `/code-review` on the commits since the last batch. Never
+  wait for a green run to start reviewing: review and CI check different
+  things, and waiting only adds the CI time to every batch. Fix what review
+  finds, or say why not, in the next push.
+- The app reports the CI result. A red run is fixed before the next batch.
+- A push that changes only docs (`*.md`, `planning/`, `.claude/`) after a
+  green run skips both workflows (`scripts/ci_docs_only.sh`), so a
+  `PROGRESS.md` update or a `pi-port` merge that brings only docs costs
+  nothing.
 
 Run `scripts/check.sh --level batch` (both renderers plus a local smoke)
 only when CI's round trip is the slower path:
@@ -69,9 +75,11 @@ only when CI's round trip is the slower path:
 
 ## Tier 3: the PR
 
-- Before marking it ready: `/code-review high` on the whole branch. Fix real
-  findings; list the ones you defer in the PR description.
-- CI must be green on the final push.
+- `/code-review high` on the whole branch, started right after the last code
+  push, while CI runs on it. Fix real findings; list the ones you defer in
+  the PR description.
+- Mark the PR ready once both are done: review findings handled and CI green
+  on the final push.
 - The PR description says what was verified where (which renderer, which
   platform, run or only built).
 - Update `planning/PROGRESS.md` (see `CLAUDE.md`).
