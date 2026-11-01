@@ -59,6 +59,10 @@ A batch is 3 to 5 commits or one finished logical step.
   GL, arm64 GLES and x64 sanitized). Do not repeat those locally.
 - Keep working while it runs; the app reports the result. A red run is fixed
   before the next batch.
+- A push that changes only docs (`*.md`, `planning/`, `.claude/`) after a
+  green run skips both workflows (`scripts/ci_docs_only.sh`), so a
+  `PROGRESS.md` update or a `pi-port` merge that brings only docs costs
+  nothing.
 
 Run `scripts/check.sh --level batch` (both renderers plus a local smoke)
 only when CI's round trip is the slower path:
