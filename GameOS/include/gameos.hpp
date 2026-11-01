@@ -40,12 +40,24 @@
 #include<string.h> // memcmp
 #include "platform_windows.h"
 
+#if defined(__i386__) || defined(__x86_64__)
 static __inline__ unsigned long long rdtsc(void)
 {
     unsigned long x;
     __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
     return x;
 }
+#else
+// No TSC (ARM): a nanosecond count does the same job. Clang rejects the x86
+// asm above on ARM even when unused; GCC only when it is called.
+#include <time.h>
+static __inline__ unsigned long long rdtsc(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (unsigned long long)ts.tv_sec * 1000000000ull + (unsigned long long)ts.tv_nsec;
+}
+#endif
 // or just use clock_gettime(CLOCK_MONOTONIC_RAW);
 // or 
 //clock_gettime(CLOCK_PROCESS_CPUTIME_ID)
