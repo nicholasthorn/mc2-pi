@@ -527,7 +527,7 @@ void VFXShapeElement::drawShape (void)
 	if (!tempBuffer)
 		tempBuffer = (MemoryPtr)systemHeap->Malloc(MAX_X * MAX_Y);
 
-	while (shapeTable[i] && (i < MAX_ELEMENT_SHAPES))
+	while ((i < MAX_ELEMENT_SHAPES) && shapeTable[i])
 	{
 		long oldHSX, oldHSY;
 		long HS = VFX_shape_origin(shapeTable[i],frameNum[i]);

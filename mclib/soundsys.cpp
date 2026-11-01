@@ -1015,7 +1015,7 @@ long SoundSystem::findOpenChannel (long start, long end)
 {
 	long channel = start;
 	
-	while (channelInUse[channel] && (channel < end))
+	while ((channel < end) && channelInUse[channel])
 		channel++;
 		
 	if (channel == end)

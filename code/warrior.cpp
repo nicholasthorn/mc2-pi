@@ -8017,7 +8017,10 @@ long MechWarrior::calcTacOrder (long goalAction,
 			newTacOrder.attackParams.type = ATTACK_NONE;
 			newTacOrder.attackParams.method = ATTACKMETHOD_RAMMING;
 			newTacOrder.attackParams.pursue = true;
-			newTacOrder.moveParams.fromArea = globalPath[numSteps - 2].thruArea;
+			// A path shorter than two steps (or an error) has no "from" area:
+			// keep init()'s -1 rather than read before globalPath.
+			if (numSteps > 1)
+				newTacOrder.moveParams.fromArea = globalPath[numSteps - 2].thruArea;
 			newTacOrder.moveParams.wayPath.mode[0] = newestTacOrder.moveParams.wayPath.mode[0];
 			newTacOrder.moveParams.jump = newestTacOrder.moveParams.jump;
 			newTacOrder.moveParams.keepMoving = newestTacOrder.moveParams.keepMoving;
