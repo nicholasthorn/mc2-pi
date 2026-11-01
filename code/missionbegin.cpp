@@ -175,12 +175,13 @@ void MissionBegin::begin()
    	if (Environment.fullScreen && prefs.fullScreen)
    		localFullScreen = false;
 
+	const long width = LogisticsScreen::frontEndWidth(), height = LogisticsScreen::frontEndHeight();
 	if (prefs.renderer == 3)
-		gos_SetScreenMode(800,600,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
+		gos_SetScreenMode(width,height,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
 	else if (prefs.bitDepth)
-		gos_SetScreenMode(800,600,32,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+		gos_SetScreenMode(width,height,32,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
 	else
-		gos_SetScreenMode(800,600,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+		gos_SetScreenMode(width,height,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
 
 	if ( mainMenu ) // already initialized
 	{
@@ -887,14 +888,19 @@ void MissionBegin::render()
 
 	if ( pCurScreen /*&& pCurScreen->getStatus() == LogisticsScreen::RUNNING*/ )
 	{
+		// the slide animations (mcl_mb_layout.fit) move a screen 800 or 600
+		// pixels: scaled to the front end's size, so a larger one slides all
+		// the way too
+		const long width = LogisticsScreen::frontEndWidth(), height = LogisticsScreen::frontEndHeight();
+		const float xScale = width / 800.f, yScale = height / 600.f;
 		if ( leftAnim.isAnimating() && !leftAnim.isDone() )
 		{
 			if ( animJustBegun )
 				leftAnim.begin(); // restart to compensate for LONG begins
 
-			xOffset = leftAnim.getXDelta() + 800;			
-			yOffset = leftAnim.getYDelta();
-			xOtherOffset = xOffset - 800;
+			xOffset = leftAnim.getXDelta() * xScale + width;
+			yOffset = leftAnim.getYDelta() * yScale;
+			xOtherOffset = xOffset - width;
 			yOtherOffset = yOffset;
 			pOtherScreen = screens[curScreenX-1][curScreenY];
 			if ( pOtherScreen == placeHolderScreen )
@@ -905,10 +911,10 @@ void MissionBegin::render()
 			if ( animJustBegun )
 				downAnim.begin(); // restart to compensate for LONG begins
 
-			xOffset = downAnim.getXDelta();
-			yOffset = downAnim.getYDelta();
+			xOffset = downAnim.getXDelta() * xScale;
+			yOffset = downAnim.getYDelta() * yScale;
 			xOtherOffset = xOffset;
-			yOtherOffset = yOffset + 600;
+			yOtherOffset = yOffset + height;
 			pOtherScreen = screens[curScreenX][curScreenY + 1];
 		}
 		else if ( upAnim.isAnimating() && !upAnim.isDone() )
@@ -916,10 +922,10 @@ void MissionBegin::render()
 			if ( animJustBegun )
 				upAnim.begin(); // restart to compensate for LONG begins
 
-			xOffset = upAnim.getXDelta();
-			yOffset = upAnim.getYDelta();
+			xOffset = upAnim.getXDelta() * xScale;
+			yOffset = upAnim.getYDelta() * yScale;
 			xOtherOffset = xOffset;
-			yOtherOffset = yOffset - 600;
+			yOtherOffset = yOffset - height;
 			pOtherScreen = screens[curScreenX][curScreenY - 1];
 		}
 		else if ( rightAnim.isAnimating() && !rightAnim.isDone() )
@@ -927,9 +933,9 @@ void MissionBegin::render()
 			if ( animJustBegun )
 				rightAnim.begin(); // restart to compensate for LONG begins
 
-			xOffset = rightAnim.getXDelta() - 800;
-			yOffset = rightAnim.getYDelta();
-			xOtherOffset = xOffset + 800;
+			xOffset = rightAnim.getXDelta() * xScale - width;
+			yOffset = rightAnim.getYDelta() * yScale;
+			xOtherOffset = xOffset + width;
 			yOtherOffset = yOffset;
 			pOtherScreen = screens[curScreenX+1][curScreenY];
 			if ( pOtherScreen == placeHolderScreen )
