@@ -624,11 +624,64 @@ Known gaps:
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.
-- No controllers yet (Phase 3): the mouse and keyboard do not reach the
-  headset build.
+- Controllers: see Phase 3 progress (the interface works by ray; picking
+  in the world is still to do).
 - The Guardian (boundary) takes the headset to passthrough when it thinks
   it is outside its play area; the session then stays VISIBLE, not
   FOCUSED.
+
+## Phase 3 progress: controllers (2026-11-01)
+
+Branch `vr-controllers` (off `vr-openxr`). The controllers stand in for the
+mouse and keyboard inside GameOS, so the game's input code is unchanged:
+
+- **Input sampling at 30 Hz** (a bug in the 30 Hz step): `process_events`
+  sampled the keys and buttons every headset frame, but the game only reads
+  them on frames it steps, and a click counts only on the frame its state is
+  `KEY_PRESSED` (`UserInput::update`). At 72 frames for 30 steps most clicks
+  and key presses turned into "held" before the game saw them; mouse motion
+  and the wheel were reset on the frames in between too. Now input is
+  sampled only on frames with a game step. The flat game steps every frame,
+  so nothing changes there.
+- **Virtual mouse and keys** (`gos_input`: `setVirtualPointer`,
+  `setVirtualKey`): applied over SDL's state when it is sampled; a press
+  that starts and ends between two samples still counts once.
+- **OpenXR actions** (`gos_xr::pollInput`, every frame): one action set
+  bound to the Touch controllers (`/interaction_profiles/oculus/touch_controller`).
+  The hand that last pulled its trigger or grip points; its aim ray is the
+  mouse where it meets the interface quad (`vr_controls::rayHitsQuad`,
+  unit-tested), kept 8 px inside the window's edges so pointing at the
+  panel's edge does not scroll the map. Trigger is the left button, grip
+  the right. Off the quad the cursor stays where it was and the buttons do
+  nothing (unless a drag started on the quad).
+- **Sticks** (`vr_controls::stickActions`, unit-tested): the left stick pans
+  (arrow keys), the right stick turns (shift + left / right; turning stops
+  the panning, which would otherwise turn too) and zooms (keypad + / -),
+  with hysteresis (on at 0.5, off below 0.3).
+- **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
+  button is Escape (pause menu).
+- **The HUD can be moved:** A puts the quad in front of where the head is
+  and faces (keeping its distance and angle). Holding A, the left stick
+  moves it nearer or further, the right stick up/down lowers or raises it,
+  left/right makes it narrower or wider; on letting go the log prints the
+  `MC2_XR_HUD=distance,degrees,width` line to keep in `mc2args.txt`, which
+  sets where it starts (default `1.5,30,2`).
+
+Not done in this slice:
+
+- **Picking in the world.** Pointing through the HUD at the battle does
+  nothing: the HUD quad covers the battle and is see-through where there is
+  no interface, so a hit on it must count as the interface only where
+  something is drawn (the game's own "is the mouse over the panel" test, or
+  a one-pixel alpha readback a frame late), and otherwise go on to the
+  terrain: ray against `getTerrainElevation`, the hit projected through the
+  game camera as the mouse (see "Approach"), with a ray test against object
+  bounds first for tall units.
+- A visible ray or a marker at the hit point; the game's cursor on the HUD
+  shows where the pointer is.
+- Analogue stick speed (the keys give the game's fixed scroll and zoom
+  rates).
+- Not yet run in the headset (see `HARDWARE-TESTS.md`).
 
 ## Open questions
 
