@@ -602,9 +602,22 @@ Known gaps:
   every vertex in the terrain window (while `gos_IsVR()`), while
   the gameplay decision (which object blocks are active) keeps the game
   camera's view; no frame-time cost (67.0 fps), flat game byte-identical.
-  The draw-only cull for **objects** is still to do: units and trees outside
-  the game camera's view are missing (their visibility also gates their
-  update, so it needs the draw-only result next to the gameplay one).
+- **Culling, objects done:** in VR `recalcBounds` (mechs, vehicles,
+  generic objects, buildings, trees) culls by distance only
+  (`Camera::drawsAll`); widening it changes nothing in the game (with
+  `MC2_DRAW_ALL=1` in a flat game the state checksums match on every frame
+  of the mc2_19 bench). Terrain objects (trees, buildings) are reached only
+  through active terrain blocks, which stay the game camera's: the blocks
+  and vertices the eyes may see get their own draw-only flags
+  (`objBlockInfo[].drawn`, `objVertexDrawn`), render and renderShadows use
+  those in VR, and `GameObjectManager::updateDrawnAppearances` updates only
+  the appearance of objects drawn but outside the game camera's view.
+  Quest 2: objects everywhere in the window, 66.0 fps (from 67.0).
+- **Geometry behind the camera:** the GPU mesh shader divided by `w` itself
+  and kept `abs()`, so geometry behind the camera was drawn mirrored (huge
+  dark wedges once objects behind the game camera were drawn; the likely
+  bomber artifact). The engine's `w` is negative in front of the camera; the
+  shader now keeps `-rhw`, and the GPU clips what is behind.
 - **To do: the terrain window's edge** is visible at a headset's field of
   view (a hard border, then the cloud layer as a grey wall): a larger window
   for VR, or haze pulled in to the window's radius.

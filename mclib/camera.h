@@ -521,6 +521,29 @@ class Camera
 			return vrEye != NULL;
 		}
 
+		//VR: objects pass the view-cone and on-screen tests in recalcBounds,
+		//only the distance test culls them, so a head-tracked eye finds them
+		//wherever it looks. MC2_DRAW_ALL=1 does the same in a flat game only to
+		//check that it changes nothing in the game itself: there the CPU path
+		//draws objects behind the camera mirrored, so do not look at it.
+		bool drawsAll (void);
+
+		//VR: whether the game camera itself sees a point, in front of it and on
+		//screen. Picking asks this in VR, where objects the eyes may see count
+		//as in view (drawsAll) and carry game-camera screen bounds, mirrored
+		//for those behind the camera. The engine's w is negative in front.
+		bool seesForGame (Stuff::Vector3D point)
+		{
+			Stuff::Point3D coords;
+			coords.x = -point.x;
+			coords.y = point.z;
+			coords.z = point.y;
+			Stuff::Vector4D xformCoords;
+			xformCoords.Multiply(coords,worldToClip);
+			Stuff::Vector4D screen;
+			return (xformCoords.w < 0.0f) && projectZ(point,screen);
+		}
+
 		virtual long activate (void);
 		virtual void reset (void)
 		{

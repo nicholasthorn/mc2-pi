@@ -1595,7 +1595,7 @@ bool GVAppearance::recalcBounds (void)
 				Distance.Normalize(Distance);
 				
 				float cosine = Distance * eye->getLookVector();
- 				if (cosine > eye->cosHalfFOV)
+ 				if ((cosine > eye->cosHalfFOV) || eye->drawsAll())
 					inView = true;
 				else
 					inView = false;
@@ -1631,9 +1631,9 @@ bool GVAppearance::recalcBounds (void)
 			lowerRight.x += (appearType->boundsLowerRightX * eye->getScaleFactor());
 			lowerRight.y += (appearType->boundsLowerRightY * eye->getScaleFactor());
 
-			if ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
+			if (eye->drawsAll() || ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
 				(upperLeft.x <= eye->getScreenResX()) &&
-				(upperLeft.y <= eye->getScreenResY()))
+				(upperLeft.y <= eye->getScreenResY())))
 			{
 				//We are on screen.  Figure out selection box.
 				Stuff::Vector3D boxCoords[8];
@@ -1720,9 +1720,9 @@ bool GVAppearance::recalcBounds (void)
 				lowerRight.x = maxX;
 				lowerRight.y = maxY;
 				
-				if ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
+				if (eye->drawsAll() || ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
 					(upperLeft.x <= eye->getScreenResX()) &&
-					(upperLeft.y <= eye->getScreenResY()))
+					(upperLeft.y <= eye->getScreenResY())))
 				{
 					inView = true;
 					if ((status != OBJECT_STATUS_DESTROYED) && (status != OBJECT_STATUS_DISABLED))

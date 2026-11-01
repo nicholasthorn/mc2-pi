@@ -1740,6 +1740,13 @@ void Camera::renderWorld (void)
 }
 
 //---------------------------------------------------------------------------
+bool Camera::drawsAll (void)
+{
+	static const bool forced = getenv("MC2_DRAW_ALL") && (getenv("MC2_DRAW_ALL")[0] == '1');
+	return forced || gos_IsVR();
+}
+
+//---------------------------------------------------------------------------
 void Camera::render (void)
 {
 	//------------------------------------------------------

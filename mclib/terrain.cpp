@@ -99,6 +99,7 @@ char * 						Terrain::colorMapName = NULL;
 long		   				Terrain::numObjBlocks = 0;
 ObjBlockInfo				*Terrain::objBlockInfo = NULL;
 bool						*Terrain::objVertexActive = NULL;
+bool						*Terrain::objVertexDrawn = NULL;
 
 float 						*Terrain::tileRowToWorldCoord = NULL;
 float 						*Terrain::tileColToWorldCoord = NULL;
@@ -464,6 +465,10 @@ long Terrain::init( unsigned long verticesPerMapSide, PacketFile* pakFile, unsig
 	gosASSERT(objVertexActive != NULL);
 	
 	memset(objVertexActive,0,sizeof(bool)*numObjBlocks);
+
+	objVertexDrawn = (bool *)terrainHeap->Malloc(sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
+	gosASSERT(objVertexDrawn != NULL);
+	memset(objVertexDrawn,0,sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
 	
 	moverBlockList = (long *)terrainHeap->Malloc(sizeof(long) * numberBlocks);
 	gosASSERT(moverBlockList != NULL);
@@ -702,6 +707,12 @@ void Terrain::destroy (void)
 	{
 		terrainHeap->Free(objVertexActive);
 		objVertexActive = NULL;
+	}
+
+	if (objVertexDrawn)
+	{
+		terrainHeap->Free(objVertexDrawn);
+		objVertexDrawn = NULL;
 	}
 	
  	if (terrainHeap)
@@ -1124,6 +1135,18 @@ void Terrain::geometry (void)
 			}
 		}
 
+		//what is drawn (in VR the whole window): the objects there are drawn,
+		//updated by the game or, if it does not, appearance only
+		//(GameObjectManager::updateDrawnAppearances)
+		if (currentVertex->clipInfo)
+		{
+			long block = currentVertex->getBlockNumber();
+			if ((block >= 0) && (block < numObjBlocks))
+				objBlockInfo[block].drawn = true;
+			if ((currentVertex->vertexNum >= 0) && (currentVertex->vertexNum < (realVerticesMapSide * realVerticesMapSide)))
+				objVertexDrawn[currentVertex->vertexNum] = true;
+		}
+
 		currentVertex++;
 	}
 
@@ -1335,7 +1358,10 @@ void Terrain::setObjBlockActive (long blockNum, bool active)
 void Terrain::clearObjBlocksActive (void)
 {
 	for (long i = 0; i < numObjBlocks; i++)
+	{
 		setObjBlockActive(i, false);
+		objBlockInfo[i].drawn = false;
+	}
 }	
 
 //---------------------------------------------------------------------------
@@ -1349,6 +1375,7 @@ void Terrain::setObjVertexActive (long vertexNum, bool active)
 void Terrain::clearObjVerticesActive (void)
 {
 	memset(objVertexActive,0,sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
+	memset(objVertexDrawn,0,sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
 }
 
 //---------------------------------------------------------------------------
