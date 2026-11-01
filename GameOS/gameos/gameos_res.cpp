@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <SDL2/SDL_loadso.h>
 #include <map>
 #include <string>
@@ -29,6 +30,11 @@ static const char* DL_GetError() {
 #include <dlfcn.h>
 
 static void* DL_Open(const char* name) {
+#ifdef __ANDROID__
+    // the APK's libraries are found by name, not in the data folder ("./")
+    if (strncmp(name, "./", 2) == 0)
+        name += 2;
+#endif
     return dlopen(name, RTLD_LAZY);
 }
 static void DL_Close(void* handle) {
