@@ -326,13 +326,25 @@ long	MissionBriefingScreen::getMissionTGA( const char* missionName )
 	
 			file.seekPacket(3);
 			long size = file.getPacketSize( );
+			if ( size < (long)sizeof( TGAFileHeader ) )	// not a TGA (mod data)
+				return 0;
 			BYTE* mem = new BYTE[size];
 
 			file.readPacket( 3, mem );
-			
+
 			TGAFileHeader* pHeader = (TGAFileHeader*)mem;
 			long bmpWidth = pHeader->width;
 			long bmpHeight = pHeader->height;
+			// the flip reads width x height pixels and the texture width x width
+			// DWORDs: both must be in the packet
+			long maxSide = bmpWidth > bmpHeight ? bmpWidth : bmpHeight;
+			if ( bmpWidth <= 0 || bmpHeight <= 0 ||
+				 (size - (long)sizeof( TGAFileHeader )) / bmpWidth < maxSide * (long)sizeof(DWORD) ||
+				 pHeader->pixel_depth > 32 )
+			{
+				delete[] mem;
+				return 0;
+			}
 			flipTopToBottom( (BYTE*)(pHeader + 1), pHeader->pixel_depth, bmpWidth, bmpHeight );
 			
 			// set up the texture

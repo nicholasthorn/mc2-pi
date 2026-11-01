@@ -296,6 +296,24 @@ on 2026-10-31.
       following bytes as another pointer. (10-29)
 - [x] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29, done
       10-31)
+- [ ] From the 2026-11-01 sweep, settled by step 4 of the `STOP` plan
+      (#46): these now end the game cleanly instead of crashing, and only
+      run on with `MC2_STOP_EXITS=0` (mod bring-up). Port them only if mods
+      should carry on past them: `80e98102` (`ObjectTypeManager::load` uses NULL after a
+      CRAPPY_OBJECT `Fatal`), `424b2ce7` (`Mission::addMover` treats a
+      vehicle in the force group as a mech; the one-argument overload has
+      the same pattern), `9356f8e3` + `6daa0905` (a module with compile
+      errors still runs).
+- [ ] Leads from the same sweep, not ported as they are: a mission with no
+      MOVE data runs on with `GameMap == NULL` after its `STOP` (`f1eaa6ee`;
+      exit like the bad-packet branch instead); the graphics options list
+      each resolution about four times (`9cbe2ea7`); the briefing minimap may
+      upload alpha-0 water and concrete cells (`3c8dd69e`, check by eye
+      first); `shader_builder.cpp` `parse_uniforms` reads past `typeNames`
+      for a `sampler2DArray` uniform (`7c3a382a`, latent: no shader has one);
+      `controlgui.cpp` adds `hiResOffsetX` but not `hiResOffsetY` to the
+      video box (`51ddcf25`, check in game). Never port `c92175fd`: it
+      treats real callback addresses on Linux and arm64 as bogus.
 - [x] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
       `84e1774a`, `d21e7855`, `1cf8c7b8`. (10-29, done 10-31: `294fd42e`,
       `d21e7855`, `1cf8c7b8` ported; `a03e13a2` and `aa20a308` not needed
@@ -386,8 +404,12 @@ Taken so far:
 
 Candidates:
 
-- [ ] Keep sweeping the remaster's history for fixes to shared `code/` and
-      `mclib/` files.
+- [x] Full sweep of the remaster's history (2026-11-01, `fork/main` at
+      `63bb0832`, no commits since 2026-07-05): the 419 fix-like commits that
+      touch files both repos have, checked against this code. 23 applied
+      (stock-data fixes and mod-data guards, branch `fix/backport-sweep`),
+      21 were already fixed here, 375 are remaster-only. Left open: see
+      "Back-ports from the remaster not yet done".
 - [ ] **Later game data: upscaled textures and art.** The remaster ships
       AI-upscaled (4x) terrain, building, mech and UI art. This port's
       `File::open` already loads a loose file in preference to the FST archive,
@@ -423,6 +445,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: Full sweep of the remaster's history (branch `fix/backport-sweep`): 419 fix-like commits on shared files checked, 23 ported. Stock data: a leftover `ENTER_DEBUGGER` in `UserHeap::pointerOnHeap` (SIGTRAP from the briefing's empty-model `SimpleCamera::setObject`), `gos_SetMousePosition` warped to 0..1 as pixels, `calcAttackPlan` divided by a zero threat rating, `GlobalMap::destroy` leaked its three pointer arrays every mission, an unbounded height read in `calcBestGoalFromTarget`, the `txmmgr` vertex and shape pools handed out memory past their heap when full (and the untextured copies wrote one slot past their block), mech and vehicle paint colours swapped on an LOD change (cache-hit branches stored them unconverted under `BGR`), `iconsPerPage` used the atlas width, and the logistics CSV reader stepped past a short row's NUL (now `code/csvfield.h`, unit tested). Mod data: missing terrain textures and masks, ABL assignment from broken bytecode, the pilot-ready screen lost after a first mission without logistics, objective copies of an unknown species, icon indexes past the atlas, more than 256 cursors, short or oversized briefing TGAs, unknown TGL node types and vertex indices, the mission-selection button off-by-one, and out-of-range ABL routine keys and full routine tables.
 - 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
 - 2026-11-01: CI also skips pushes that only merge `pi-port` into a PR: `scripts/ci_docs_only.sh` becomes `scripts/ci_skip.sh`, which also skips when the PR's own non-docs patch (merge-base to head) has the same patch id before and after the push, so the push only brought `pi-port` in plus docs. Merging one PR used to rerun every open PR, as each session synced `pi-port` and its `PROGRESS.md` conflict; those syncs now skip. A conflict fix that changes code still runs in full. Accepted risk: the combination with code from `pi-port` is first tested by `pi-port`'s own run after the merge.
 - 2026-11-01: VR Phase 0, PC part (branch `vr-plan`): `-bench` reports per-stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`) and `-benchfov` / `bench.sh --fov` force the camera FOV. Quiet mc2_19 runs under llvmpipe put stereo at about 1.5x the mono CPU frame (24 ms against 15.4 ms here), the wide FOV alone at about +8% CPU and +26% triangles, terrain nearly flat with FOV, and show the terrain window's edge in view at 100 degrees. Phase 1 audit in the plan: every update-time projecting function also changes state (LOD swaps, `inView` feeding gameplay, animation timers, the texture manager's count/fill split), so the logic eye stays the un-tracked game camera and the render eyes get a transform-only pass. Pi runs still to do for the go/no-go. Also fixed: Windows `timing::ticks2ms` returned 1000 x ticks, so Windows `-bench` milliseconds were wrong. Results in `future-features/VR-TABLETOP.md`.

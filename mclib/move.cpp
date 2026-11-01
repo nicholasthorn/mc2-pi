@@ -4017,7 +4017,16 @@ void GlobalMap::destroy (void) {
 		}
 		systemHeap->Free(areas);
 		areas = NULL;
-        areas_doors = NULL;
+	}
+	// the pointer arrays themselves, allocated by init(PacketFile...): freed so
+	// each mission load does not leak them
+	if (areas_cellsCovered) {
+		systemHeap->Free(areas_cellsCovered);
+		areas_cellsCovered = NULL;
+	}
+	if (areas_doors) {
+		systemHeap->Free(areas_doors);
+		areas_doors = NULL;
 	}
 
 	if (doors) {
@@ -4032,7 +4041,10 @@ void GlobalMap::destroy (void) {
 		}
 		systemHeap->Free(doors);
 		doors = NULL;
-        doors_links = NULL;
+	}
+	if (doors_links) {
+		systemHeap->Free(doors_links);
+		doors_links = NULL;
 	}
 
 	if (doorInfos) {
