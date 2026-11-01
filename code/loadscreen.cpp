@@ -296,7 +296,7 @@ void LoadScreenWrapper::update()
 	else
 	{
 
-	if ( Environment.screenWidth == 800 )
+	if ( Environment.screenWidth == frontEndWidth() )
 		{
 			enterScreen->update();
 			status = enterScreen->getStatus();
@@ -317,7 +317,7 @@ void LoadScreenWrapper::update()
 
 void LoadScreenWrapper::render( int xOffset, int yOffset )
 {
-	if ( Environment.screenWidth == 800 )
+	if ( Environment.screenWidth == frontEndWidth() )
 	{
 		enterScreen->render( xOffset, yOffset );
 	}

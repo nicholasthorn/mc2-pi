@@ -204,14 +204,15 @@ void MainMenu::begin()
    				localFullScreen = false;
 
 
-			// make sure we get into 800 x 600 mode
-			if ( Environment.screenWidth != 800 )
+			// make sure we get into the front end's mode (800 x 600 for stock data)
+			const long width = frontEndWidth(), height = frontEndHeight();
+			if ( Environment.screenWidth != width || Environment.screenHeight != height )
 			{
 			
 				if (prefs.renderer == 3)
-					gos_SetScreenMode(800,600,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
+					gos_SetScreenMode(width,height,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
 				else
-					gos_SetScreenMode(800,600,16,prefs.renderer,0,0,0,localFullScreen ,0,localWindow,0,localRenderer);
+					gos_SetScreenMode(width,height,16,prefs.renderer,0,0,0,localFullScreen ,0,localWindow,0,localRenderer);
 			}
 
 
