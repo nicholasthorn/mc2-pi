@@ -15,7 +15,7 @@
         android:label="MC2 test"
         android:hasCode="true"
         android:allowBackup="false"
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity
             android:name=".MC2Activity"

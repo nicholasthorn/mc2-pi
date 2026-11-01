@@ -40,16 +40,9 @@
 #include<string.h> // memcmp
 #include "platform_windows.h"
 
-#if defined(__i386__) || defined(__x86_64__)
-static __inline__ unsigned long long rdtsc(void)
-{
-    unsigned long x;
-    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-    return x;
-}
-#else
-// No TSC (ARM): a nanosecond count does the same job. Clang rejects the x86
-// asm above on ARM even when unused; GCC only when it is called.
+// A nanosecond count, like GetCycles() off Windows: the x86 rdtsc asm that was
+// here did not build with Clang on ARM, and on x86_64 its "=A" constraint
+// returned a mangled value.
 #include <time.h>
 static __inline__ unsigned long long rdtsc(void)
 {
@@ -57,7 +50,6 @@ static __inline__ unsigned long long rdtsc(void)
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (unsigned long long)ts.tv_sec * 1000000000ull + (unsigned long long)ts.tv_nsec;
 }
-#endif
 // or just use clock_gettime(CLOCK_MONOTONIC_RAW);
 // or 
 //clock_gettime(CLOCK_PROCESS_CPUTIME_ID)

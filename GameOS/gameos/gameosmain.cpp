@@ -384,16 +384,13 @@ static void draw_screen( void )
 extern float frameRate;
 
 #ifdef __ANDROID__
-// Android has no shell, no working directory of ours and no HOME. Run in the
-// app's files folder (where adb pushes the game data), take the command line
-// (and leading NAME=value environment settings) from mc2args.txt there, and
-// write stdout and stderr to mc2.log beside it, so a -bench run's [BENCH]
-// lines and CSV can be pulled back with adb.
-static std::vector<std::string> g_android_args;
-static std::vector<char*> g_android_argv;
-
+// Android has no shell, no working directory of ours and no HOME: run in the
+// app's files folder (where adb pushes the data), take the command line from
+// mc2args.txt there (format: utils/args_file.h) and log to mc2.log beside it.
 static void android_prepare(int& argc, char**& argv)
 {
+    static std::vector<std::string> args;   // argv points into these
+    static std::vector<char*> argvs;
     const char* dir = SDL_AndroidGetExternalStoragePath();
     if(dir && chdir(dir) == 0)
         setenv("HOME", dir, 1);
@@ -405,29 +402,24 @@ static void android_prepare(int& argc, char**& argv)
 
     if(argc > 1)
         return;
-    FILE* f = fopen("mc2args.txt", "rb");
-    if(!f)
+    size_t len = 0;
+    char* text = (char*)SDL_LoadFile("mc2args.txt", &len);
+    if(!text)
         return;
-    std::string text;
-    char buf[512];
-    size_t n;
-    while((n = fread(buf, 1, sizeof(buf), f)) > 0)
-        text.append(buf, n);
-    fclose(f);
+    args = args_file::parse(std::string(text, len));
+    SDL_free(text);
 
-    g_android_args = args_file::parse(text);
-    // leading NAME=value tokens set the environment, as on a shell line
-    // (MC2_VSYNC=0, MC2_STOP_EXITS=1 for bench runs)
-    for(const auto& setting : args_file::takeEnv(g_android_args)) {
+    // e.g. MC2_VSYNC=0 MC2_STOP_EXITS=1 for bench runs
+    for(const auto& setting : args_file::takeEnv(args)) {
         setenv(setting.first.c_str(), setting.second.c_str(), 1);
         printf("[ANDROID] %s=%s\n", setting.first.c_str(), setting.second.c_str());
     }
-    g_android_args.insert(g_android_args.begin(), (argc > 0 && argv[0]) ? argv[0] : "mc2");
-    for(std::string& a : g_android_args)
-        g_android_argv.push_back(&a[0]);
-    g_android_argv.push_back(NULL);
-    argc = (int)g_android_args.size();
-    argv = g_android_argv.data();
+    args.insert(args.begin(), (argc > 0 && argv[0]) ? argv[0] : "mc2");
+    for(std::string& a : args)
+        argvs.push_back(&a[0]);
+    argvs.push_back(NULL);
+    argc = (int)args.size();
+    argv = argvs.data();
     printf("[ANDROID] mc2args.txt:");
     for(int i = 1; i < argc; ++i)
         printf(" %s", argv[i]);

@@ -44,27 +44,27 @@ std::vector<std::string> parse(const std::string& text)
 	return args;
 }
 
-// NAME=value with NAME a letter or '_' followed by letters, digits or '_'
-static bool isSetting(const std::string& token, size_t* eq)
+// position of the '=' in a NAME=value setting, or npos if token is not one
+static size_t settingEquals(const std::string& token)
 {
-	*eq = token.find('=');
-	if (*eq == std::string::npos || *eq == 0)
-		return false;
-	for (size_t i = 0; i < *eq; ++i) {
+	const size_t eq = token.find('=');
+	if (eq == std::string::npos || eq == 0)
+		return std::string::npos;
+	for (size_t i = 0; i < eq; ++i) {
 		const char c = token[i];
 		const bool letter = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
 		const bool digit = c >= '0' && c <= '9';
 		if (!letter && !(digit && i > 0))
-			return false;
+			return std::string::npos;
 	}
-	return true;
+	return eq;
 }
 
 std::vector<std::pair<std::string, std::string>> takeEnv(std::vector<std::string>& args)
 {
 	std::vector<std::pair<std::string, std::string>> env;
-	size_t n = 0, eq = 0;
-	while (n < args.size() && isSetting(args[n], &eq)) {
+	size_t n = 0, eq;
+	while (n < args.size() && (eq = settingEquals(args[n])) != std::string::npos) {
 		env.push_back(std::make_pair(args[n].substr(0, eq), args[n].substr(eq + 1)));
 		++n;
 	}

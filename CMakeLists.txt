@@ -101,14 +101,11 @@ add_definitions(-DUSE_ASSEMBLER_CODE=0)
 add_definitions(-DLINUX_BUILD)
 
 find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-# Android: SDL's Java activity calls SDL_main itself; there is no SDL2main.
-# The tools that need SDL2_ttf are not built there (see the end of the file).
+find_package(SDL2_mixer REQUIRED)
+# Android: SDL's Java activity calls SDL_main itself (no SDL2main), and the
+# tools that need SDL2_ttf (text_tool) are not built there
 if(NOT ANDROID)
     find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2main)
-endif()
-find_package(SDL2_mixer REQUIRED)
-#required by text_tool
-if(NOT ANDROID)
     find_package(SDL2_ttf REQUIRED)
 endif()
 find_package(ZLIB REQUIRED)
@@ -150,10 +147,7 @@ set(COMMON_INCLUDE_DIRS  ${COM_PATH1} ${COM_PATH2})
 set(THIRDPARTY_INCLUDE_DIRS "${CMAKE_PREFIX_PATH}/include")
 if(ANDROID)
     # the NDK toolchain makes CMAKE_PREFIX_PATH a list: include/ of each entry
-    set(THIRDPARTY_INCLUDE_DIRS "")
-    foreach(_prefix ${CMAKE_PREFIX_PATH})
-        list(APPEND THIRDPARTY_INCLUDE_DIRS "${_prefix}/include")
-    endforeach()
+    list(TRANSFORM CMAKE_PREFIX_PATH APPEND "/include" OUTPUT_VARIABLE THIRDPARTY_INCLUDE_DIRS)
 endif()
 set(THIRDPARTY_INTREE_DIR "./thirdparty")
 

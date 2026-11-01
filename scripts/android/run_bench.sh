@@ -14,7 +14,7 @@
 #   --skip-install   do not reinstall the APK
 set -e
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+. "$(dirname "$0")/env.sh"
 DATA=""; FRAMES=3600; STEREO=40; OUT="$PWD/quest-bench"; TIMEOUT=1800; INSTALL=1
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -29,17 +29,13 @@ while [ $# -gt 0 ]; do
     esac
 done
 [ -d "$DATA/data" ] || { echo "run_bench: --data must be a built game folder (with data/)" >&2; exit 2; }
+DATA="$(native "$DATA")"; OUT="$(native "$OUT")"
 
-case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) WIN=1 ;; *) WIN=0 ;; esac
-if [ -z "$ANDROID_HOME" ]; then
-    if [ $WIN = 1 ]; then ANDROID_HOME="$(cygpath -u "$LOCALAPPDATA")/Android/Sdk"; else ANDROID_HOME="$HOME/Android/Sdk"; fi
-fi
-ADB="$ANDROID_HOME/platform-tools/adb"; [ $WIN = 1 ] && ADB="$ADB.exe"
-# Git Bash would rewrite /sdcard/... into a Windows path for a native exe
+ADB="$ANDROID_HOME/platform-tools/adb"
+# Git Bash would rewrite /sdcard/... into a Windows path for a native exe,
+# so local paths are passed in native form (C:/...) instead
 export MSYS_NO_PATHCONV=1
-PKG=com.nicholasthorn.mc2
 D=/sdcard/Android/data/$PKG/files
-APK="$ROOT/android/mc2-quest-test.apk"
 
 [ "$("$ADB" get-state 2>/dev/null)" = device ] || { echo "run_bench: no device; check 'adb devices' (developer mode, USB allowed in the headset)" >&2; exit 2; }
 mkdir -p "$OUT"
@@ -83,8 +79,22 @@ run() {   # label, extra game arguments...
     "$ADB" pull "$D/mc2.log" "$OUT/$label.log" > /dev/null 2>&1 || true
     "$ADB" pull "$D/$label.csv" "$OUT/$label.csv" > /dev/null 2>&1 || true
     "$ADB" shell am force-stop $PKG
-    grep "\[BENCH\]\|\[MISSION\]\|STOP: \|FATAL" "$OUT/$label.log" 2>/dev/null || {
-        echo "run_bench: no log; 'adb logcat -d | grep -iE \"SDL|mc2|DEBUG\"' shows a crash" >&2; }
+    local log="$OUT/$label.log"
+    if [ ! -s "$log" ]; then
+        echo "run_bench: $label: FAIL, no log; 'adb logcat -d' shows a crash" >&2; return
+    fi
+    grep "\[BENCH\]\|\[MISSION\]\|STOP: \|FATAL" "$log" || true
+    # the same reasons scripts/bench.sh fails a run for
+    local reasons=()
+    grep -q "\[MISSION\]" "$log" || reasons+=("mission never started")
+    grep -q "\[BENCH\] segment=all" "$log" || reasons+=("no [BENCH] line")
+    grep -q "\[BENCH\] ERROR" "$log" && reasons+=("[BENCH] ERROR")
+    grep -q "STOP: \|FATAL" "$log" && reasons+=("STOP or FATAL")
+    if [ ${#reasons[@]} -gt 0 ]; then
+        echo "run_bench: $label: FAIL (${reasons[*]})" >&2
+    else
+        echo "run_bench: $label: ok"
+    fi
 }
 
 run mono
