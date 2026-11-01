@@ -450,8 +450,9 @@ each ships the data tools instead.
       builds smoke-run. (2026-11-01)
 - [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
 - [ ] Phase 4: smoke tests against the unpacked packages
-- [ ] Phase 5: `v0.1.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
-- [ ] Phase 6: `v0.1.0`, with Pi hardware results in the notes
+- [ ] Phase 5: `v0.2.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
+      (tag pushed 2026-11-01 on `80f38884`; draft release made, not published)
+- [ ] Phase 6: `v0.2.0`, with Pi hardware results in the notes
 
 ## Taking the useful parts of the remaster
 
@@ -528,6 +529,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: First release candidate tagged, `v0.2.0-rc1` on `80f38884`: `release.yml` made the draft pre-release. Releases start at 0.2 because upstream already has `v0.1.0` to `v0.1.3`, all of which `pi-port` contains. README brought up to date: release packages, the empty cppcheck baseline, VR phase 1 slices and the Quest test build.
 - 2026-11-01: `3rdparty.zip`: zlib 1.2.3 (2005) replaced with 1.3.1, built from the official `madler/zlib` tag (`51b7f2ab`) with its `win32/Makefile.msc` on a GitHub `windows-2022` runner (x64 and x86, same file names; `zlib.lib` is what `mc2.exe` links). The Windows package drops `zlib1.dll` and `SDL2_ttf.dll`, which nothing in it loads (branch `release/prep`).
 - 2026-11-01: Release phases 1 and 2 (branch `release/prep`): `scripts/package.sh` builds the Pi, Linux x64 and Windows packages (stripped, symbols separate), `dist/INSTALL.md` and the third-party licences fetched at the shipped versions, `build_gamedata.sh --tools-dir` (and a package's own `tools/` by default), `release.yml` (draft release from a `v*` tag; dry runs by hand and on packaging PRs). Tried in WSL: a Linux x64 package built its own game data and passed mc2_01, mc2_03 and both UI walks from the unpacked folder. Found: `3rdparty.zip`'s zlib was 1.2.3 (2005), linked statically into `mc2.exe`; replaced with 1.3.1 the same day.
 - 2026-11-01: VR Phase 1, third slice (branch `vr-overlays`): world-anchored overlays per eye under `-stereo`. Brackets, bars, icons and select boxes move by each eye's parallax (a constant per eye, measured in `Camera::renderWorld`, times the object's 1/depth; `Camera::eyeParallax` and `overlayShiftX`, 0 outside an eye's pass, so picking and culling are untouched); floating text added during an eye's pass is drawn in that eye's half (`FloatHelp::renderAndResetFrom`). Overlay shift between the halves 0 px before, -15 to -30 px after, matching the scene; mono byte-identical, state checksum unchanged (GL, llvmpipe, mc2_19). GLES built and unit-tested, not run.

@@ -106,7 +106,12 @@ then the release notes say it is untested on hardware.
 2. Review the draft, run the hardware checks above, add the Pi results to the
    notes, publish.
 3. Versions: `vMAJOR.MINOR.PATCH`. Minor for features, patch for fixes;
-   release candidates as `v0.1.0-rc1` (marked pre-release).
+   release candidates as `v0.2.0-rc1` (marked pre-release). This repository
+   starts at **0.2**: upstream `alariq/mc2` has released `v0.1.0` to `v0.1.3`,
+   and `pi-port` contains all of them (decided 2026-11-01). The upstream tags
+   are in a local clone through the `origin` remote: push a release tag by
+   name (`git push pi refs/tags/v0.2.0-rc1`), never with `--tags`, which
+   would push upstream's tags too and start a release run for each.
 
 ## Licensing checklist
 
@@ -158,8 +163,8 @@ then the release notes say it is untested on hardware.
   `windows-2022` runner, x64 and x86, same file names.
 | 3. AppImages | Linux x64 and arm64 AppImages on old bases | AppImage runs on Ubuntu 22.04 and a current Fedora |
 | 4. Package smoke tests | Smoke runs against the unpacked packages in `release.yml` | Release fails if a package does not start a mission |
-| 5. First release candidate | `v0.1.0-rc1`, pre-release | Downloaded and run on Windows, Linux x64 and a Pi 400 |
-| 6. First release | `v0.1.0` | Pi hardware results in the notes |
+| 5. First release candidate | `v0.2.0-rc1`, pre-release | Downloaded and run on Windows, Linux x64 and a Pi 400 |
+| 6. First release | `v0.2.0` | Pi hardware results in the notes |
 
 ## Open questions
 
