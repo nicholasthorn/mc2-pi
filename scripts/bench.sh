@@ -286,7 +286,8 @@ use_renderer() {
 }
 
 export SDL_AUDIODRIVER=dummy
-# a STOP (Fatal, Assert, ABL fatal) ends the run instead of carrying on
+# a STOP (Fatal, Assert, ABL fatal) ends the run: the default, set here so
+# an MC2_STOP_EXITS=0 left in the environment cannot keep a broken run going
 export MC2_STOP_EXITS=1
 export MC2_VSYNC="$VSYNC"
 

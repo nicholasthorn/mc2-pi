@@ -52,7 +52,8 @@ Pi. Changes to data are commits in that repo, not this one.
 - **Endianness and packing.** On-disk structs assume little-endian and MSVC
   packing. ARM64 Linux is little-endian too, but check `#pragma pack` and
   `long` (64-bit on Linux, 32-bit on Windows) in any struct read from disk.
-- `STOP` on a parse error logs and continues; return an error explicitly.
+- `STOP` on a parse error ends the game, unless `MC2_STOP_EXITS=0`, when it
+  logs and continues; return an error explicitly as well.
 
 ## Testing
 

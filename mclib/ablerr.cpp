@@ -26,6 +26,8 @@
 #include"abl.h"
 #endif
 
+#include<gameos.hpp>
+
 //***************************************************************************
 
 //----------
@@ -145,7 +147,12 @@ extern DebuggerPtr debugger;
 
 void ABL_Fatal (long errCode, const char* s) {
 
+	// The game's callback ends the game (ablFatalCallback). Before ABLi_init
+	// sets it, or if another callback returns, end it here.
+	if (!ABLFatalCallback)
+		gos_FatalExit(s);
 	ABLFatalCallback(errCode, s);
+	gos_FatalExit(NULL);
 }
 
 //---------------------------------------------------------------------------

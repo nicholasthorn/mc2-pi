@@ -107,7 +107,8 @@ typedef enum {
 
 void syntaxError (int errCode);
 void runtimeError (int errCode);
-void ABL_Fatal (long errCode, const char* s);
+// Reports through the game's fatal callback, then ends the game; never returns.
+[[noreturn]] void ABL_Fatal (long errCode, const char* s);
 void ABL_Assert (bool test, long errCode, const char* s);
 
 //***************************************************************************
