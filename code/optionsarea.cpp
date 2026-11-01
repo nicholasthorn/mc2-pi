@@ -389,7 +389,8 @@ void OptionsGraphics::init(long xOffset, long yOffset)
 	resolutionList.ListBox().setOrange( true );
 
     const int displayIndex = gos_GetWindowDisplayIndex();
-    const int num_modes = gos_GetNumDisplayModes(displayIndex);
+    const int sdl_modes = gos_GetNumDisplayModes(displayIndex);
+    const int num_modes = sdl_modes > 0 ? sdl_modes : 0;	// negative on an SDL error
     gosASSERT(!resolutionModes && !resolutionModesStr);
     resolutionModes = new ResModes[num_modes];
     resolutionModesStr = new char*[num_modes];
@@ -398,7 +399,8 @@ void OptionsGraphics::init(long xOffset, long yOffset)
 
 	for ( int i = 0; i < num_modes; i++ ) {
         ResModes& mode = resolutionModes[numResolutionModes];
-        gos_GetDisplayModeByIndex(displayIndex, i, &mode.xRes, &mode.yRes, &mode.bitDepth);
+        if (!gos_GetDisplayModeByIndex(displayIndex, i, &mode.xRes, &mode.yRes, &mode.bitDepth))
+            continue;	// SDL could not report this one: do not list the slot's old contents
 
         // SDL lists a mode once per refresh rate: show each size only once
         bool listed = false;
@@ -597,7 +599,7 @@ void OptionsGraphics::end()
 	prefs.renderer = getButton( MSG_HARDWARE_RASTERIZER )->isPressed() ? 0 : 3;
 
 	int sel = resolutionList.GetSelectedItem();
-	if ( sel > -1 )
+	if ( sel > -1 && sel < numResolutionModes )	// an empty list still reports item 0
 	{
 		long actualSel = -1;
         gosASSERT(numResolutionModes > sel);
