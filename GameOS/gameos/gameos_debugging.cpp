@@ -88,13 +88,16 @@ static void show_error_box(const char* text)
 }
 
 // _Exit, not exit: static destructors over a broken engine can crash and hide
-// the message.
+// the message. SDL_Quit first, after the message is out, so a fullscreen or
+// KMSDRM (Pi console) display mode is put back.
 [[noreturn]] static void exit_after_error(const char* text, const char* reason)
 {
     fprintf(stderr, "STOP: exiting (%s)\n", reason);
     fflush(stdout);
     fflush(stderr);
     show_error_box(text);
+    if (SDL_WasInit(0))
+        SDL_Quit();
     _Exit(EXIT_FAILURE);
 }
 
@@ -141,7 +144,7 @@ void __cdecl gos_FatalExit( const char* message )
     if (message)
         logmsgf(text, "STOP", "%s", message);
     else
-        snprintf(text, sizeof(text), "A fatal error ended the game; the log has the details.");
+        snprintf(text, sizeof(text), "A fatal error ended the game.");
     exit_after_error(text, "fatal error");
 }
 

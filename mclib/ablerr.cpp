@@ -147,9 +147,11 @@ extern DebuggerPtr debugger;
 
 void ABL_Fatal (long errCode, const char* s) {
 
+	// The game's callback ends the game (ablFatalCallback). Before ABLi_init
+	// sets it, or if another callback returns, end it here.
+	if (!ABLFatalCallback)
+		gos_FatalExit(s);
 	ABLFatalCallback(errCode, s);
-	// The game's callback ends the game (ablFatalCallback); in case another
-	// one returns, end it here. The callback has reported the message.
 	gos_FatalExit(NULL);
 }
 
