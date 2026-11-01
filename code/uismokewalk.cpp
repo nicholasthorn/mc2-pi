@@ -20,6 +20,9 @@ const char* const SCREEN_NAMES[(int)UiScreen::Count] = {
 	"mechpurchase",
 	"pilotready",
 	"mission",
+	"salvage",
+	"pilotreview",
+	"promotion",
 };
 
 bool isOptions(UiScreen s)
@@ -114,6 +117,26 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 		if (to == UiScreen::MechBay)
 			return UiAction::Next;
 		break;
+	case UiScreen::Mission:
+		// the mission's data can skip either results screen, and a promotion
+		// opens over pilot review as it comes up
+		if (to == UiScreen::Salvage || to == UiScreen::PilotReview || to == UiScreen::Promotion)
+			return UiAction::WinMission;
+		break;
+	case UiScreen::Salvage:
+		if (to == UiScreen::PilotReview || to == UiScreen::Promotion
+				|| to == UiScreen::MissionSelection)
+			return UiAction::SalvageDone;
+		break;
+	case UiScreen::PilotReview:
+		// on to the campaign's next mission
+		if (to == UiScreen::MissionSelection)
+			return UiAction::PilotReviewDone;
+		break;
+	case UiScreen::Promotion:
+		if (to == UiScreen::PilotReview)
+			return UiAction::PromotionConfirm;
+		break;
 	default:
 		break;
 	}
@@ -132,6 +155,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechPurchase, "buy", UiAction::BuyMech },
 	{ UiScreen::MechBay, "add", UiAction::AddToForce },
 	{ UiScreen::PilotReady, "pilot", UiAction::AssignPilot },
+	{ UiScreen::Promotion, "skill", UiAction::PickSkill },
 };
 
 } // namespace

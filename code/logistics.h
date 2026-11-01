@@ -49,6 +49,8 @@ class Logistics
 		
 		MissionResults*					missionResults;
 		MissionBegin*					missionBegin;
+
+		friend class UiSmokeDriver;	// -uismoke reads which results screen is up
 	
 	public:
 	
