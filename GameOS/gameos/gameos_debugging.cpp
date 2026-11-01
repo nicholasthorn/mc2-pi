@@ -40,22 +40,10 @@ static void logmsg(const char* header, const char* fmt, va_list ap, char* out = 
 	if (out) out[0] = '\0';
 	if (!strlen(fmt)) return;
 
-	char				text[MAX_LOG_LINE] = {0};
-
-    // header plus ": " (the message used to overwrite the separator)
-    size_t header_len = strlen(header) + 2;
-
-    snprintf(text, MAX_LOG_LINE, "%s: ", header);
-	vsnprintf(text + header_len, MAX_LOG_LINE - header_len - 1, fmt, ap);
-
-	// End each message with a newline (most format strings have none), so
-	// the next STOP/PAUSE starts its own line in the log. The vsnprintf
-	// limit above leaves room for it.
-	size_t len = strlen(text);
-	if (text[len - 1] != '\n') {
-		text[len] = '\n';
-		text[len + 1] = '\0';
-	}
+	// Each message ends in a newline (most format strings have none), so the
+	// next STOP/PAUSE starts its own line in the log (unit tested).
+	char				text[MAX_LOG_LINE];
+	formatLogLine(text, sizeof(text), header, fmt, ap);
     output_debug_text(text);
     if (out) memcpy(out, text, MAX_LOG_LINE);
 }
@@ -81,10 +69,7 @@ static void show_error_box(const char* text)
 {
     if (gos_IsAutomatedRun() || !SDL_GetCurrentVideoDriver())
         return;
-    if (strncmp(text, "STOP: ", 6) == 0)
-        text += 6;
-    while (*text == ' ')
-        text++;
+    text = logLineMessage(text, "STOP");
     SDL_Window* window = SDL_GL_GetCurrentWindow();
     if (window) {
         SDL_SetWindowGrab(window, SDL_FALSE);
