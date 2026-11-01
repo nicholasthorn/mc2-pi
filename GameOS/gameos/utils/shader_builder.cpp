@@ -723,8 +723,10 @@ void glsl_program::apply()
         if(puni->is_dirty_)
         {
             if (puni->type_ >= CONSTANT_MAT2){
+                // cppcheck-suppress invalidPointerCast ; data_ is raw uniform storage (new unsigned char[]) holding the floats/ints GL reads
                 ((UNIFORM_MAT_FUNC) uniformFuncs[puni->type_])(puni->index_, puni->num_el_, GL_TRUE, (float *) puni->data_);
             } else {
+                // cppcheck-suppress invalidPointerCast ; data_ is raw uniform storage (new unsigned char[]) holding the floats/ints GL reads
                 uniformFuncs[puni->type_](puni->index_, puni->num_el_, (float *) puni->data_);
                 if(GL_INVALID_OPERATION == glGetError())
                     log_error("Error setting variable\n");
