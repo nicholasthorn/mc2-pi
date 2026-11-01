@@ -687,6 +687,23 @@ map: the known gap above (objects are still culled to the game camera's
 panel with the trigger held, the menu button, moving the HUD, the system
 menu.
 
+Second run (beam build): the pointer works, the system menu releases
+everything and pauses. Clicks were unreliable: portraits always worked,
+buttons at the HUD's sides took several clicks, move orders worked only
+near the centre and only sometimes. Cause: the game takes a press that
+moves more than 1.7% of the screen (`mouseDragThreshold`, about 3 cm or
+1.3 degrees on the HUD) for a drag, and pulling a trigger moves the hand
+more than that, so a move order became a selection box. Fix: the pointer
+holds still from when a trigger or grip starts to move until it is let
+go, unless it moves more than 5% of the HUD (then it is a real drag and
+follows the hand); the beam and dot show the held point
+(`vr_controls::holdForClick`). The pointing hand now switches at the start
+of a pull, so the hold covers the whole pull.
+
+A move order through the see-through HUD still goes to the ground the game
+camera sees at that screen position, not to what is behind the dot in the
+headset: world picking (below) is the real fix.
+
 Not done in this slice:
 
 - **Picking in the world.** Pointing through the HUD at the battle does
