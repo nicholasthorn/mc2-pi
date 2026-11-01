@@ -2948,8 +2948,7 @@ void __stdcall gos_TextDrawBackground( int Left, int Top, int Right, int Bottom,
 
     //PAUSE((""));
 
-    // zeroed first: cppcheck 2.13 does not see the memcpys below copy v[0].rhw
-    gos_VERTEX v[4] = {};
+    gos_VERTEX v[4];
     v[0].x = (float)Left;
     v[0].y = (float)Top;
     v[0].z = 0;
