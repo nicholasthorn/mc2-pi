@@ -144,10 +144,12 @@ drives today: game update, active-block flags, culling decisions that affect
 gameplay, mouse picking and the interface. Add two **render eyes** that only
 draw.
 
-The logic eye **follows the head**: its pose is the anchor times the centre
-of the two eyes, and its FOV is widened to cover both eyes (the headset sees
-about 90 to 100 degrees, the game camera 40). That keeps object culling and
-appearance updates covering what the player can see. The terrain window stays
+The logic eye **does not follow the head** (revised after the Phase 1 audit):
+it stays the game's own camera at the game's FOV, because what it counts as
+in view drives gameplay (`inView` / `windowsVisible`). The render eyes take
+the head pose and the headset's FOV (about 90 to 100 degrees, against the
+game's 40) and cull with their own frusta in a transform-only pass. The
+terrain window stays
 centred where it is today. Its edge is in view at 100 degrees (see "Phase 0
 results"), so mode 1 needs a larger window, haze pulled in to the window's
 radius, or a lower camera.
@@ -199,8 +201,9 @@ Rejected for a first version:
   terrain window's edge at a headset-wide FOV (Phase 0); on the tabletop it
   needs a table-edge treatment instead (see open questions).
 - **Letterbox, fades, compass:** move to the interface panel or drop.
-- **Culling:** `cosHalfFOV` and the screen-rect test in `recalcBounds` must use
-  the widened logic-eye FOV.
+- **Culling:** `cosHalfFOV` and the screen-rect test in `recalcBounds` stay on
+  the logic eye; the render eyes' transform-only pass culls against its own
+  frustum.
 - **World-anchored overlays** (selection brackets, health bars, waypoints,
   `FloatHelp`) are projected with `projectZ` in `missiongui.cpp` (5 sites) and
   game objects. They must be projected per eye so they sit at the right depth,
@@ -245,54 +248,64 @@ Starting point, to be tried in the headset:
   lower and let the compositor scale; use fixed foveation).
 - CPU: the game is single-threaded. Per frame it would do the update once and
   the projection steps three times (logic eye + two eyes), over today's
-  terrain window. The widened logic-eye FOV adds objects to transform. The
-  XR2's CPU is much faster than a Pi 4's, but there are no numbers yet.
+  terrain window. The render eyes' wide FOV adds objects to transform. The
+  XR2's CPU is much faster than a Pi 4's; PC ratios are in "Phase 0 results".
 - Measure first: `-bench` now reports per-stage times (`<stage>_ms`, see
   `bench/README.md`) and `-benchfov` forces a headset-wide FOV.
 
-## Phase 0 results (PC, preliminary)
+## Phase 0 results (PC)
 
-Run 2026-11-01: `bench/mc2_19.fit` (3600 frames, the player's lance against 20 enemies), desktop GL
-build, Mesa llvmpipe under Xvfb in WSL2, one run per FOV. Another session's
-cppcheck kept the load average near 30 on 16 threads throughout, so the
-wall-clock times are noisy (the 100-degree run came out faster than the
-40-degree one). Read the deterministic counts and the shares within each run,
-not the absolute times.
+Run 2026-11-01: `bench/mc2_19.fit` (3600 frames, the player's lance against
+20 enemies), desktop GL build, Mesa llvmpipe under Xvfb in WSL2 (16 threads).
+Two runs at FOV 40 (they agree within 5%) and one quiet run at FOV 100; a
+second 100-degree run collided with another session's job (load average 21,
+27 fps) and is left out, as is a first pair taken under a load average near
+30. llvmpipe rasterizes on the CPU, so the absolute times are not Quest or Pi
+numbers; the counts and the shares within a run are what carry over.
 
-| Per frame, whole run | FOV 40 | FOV 100 |
+| Per frame, whole run | FOV 40 (mean of 2) | FOV 100 |
 |---|---|---|
+| fps | 45.9 | 44.9 |
 | draws | 696 | 707 |
 | triangles | 6022 | 7578 (+26%) |
-| `logic_ms` / `render_ms` | 33.6 / 30.8 | 22.8 / 21.5 |
-| `terrain_geom_ms` | 0.59 | 0.56 |
-| `objects_ms` (of which `shape_xform_ms`) | 8.36 (3.99) | 6.12 (2.95) |
-| `world_render_ms` | 20.75 | 14.72 |
-| `ui_render_ms` | 8.67 | 5.83 |
-| per-eye work, share of the CPU frame | 39% | 41% |
+| `logic_ms` / `render_ms` / `swap_ms` | 8.62 / 6.74 / 6.42 | 9.04 / 7.50 / 5.73 |
+| `camera_ms` | 0.04 | 0.04 |
+| `terrain_geom_ms` | 0.18 | 0.22 |
+| `objects_ms` (of which `shape_xform_ms`) | 2.29 (1.05) | 2.45 (1.15) |
+| `world_render_ms` | 4.68 | 5.41 |
+| `ui_render_ms` | 1.67 | 1.67 |
+| per-eye work | 5.91 ms, 38% of the CPU frame | 6.78 ms, 41% |
 
 Per-eye work is `terrain_geom` + `shape_xform` + `world_render`; the CPU frame
 is `logic` + `render` (`swap` here is llvmpipe rasterizing, which is GPU work
 on real hardware).
 
-- **Stereo costs roughly 1.4 to 1.5 times the mono CPU frame**: a second eye
-  repeats about 40% of it, plus the logic eye's own projection (about 7%) if
-  its results are not reused. Under llvmpipe `world_render` includes the
-  driver's CPU work, which a hardware driver does more cheaply, so this is an
-  upper bound for that part.
-- Most of `logic_ms` is game logic outside the measured stages (pathing, AI,
-  sensors, collisions, the mission script). It runs once, not per eye.
-- A wider FOV leaves terrain cost flat: the projected window is a fixed vertex
-  grid (`GameVisibleVertices`). It adds about a quarter more triangles, mostly
+- **Stereo costs about 1.5 times the mono CPU frame.** With the logic eye at
+  the game's FOV doing the update once (`logic`, 8.6 ms, including its own
+  projection), the interface drawn once (1.7 ms), and two render eyes at
+  100 degrees (2 x 6.8 ms), the frame is about 24 ms of CPU against 15.4 ms
+  mono. Under llvmpipe `world_render` includes the driver's CPU work, which a
+  hardware driver does more cheaply, so this is an upper bound for that part.
+- Most of `logic_ms` (about 6 of 8.6 ms) is game logic outside the measured
+  stages: pathing, AI, sensors, collisions, the mission script. It runs once,
+  not per eye.
+- A wider FOV costs little by itself: 7% more CPU per frame. Terrain stays
+  nearly flat because the projected window is a fixed vertex grid
+  (`GameVisibleVertices`). The FOV adds about a quarter more triangles, mostly
   objects now in view.
+- Budget: 72 Hz leaves 13.9 ms per frame. Whether the Quest's XR2 fits 24 ms
+  of this PC's llvmpipe work into that is the go/no-go, and needs numbers
+  from real GPU drivers: the Pi runs below, then the Quest itself.
 - **The terrain window's edge is in view at 100 degrees** from the game's
   camera height: the screenshot shows the map as a slab floating in black,
   beyond the haze (mc2_19 is a night map). Mode 1 needs a larger window
-  (`terrain_geom` grows with its square, and is 0.6 ms at 60 vertices), haze
+  (`terrain_geom` grows with its square, and is 0.2 ms at 60 vertices), haze
   pulled in to the window's radius, or a lower camera. The same picture shows
   the tabletop look comes almost for free: the window already reads as a
   diorama.
 
-Still to do for the go/no-go: a quiet PC run, and the Pi (on its own display):
+Still to do for the go/no-go: the Pi (on its own display), with real GPU
+drivers:
 
 ```bash
 scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit --label "vr-p0 fov40"
@@ -305,7 +318,7 @@ scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scena
 |---|---|---|
 | 0. Measure | Frame-stage times in `-bench` output; PC and Pi runs at the normal window, with a wide FOV | Numbers in this file; go/no-go on the CPU route |
 | 1. Desktop stereo, no VR | Logic-eye / render-eye split; side-by-side stereo debug mode on a normal window | Both halves correct; nightly smoke runs unchanged; no double animation steps |
-| 2. OpenXR on PC (mode 1) | Swapchains, frame loop, anchor + world scale, head pose to logic and render eyes, interface on a quad layer, mouse still works | Mission playable in the headset over Link with mouse and keyboard, at 1:1 and giant scale |
+| 2. OpenXR on PC (mode 1) | Swapchains, frame loop, anchor + world scale, head pose to the render eyes, interface on a quad layer, mouse still works | Mission playable in the headset over Link with mouse and keyboard, at 1:1 and giant scale |
 | 3. Controllers | Stick pan/rotate/zoom, ray picking through the logic eye, button mapping, ray interaction with the interface panel | Full mission playable with controllers only |
 | 4. Quest standalone | Android build, OpenXR GLES binding, storage paths, packaging, data sideload, foveation, resolution tuning | Mission runs at 72 Hz on Quest 2 |
 | 5. Tabletop option | Table anchor at table height, scale 1:285 to 1:850, scroll the map across the table, table-edge treatment, no sky, grab/rotate the table | Comfortable tabletop view of a mission at miniatures scale |
@@ -321,14 +334,69 @@ decides whether phase 6 is needed before phase 4.
   hash) with stereo off.
 - Phases 2 to 5 need a headset; record what was run where in `PROGRESS.md`.
 
+## Phase 1 audit: projection mixed with state (2026-11-01)
+
+A read of the update path for what each projecting function also changes. No
+projecting function on the update path is projection-only, but two things
+help:
+
+- **Much of the world already projects at draw time**: craters
+  (`CraterManager::render`), weapon bolts (`WeaponBolt::render`), rain
+  (`Weather::render`), gosFX (the MLR clipper set up in `GameCamera::render`)
+  and the GPU shape path (`TG_MultiShape::Render` rebuilds `shapeToClip` from
+  `s_worldToClip`). These work per eye once the camera is swapped before
+  `render()`.
+- **`TransformMultiShape` caches node matrices per turn** (`calcedThisFrame ==
+  turn`), so a second call in the same frame only redoes the camera part.
+  Repeating it per eye is cheap and does not re-animate.
+
+What needs work, riskiest first:
+
+| Item | Problem | Fix |
+|---|---|---|
+| `*Appearance::recalcBounds` (mech, vehicle, building, tree, generic) | Interleaves the screen box and `inView` with LOD switching (deletes and recreates the shape) and view hysteresis | A new transform-only method per class that keeps the logic eye's LOD and only fills the eye's screen data |
+| `inView` / `windowsVisible` | Feed gameplay: withdrawing units are destroyed off screen (`mech.cpp`), collision sounds, picking; vehicles, turrets and terrain objects animate only when in view | Keep them on the logic eye at the game's own FOV (below) |
+| `appearance->update(false)` | Not repeatable: random gestures, `nodeRecycle`, flash timers, effect `Execute`, foot-poof craters (`updateAppearancesOnly` calls it) | Per-eye pass calls only the transform method, never `update` |
+| `mcTextureManager->addTriangle` | Counts vertices during update; `addVertices` fills them at render into arrays of that size and drops the rest | Recount per eye (`clearArrays`, re-run the counting passes), or count for all eyes |
+| `Terrain::geometry` | Also sets the object-block and vertex active flags, `eye->setInverseProject` (mouse picking), terrain light culling, the cloud update | A projection-only mode that skips those |
+| Water in `TerrainQuad::setupTextures` | Projects once per frame, guarded by `calcThisFrame` bit 2 | Clear bit 2 per eye |
+| `Clouds::update` | Accumulates UV scroll on every call | Split the scroll out |
+| Camera statics | `cameraFrame`, the sphere clip constants, `HazeFactor`, `TG_Shape::s_worldToClip`; `GameCamera::render` sets `userInput->setViewport` | Save and restore around each eye; skip the input viewport for render eyes |
+| `FloatHelp`, TGL pools | `currentFloatHelp` and the vertex/colour pools reset once per frame in `Mission::render` | Reset per eye, or size for both |
+| Weather lighting | `Weather::update` writes the light colours onto `eye` | Copy them to the render eyes |
+
+Mission state that must run once per frame and stay on the logic eye:
+`GameObjectManager::update`, `MapData::update` (water phase, scrolling,
+terrain window), `Weather::update`, `MissionInterfaceManager::update` (mouse
+`inverseProject`), `mcTextureManager->update` (after the eye passes, so their
+texture use counts).
+
+**Answer to the old open question**: a head-following, widened logic eye does
+change gameplay, through `inView` / `windowsVisible`. So the logic eye stays
+the un-tracked game camera at the game's FOV; the head pose and the wide FOV
+are used only by the render eyes, which cull with their own frusta in the
+transform-only pass. Objects the logic eye does not see are not updated
+(vehicles animate only in view); if that shows at the edges of a
+headset-wide view, widen what counts as in view for animation only.
+
+Side note, an existing quirk rather than a VR problem: `Mover::getLOSPosition`
+calls `appearance->update()` when the weapon node has never been computed;
+for a vehicle that advances its animation an extra frame that turn.
+
+Phase 1 work, in order: the transform-only appearance methods and a
+`GameObjectManager` pass over them; the projection-only terrain mode; per-eye
+recount in the texture manager; camera save/restore; then the side-by-side
+debug mode on a normal window, checked against the `-bench` state hash.
+
 ## Open questions
 
-- How many update-time functions mix projection with state changes? (Audit:
-  `Terrain::geometry`, every `*Appearance::update`, craters, weapon effects,
-  `gosFX`, weather, `FloatHelp`.)
-- Does a head-following logic eye change gameplay through the active-block
-  flags or camera-relative logic (it must not)? If it does, pin those to the
-  un-tracked game camera and use the head pose for culling only.
+- (Answered by the Phase 1 audit: projection is mixed with state in every
+  update-time projecting function, and a head-following logic eye would change
+  gameplay, so the logic eye stays un-tracked.)
+- Picking through an un-tracked logic eye only reaches what the game camera
+  sees. If the player looks or points outside it, either recentre the game
+  camera on the pointed-at spot first, or pick against object bounds in world
+  space (the refinement noted under "Approach").
 - Is the CPU route fast enough on Quest 2 at 72 Hz, or is phase 6 required?
 - Mode 1 scale: is 1:1 comfortable with smooth panning, and which giant scale
   feels best? Seated or standing?
