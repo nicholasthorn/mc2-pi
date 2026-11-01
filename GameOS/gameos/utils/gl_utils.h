@@ -15,7 +15,7 @@ uint32_t vec4_to_uint32(const vec4& v);
 vec4 uint32_to_vec4(uint32_t v);
 
 struct Texture {
-	Texture():id(0), w(0), h(0), depth(1), fmt_(TF_NONE), type_(TT_NONE) {}
+	Texture():id(0), w(0), h(0), depth(1), fmt_(TF_NONE), type_(TT_NONE), mipmapped(false) {}
     bool isValid() { return id > 0; }
 
 	GLuint id;
@@ -23,6 +23,7 @@ struct Texture {
 	int w, h, depth;
     TexFormat fmt_;
     TexType type_;
+    bool mipmapped;     // has mipmaps, kept up to date on every upload
 
 };
 
@@ -87,6 +88,12 @@ Texture create3DTextureF(int w, int h, int depth);
 
 // texture has to be binded before calling this
 void setSamplerParams(TexType tt, TexAddressMode address_mode, TexFilterMode filter);
+// as above, but a mipmapped texture is minified trilinearly where the game
+// asks for bilinear filtering
+void setSamplerParams(const Texture& t, TexAddressMode address_mode, TexFilterMode filter);
+// VR: 8-bit textures created from now on get mipmaps (distant objects shimmer
+// in the headset without them). Off by default: the flat game never had any.
+void setGenerateMipmaps(bool on);
 
 // pdata_format - specifies format of data provided in pdata
 void updateTexture(const Texture& t, void* pdata, TexFormat pdata_format = TF_COUNT);

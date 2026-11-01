@@ -42,6 +42,7 @@
 
 #include"render_heuristics.h"
 #include"utils/stereo.h"
+#include"utils/vr_eye.h"
 #include"floathelp.h"
 
 #ifndef USERINPUT_H
@@ -763,10 +764,13 @@ unsigned long Camera::inverseProject (Stuff::Vector2DOf<long> &screenPos, Stuff:
 		
 	for (long i=0;i<(long)numTiles;i++)
 	{
-		if ((currentTile->vertices[0]->clipInfo) ||
-			(currentTile->vertices[1]->clipInfo) || 
-			(currentTile->vertices[2]->clipInfo) || 
-			(currentTile->vertices[3]->clipInfo))
+		//tiles the game camera sees (calcThisFrame 8, see Terrain::geometry):
+		//in VR every tile in the window is clipped in, and projectZ mirrors
+		//the ones behind the camera onto the screen
+		if ((currentTile->vertices[0]->calcThisFrame & 8) ||
+			(currentTile->vertices[1]->calcThisFrame & 8) || 
+			(currentTile->vertices[2]->calcThisFrame & 8) || 
+			(currentTile->vertices[3]->calcThisFrame & 8))
 		{
 			bool isOver = overThisTile(currentTile, screenPos.x, screenPos.y);
 			
@@ -1675,12 +1679,16 @@ bool lastZoom = FALSE;
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 // Draws the world: render() once, or under -stereo once per eye, side by side
-// (VR plan, Phase 1). The eyes only draw; world-anchored overlays are drawn
+// (VR plan, Phase 1), or in VR once per head-tracked eye, with no world in
+// the window (Phase 2). The eyes only draw; world-anchored overlays are drawn
 // in each eye's pass, moved by that eye's parallax.
 void Camera::renderWorld (void)
 {
-	const float separation = gos_GetStereoSeparation();
-	if (separation <= 0.0f)
+	// VR: the head-tracked eyes the headset wants this frame (none otherwise)
+	gosVREyeView vrViews[2];
+	const int vrEyes = gos_GetVREyeViews(vrViews);
+	const float separation = vrEyes ? 0.0f : gos_GetStereoSeparation();
+	if ((separation <= 0.0f) && (vrEyes == 0))
 	{
 		render();
 		return;
@@ -1696,6 +1704,7 @@ void Camera::renderWorld (void)
 	// picking, which reads the terrain's screen positions
 	auto setEye = [&](int eyeIndex)
 	{
+		vrEye = (vrEyes && (eyeIndex >= 0)) ? &vrViews[eyeIndex] : NULL;
 		eyeOffset = stereo::eyeOffset(eyeIndex, separation);
 		calculateProjectionConstants();
 		TG_Shape::SetCameraMatrices(&cameraOrigin,&cameraToClip);
@@ -1704,7 +1713,7 @@ void Camera::renderWorld (void)
 		gos_SetStereoEye(eyeIndex);
 
 		eyeParallax = 0.0f;
-		if (eyeIndex >= 0)
+		if ((eyeIndex >= 0) && !vrEyes)
 		{
 			Stuff::Vector4D eyeScreen;
 			projectZ(reference,eyeScreen);
@@ -1720,9 +1729,14 @@ void Camera::renderWorld (void)
 		setEye(eyeIndex);
 		render();
 		gos_SetRenderState(gos_State_Fog, 0);	// as Mission::render does before FloatHelp::renderAll
-		FloatHelp::renderAndResetFrom(helpsBeforeEyes);
+		FloatHelp::renderAndResetFrom(helpsBeforeEyes, !vrEyes);
 	}
 	setEye(-1);
+
+	// VR: the eyes were drawn into the headset's images. The window gets no
+	// world, only the interface drawn after this, which the headset shows as
+	// a see-through HUD (gos_xr). Meshes take the GPU path and the terrain
+	// draws its whole window while VR is on (gos_IsVR in tgl.cpp, terrain.cpp).
 }
 
 //---------------------------------------------------------------------------
@@ -2010,6 +2024,9 @@ void Camera::setOrthogonal(void)
 		float top_clip = -left_clip * height2width;
 		float bottom_clip = -top_clip;
 		float right_clip = -left_clip;
+
+		if (vrEye)		//VR: the eye's own, asymmetric field of view
+			vr_eye::clipEdges(vrEye->fov, near_clip, left_clip, right_clip, top_clip, bottom_clip);
 		
 		float horizontal_range = APPLY_LEFT_SIGN(1.0f) / (left_clip - right_clip);
 		float vertical_range = APPLY_UP_SIGN(1.0f) / (top_clip - bottom_clip);
@@ -2242,6 +2259,39 @@ void Camera::setCameraOrigin (void)
 		Stuff::Point3D eyePosition(cameraOrigin);
 		eyePosition.AddScaled(eyePosition, right, -eyeOffset);
 		cameraOrigin.BuildTranslation(eyePosition);
+	}
+
+	//------------------------------------------------------------
+	// VR: the head-tracked eye, the game camera above turned and moved by
+	// the head (vr_eye::eyeBasis). The rows of cameraOrigin are the camera's
+	// axes in world space: as projectZ maps them, LEFT_AXIS is screen left,
+	// UP_AXIS screen down and FORWARD_AXIS forward. World up is y.
+	if (vrEye)
+	{
+		vr_eye::Basis game;
+		for (int c=0;c<3;c++)
+		{
+			game.x[c] = cameraOrigin(LEFT_AXIS,c);
+			game.y[c] = cameraOrigin(UP_AXIS,c);
+			game.z[c] = cameraOrigin(FORWARD_AXIS,c);
+		}
+		Stuff::Point3D gamePosition(cameraOrigin);
+		game.position[0] = gamePosition.x;
+		game.position[1] = gamePosition.y;
+		game.position[2] = gamePosition.z;
+
+		float headPosition[3], headOrientation[4];
+		vr_eye::fromXr(vrEye->position, vrEye->orientation, headPosition, headOrientation);
+		const float worldUp[3] = {0.0f, 1.0f, 0.0f};
+		const vr_eye::Basis eye = vr_eye::eyeBasis(game, worldUp, headOrientation, headPosition,
+			worldUnitsPerMeter * gos_GetVRWorldScale(), gos_GetVRKeepGamePitch());
+		for (int c=0;c<3;c++)
+		{
+			cameraOrigin(LEFT_AXIS,c) = eye.x[c];
+			cameraOrigin(UP_AXIS,c) = eye.y[c];
+			cameraOrigin(FORWARD_AXIS,c) = eye.z[c];
+		}
+		cameraOrigin.BuildTranslation(Stuff::Point3D(eye.position[0],eye.position[1],eye.position[2]));
 	}
 
 	//------------------------------------------------------------

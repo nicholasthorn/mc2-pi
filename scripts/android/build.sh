@@ -59,7 +59,8 @@ build_deps() {
 }
 
 build_game() {
-    "$CMAKE" -S "$ROOT" -B "$BUILD/game" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF
+    "$CMAKE" -S "$ROOT" -B "$BUILD/game" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF \
+        "-DOPENXR_PREFAB=$DEPS/$OPENXR_DIR/prefab/modules"
     "$CMAKE" --build "$BUILD/game"
 }
 
@@ -84,6 +85,7 @@ build_apk() {
     cp "$A/dex/classes.dex" "$A/stage/"
     local lib
     for lib in "$PREFIX/lib/libSDL2.so" "$PREFIX/lib/libSDL2_mixer.so" \
+               "$DEPS/$OPENXR_DIR/jni/arm64-v8a/libopenxr_loader.so" \
                "$BUILD/game/libmain.so" "$BUILD/game/out/res/libmc2res_64.so"; do
         "$STRIP" --strip-unneeded -o "$A/stage/lib/arm64-v8a/$(basename "$lib")" "$lib"
     done
