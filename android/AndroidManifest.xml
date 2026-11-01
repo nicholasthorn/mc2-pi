@@ -17,6 +17,8 @@
         android:allowBackup="false"
         android:extractNativeLibs="false"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        <!-- lets simpleperf profile the test build from adb shell -->
+        <profileable android:shell="true" />
         <activity
             android:name=".MC2Activity"
             android:label="MC2 test"
