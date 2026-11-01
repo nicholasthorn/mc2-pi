@@ -809,7 +809,8 @@ void MapData::makeLists (VertexPtr vertexList, long &numVerts, TerrainQuadPtr qu
 			long posTileR = topLeftY;
 			long posTileC = topLeftX;
 				
-			currentVertex->posTile = (posTileR << 16) + (posTileC & 0x0000ffff);
+			// posTileR may be negative: multiply, since << on a negative value is UB (same bits)
+			currentVertex->posTile = (posTileR * 65536) + (posTileC & 0x0000ffff);
 			currentVertex->calcThisFrame = 0;
 			currentVertex->px = currentVertex->py = -99999.0f;
 			currentVertex->clipInfo = false;
