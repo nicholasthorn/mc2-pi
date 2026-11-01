@@ -1961,6 +1961,23 @@ const char* __stdcall gos_GetBenchScenario();
 void __stdcall gos_BenchSegment( const char* name );
 void __stdcall gos_BenchScreenshot( const char* name );
 void __stdcall gos_BenchStateHash( unsigned int hash );
+//
+// Named stages inside a frame (with -bench): each name gets a "<name>_ms"
+// CSV column and [BENCH] key, the frame's total time between Start and Stop
+// (a stage entered several times a frame adds up). gos_BenchStageId(name)
+// returns the stage's id (call once, e.g. into a static), or -1 without
+// -bench or once 8 names are taken; Start/Stop ignore -1. Not reentrant:
+// do not nest a stage inside itself.
+//
+int __stdcall gos_BenchStageId( const char* name );
+void __stdcall gos_BenchStageStart( int id );
+void __stdcall gos_BenchStageStop( int id );
+//
+// "-benchfov <degrees>" (with -bench): the camera's field of view, forced
+// every frame, or 0 when not set (VR cost estimates: a headset sees about
+// 100 degrees, the game camera 40).
+//
+float __stdcall gos_GetBenchFOV();
 
 
 

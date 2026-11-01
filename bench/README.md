@@ -93,6 +93,26 @@ Run it once and read the log and the screenshots:
 `count` frames (default 300) from `frame`, to find the first unit that
 differs between two runs whose `state` columns disagree.
 
+## Stage times and `-benchfov`
+
+Every `-bench` run also times named stages inside the frame
+(`gos_BenchStageStart`/`Stop`), each a `<name>_ms` key on the `[BENCH]` lines
+and a column in the frame CSV, averaged per frame:
+
+| Stage | What | Part of |
+|---|---|---|
+| `camera` | `eye->update()` | `logic_ms` |
+| `terrain_geom` | `land->geometry()`: projects every visible terrain vertex | `logic_ms` |
+| `objects` | object and appearance update | `logic_ms` |
+| `shape_xform` | `TransformMultiShape`: shapes to clip space, inside `objects` | `logic_ms` |
+| `world_render` | `eye->render()`: world enqueue and GL submit | `render_ms` |
+| `ui_render` | interface and floating help | `render_ms` |
+
+`terrain_geom`, `shape_xform` and `world_render` are the work VR stereo
+would repeat per eye (`planning/future-features/VR-TABLETOP.md`).
+`-benchfov <degrees>` forces the camera's field of view for the whole run
+(a headset sees about 100 degrees, the game 40), to measure the wider view. It is applied each frame after the bench director, before the camera update.
+
 ## Scenarios
 
 - `mc2_19.fit`: mc2_19 has the most enemies of any campaign mission (82).

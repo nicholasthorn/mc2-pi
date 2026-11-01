@@ -61,7 +61,7 @@ namespace timing {
 #endif
 #ifdef PLATFORM_WINDOWS
 		double dt = (double)(ticks) / Frequency.QuadPart;
-		return 1000 * ticks;
+		return 1000.0 * dt;
 #else
 		return (double)ticks / 1e+6;
 #endif
