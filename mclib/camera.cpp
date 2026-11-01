@@ -1673,45 +1673,36 @@ bool lastZoom = FALSE;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-// -stereo: draw the world twice, side by side, from two cameras
-// gos_GetStereoSeparation() apart along the camera's right axis (VR plan,
-// Phase 1). The game camera keeps driving everything else; the eyes only
-// draw. Meshes take the eye's matrices at draw time, terrain is re-projected
-// per eye, craters, effects and weather project while drawing. Still drawn
-// from the game camera: shadows and clouds (projected during the update).
-void Camera::renderStereo (void)
+// Draws the world: render() once, or under -stereo once per eye, side by side
+// (VR plan, Phase 1). The eyes only draw; shadows and clouds still come from
+// the game camera (they are projected during the update).
+void Camera::renderWorld (void)
 {
-	//The frame's RIGHT_AXIS comes out pointing screen left in the engine's
-	//coordinates: used as is, the eyes were swapped (measured on a -stereo
-	//screenshot: features sat further right in the right half). Hence the
-	//minus sign below.
-	Stuff::UnitVector3D right;
-	cameraOrigin.GetLocalRightInWorld(&right);
-	const float separation = -gos_GetStereoSeparation();
-	const Stuff::Vector2DOf<float> gameShift = cameraShift;
-
-	for (long eyeIndex=0;eyeIndex<2;eyeIndex++)
+	const float separation = gos_GetStereoSeparation();
+	if (separation <= 0.0f)
 	{
-		float dx, dy;
-		stereo::eyeShift(eyeIndex, right.x, right.z, separation, &dx, &dy);
-		cameraShift.x = gameShift.x + dx;
-		cameraShift.y = gameShift.y + dy;
+		render();
+		return;
+	}
+
+	// eye -1 is the game camera, put back for the interface and for mouse
+	// picking, which reads the terrain's screen positions
+	auto setEye = [this, separation](int eyeIndex)
+	{
+		eyeOffset = stereo::eyeOffset(eyeIndex, separation);
 		calculateProjectionConstants();
 		TG_Shape::SetCameraMatrices(&cameraOrigin,&cameraToClip);
 		if (land)
 			land->projectForEye();
-
 		gos_SetStereoEye(eyeIndex);
+	};
+
+	for (int eyeIndex=0;eyeIndex<2;eyeIndex++)
+	{
+		setEye(eyeIndex);
 		render();
 	}
-
-	//Back to the game camera for the interface and next frame's update.
-	cameraShift = gameShift;
-	calculateProjectionConstants();
-	TG_Shape::SetCameraMatrices(&cameraOrigin,&cameraToClip);
-	if (land)
-		land->projectForEye();
-	gos_SetStereoEye(-1);
+	setEye(-1);
 }
 
 //---------------------------------------------------------------------------
@@ -2217,6 +2208,20 @@ void Camera::setCameraOrigin (void)
 				physicalPos = translation;
 			}
 		}
+	}
+
+	//------------------------------------------------------------
+	// -stereo: move this eye sideways along the camera's own axis, once the
+	// game camera's position (and its line-of-sight pitch fix) is settled.
+	// The frame's RIGHT_AXIS points screen left in engine coordinates, hence
+	// -eyeOffset (with +eyeOffset the eyes came out swapped on a screenshot).
+	if (eyeOffset != 0.0f)
+	{
+		Stuff::UnitVector3D right;
+		cameraOrigin.GetLocalRightInWorld(&right);
+		Stuff::Point3D eyePosition(cameraOrigin);
+		eyePosition.AddScaled(eyePosition, right, -eyeOffset);
+		cameraOrigin.BuildTranslation(eyePosition);
 	}
 
 	//------------------------------------------------------------

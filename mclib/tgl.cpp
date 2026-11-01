@@ -2762,7 +2762,11 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			rs.vdecl_ = theShape->vdecl_;
 			rs.mvp_ = mvp;
 			rs.mw_ = *shapeToWorld;
-			memcpy(rs.viewport_, cur_viewport, 4 * sizeof(float));
+			// draw-time viewport, like the matrix (cur_viewport is the update's)
+			rs.viewport_[0] = viewMulX;
+			rs.viewport_[1] = viewMulY;
+			rs.viewport_[2] = viewAddX;
+			rs.viewport_[3] = viewAddY;
             rs.light_data_buffer_index_ = mcTextureManager->addLightDataStructure(&lightData_);
 
 			mcTextureManager->addRenderShape(

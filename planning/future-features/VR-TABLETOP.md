@@ -417,9 +417,12 @@ How it works, and why it needed far less than the audit's work list:
   left as the game camera decided, so the vertex counts from the update fit.
   The height each water vertex was projected at is now stored
   (`Vertex::wElevation`) so it can be re-projected exactly.
-- **Each eye moves the camera through `cameraShift`** (`Camera::renderStereo`):
-  `GameCamera::render` rebuilds `cameraOrigin` from it, so an offset applied
-  to the matrix directly would be lost.
+- **Each eye is an offset applied last in `Camera::setCameraOrigin`**
+  (`eyeOffset`, set by `Camera::renderWorld`): `GameCamera::render` rebuilds
+  `cameraOrigin` every time, so the offset lives inside that rebuild, after
+  the game camera's position and line-of-sight pitch fix are settled. Phase 2
+  grows this into a full eye pose (rotation and its own projection).
+- The GPU mesh path also takes its viewport at draw time.
 - **GameOS points the GL viewport at one half** (`gos_SetStereoEye`): draws go
   out as issued, and screen-space and 3D draws both map through the viewport.
 - Craters, weapon bolts, gosFX and weather already project while drawing.
@@ -433,7 +436,8 @@ points screen left in engine coordinates).
 
 **Measured stereo cost** (quiet GL run, against mono on the same build):
 `world_render` 3.88 to 8.31 ms, triangles 6022 to 11287, the CPU frame
-(`logic` + `render`) 13.1 to 17.8 ms: **1.36 times**, below the 1.5 estimate
+(`logic` + `render`) 13.1 to 17.8 ms: **1.36 times** (a second pair of runs
+after the review fixes: 10.2 to 14.2 ms, 1.40 times), below the 1.5 estimate
 because no per-eye object transform is needed.
 
 Still drawn from the game camera, so they sit at the wrong depth in one eye:
@@ -445,7 +449,11 @@ Still drawn from the game camera, so they sit at the wrong depth in one eye:
 
 Objects and terrain the game camera culls are missing at the edges of an
 eye's view; with eyes 8 m apart that is a sliver, with a headset-wide FOV it
-is not (Phase 2 needs the render eyes to cull for themselves).
+is not (Phase 2 needs the render eyes to cull for themselves, which means
+sizing the texture manager's counts for every eye).
+
+Each half keeps the full window's aspect ratio, so the eyes are squashed 2:1
+in this view; Phase 2 gives each eye its own projection and viewport size.
 
 ## Open questions
 
