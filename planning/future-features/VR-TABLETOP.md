@@ -443,9 +443,20 @@ because no per-eye object transform is needed.
 Still drawn from the game camera, so they sit at the wrong depth in one eye:
 
 - shadows (projected on the CPU during the update),
-- the cloud layer (`Clouds::update` projects during the update),
-- world-anchored overlays (selection brackets, health bars, `FloatHelp`),
-  which are part of the interface, drawn once.
+- the cloud layer (`Clouds::update` projects during the update).
+
+Worse in this debug view: world-anchored overlays (selection brackets,
+health bars, `FloatHelp`) are part of the interface, drawn once over the
+whole window at the game camera's positions, so they match neither squashed
+half (a unit at mono x = 600 is at 300 and 700 in the halves, its bracket at
+600). Mouse picking and the cursor are full-window too. `-stereo` is for
+looking at the rendering, not for playing; Phase 2 draws overlays per eye.
+
+Not covered by an automated check yet: the eye order. It rests on one
+measured sign in `setCameraOrigin`; a flip passes the unit tests and the
+state checksum. A smoke check could measure the disparity between the halves
+of a `-stereo` screenshot (it should be negative: features further left in
+the right half).
 
 Objects and terrain the game camera culls are missing at the edges of an
 eye's view; with eyes 8 m apart that is a sliver, with a headset-wide FOV it

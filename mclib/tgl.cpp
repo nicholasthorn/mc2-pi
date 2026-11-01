@@ -2508,12 +2508,6 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 
             GatherLightsParameters(&lightData_);
 
-			cur_viewport[0] = viewMulX;
-			cur_viewport[1] = viewMulY;
-			cur_viewport[2] = viewAddX;
-			cur_viewport[3] = viewAddY;
-			cur_shape2clip = *shapeToClip;
-
 			// FIXME: this (listOfTypeTriangles[0]) is not correct if model has more than 1 texture! 
 			mcTextureManager->addRenderShape(theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].mcTextureNodeIndex, MC2_DRAWSOLID | addFlags);
 		}
@@ -2752,7 +2746,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			}
 			else {
 				// the matrix for the camera drawing now (each eye under -stereo),
-				// not cur_shape2clip from the update-time transform
+				// not the one from the update-time transform
 				mvp = *shapeToClip;
 			}
 
@@ -2762,7 +2756,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			rs.vdecl_ = theShape->vdecl_;
 			rs.mvp_ = mvp;
 			rs.mw_ = *shapeToWorld;
-			// draw-time viewport, like the matrix (cur_viewport is the update's)
+			// draw-time viewport, like the matrix
 			rs.viewport_[0] = viewMulX;
 			rs.viewport_[1] = viewMulY;
 			rs.viewport_[2] = viewAddX;

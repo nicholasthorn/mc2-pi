@@ -708,8 +708,6 @@ class TG_Shape
 															//Draw in this order.  First entry with value 0xffffffff
 															//Means all done, no more to draw.
 
-		float					cur_viewport[4];
-		Stuff::Matrix4D			cur_shape2clip;
         TG_HWLightsData         lightData_;
 
 		TG_ShadowVertexPtr		listOfShadowVertices;		//Stores shadow vertex information for the shape.
@@ -811,7 +809,6 @@ class TG_Shape
 		
 		TG_Shape (void)
 		{
-			cur_viewport[0] = cur_viewport[1] = cur_viewport[2] = cur_viewport[3] = 0.0f;
 			init();
 		}
 
