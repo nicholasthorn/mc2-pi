@@ -871,7 +871,8 @@ void ControlGui::renderObjective( CObjective* pObjective, long xPos, long yPos, 
 		float dotRealWidth = (((float)dotWidth)/20.f);
 
 		float totalLength = (OBJECTIVESTOTALRIGHT - width - xPos - descWidth);
-		long numberOfDots = ((float)totalLength)/dotRealWidth;
+		// a zero font metric would divide by zero (gosASSERT is compiled out)
+		long numberOfDots = (dotRealWidth > 0.f) ? (long)(((float)totalLength)/dotRealWidth) : 3;
 
 		if (3 > numberOfDots)
 		{

@@ -109,3 +109,10 @@ Copy all required dlls to your exe folder of preference
 Run the game!
 
 .. and, hopefully, enjoy
+
+## Android / Meta Quest
+
+A test APK for Meta Quest (a flat Android app with the GLES renderer) builds
+from Windows too, with the Android SDK, NDK r28c and SDK CMake 3.31.6, from
+Git Bash: see `android/README.md`. It compiles its own SDL2 and SDL2_mixer
+(same versions as above) from source; `3rdparty.zip` is not used.

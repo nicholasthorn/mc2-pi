@@ -144,7 +144,8 @@ MLR_Terrain2::MLR_Terrain2(
 	char texRoot[1024], name[1024];
 
 	int len;
-	if((len = strlen(texName)) > 0)
+	// texName[len-6] and texRoot[len-7] need at least 7 characters
+	if((len = strlen(texName)) > 6)
 	{
 		Verify(len>8);
 		int i, d = texName[len-6] - '0';
@@ -292,7 +293,8 @@ void
 	char texRoot[1024], name[1024];
 
 	int len;
-	if((len = strlen(texName)) > 0)
+	// texName[len-6] and texRoot[len-7] need at least 7 characters
+	if((len = strlen(texName)) > 6)
 	{
 		Verify(len>8);
 		int i, d = texName[len-6] - '0';

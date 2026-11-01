@@ -828,10 +828,10 @@ class MissionMap {
 
 		long placeObject (Stuff::Vector3D position, float radius);
 
-		void placeTerrainObject (long row,
-								 long col,
-								 long objectClass,
+		void placeTerrainObject (long objectClass,
 								 long objectTypeID,
+								 long cellRow,
+								 long cellCol,
 								 __int64 footPrint,
 								 bool blocksLineOfFire,
 								 long mineType);
@@ -1232,7 +1232,7 @@ class GlobalMap {
 			destroy();
 		}
 
-		void init (long h, long w);
+		void init (long w, long h);
 
 		long build (MissionMapCellInfo* mapData);
 

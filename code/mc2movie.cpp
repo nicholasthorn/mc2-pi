@@ -232,7 +232,6 @@ void MC2Movie::destroy_stuff(struct MoviePlayerImpl* pimpl) {
         if(pimpl->plm)
             plm_destroy(pimpl->plm);
         gos_Free(pimpl);
-        pimpl = 0;
     }
 
     // not created when the movie file could not be opened

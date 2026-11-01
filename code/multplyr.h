@@ -377,8 +377,8 @@ class WorldChunk {
 		void buildMissionScriptMessage (long messageCode,
 										long messageParam);
 
-		void buildArtillery (long artilleryType,
-							 long teamId,
+		void buildArtillery (long commanderId,
+							 long artilleryType,
 							 Stuff::Vector3D location,
 							 long seconds);
 
@@ -1666,7 +1666,7 @@ class MultiPlayer : public MultiPlayerState {
 
 //		long addTerrainAlignmentChunk (GameObjectPtr object, long alignment);
 
-		long addArtilleryChunk (long artilleryType, long teamId, Stuff::Vector3D location, long seconds);
+		long addArtilleryChunk (long commanderId, long artilleryType, Stuff::Vector3D location, long seconds);
 
 		long addMineChunk (long tileR, long tileC, long teamId, long mineState, long explosionType);
 

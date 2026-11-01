@@ -1568,11 +1568,17 @@ void EWCharString::Format( const char* p_Str, ... )
     // sebi
     va_end(Arg_List_Save);
 
-	memcpy( m_pBuffer->Data(), A2W(pTmp), (Max_Len + 1)*sizeof(EWCSChar) );
+	// copy the converted string and its terminator, not Max_Len + 1 chars
+	// (an over-estimate that read past the converted buffer)
+	{
+		EWA2WBuffer Wide( pTmp );
+		memcpy( m_pBuffer->Data(), Wide.Get(), (wcslen( Wide.Get() ) + 1)*sizeof(EWCSChar) );
+	}
 
 	m_pBuffer->m_Data_Length = StrSize( m_pBuffer->Data() );
 
 	// clean up
+	delete [] pTmp;
 	va_end( Arg_List );
 	
 

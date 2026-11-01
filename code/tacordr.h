@@ -240,7 +240,7 @@ class TacticalOrder {
 		void* operator new (size_t ourSize);
 		void operator delete (void* us);
 
-		// cppcheck-suppress operatorEqVarError ; id is the order's own queue id (setId), kept on purpose like statusCode/lastMoveGoal are reset
+		// cppcheck-suppress operatorEqVarError ; id is the order's own queue id: read only on MP paths, and peekQueuedTacOrder sets it after copying
 		void operator = (TacticalOrder copy) {
 			time = copy.time;
 			delayedTime = copy.delayedTime;
