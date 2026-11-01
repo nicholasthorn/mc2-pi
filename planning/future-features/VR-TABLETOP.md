@@ -1,8 +1,9 @@
 # VR: head-tracked game view, tabletop option (Meta Quest 2)
 
 Status: Phase 0 in progress. The bench instrumentation (`<stage>_ms`,
-`-benchfov`) and the PC results are in; the Pi runs are not. Phase 1 is
-audited, not started. Written 2026-10-29 from a read of the code on
+`-benchfov`) and the PC results are in; the Pi runs are not. Phase 1 has
+its first slice, a side-by-side `-stereo` debug view (see "Phase 1 progress").
+Written 2026-10-29 from a read of the code on
 `pi-port`, revised 2026-11-01 (requirements changed: play the game's own view
 in VR first; tabletop becomes an option; no whole-map rendering).
 File and function names were checked then, line numbers were not recorded on
@@ -389,6 +390,81 @@ Phase 1 work, in order: the transform-only appearance methods and a
 `GameObjectManager` pass over them; the projection-only terrain mode; per-eye
 recount in the texture manager; camera save/restore; then the side-by-side
 debug mode on a normal window, checked against the `-bench` state hash.
+(Revised by the first slice below: most of that list turned out unnecessary
+for a desktop debug view.)
+
+## Phase 1 progress: side-by-side `-stereo` (2026-11-01)
+
+`./mc2 -mission mc2_19 -stereo 40` draws the world twice, the left eye in the
+left half of the window and the right eye in the right half, from two
+cameras 40 world units (8 m) apart along the game camera's right axis. The
+interface is drawn once, over the whole window. It is a debug view for
+parallel ("wall-eyed") viewing; each half is squashed horizontally.
+
+How it works, and why it needed far less than the audit's work list:
+
+- **The engine can already draw a frame twice.** `renderLists` rewinds each
+  texture's vertex and shape lists after drawing them ("comes in handy if
+  gameLogic is not called"), so a second `render()` refills the same blocks.
+  The counts stay valid as long as each eye draws the same triangles.
+- **Meshes take the eye's camera at draw time.** `TG_MultiShape::Render`
+  already rebuilt `shapeToClip` from `TG_Shape::s_worldToClip`; the GPU path
+  in `TG_Shape::Render` now uses that matrix instead of the one stored during
+  the update. In mono the two are the same (only `Camera::update` sets the
+  camera matrices): mono screenshots are byte-identical to before.
+- **Terrain is re-projected per eye** (`Terrain::projectForEye`): the land and
+  water screen positions only, with each vertex's visibility (`clipInfo`)
+  left as the game camera decided, so the vertex counts from the update fit.
+  The height each water vertex was projected at is now stored
+  (`Vertex::wElevation`) so it can be re-projected exactly.
+- **Each eye is an offset applied last in `Camera::setCameraOrigin`**
+  (`eyeOffset`, set by `Camera::renderWorld`): `GameCamera::render` rebuilds
+  `cameraOrigin` every time, so the offset lives inside that rebuild, after
+  the game camera's position and line-of-sight pitch fix are settled. Phase 2
+  grows this into a full eye pose (rotation and its own projection).
+- The GPU mesh path also takes its viewport at draw time.
+- **GameOS points the GL viewport at one half** (`gos_SetStereoEye`): draws go
+  out as issued, and screen-space and 3D draws both map through the viewport.
+- Craters, weapon bolts, gosFX and weather already project while drawing.
+
+Verified (desktop GL and GLES builds, llvmpipe, `bench/mc2_19.fit`, 3600
+frames): the game-state checksum matches a mono run on every frame; the
+measured disparity between the halves is 12 to 14 px, growing towards the
+nearer bottom of the view, with features further right in the left image
+(the eyes were swapped in the first version: the camera frame's right axis
+points screen left in engine coordinates).
+
+**Measured stereo cost** (quiet GL run, against mono on the same build):
+`world_render` 3.88 to 8.31 ms, triangles 6022 to 11287, the CPU frame
+(`logic` + `render`) 13.1 to 17.8 ms: **1.36 times** (a second pair of runs
+after the review fixes: 10.2 to 14.2 ms, 1.40 times), below the 1.5 estimate
+because no per-eye object transform is needed.
+
+Still drawn from the game camera, so they sit at the wrong depth in one eye:
+
+- shadows (projected on the CPU during the update),
+- the cloud layer (`Clouds::update` projects during the update).
+
+Worse in this debug view: world-anchored overlays (selection brackets,
+health bars, `FloatHelp`) are part of the interface, drawn once over the
+whole window at the game camera's positions, so they match neither squashed
+half (a unit at mono x = 600 is at 300 and 700 in the halves, its bracket at
+600). Mouse picking and the cursor are full-window too. `-stereo` is for
+looking at the rendering, not for playing; Phase 2 draws overlays per eye.
+
+Not covered by an automated check yet: the eye order. It rests on one
+measured sign in `setCameraOrigin`; a flip passes the unit tests and the
+state checksum. A smoke check could measure the disparity between the halves
+of a `-stereo` screenshot (it should be negative: features further left in
+the right half).
+
+Objects and terrain the game camera culls are missing at the edges of an
+eye's view; with eyes 8 m apart that is a sliver, with a headset-wide FOV it
+is not (Phase 2 needs the render eyes to cull for themselves, which means
+sizing the texture manager's counts for every eye).
+
+Each half keeps the full window's aspect ratio, so the eyes are squashed 2:1
+in this view; Phase 2 gives each eye its own projection and viewport size.
 
 ## Open questions
 

@@ -1978,6 +1978,15 @@ void __stdcall gos_BenchStageStop( int id );
 // 100 degrees, the game camera 40).
 //
 float __stdcall gos_GetBenchFOV();
+//
+// "-stereo <separation>": side-by-side stereo debug view (VR plan, Phase 1).
+// gos_GetStereoSeparation() is the distance between the two eye cameras in
+// world units, or 0 when off. gos_SetStereoEye(eye) points the GL viewport
+// at the left half (0), the right half (1) or the whole window (-1); every
+// draw after it, screen-space or 3D, lands in that part of the window.
+//
+float __stdcall gos_GetStereoSeparation();
+void __stdcall gos_SetStereoEye( int eye );
 
 
 

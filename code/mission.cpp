@@ -815,7 +815,7 @@ long Mission::render (void)
 			eye->ambientGreen = 0xFF;
 			eye->ambientBlue = 0xFF;
 		}
-		BenchStage("world_render",eye->render());
+		BenchStage("world_render",eye->renderWorld());
 		GameMap->clearCellDebugs(0);
 	
 		//-----------------------------------------------------

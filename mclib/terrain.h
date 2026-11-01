@@ -223,6 +223,7 @@ class Terrain
 		void renderWater (void);
 		
 		void geometry (void);
+		void projectForEye (void);		//-stereo: screen positions for the current eye only
 
 		void drawTopView (void);
 
