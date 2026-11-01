@@ -53,6 +53,12 @@ const float kHudWidth = 2.0f;
 // game would scroll the map (the sticks do that)
 const float kPointerMargin = 8.0f;
 
+// the pointer's beam: its width, and its length when it meets nothing; the
+// dot's size where it meets the quad (metres)
+const float kBeamWidth = 0.006f;
+const float kBeamLength = 1.5f;
+const float kDotSize = 0.025f;
+
 // the controllers' buttons that are not per hand
 enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_COUNT };
 
@@ -116,6 +122,12 @@ struct State {
     bool pointerHeld = false;       // a button went down with the ray on the quad
     uint32_t heldButtons = 0;       // the pointing hand's, as mouse button bits
     uint32_t ignoredButtons = 0;    // pressed off the quad, not yet let go
+    // the pointer drawn as a beam and a dot (layers over the quad), shown
+    // while the game has the controllers
+    Image beamImage;
+    Image dotImage;
+    bool pointerImagesReady = false;
+    bool pointerVisible = false;
     float pointerX = 0.0f, pointerY = 0.0f;
 };
 State g;
@@ -450,12 +462,15 @@ void releaseInput()
     g.stickActions = 0;
     g.pointerHeld = false;
     g.heldButtons = g.ignoredButtons = 0;
+    g.pointerVisible = false;
     for(int hand = 0; hand < 2; ++hand)
         g.selectDown[hand] = g.contextDown[hand] = false;
     memset(g.buttonDown, 0, sizeof(g.buttonDown));
 }
 
-bool createImage(Image& image, int width, int height, bool withDepth, const char* name)
+// staticImage: filled once (fillImage) and shown on every frame after
+bool createImage(Image& image, int width, int height, bool withDepth, const char* name,
+                 bool staticImage = false)
 {
     uint32_t count = 0;
     xrEnumerateSwapchainFormats(g.session, 0, &count, nullptr);
@@ -474,6 +489,8 @@ bool createImage(Image& image, int width, int height, bool withDepth, const char
 
     XrSwapchainCreateInfo info = xrStruct<XrSwapchainCreateInfo>(XR_TYPE_SWAPCHAIN_CREATE_INFO);
     info.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
+    if(staticImage)
+        info.createFlags = XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT;
     info.format = format;
     info.sampleCount = 1;
     info.width = (uint32_t)width;
@@ -503,6 +520,58 @@ bool createImage(Image& image, int width, int height, bool withDepth, const char
     }
     printf("[XR] %s: %dx%d, %u images\n", name, width, height, count);
     return true;
+}
+
+// Uploads RGBA pixels into a static image's only texture.
+bool fillImage(Image& image, const std::vector<uint8_t>& rgba)
+{
+    uint32_t index = 0;
+    if(!ok(xrAcquireSwapchainImage(image.swapchain, nullptr, &index), "xrAcquireSwapchainImage"))
+        return false;
+    XrSwapchainImageWaitInfo wait = xrStruct<XrSwapchainImageWaitInfo>(XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO);
+    wait.timeout = XR_INFINITE_DURATION;
+    const bool waited = ok(xrWaitSwapchainImage(image.swapchain, &wait), "xrWaitSwapchainImage");
+    if(waited) {
+        glBindTexture(GL_TEXTURE_2D, image.images[index].image);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    XrSwapchainImageReleaseInfo release = xrStruct<XrSwapchainImageReleaseInfo>(XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO);
+    return ok(xrReleaseSwapchainImage(image.swapchain, &release), "xrReleaseSwapchainImage") && waited;
+}
+
+// The pointer: a beam, soft at its edges, and a dot with a light centre
+// where the beam meets the quad.
+bool createPointerImages()
+{
+    const uint8_t colour[3] = {140, 210, 255};
+    const int beamWidth = 8, beamHeight = 4, dotSize = 32;
+    if(!createImage(g.beamImage, beamWidth, beamHeight, false, "pointer beam", true)
+            || !createImage(g.dotImage, dotSize, dotSize, false, "pointer dot", true))
+        return false;
+
+    std::vector<uint8_t> beam((size_t)beamWidth * beamHeight * 4);
+    for(int y = 0; y < beamHeight; ++y)
+        for(int x = 0; x < beamWidth; ++x) {
+            const float across = 1.0f - std::fabs((x + 0.5f) - 0.5f * beamWidth) / (0.5f * beamWidth);
+            uint8_t* p = &beam[((size_t)y * beamWidth + x) * 4];
+            p[0] = colour[0]; p[1] = colour[1]; p[2] = colour[2];
+            p[3] = (uint8_t)(200.0f * across);
+        }
+    std::vector<uint8_t> dot((size_t)dotSize * dotSize * 4);
+    for(int y = 0; y < dotSize; ++y)
+        for(int x = 0; x < dotSize; ++x) {
+            const float dx = (x + 0.5f) / (0.5f * dotSize) - 1.0f, dy = (y + 0.5f) / (0.5f * dotSize) - 1.0f;
+            const float r = std::sqrt(dx * dx + dy * dy);
+            const float centre = std::max(0.0f, std::min(1.0f, (0.5f - r) / 0.15f));
+            uint8_t* p = &dot[((size_t)y * dotSize + x) * 4];
+            for(int c = 0; c < 3; ++c)
+                p[c] = (uint8_t)(colour[c] + (255 - colour[c]) * centre);
+            p[3] = (uint8_t)(255.0f * std::max(0.0f, std::min(1.0f, (1.0f - r) / 0.2f)));
+        }
+    return fillImage(g.beamImage, beam) && fillImage(g.dotImage, dot);
 }
 
 bool createEyes()
@@ -638,6 +707,45 @@ float quadHeight()
     return g.hudWidth * (float)Environment.screenHeight / (float)Environment.screenWidth;
 }
 
+void setLayer(XrCompositionLayerQuad& layer, const Image& image, const vr_controls::Pose& pose,
+              float width, float height)
+{
+    layer = xrStruct<XrCompositionLayerQuad>(XR_TYPE_COMPOSITION_LAYER_QUAD);
+    layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
+            | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
+    layer.space = g.space;
+    layer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+    layer.subImage.swapchain = image.swapchain;
+    layer.subImage.imageRect.extent = {image.width, image.height};
+    layer.pose.position = {pose.position[0], pose.position[1], pose.position[2]};
+    layer.pose.orientation = {pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]};
+    layer.size = {width, height};
+}
+
+// The pointer at this frame's display time: the beam from the pointing hand
+// (to the quad, or kBeamLength), and the dot where it meets the quad.
+// Returns how many of the two layers are filled.
+int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
+{
+    if(!g.pointerVisible || !g.pointerImagesReady)
+        return 0;
+    vr_controls::Pose aim, head;
+    if(!locate(g.aimSpaces[g.pointingHand], aim) || !locate(g.viewSpace, head))
+        return 0;
+    float u = 0.0f, v = 0.0f, distance = 0.0f;
+    const bool hit = vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
+    float end[3];
+    vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
+    float length = 0.0f;
+    setLayer(beam, g.beamImage, vr_controls::beamPose(aim.position, end, head.position, length), kBeamWidth, length);
+    if(!hit)
+        return 1;
+    vr_controls::Pose at = g.hud;
+    memcpy(at.position, end, sizeof(at.position));
+    setLayer(dot, g.dotImage, at, kDotSize, kDotSize);
+    return 2;
+}
+
 } // namespace
 
 bool init()
@@ -677,6 +785,9 @@ bool init()
             && createImage(g.quad, width, height, false, "screen") && (!g.useEyes || createEyes())) {
         readHudSettings();
         if(createActions()) {
+            g.pointerImagesReady = createPointerImages();
+            if(!g.pointerImagesReady)
+                printf("[XR] no pointer beam\n");
             printf("[XR] controllers: trigger selects, grip is the right mouse button, "
                    "left stick pans, right stick turns and zooms, A places the interface\n");
         } else {
@@ -814,7 +925,8 @@ bool present(int width, int height)
     XrCompositionLayerProjectionView projViews[2];
     XrCompositionLayerProjection projection = xrStruct<XrCompositionLayerProjection>(XR_TYPE_COMPOSITION_LAYER_PROJECTION);
     XrCompositionLayerQuad quad = xrStruct<XrCompositionLayerQuad>(XR_TYPE_COMPOSITION_LAYER_QUAD);
-    const XrCompositionLayerBaseHeader* layers[2];
+    XrCompositionLayerQuad pointer[2];
+    const XrCompositionLayerBaseHeader* layers[4];
     uint32_t layerCount = 0;
 
     if(g.frame.shouldRender && eyesDrawn && g.viewsValid) {
@@ -843,6 +955,10 @@ bool present(int width, int height)
         quad.size.height = quadHeight();
         layers[layerCount++] = (XrCompositionLayerBaseHeader*)&quad;
     }
+    // the pointer over everything: the hand is nearer than the quad
+    const int pointerCount = g.frame.shouldRender ? pointerLayers(pointer[0], pointer[1]) : 0;
+    for(int i = 0; i < pointerCount; ++i)
+        layers[layerCount++] = (XrCompositionLayerBaseHeader*)&pointer[i];
 
     XrFrameEndInfo endInfo = xrStruct<XrFrameEndInfo>(XR_TYPE_FRAME_END_INFO);
     endInfo.displayTime = g.frame.predictedDisplayTime;
@@ -869,6 +985,11 @@ double logicStep()
         return 0.0;
     static const int hz = getenv("MC2_XR_LOGIC_HZ") ? atoi(getenv("MC2_XR_LOGIC_HZ")) : 30;
     return hz > 0 ? 1.0 / hz : 0.0;
+}
+
+bool pointerActive()
+{
+    return g.actionSet != XR_NULL_HANDLE && g.pointerImagesReady;
 }
 
 void pollInput()
@@ -925,6 +1046,7 @@ void pollInput()
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     setKeys(g.stickActions, buttons);
+    g.pointerVisible = true;
 
     // the pointer: where the pointing hand's ray meets the quad
     const int hand = g.pointingHand;
@@ -960,7 +1082,7 @@ void pollInput()
 
 void shutdown()
 {
-    Image* images[] = {&g.quad, &g.eyes[0], &g.eyes[1]};
+    Image* images[] = {&g.quad, &g.eyes[0], &g.eyes[1], &g.beamImage, &g.dotImage};
     for(Image* image : images) {
         if(image->fbo)
             glDeleteFramebuffers(1, &image->fbo);

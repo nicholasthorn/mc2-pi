@@ -56,6 +56,9 @@ bool active();
 // Every frame, before the input is sampled: reads the controllers into
 // GameOS's virtual mouse and keys.
 void pollInput();
+// The controllers stand in for the mouse, with their own pointer drawn as
+// a beam and a dot: the game draws no cursor.
+bool pointerActive();
 void shutdown();
 #else
 inline bool init() { return false; }
@@ -67,6 +70,7 @@ inline bool exitRequested() { return false; }
 inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
 inline void pollInput() {}
+inline bool pointerActive() { return false; }
 inline void shutdown() {}
 #endif
 

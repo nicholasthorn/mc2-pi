@@ -99,6 +99,73 @@ TEST_CASE("missing the quad, pointing away and hitting it from behind are misses
 	CHECK_FALSE(vr_controls::rayHitsQuad(pose(0.0f, 0.0f, -3.0f, kIdentity), quad, 2.0f, 1.5f, u, v));
 }
 
+TEST_CASE("the hit distance runs along the ray to the quad") {
+	const vr_controls::Pose quad = pose(0.0f, 0.0f, -1.5f, kIdentity);
+	float u = 0.0f, v = 0.0f, distance = 0.0f, q[4];
+	REQUIRE(vr_controls::rayHitsQuad(pose(0.0f, 0.0f, 0.0f, kIdentity), quad, 2.0f, 1.5f, u, v, &distance));
+	CHECK(distance == doctest::Approx(1.5f));
+	axisQuat(1, -0.3f, q);
+	REQUIRE(vr_controls::rayHitsQuad(pose(0.0f, 0.0f, 0.0f, q), quad, 2.0f, 1.5f, u, v, &distance));
+	CHECK(distance == doctest::Approx(1.5f / std::cos(0.3f)));
+
+	// and that far along the ray is on the quad, where u says
+	float p[3];
+	vr_controls::rayPoint(pose(0.0f, 0.0f, 0.0f, q), distance, p);
+	CHECK(p[2] == doctest::Approx(-1.5f));
+	CHECK(p[0] == doctest::Approx((u - 0.5f) * 2.0f));
+}
+
+namespace {
+
+// the quad's axis 0 (x), 1 (y) or 2 (z) in the parent frame
+void quadAxis(const vr_controls::Pose& p, int axis, float out[3])
+{
+	const float* q = p.orientation;
+	// columns of the rotation matrix
+	const float m[3][3] = {
+		{1 - 2 * (q[1] * q[1] + q[2] * q[2]), 2 * (q[0] * q[1] + q[2] * q[3]), 2 * (q[0] * q[2] - q[1] * q[3])},
+		{2 * (q[0] * q[1] - q[2] * q[3]), 1 - 2 * (q[0] * q[0] + q[2] * q[2]), 2 * (q[1] * q[2] + q[0] * q[3])},
+		{2 * (q[0] * q[2] + q[1] * q[3]), 2 * (q[1] * q[2] - q[0] * q[3]), 1 - 2 * (q[0] * q[0] + q[1] * q[1])},
+	};
+	for(int i = 0; i < 3; ++i)
+		out[i] = m[axis][i];
+}
+
+}
+
+TEST_CASE("the beam runs from the hand to its end and faces the eye") {
+	const float from[3] = {0.2f, -0.3f, -0.2f};
+	const float to[3] = {0.2f, -0.3f, -2.2f};
+	const float eye[3] = {0.0f, 0.0f, 0.0f};
+	float length = 0.0f;
+	const vr_controls::Pose beam = vr_controls::beamPose(from, to, eye, length);
+	CHECK(length == doctest::Approx(2.0f));
+	CHECK(beam.position[0] == doctest::Approx(0.2f));
+	CHECK(beam.position[1] == doctest::Approx(-0.3f));
+	CHECK(beam.position[2] == doctest::Approx(-1.2f));
+	float y[3], z[3];
+	quadAxis(beam, 1, y);
+	quadAxis(beam, 2, z);
+	// its length (the quad's height) along the beam
+	CHECK(std::fabs(y[2]) == doctest::Approx(1.0f));
+	// its face towards the eye, square to the beam: the eye is up and left
+	// of the beam, so the face points that way
+	CHECK(z[2] == doctest::Approx(0.0f).epsilon(1e-5));
+	CHECK(z[0] == doctest::Approx(-0.2f / std::sqrt(0.13f)));
+	CHECK(z[1] == doctest::Approx(0.3f / std::sqrt(0.13f)));
+}
+
+TEST_CASE("the beam has a pose even when the eye is on its line") {
+	const float from[3] = {0.0f, 0.0f, -0.5f};
+	const float to[3] = {0.0f, 0.0f, -2.0f};
+	const float eye[3] = {0.0f, 0.0f, 0.0f};
+	float length = 0.0f;
+	const vr_controls::Pose beam = vr_controls::beamPose(from, to, eye, length);
+	const float* q = beam.orientation;
+	CHECK(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3] == doctest::Approx(1.0f));
+	CHECK(length == doctest::Approx(1.5f));
+}
+
 TEST_CASE("the HUD pose at yaw 0 is the fixed one gos_xr used before") {
 	const float down = 0.52f, distance = 1.5f;
 	const vr_controls::Pose hud = vr_controls::hudPose(kOrigin, 0.0f, distance, down);

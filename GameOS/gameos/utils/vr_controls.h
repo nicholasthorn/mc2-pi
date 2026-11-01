@@ -19,8 +19,17 @@ struct Pose {
 // its left edge, v from its top, both 0 to 1. The ray starts at ray.position
 // and points along the pose's -z (as OpenXR's aim pose does); the quad is
 // width x height, centred on quad.position, facing along the pose's +z. False
-// when the ray misses, points away, or comes from behind the quad.
-bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, float& u, float& v);
+// when the ray misses, points away, or comes from behind the quad. distance,
+// when given, is how far along the ray the hit is.
+bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, float& u, float& v,
+                 float* distance = nullptr);
+
+// The point distance metres along a ray (its pose's -z).
+void rayPoint(const Pose& ray, float distance, float out[3]);
+
+// The pointer's beam as a quad: centred between from and to, its height
+// (y) along the beam, length long, turned about the beam to face eye.
+Pose beamPose(const float from[3], const float to[3], const float eye[3], float& length);
 
 // A quad 'distance' metres from origin, 'down' radians below the horizontal,
 // in the direction 'yaw' (radians about +y, so positive is to the left; 0

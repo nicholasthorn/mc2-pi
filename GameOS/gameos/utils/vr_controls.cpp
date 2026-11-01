@@ -37,7 +37,8 @@ int axisDirection(float value, bool wasPositive, bool wasNegative)
 
 }
 
-bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, float& u, float& v)
+bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, float& u, float& v,
+                 float* distance)
 {
     const float forward[3] = {0.0f, 0.0f, -1.0f};
     float dir[3];
@@ -56,7 +57,81 @@ bool rayHitsQuad(const Pose& ray, const Pose& quad, float width, float height, f
     const float y = o[1] + t * d[1];
     u = 0.5f + x / width;
     v = 0.5f - y / height;
+    if(distance)
+        *distance = t;      // dir is a unit vector
     return u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f;
+}
+
+void rayPoint(const Pose& ray, float distance, float out[3])
+{
+    const float forward[3] = {0.0f, 0.0f, -1.0f};
+    float dir[3];
+    rotate(ray.orientation, forward, dir);
+    for(int i = 0; i < 3; ++i)
+        out[i] = ray.position[i] + distance * dir[i];
+}
+
+Pose beamPose(const float from[3], const float to[3], const float eye[3], float& length)
+{
+    Pose pose;
+    float y[3] = {to[0] - from[0], to[1] - from[1], to[2] - from[2]};
+    length = std::sqrt(y[0] * y[0] + y[1] * y[1] + y[2] * y[2]);
+    for(int i = 0; i < 3; ++i)
+        pose.position[i] = 0.5f * (from[i] + to[i]);
+    if(length < 1e-6f) {
+        pose.orientation[0] = pose.orientation[1] = pose.orientation[2] = 0.0f;
+        pose.orientation[3] = 1.0f;
+        return pose;
+    }
+    for(float& c : y)
+        c /= length;
+    // the face: towards the eye, with the part along the beam taken out
+    float z[3] = {eye[0] - pose.position[0], eye[1] - pose.position[1], eye[2] - pose.position[2]};
+    float along = z[0] * y[0] + z[1] * y[1] + z[2] * y[2];
+    for(int i = 0; i < 3; ++i)
+        z[i] -= along * y[i];
+    float n = std::sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]);
+    if(n < 1e-6f) {
+        // the eye is on the beam's line: any face square to it
+        const float up[3] = {std::fabs(y[1]) < 0.9f ? 0.0f : 1.0f, std::fabs(y[1]) < 0.9f ? 1.0f : 0.0f, 0.0f};
+        along = up[0] * y[0] + up[1] * y[1];
+        for(int i = 0; i < 3; ++i)
+            z[i] = up[i] - along * y[i];
+        n = std::sqrt(z[0] * z[0] + z[1] * z[1] + z[2] * z[2]);
+    }
+    for(float& c : z)
+        c /= n;
+    const float x[3] = {y[1] * z[2] - y[2] * z[1], y[2] * z[0] - y[0] * z[2], y[0] * z[1] - y[1] * z[0]};
+
+    // the rotation whose columns are x, y, z, as a quaternion
+    const float trace = x[0] + y[1] + z[2];
+    float* q = pose.orientation;
+    if(trace > 0.0f) {
+        const float s = 2.0f * std::sqrt(1.0f + trace);
+        q[3] = 0.25f * s;
+        q[0] = (y[2] - z[1]) / s;
+        q[1] = (z[0] - x[2]) / s;
+        q[2] = (x[1] - y[0]) / s;
+    } else if(x[0] > y[1] && x[0] > z[2]) {
+        const float s = 2.0f * std::sqrt(1.0f + x[0] - y[1] - z[2]);
+        q[3] = (y[2] - z[1]) / s;
+        q[0] = 0.25f * s;
+        q[1] = (y[0] + x[1]) / s;
+        q[2] = (z[0] + x[2]) / s;
+    } else if(y[1] > z[2]) {
+        const float s = 2.0f * std::sqrt(1.0f + y[1] - x[0] - z[2]);
+        q[3] = (z[0] - x[2]) / s;
+        q[0] = (y[0] + x[1]) / s;
+        q[1] = 0.25f * s;
+        q[2] = (z[1] + y[2]) / s;
+    } else {
+        const float s = 2.0f * std::sqrt(1.0f + z[2] - x[0] - y[1]);
+        q[3] = (x[1] - y[0]) / s;
+        q[0] = (z[0] + x[2]) / s;
+        q[1] = (z[1] + y[2]) / s;
+        q[2] = 0.25f * s;
+    }
+    return pose;
 }
 
 Pose hudPose(const float origin[3], float yaw, float distance, float down)

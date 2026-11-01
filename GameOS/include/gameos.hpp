@@ -2017,6 +2017,11 @@ int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
 float __stdcall gos_GetVRWorldScale();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
+//
+// True when VR controllers point instead of the mouse and draw their own
+// pointer (a beam and a dot): the game then draws no mouse cursor.
+//
+bool __stdcall gos_VRPointerActive();
 
 
 

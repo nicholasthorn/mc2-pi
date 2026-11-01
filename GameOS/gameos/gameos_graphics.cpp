@@ -2943,6 +2943,11 @@ bool __stdcall gos_GetVRKeepGamePitch()
     return keep;
 }
 
+bool __stdcall gos_VRPointerActive()
+{
+    return gos_xr::pointerActive();
+}
+
 float __stdcall gos_GetVRWorldScale()
 {
     static const float scale = getenv("MC2_VR_SCALE") ? (float)atof(getenv("MC2_VR_SCALE")) : 1.0f;
