@@ -148,8 +148,9 @@ The logic eye **follows the head**: its pose is the anchor times the centre
 of the two eyes, and its FOV is widened to cover both eyes (the headset sees
 about 90 to 100 degrees, the game camera 40). That keeps object culling and
 appearance updates covering what the player can see. The terrain window stays
-centred where it is today; the existing distance haze (`MinHazeDistance`,
-`MaxClipDistance`) hides its edge when the player looks towards the horizon.
+centred where it is today. Its edge is in view at 100 degrees (see "Phase 0
+results"), so mode 1 needs a larger window, haze pulled in to the window's
+radius, or a lower camera.
 
 Per frame:
 
@@ -194,8 +195,9 @@ Rejected for a first version:
 ## Things that assume a flat screen
 
 - **Sky dome:** keep in mode 1, drop on the tabletop.
-- **Distance haze:** keep in mode 1 (it hides the terrain window edge); on the
-  tabletop it needs a table-edge treatment instead (see open questions).
+- **Distance haze:** keep in mode 1, but today's haze does not reach the
+  terrain window's edge at a headset-wide FOV (Phase 0); on the tabletop it
+  needs a table-edge treatment instead (see open questions).
 - **Letterbox, fades, compass:** move to the interface panel or drop.
 - **Culling:** `cosHalfFOV` and the screen-rect test in `recalcBounds` must use
   the widened logic-eye FOV.
@@ -245,10 +247,57 @@ Starting point, to be tried in the headset:
   the projection steps three times (logic eye + two eyes), over today's
   terrain window. The widened logic-eye FOV adds objects to transform. The
   XR2's CPU is much faster than a Pi 4's, but there are no numbers yet.
-- Measure first: the mission already times its stages with `ProfileTime`
-  (`MCTimeCameraUpdate`, `MCTimeTerrainGeometry`, ...). Record those with
-  `-bench` on a PC and on the Pi to estimate the stereo cost (projection steps
-  x 3, plus a 100-degree logic-eye FOV).
+- Measure first: `-bench` now reports per-stage times (`<stage>_ms`, see
+  `bench/README.md`) and `-benchfov` forces a headset-wide FOV.
+
+## Phase 0 results (PC, preliminary)
+
+Run 2026-11-01: `bench/mc2_19.fit` (3600 frames, the player's lance against 20 enemies), desktop GL
+build, Mesa llvmpipe under Xvfb in WSL2, one run per FOV. Another session's
+cppcheck kept the load average near 30 on 16 threads throughout, so the
+wall-clock times are noisy (the 100-degree run came out faster than the
+40-degree one). Read the deterministic counts and the shares within each run,
+not the absolute times.
+
+| Per frame, whole run | FOV 40 | FOV 100 |
+|---|---|---|
+| draws | 696 | 707 |
+| triangles | 6022 | 7578 (+26%) |
+| `logic_ms` / `render_ms` | 33.6 / 30.8 | 22.8 / 21.5 |
+| `terrain_geom_ms` | 0.59 | 0.56 |
+| `objects_ms` (of which `shape_xform_ms`) | 8.36 (3.99) | 6.12 (2.95) |
+| `world_render_ms` | 20.75 | 14.72 |
+| `ui_render_ms` | 8.67 | 5.83 |
+| per-eye work, share of the CPU frame | 39% | 41% |
+
+Per-eye work is `terrain_geom` + `shape_xform` + `world_render`; the CPU frame
+is `logic` + `render` (`swap` here is llvmpipe rasterizing, which is GPU work
+on real hardware).
+
+- **Stereo costs roughly 1.4 to 1.5 times the mono CPU frame**: a second eye
+  repeats about 40% of it, plus the logic eye's own projection (about 7%) if
+  its results are not reused. Under llvmpipe `world_render` includes the
+  driver's CPU work, which a hardware driver does more cheaply, so this is an
+  upper bound for that part.
+- Most of `logic_ms` is game logic outside the measured stages (pathing, AI,
+  sensors, collisions, the mission script). It runs once, not per eye.
+- A wider FOV leaves terrain cost flat: the projected window is a fixed vertex
+  grid (`GameVisibleVertices`). It adds about a quarter more triangles, mostly
+  objects now in view.
+- **The terrain window's edge is in view at 100 degrees** from the game's
+  camera height: the screenshot shows the map as a slab floating in black,
+  beyond the haze (mc2_19 is a night map). Mode 1 needs a larger window
+  (`terrain_geom` grows with its square, and is 0.6 ms at 60 vertices), haze
+  pulled in to the window's radius, or a lower camera. The same picture shows
+  the tabletop look comes almost for free: the window already reads as a
+  diorama.
+
+Still to do for the go/no-go: a quiet PC run, and the Pi (on its own display):
+
+```bash
+scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit --label "vr-p0 fov40"
+scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit --fov 100 --label "vr-p0 fov100"
+```
 
 ## Phases
 
