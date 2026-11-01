@@ -909,6 +909,7 @@ const char*	LogisticsData::getBestPilot( long mechWeight )
 	if ( !pilots.Count() )
 		initPilots();
 
+	// cppcheck-suppress allocaCalled ; one pointer per pilot in the roster (tens), not in a loop
 	LogisticsPilot** pPilots = (LogisticsPilot**)_alloca( pilots.Count() * sizeof( LogisticsPilot*) );
 	memset( pPilots, 0, pilots.Count() * sizeof( LogisticsPilot*) );
 
@@ -961,6 +962,7 @@ bool		LogisticsData::gotPilotsLeft()
 	if ( !pilots.Count() )
 		initPilots();
 
+	// cppcheck-suppress allocaCalled ; one pointer per pilot in the roster (tens), not in a loop
 	LogisticsPilot** pPilots = (LogisticsPilot**)_alloca( pilots.Count() * sizeof( LogisticsPilot*) );
 	memset( pPilots, 0, pilots.Count() * sizeof( LogisticsPilot*) );
 
@@ -1015,7 +1017,7 @@ int LogisticsData::comparePilots( LogisticsPilot* p1, LogisticsPilot* p2, long w
 	if ( p1->getRank() > p2->getRank() )
 		return 1;
 	
-	else if ( p2->getRank() < p1->getRank() )
+	else if ( p2->getRank() > p1->getRank() )	// was p2 < p1, the test above again
 		return -1;
 
 	// need to check specialty skill text for weight, not really done yet

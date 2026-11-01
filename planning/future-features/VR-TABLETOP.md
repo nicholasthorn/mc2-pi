@@ -1,8 +1,10 @@
 # VR: head-tracked game view, tabletop option (Meta Quest 2)
 
 Status: Phase 0 in progress. The bench instrumentation (`<stage>_ms`,
-`-benchfov`) and the PC results are in; the Pi runs are not. Phase 1 has
-its first slice, a side-by-side `-stereo` debug view (see "Phase 1 progress").
+`-benchfov`) and the PC results are in; the go/no-go now waits on a
+sideloaded Quest 2 test build and a PC run on a real GPU (the Pi runs were
+dropped as a proxy). Phase 1 has a side-by-side `-stereo` debug view with
+per-eye shadows (see "Phase 1 progress").
 Written 2026-10-29 from a read of the code on
 `pi-port`, revised 2026-11-01 (requirements changed: play the game's own view
 in VR first; tabletop becomes an option; no whole-map rendering).
@@ -252,7 +254,8 @@ Starting point, to be tried in the headset:
 - CPU: the game is single-threaded. Per frame it would do the update once and
   the projection steps three times (logic eye + two eyes), over today's
   terrain window. The render eyes' wide FOV adds objects to transform. The
-  XR2's CPU is much faster than a Pi 4's; PC ratios are in "Phase 0 results".
+  XR2's CPU is much faster than a Pi 4's; PC ratios are in "Phase 0 results",
+  Quest numbers come from the test build.
 - Measure first: `-bench` now reports per-stage times (`<stage>_ms`, see
   `bench/README.md`) and `-benchfov` forces a headset-wide FOV.
 
@@ -298,7 +301,7 @@ on real hardware).
   objects now in view.
 - Budget: 72 Hz leaves 13.9 ms per frame. Whether the Quest's XR2 fits 24 ms
   of this PC's llvmpipe work into that is the go/no-go, and needs numbers
-  from real GPU drivers: the Pi runs below, then the Quest itself.
+  from real GPU drivers and the real CPU: see below.
 - **The terrain window's edge is in view at 100 degrees** from the game's
   camera height: the screenshot shows the map as a slab floating in black,
   beyond the haze (mc2_19 is a night map). Mode 1 needs a larger window
@@ -307,19 +310,25 @@ on real hardware).
   the tabletop look comes almost for free: the window already reads as a
   diorama.
 
-Still to do for the go/no-go: the Pi (on its own display), with real GPU
-drivers:
+Still to do for the go/no-go (decided 2026-11-01; the Pi runs first planned
+here were dropped: a Pi 4's Cortex-A72 at 1.5 to 1.8 GHz and VideoCore VI
+say little about an XR2's A77-class cores at up to 2.8 GHz and its Adreno
+650, and the decision only orders phases 4 and 6):
 
-```bash
-scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit --label "vr-p0 fov40"
-scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --scenario bench/mc2_19.fit --fov 100 --label "vr-p0 fov100"
-```
+- **A sideloaded Quest 2 test build**: a flat Android app (no OpenXR yet)
+  with the GLES renderer, running the mc2_19 bench scenario, mono and
+  `-stereo`, and writing the frame CSV and `[BENCH]` lines for `adb pull`.
+  It measures the real CPU and the real Adreno driver, and is the first part
+  of Phase 4.
+- **A PC run on a real GPU**: takes llvmpipe's CPU cost out of
+  `world_render` and gives clean per-stage CPU times to compare with the
+  Quest's.
 
 ## Phases
 
 | Phase | What | Exit criterion |
 |---|---|---|
-| 0. Measure | Frame-stage times in `-bench` output; PC and Pi runs at the normal window, with a wide FOV | Numbers in this file; go/no-go on the CPU route |
+| 0. Measure | Frame-stage times in `-bench` output; PC runs (llvmpipe done, real GPU to do) and a sideloaded Quest 2 test build, mono and stereo | Numbers in this file; go/no-go on the CPU route |
 | 1. Desktop stereo, no VR | Logic-eye / render-eye split; side-by-side stereo debug mode on a normal window | Both halves correct; nightly smoke runs unchanged; no double animation steps |
 | 2. OpenXR on PC (mode 1) | Swapchains, frame loop, anchor + world scale, head pose to the render eyes, interface on a quad layer, mouse still works | Mission playable in the headset over Link with mouse and keyboard, at 1:1 and giant scale |
 | 3. Controllers | Stick pan/rotate/zoom, ray picking through the logic eye, button mapping, ray interaction with the interface panel | Full mission playable with controllers only |
@@ -440,10 +449,16 @@ points screen left in engine coordinates).
 after the review fixes: 10.2 to 14.2 ms, 1.40 times), below the 1.5 estimate
 because no per-eye object transform is needed.
 
-Still drawn from the game camera, so they sit at the wrong depth in one eye:
-
-- shadows (projected on the CPU during the update),
-- the cloud layer (`Clouds::update` projects during the update).
+Shadows are per eye too (second slice, `vr-phase1b`): `MultiTransformShadows`
+keeps computing each shadow vertex's world position during the update, and
+`TG_Shape::RenderShadows` now projects those positions for the camera that
+is drawing, once per vertex, as the update used to. Mono with shadows on is
+byte-identical to before; with `-stereo` the state checksum is unchanged and
+every screenshot differs from the first slice's. (Checked with `Shadows` and
+`UseLocalShadows` on: the bench's minimum settings turn shadows off, and
+mc2_19 is a night map, whose shadows come from point and spot lights.) The
+cloud layer needs nothing: `Clouds::update` never sets `renderClouds`, so it
+is not drawn in this build.
 
 Worse in this debug view: world-anchored overlays (selection brackets,
 health bars, `FloatHelp`) are part of the interface, drawn once over the

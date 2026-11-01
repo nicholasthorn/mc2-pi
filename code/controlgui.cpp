@@ -878,7 +878,8 @@ void ControlGui::renderObjective( CObjective* pObjective, long xPos, long yPos, 
 			numberOfDots = 3;
 		}
 		
-		char* dots = (char*)_alloca( sizeof( char ) * (numberOfDots+1) );
+		// heap, not _alloca: the count comes from font metrics and is unbounded
+		char* dots = new char[numberOfDots+1];
         int i;
 		for (i = 0; i < numberOfDots - 2; i++ )
 			dots[i] = '.';
@@ -889,6 +890,7 @@ void ControlGui::renderObjective( CObjective* pObjective, long xPos, long yPos, 
 
 		drawShadowText( color, 0xff000000, guiFont.getTempHandle(), OBJECTIVESTOTALRIGHT - width - dotFinalLength, yPos, 0, dots, 
 			0, guiFont.getSize() );
+		delete [] dots;
 	}
 
 	// draw little boxes and check marks

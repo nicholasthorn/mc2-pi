@@ -731,6 +731,7 @@ namespace Stuff {
 		MString::MString(const MString &str)
 	{
 		Check_Object(&str);
+		// cppcheck-suppress copyCtorPointerCopying ; MStringRepresentation is shared and reference counted
 		representation = str.representation;
 		Check_Object(representation);
 		representation->IncrementReferenceCount();

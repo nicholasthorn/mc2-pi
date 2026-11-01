@@ -105,6 +105,7 @@ PilotReviewScreen::~PilotReviewScreen()
 	pilotListBox.removeAllItems( true );
 
 	long count = LogisticsData::instance->getPilotCount();
+	// cppcheck-suppress allocaCalled ; one pointer per pilot in the roster (tens), not in a loop
 	LogisticsPilot** pPilots = (LogisticsPilot**)_alloca( count * sizeof(LogisticsPilot*) );
 	LogisticsData::instance->getPilots( pPilots, count );
 
@@ -145,6 +146,7 @@ void PilotReviewScreen::init(FitIniFile* file)
 	ActivePilotListItem::s_totalWidth = pilotListBox.width() - 70;
 
 	long count = LogisticsData::instance->getPilotCount();
+	// cppcheck-suppress allocaCalled ; one pointer per pilot in the roster (tens), not in a loop
 	LogisticsPilot** pPilots = (LogisticsPilot**)_alloca( count * sizeof(LogisticsPilot*) );
 	LogisticsData::instance->getPilots( pPilots, count );
 
