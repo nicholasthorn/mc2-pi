@@ -852,8 +852,20 @@ static void vrPickWorld (void)
 		}
 	}
 
-	Stuff::Vector4D screen;
-	if (!hit || !eye->projectZ(target,screen))
+	Stuff::Vector4D screen(0.0f,0.0f,0.0f,0.0f);
+	const bool onScreen = hit && eye->projectZ(target,screen);
+	// MC2_XR_PICK_LOG=1: the pick about once a second
+	static const bool logPicks = getenv("MC2_XR_PICK_LOG") && (getenv("MC2_XR_PICK_LOG")[0] == '1');
+	static int logCount = 0;
+	if (logPicks && ((logCount++ % 72) == 0))
+	{
+		Stuff::Vector3D camera = eye->getPosition();
+		printf("[VR] pick: ray (%.0f %.0f %.0f) dir (%.2f %.2f %.2f), %s at %.0f -> (%.0f %.0f %.0f), screen %s (%.0f %.0f z %.3f w %.5f of %ld x %ld), camera looks at (%.0f %.0f %.0f)\n",
+			o[0],o[1],o[2],d[0],d[1],d[2],hit ? "hit" : "no hit",best,target.x,target.y,target.z,
+			onScreen ? "on" : "off",screen.x,screen.y,screen.z,screen.w,
+			(long)Environment.screenWidth,(long)Environment.screenHeight,camera.x,camera.y,camera.z);
+	}
+	if (!onScreen)
 	{
 		gos_SetVRWorldPointer(false,0.0f,0.0f,0.0f);
 		return;

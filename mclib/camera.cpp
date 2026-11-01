@@ -2342,14 +2342,16 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 	const vr_eye::Basis ray = vr_eye::eyeBasis(game, worldUp, orientation, position,
 		unitsPerMetre, gos_GetVRKeepGamePitch());
 
-	// the camera frame is (-x, z, y) of the game's world (see projectZ); the
-	// aim pose's -z is the engine camera's forward axis
+	// the camera frame is (-x, z, y) of the game's world (see projectZ). The
+	// camera looks along minus its FORWARD_AXIS row (found in the headset:
+	// with +z, pointing at the ground gave a ray going up), so the ray goes
+	// that way too
 	origin.x = -ray.position[0];
 	origin.y = ray.position[2];
 	origin.z = ray.position[1];
-	direction.x = -ray.z[0];
-	direction.y = ray.z[2];
-	direction.z = ray.z[1];
+	direction.x = ray.z[0];
+	direction.y = -ray.z[2];
+	direction.z = -ray.z[1];
 	return true;
 }
 

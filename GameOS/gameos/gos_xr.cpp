@@ -49,9 +49,9 @@ const float kHudDistance = 1.5f;
 const float kHudDown = 0.52f;           // radians below the horizon (30 degrees)
 const float kHudWidth = 2.0f;
 
-// the pointer stays this many pixels inside the window's edges, where the
-// game would scroll the map (the sticks do that)
-const float kPointerMargin = 8.0f;
+// the pointer stays this many of the game's screen pixels inside its edges,
+// where the game would scroll the map (the sticks do that)
+const float kPointerMargin = 12.0f;
 
 // the pointer's beam: its width, and its length when it meets nothing; the
 // dot's size where it meets the quad (metres)
@@ -488,12 +488,25 @@ void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT])
     input::setVirtualKey(SDL_SCANCODE_ESCAPE, buttons[BUTTON_MENU]);
 }
 
+// The pointer has nothing to point at: the cursor stays where it last was
+// (at first the screen's centre), with no buttons. Never back to SDL's own
+// mouse, which on the Quest sits at 0, 0, where the game scrolls the map up
+// and left every frame (the camera flew to the map's corner).
+void parkPointer()
+{
+    if(g.pointerX <= 0.0f && g.pointerY <= 0.0f) {
+        g.pointerX = 0.5f * (float)Environment.drawableWidth;
+        g.pointerY = 0.5f * (float)Environment.drawableHeight;
+    }
+    input::setVirtualPointer(g.pointerX, g.pointerY, 0);
+}
+
 // Everything up: the session lost focus (system menu, Guardian) or ended.
 void releaseInput()
 {
     const bool none[BUTTON_COUNT] = {};
     setKeys(0, none);
-    input::clearVirtualPointer();
+    parkPointer();
     g.stickActions = 0;
     g.pointerHeld = false;
     g.heldButtons = g.ignoredButtons = 0;
@@ -837,11 +850,6 @@ void collectAlpha()
                 g.hudAlpha = pixels[3] / 255.0f;
             if(p.wanted[slot][1])
                 g.worldAlpha = pixels[7] / 255.0f;
-            static int shown = 0;
-            if(shown < 5 && p.wanted[slot][0]) {
-                ++shown;
-                printf("[XR] alpha probe: interface alpha %.2f under the ray\n", g.hudAlpha);
-            }
             glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -1245,16 +1253,25 @@ void pollInput()
     if(!valid && !g.pointerHeld)
         g.ignoredButtons |= held & ~g.heldButtons;
     g.ignoredButtons &= held;
-    if(held && !g.heldButtons)
+    // MC2_XR_PICK_LOG=1: what each press went to
+    static const bool logPresses = getenv("MC2_XR_PICK_LOG") && getenv("MC2_XR_PICK_LOG")[0] == '1';
+    if(held && !g.heldButtons) {
         g.pressTarget = valid ? target : TARGET_NONE;
-    else if(!held)
+        if(logPresses)
+            printf("[XR] press: target %d, valid %d (on quad %d, alpha %.2f; world %d at %.3f %.3f, alpha %.2f, %.1f m)\n",
+                    (int)target, (int)valid, (int)g.onQuad, g.hudAlpha, (int)g.worldValid, g.worldX, g.worldY,
+                    g.worldAlpha, g.worldMetres);
+    } else if(!held) {
         g.pressTarget = TARGET_NONE;
+    }
     g.heldButtons = held;
     const uint32_t mouseButtons = held & ~g.ignoredButtons;
     if(valid) {
         const float w = (float)Environment.drawableWidth, h = (float)Environment.drawableHeight;
-        g.pointerX = std::min(w - kPointerMargin, std::max(kPointerMargin, u * w));
-        g.pointerY = std::min(h - kPointerMargin, std::max(kPointerMargin, v * h));
+        const float marginX = kPointerMargin * w / (float)Environment.screenWidth;
+        const float marginY = kPointerMargin * h / (float)Environment.screenHeight;
+        g.pointerX = std::min(w - marginX, std::max(marginX, u * w));
+        g.pointerY = std::min(h - marginY, std::max(marginY, v * h));
         input::setVirtualPointer(g.pointerX, g.pointerY, mouseButtons);
         g.pointerHeld = mouseButtons != 0;
     } else if(g.pointerHeld && mouseButtons) {
@@ -1263,7 +1280,7 @@ void pollInput()
         input::setVirtualPointer(g.pointerX, g.pointerY, mouseButtons);
     } else {
         // nothing to point at (the sky, outside the game camera's view)
-        input::clearVirtualPointer();
+        parkPointer();
         g.pointerHeld = false;
     }
 }
