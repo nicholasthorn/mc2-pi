@@ -13,6 +13,7 @@ LogisticsComponent.cpp			: Implementation of the LogisticsComponent component.
 #include"utilities.h"
 
 #include "platform_str.h"
+#include "csvfield.h"
 
 
 extern const char* ComponentFormString[];
@@ -188,29 +189,8 @@ int LogisticsComponent::init( char* dataLine )
 
 int LogisticsComponent::extractString( char*& pFileLine, char* pBuffer, int bufferLength )
 {
-	*pBuffer = 0;
-    int i = 0;
-	for ( ; i < 512; ++i )
-	{
-		if ( pFileLine[i] == '\n' )
-			break;
-		else if ( pFileLine[i] == ',' )
-			break;
-		else if ( pFileLine[i] == '\0')
-			break;
-	}
-
-	if ( i == 512 )
-		return false;
-
-	gosASSERT( i < bufferLength );
-	memcpy( pBuffer, pFileLine, i );
-	pBuffer[i] = '\0';
-	bufferLength = i + 1;
-	pFileLine += i + 1;
-
-	return i;
-
+	// stepped past the line's NUL on a short row and did not bound the copy
+	return csvNextField( pFileLine, pBuffer, bufferLength );
 }
 
 int LogisticsComponent::extractInt( char*& pFileLine )
