@@ -591,9 +591,13 @@ rotation, `MC2_XR_SHOT=n` saves the left eye and the window frame.
 
 Known gaps:
 
-- **47.6 fps, not 72:** game logic 11 ms and rendering 9.4 ms a frame (two
-  eyes; a third world pass for a tablet cost 1 ms more and was dropped for
-  the HUD). Next: the game update at 30 Hz, drawing at the headset's rate.
+- **67.3 fps, nearly 72:** the game now steps at 30 Hz (`MC2_XR_LOGIC_HZ`)
+  while the eyes are drawn every headset frame from the new head pose; each
+  step gets the time since the last step, so game speed is unchanged. The
+  median frame is 13.8 ms (on budget); frames with a game step take 21 ms
+  or more (step 11 ms plus two eyes 10 ms). Next: the step on its own
+  thread, or cheaper eyes. (Before: 47.6 fps stepping every frame; a third
+  world pass for a tablet cost 1 ms more and was dropped for the HUD.)
 - **Culling is the game camera's:** terrain ends in a jagged edge outside
   its 40-degree view, objects outside it are missing. The draw-only cull
   result (above) is now the biggest visual gap.

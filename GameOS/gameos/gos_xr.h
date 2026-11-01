@@ -36,6 +36,9 @@ bool bindEye(int eye);
 bool present(int width, int height);
 // The runtime asked the app to quit (the session is exiting).
 bool exitRequested();
+// Seconds between game updates in VR (MC2_XR_LOGIC_HZ, default 30), or 0
+// when the game should step every frame (not in VR, or MC2_XR_LOGIC_HZ=0).
+double logicStep();
 void shutdown();
 #else
 inline bool init() { return false; }
@@ -44,6 +47,7 @@ inline int eyeViews(gosVREyeView*) { return 0; }
 inline bool bindEye(int) { return false; }
 inline bool present(int, int) { return false; }
 inline bool exitRequested() { return false; }
+inline double logicStep() { return 0.0; }
 inline void shutdown() {}
 #endif
 

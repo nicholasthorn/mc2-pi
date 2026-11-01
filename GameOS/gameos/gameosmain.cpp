@@ -536,6 +536,12 @@ int main(int argc, char** argv)
 
     long frame_count = 0;
     double total_sec = 0.0;
+    // VR: the game steps at gos_xr::logicStep() while the headset draws
+    // every frame; the frames in between show the last state from the new
+    // head pose
+    double logic_wait = 0.0;    // seconds since the last game step
+    double last_dt = 0.0;
+    bool stepped = false;
 
     while( !g_exit ) {
 
@@ -544,10 +550,24 @@ int main(int argc, char** argv)
         process_events();
 
 		uint64_t logic_tick = timing::gettickcount();
-        if(gos_RenderGetEnableDebugDrawCalls()) {
-            gos_RenderUpdateDebugInput();
-        } else {
-            Environment.DoGameLogic();
+        const double logic_step = gos_xr::logicStep();
+        logic_wait += last_dt;
+        bool run_logic = true;
+        if(logic_step > 0.0 && stepped) {
+            run_logic = logic_wait >= logic_step;
+            // the game's frameLength is 1 / frameRate: the time since its
+            // last step, not since the last frame
+            if(run_logic)
+                frameRate = (float)(1.0 / logic_wait);
+        }
+        if(run_logic) {
+            logic_wait = 0.0;
+            stepped = true;
+            if(gos_RenderGetEnableDebugDrawCalls()) {
+                gos_RenderUpdateDebugInput();
+            } else {
+                Environment.DoGameLogic();
+            }
         }
 
         win = gos_GetWindow();
@@ -579,6 +599,7 @@ int main(int argc, char** argv)
 		uint64_t end_tick = timing::gettickcount();
 		double dt_sec = timing::ticks2sec(end_tick - start_tick - capture_ticks);
 		frameRate = (float)(1.0 / dt_sec);
+		last_dt = dt_sec;
 
         uint32_t draws = 0, tris = 0;
         gos_TakeRenderStats(&draws, &tris);

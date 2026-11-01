@@ -578,6 +578,14 @@ bool exitRequested()
     return g.exit;
 }
 
+double logicStep()
+{
+    if(g.session == XR_NULL_HANDLE)
+        return 0.0;
+    static const int hz = getenv("MC2_XR_LOGIC_HZ") ? atoi(getenv("MC2_XR_LOGIC_HZ")) : 30;
+    return hz > 0 ? 1.0 / hz : 0.0;
+}
+
 
 void shutdown()
 {
