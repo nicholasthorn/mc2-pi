@@ -3276,6 +3276,13 @@ extern void __cdecl InternalFunctionSpewV( int Flags, const char* Group, const c
 extern int __cdecl InternalFunctionStop( const char* Message, ... );
 extern int __cdecl InternalFunctionStop( const char* Message, const char* value);
 extern int __cdecl InternalFunctionPause( const char* Message, ... );
+//
+// Ends the process after an error code cannot recover from (Fatal(),
+// ABL_Fatal()): logs "STOP: <message>" unless message is NULL (already
+// logged), shows a message box unless this is an automated run, and exits
+// with status 1. Unlike STOP, MC2_STOP_EXITS=0 does not keep it going.
+//
+[[noreturn]] extern void __cdecl gos_FatalExit( const char* message );
 extern void __stdcall gosLabRatStart( DWORD Handle );
 extern void __stdcall gosLabRatEnd( DWORD Handle );
 extern void __stdcall gosLabRatSet( DWORD Handle, DWORD Value );

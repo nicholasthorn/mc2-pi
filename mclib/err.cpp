@@ -20,8 +20,8 @@
 void Fatal (long errCode, const char* errMessage) {
 
 	char msg[512];
-	sprintf(msg, " [FATAL %ld] %s ", errCode, errMessage);
-	STOP((msg));
+	snprintf(msg, sizeof(msg), " [FATAL %ld] %s ", errCode, errMessage);
+	gos_FatalExit(msg);
 }
 
 //---------------------------------------------------------------------------

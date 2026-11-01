@@ -6632,7 +6632,8 @@ void ablSeedRandom (unsigned long seed) {
 
 void ablFatalCallback (long code, const char* s) {
 
-	STOP((s));
+	// ABL_Fatal never returns: end here with the script's own message.
+	gos_FatalExit(s);
 }
 
 //*****************************************************************************

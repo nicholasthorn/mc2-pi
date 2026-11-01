@@ -17,8 +17,8 @@ belongs in commit messages and PRs.
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)
 - [x] CI: Linux x64 GCC, Linux x64 Clang, Linux arm64 GLES, Windows MSVC, shader validation (GLSL ES 3.10 + GLSL 4.20); Dependabot
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
-- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings, bench stages (112 cases)
-- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); smoke and bench set `MC2_STOP_EXITS=1`, so a `STOP` ends the run (#22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, mech lab, pilot ready, launch)
+- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings, bench stages (113 cases)
+- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); a `STOP` ends the game by default (#46; smoke and bench pin `MC2_STOP_EXITS=1`, #22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, mech lab, pilot ready, launch)
 - [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, plus named stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`), `-benchfov` / `--fov` to force the camera FOV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
 - [x] Mods: MechCommander Omnitech data (object types past `object2.pak`, wide map packets, `.burnin.jpg` colour maps, `mc2res.dll` strings, 512 object textures) loads and plays; Clan Wars mission 1 checked in play (PR 17, `future-features/MOD-COMPAT.md`)
@@ -34,7 +34,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs, until step 4 of the `STOP` plan) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
+- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (60 left with cppcheck 2.19 after `Fatal()` became `[[noreturn]]`, which cleared 24) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
@@ -113,15 +113,15 @@ Added 2026-10-31.
     the source line's fill is 0 and still reports a non-zero one; the two
     real ones, `0xff` fills in the ASE parser (`tgl.cpp`), are now zero
     (a mesh without texture faces kept NaN UVs in `tgl.fst`).
-  - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
-    better after the STOP/Fatal work below), `duplInheritedMember` (41),
-    `allocaCalled` (27) and the rest.
+  - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
+    became `[[noreturn]]`),
+    `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
   - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
     each batch, so the count only goes down.
-- [ ] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
+- [x] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
       the 2026-10-29 "leave as is"). GameOS documents `STOP` as "can not be
       continued"; only the port's commented-out `exit(1)` in
       `InternalFunctionStop` lets code run on into the NULL or full array a
@@ -144,9 +144,25 @@ Added 2026-10-31.
      switch off, no `STOP` fired in the 30 stock missions, both UI walks
      (GL and GLES, 600 frames) or 100 Omnitech missions (GL, 300 frames);
      the NaN move order is a `PAUSE` and skips the order.
-  4. Then make exiting the default, keep an opt-out variable for mod
+  4. [x] Then make exiting the default, keep an opt-out variable for mod
      bring-up, and mark `Fatal()` / `ABL_Fatal()` `[[noreturn]]` so cppcheck
-     and the compilers can see that code after them doesn't run.
+     and the compilers can see that code after them doesn't run. Done
+     2026-11-01: `STOP` (and `Assert`) log, show an SDL message box (not in
+     automated runs) and `_Exit(1)`; `MC2_STOP_EXITS=0` makes them carry on.
+     `Fatal()` / `ABL_Fatal()` end through `gos_FatalExit()` even then.
+     The exit now calls `SDL_Quit` (after the message) before `_Exit`, so
+     the display mode is put back. The box was checked on Linux (Xvfb, no
+     window manager, `FullScreen = TRUE`, missing mission): it shows the
+     `STOP` text over the game window, and OK ends the game with status 1.
+     Still to check: the box on Windows and under a desktop window manager,
+     and the Pi console after a `STOP`.
+     Follow-ups from the review: an ABL syntax error now ends the game even
+     with `MC2_STOP_EXITS=0`, so mod bring-up sees one compile error per
+     run (`syntaxError` could report and let the compile fail instead);
+     screens smoke has not opened (save/load, Mechlopedia, results,
+     salvage) may hold `STOP`s that used to be harmless; a `STOP` off the
+     main thread shows an unparented box; no unit test pins the `STOP:`
+     line format that smoke relies on.
 
 ## Tidy up (from the 2026-10-31 transcript sweep)
 
@@ -419,9 +435,8 @@ Candidates:
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
-- `-mission <name>` with a mission that does not exist crashes (SIGSEGV) instead of reporting an error. With `MC2_STOP_EXITS=1` it exits 1 at the first `STOP` ("Unable to open Mission File") instead.
 - Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
-- `Fatal()` / `ABL_Fatal()` return: `STOP` only logs (`InternalFunctionStop`, its `exit(1)` is commented out), so code after a fatal error carries on, usually into the NULL or full array it was guarding (`if (!p) Fatal(...); p->...`; ~35 sites, most of the remaining cppcheck `nullPointerRedundantCheck`, plus some `arrayIndexOutOfBoundsCond`). Making them abort (noreturn) would end the game cleanly instead, but any Fatal that fires harmlessly today would start quitting. Decided 2026-10-29: leave as is for now; reversed 2026-10-31, see "Make `STOP` / `Fatal()` stop again" in the to-do list (step 1, `MC2_STOP_EXITS=1` for smoke and bench, is in).
+- With `MC2_STOP_EXITS=0` (mod bring-up), `STOP` and `Assert` log and carry on, so code after them runs into whatever they were guarding; a missing mission then runs until a `Fatal` ends it.
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
 - Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects); not done, needs a decision.
 
@@ -430,6 +445,7 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-01: Full sweep of the remaster's history (branch `fix/backport-sweep`): 419 fix-like commits on shared files checked, 23 ported. Stock data: a leftover `ENTER_DEBUGGER` in `UserHeap::pointerOnHeap` (SIGTRAP from the briefing's empty-model `SimpleCamera::setObject`), `gos_SetMousePosition` warped to 0..1 as pixels, `calcAttackPlan` divided by a zero threat rating, `GlobalMap::destroy` leaked its three pointer arrays every mission, an unbounded height read in `calcBestGoalFromTarget`, the `txmmgr` vertex and shape pools handed out memory past their heap when full (and the untextured copies wrote one slot past their block), mech and vehicle paint colours swapped on an LOD change (cache-hit branches stored them unconverted under `BGR`), `iconsPerPage` used the atlas width, and the logistics CSV reader stepped past a short row's NUL (now `code/csvfield.h`, unit tested). Mod data: missing terrain textures and masks, ABL assignment from broken bytecode, the pilot-ready screen lost after a first mission without logistics, objective copies of an unknown species, icon indexes past the atlas, more than 256 cursors, short or oversized briefing TGAs, unknown TGL node types and vertex indices, the mission-selection button off-by-one, and out-of-range ABL routine keys and full routine tables.
+- 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
 - 2026-11-01: CI also skips pushes that only merge `pi-port` into a PR: `scripts/ci_docs_only.sh` becomes `scripts/ci_skip.sh`, which also skips when the PR's own non-docs patch (merge-base to head) has the same patch id before and after the push, so the push only brought `pi-port` in plus docs. Merging one PR used to rerun every open PR, as each session synced `pi-port` and its `PROGRESS.md` conflict; those syncs now skip. A conflict fix that changes code still runs in full. Accepted risk: the combination with code from `pi-port` is first tested by `pi-port`'s own run after the merge.
 - 2026-11-01: VR Phase 0, PC part (branch `vr-plan`): `-bench` reports per-stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`) and `-benchfov` / `bench.sh --fov` force the camera FOV. Quiet mc2_19 runs under llvmpipe put stereo at about 1.5x the mono CPU frame (24 ms against 15.4 ms here), the wide FOV alone at about +8% CPU and +26% triangles, terrain nearly flat with FOV, and show the terrain window's edge in view at 100 degrees. Phase 1 audit in the plan: every update-time projecting function also changes state (LOD swaps, `inView` feeding gameplay, animation timers, the texture manager's count/fill split), so the logic eye stays the un-tracked game camera and the render eyes get a transform-only pass. Pi runs still to do for the go/no-go. Also fixed: Windows `timing::ticks2ms` returned 1000 x ticks, so Windows `-bench` milliseconds were wrong. Results in `future-features/VR-TABLETOP.md`.
 - 2026-11-01: VR plan revised (branch `vr-plan`): first target is the game's own view in stereo with head tracking and stick panning, no whole-map rendering; tabletop becomes a later option. Scale estimate from the engine's constants (0.2 m per world unit): at 6 mm miniatures scale (1:285) a 1.8 x 0.9 m dining table holds about 20 x 10 terrain vertices, inside today's 30 to 60 vertex window. `future-features/VR-TABLETOP.md`.
