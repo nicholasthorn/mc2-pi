@@ -3,11 +3,15 @@
 # tools, and assemble a game directory (data/, assets/, *.fst, *.cfg).
 # The result is platform independent: build it once, copy it anywhere (Pi).
 #
-# usage: scripts/build_gamedata.sh --src-data DIR --build-dir DIR --out DIR [--no-movies] [-j N]
+# usage: scripts/build_gamedata.sh --src-data DIR (--build-dir DIR | --tools-dir DIR) --out DIR
+#                                   [--no-movies] [-j N]
 #   --src-data DIR   mc2srcdata checkout (its build_scripts/ is used in place,
 #                    as upstream intends; outputs land there before copying)
 #   --build-dir DIR  CMake build tree with the data tools built
 #                    (targets: aseconv makefst makersp pak text_tool)
+#   --tools-dir DIR  directory holding those five tools, as a release package's
+#                    tools/ does. With neither option, a tools/ next to this
+#                    script is used (running it from an unpacked package).
 #   --out DIR        game directory to fill (created if missing)
 #   --no-movies      skip the movie targets. In mc2srcdata only movies/ is
 #                    stored in Git LFS, so a clone with GIT_LFS_SKIP_SMUDGE=1
@@ -17,7 +21,7 @@
 
 set -eu
 
-SRC_DATA=""; BUILD_DIR=""; OUT=""; NO_MOVIES=0; JOBS=$(nproc)
+SRC_DATA=""; BUILD_DIR=""; TOOLS_DIR=""; OUT=""; NO_MOVIES=0; JOBS=$(nproc)
 while [ $# -gt 0 ]; do
     case "$1" in
         --src-data)  SRC_DATA="$2"; shift 2 ;;
@@ -25,17 +29,24 @@ while [ $# -gt 0 ]; do
         --out)       OUT="$2"; shift 2 ;;
         --no-movies) NO_MOVIES=1; shift ;;
         -j)          JOBS="$2"; shift 2 ;;
-        -h|--help)   sed -n '2,19p' "$0"; exit 0 ;;
+        --tools-dir) TOOLS_DIR="$2"; shift 2 ;;
+        -h|--help)   sed -n '2,23p' "$0"; exit 0 ;;
         *) echo "build_gamedata: unknown option $1" >&2; exit 2 ;;
     esac
 done
 [ -d "$SRC_DATA/build_scripts" ] || { echo "build_gamedata: no build_scripts/ in '$SRC_DATA'" >&2; exit 2; }
-[ -n "$BUILD_DIR" ] && [ -n "$OUT" ] || { echo "build_gamedata: --build-dir and --out are required" >&2; exit 2; }
+[ -n "$OUT" ] || { echo "build_gamedata: --out is required" >&2; exit 2; }
+[ -n "$BUILD_DIR" ] && [ -n "$TOOLS_DIR" ] && { echo "build_gamedata: give --build-dir or --tools-dir, not both" >&2; exit 2; }
+if [ -z "$BUILD_DIR" ] && [ -z "$TOOLS_DIR" ]; then
+    TOOLS_DIR="$(cd "$(dirname "$0")" && pwd)/tools"
+    [ -d "$TOOLS_DIR" ] || { echo "build_gamedata: give --build-dir or --tools-dir (no tools/ next to this script)" >&2; exit 2; }
+fi
 
 BS="$SRC_DATA/build_scripts"
-for t in out/data_tools/aseconv out/data_tools/makefst out/data_tools/makersp out/data_tools/pak out/text_tool/text_tool; do
-    [ -x "$BUILD_DIR/$t" ] || { echo "build_gamedata: missing tool $BUILD_DIR/$t" >&2; exit 2; }
-    cp "$BUILD_DIR/$t" "$BS/"
+for t in data_tools/aseconv data_tools/makefst data_tools/makersp data_tools/pak text_tool/text_tool; do
+    if [ -n "$BUILD_DIR" ]; then tool="$BUILD_DIR/out/$t"; else tool="$TOOLS_DIR/${t##*/}"; fi
+    [ -x "$tool" ] || { echo "build_gamedata: missing tool $tool" >&2; exit 2; }
+    cp "$tool" "$BS/"
 done
 
 MAKE_ARGS=(all BUILD_PLATFORM=linux -j "$JOBS")
