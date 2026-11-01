@@ -22,6 +22,13 @@ bool envFlagEnabled(const char* value)
     return true;
 }
 
+bool envFlagOr(const char* value, bool unsetDefault)
+{
+    if (!value || !value[0])
+        return unsetDefault;
+    return envFlagEnabled(value);
+}
+
 void appendBounded(char* dest, size_t destSize, const char* src)
 {
     if (!dest || !src || destSize == 0)

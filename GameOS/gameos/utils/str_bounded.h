@@ -9,6 +9,10 @@
 // "false", "no" or "off" (any case). NULL means unset.
 bool envFlagEnabled(const char* value);
 
+// As envFlagEnabled, but unset (NULL) or empty gives unsetDefault, for a
+// switch that is on unless turned off.
+bool envFlagOr(const char* value, bool unsetDefault);
+
 // Appends src to the NUL-terminated string in dest, a buffer of destSize
 // bytes, truncating so the result always fits and stays terminated. Does
 // nothing when destSize is 0 or dest holds no terminator within destSize.

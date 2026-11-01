@@ -22,6 +22,15 @@ TEST_CASE("envFlagEnabled: anything else is on") {
     CHECK(envFlagEnabled("offset"));
 }
 
+TEST_CASE("envFlagOr: unset or empty gives the default, otherwise the value") {
+    CHECK(envFlagOr(nullptr, true));
+    CHECK(envFlagOr("", true));
+    CHECK_FALSE(envFlagOr(nullptr, false));
+    CHECK_FALSE(envFlagOr("0", true));
+    CHECK_FALSE(envFlagOr("off", true));
+    CHECK(envFlagOr("1", false));
+}
+
 TEST_CASE("appendBounded: appends when it fits") {
     char buf[16] = "abc";
     appendBounded(buf, sizeof(buf), "def");

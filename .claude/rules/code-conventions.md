@@ -9,10 +9,13 @@ Most of the tree is 2001 Microsoft code plus alariq's port. Treat it as legacy:
   changing: it wrecks `git blame` and makes merges from `alariq/mc2` conflict.
 - **Fix narrowly.** A bug fix touches the lines that are wrong, plus a short
   comment when the reason is not obvious (why a null check, why `memcpy`).
-- **`STOP(...)` logs and carries on** (`InternalFunctionStop` has its `exit(1)`
-  commented out), and `gosASSERT` compiles to nothing unless `_ARMOR` is defined.
-  Code after either still runs: a null check that only calls `STOP` does not
-  protect anything. Return or bail out explicitly.
+- **`STOP(...)` ends the game** (log, message box, exit 1), but
+  `MC2_STOP_EXITS=0` makes it log and carry on, and `gosASSERT` compiles to
+  nothing unless `_ARMOR` is defined. So a null check that only calls `STOP`
+  or `gosASSERT` still needs an explicit return or bail-out. `Fatal()` and
+  `ABL_Fatal()` are `[[noreturn]]`: code after them never runs. A problem the
+  game can survive (bad mission data, a missing optional file) is a `PAUSE`
+  (log and carry on) plus a bail-out, not a `STOP`.
 - **Networking is stubbed.** Calls into the MP layer can return NULL or dummy
   data (`getPlayerInfo()` etc.); guard them.
 

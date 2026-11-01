@@ -211,7 +211,7 @@ void recordLibraryUsed (SymTableNodePtr memberNodePtr) {
 
 	//---------------------------------------------------
 	// New library, so record it if we still have room...
-	if (NumLibrariesUsed > MAX_LIBRARIES_USED)
+	if (NumLibrariesUsed >= MAX_LIBRARIES_USED)
 		ABL_Fatal(0, " ABL: Too many libraries referenced from module ");
 
 	LibrariesUsed[NumLibrariesUsed++] = library;
