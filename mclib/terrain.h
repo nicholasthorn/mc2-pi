@@ -166,6 +166,7 @@ class Terrain
 		static ObjBlockInfo						*objBlockInfo;				//Dynamically allocate this please!!
 		
 		static bool								*objVertexActive;			//Stores whether or not this vertices objects need to be updated
+		static bool								drawWholeWindow;			//VR: draw every vertex in the window, not just the game camera's view (geometry)
 
 		static float 							*tileRowToWorldCoord;		//Arrays used to help change from tile and cell to actual world position.
 		static float 							*tileColToWorldCoord;		//TILE functions will be obsolete with new system.

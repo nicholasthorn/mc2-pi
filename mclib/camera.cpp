@@ -1743,6 +1743,10 @@ void Camera::renderWorld (void)
 		extern bool bShadersDrawAlphaShapes;
 		bShadersDrawPathEnabled = true;
 		bShadersDrawAlphaShapes = true;
+
+		// and the terrain draws its whole window, which the eyes may look at
+		// anywhere (gameplay keeps the game camera's view: Terrain::geometry)
+		Terrain::drawWholeWindow = true;
 	}
 }
 

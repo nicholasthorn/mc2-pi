@@ -598,9 +598,16 @@ Known gaps:
   or more (step 11 ms plus two eyes 10 ms). Next: the step on its own
   thread, or cheaper eyes. (Before: 47.6 fps stepping every frame; a third
   world pass for a tablet cost 1 ms more and was dropped for the HUD.)
-- **Culling is the game camera's:** terrain ends in a jagged edge outside
-  its 40-degree view, objects outside it are missing. The draw-only cull
-  result (above) is now the biggest visual gap.
+- **Culling, terrain done:** in VR `Terrain::geometry` projects and draws
+  every vertex in the terrain window (`Terrain::drawWholeWindow`), while
+  the gameplay decision (which object blocks are active) keeps the game
+  camera's view; no frame-time cost (67.0 fps), flat game byte-identical.
+  The draw-only cull for **objects** is still to do: units and trees outside
+  the game camera's view are missing (their visibility also gates their
+  update, so it needs the draw-only result next to the gameplay one).
+- **To do: the terrain window's edge** is visible at a headset's field of
+  view (a hard border, then the cloud layer as a grey wall): a larger window
+  for VR, or haze pulled in to the window's radius.
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.
