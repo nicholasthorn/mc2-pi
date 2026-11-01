@@ -56,18 +56,22 @@ TEST_CASE("routes are the buttons a player presses") {
 	CHECK(uiRoute(UiScreen::MechPurchase, UiScreen::MechBay) == UiAction::Next);
 
 	// no button for these
-	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MechBay) == UiAction::None);
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::PilotReady) == UiAction::None);
 	CHECK(uiRoute(UiScreen::MissionSelection, UiScreen::MechBay) == UiAction::None);
 	CHECK(uiRoute(UiScreen::OptionsAudio, UiScreen::OptionsAudio) == UiAction::None);
 	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MainMenu) == UiAction::None);
 	CHECK(uiRoute(UiScreen::SingleMission, UiScreen::MissionSelection) == UiAction::None);
-	// a mission leads only to the results, and they only back to the campaign
+	// a mission leads only to the results (and its options screen), and they
+	// only back to the campaign
 	for (int i = 0; i < (int)UiScreen::Count; ++i) {
 		const UiScreen s = (UiScreen)i;
 		const bool results = s == UiScreen::Salvage || s == UiScreen::PilotReview
 				|| s == UiScreen::Promotion;
-		CHECK(uiRoute(UiScreen::Mission, s) == (results ? UiAction::WinMission : UiAction::None));
+		const UiAction expected = results ? UiAction::WinMission
+				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions : UiAction::None;
+		CHECK(uiRoute(UiScreen::Mission, s) == expected);
 	}
+	CHECK(uiRoute(UiScreen::OptionsHotkeys, UiScreen::Mission) == UiAction::OptionsCancel);
 	CHECK(uiRoute(UiScreen::Salvage, UiScreen::PilotReview) == UiAction::SalvageDone);
 	CHECK(uiRoute(UiScreen::Salvage, UiScreen::Promotion) == UiAction::SalvageDone);
 	CHECK(uiRoute(UiScreen::Promotion, UiScreen::PilotReview) == UiAction::PromotionConfirm);
@@ -77,6 +81,37 @@ TEST_CASE("routes are the buttons a player presses") {
 	CHECK(uiRoute(UiScreen::Salvage, UiScreen::Mission) == UiAction::None);
 	CHECK(uiRoute(UiScreen::PilotReview, UiScreen::MainMenu) == UiAction::None);
 	CHECK(uiRoute(UiScreen::Unknown, UiScreen::MainMenu) == UiAction::None);
+}
+
+TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MechlopediaMechs) == UiAction::OpenMechlopedia);
+	CHECK(uiRoute(UiScreen::MechlopediaMechs, UiScreen::MechlopediaHistory) == UiAction::MechlopediaTab5);
+	CHECK(uiRoute(UiScreen::MechlopediaWeapons, UiScreen::MechlopediaBuildings) == UiAction::MechlopediaTab1);
+	CHECK(uiRoute(UiScreen::MechlopediaPilots, UiScreen::MainMenu) == UiAction::MechlopediaExit);
+	CHECK(uiRoute(UiScreen::MechlopediaPilots, UiScreen::MissionSelection) == UiAction::MechlopediaExit);
+	CHECK(uiRoute(UiScreen::MechlopediaMechs, UiScreen::Mission) == UiAction::None);
+
+	CHECK(uiRoute(UiScreen::MissionSelection, UiScreen::MainMenu) == UiAction::MainMenu);
+	CHECK(uiRoute(UiScreen::MechBay, UiScreen::MainMenu) == UiAction::MainMenu);
+	CHECK(uiRoute(UiScreen::PilotReady, UiScreen::MainMenu) == UiAction::None);
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::Briefing) == UiAction::ReturnToGame);
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MissionSelection) == UiAction::ReturnToGame);
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MechBay) == UiAction::ReturnToGame);
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MechlopediaHistory) == UiAction::OpenMechlopedia);
+
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::Save) == UiAction::OpenSave);
+	CHECK(uiRoute(UiScreen::Save, UiScreen::MissionSelection) == UiAction::SaveAccept);
+	CHECK(uiRoute(UiScreen::Save, UiScreen::MechBay) == UiAction::SaveAccept);
+	CHECK(uiRoute(UiScreen::Save, UiScreen::MainMenu) == UiAction::None);
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::Load) == UiAction::OpenLoad);
+	CHECK(uiRoute(UiScreen::Load, UiScreen::MissionSelection) == UiAction::LoadAccept);
+	CHECK(uiRoute(UiScreen::Load, UiScreen::Mission) == UiAction::LoadAccept);
+	// Cancel reaches the main menu only from the start menu's load dialog
+	CHECK(uiRoute(UiScreen::Load, UiScreen::MainMenu) == UiAction::DialogCancel);
+
+	CHECK(uiScreenAction(UiScreen::Save, "name", 4) == UiAction::NameSave);
+	CHECK(uiScreenAction(UiScreen::Load, "pick", 4) == UiAction::PickSave);
+	CHECK(uiScreenAction(UiScreen::Load, "name", 4) == UiAction::None);
 }
 
 TEST_CASE("in-screen actions belong to one screen each") {
@@ -171,7 +206,7 @@ TEST_CASE("parse rejects bad walks with a reason") {
 	CHECK_FALSE(r.walk.parse("mainmenu,nosuchscreen", r.err, sizeof(r.err)));
 	CHECK(std::strstr(r.err, "nosuchscreen") != nullptr);
 
-	CHECK_FALSE(r.walk.parse("mainmenu,mechbay", r.err, sizeof(r.err)));
+	CHECK_FALSE(r.walk.parse("mainmenu,pilotready", r.err, sizeof(r.err)));
 	CHECK(std::strstr(r.err, "no route") != nullptr);
 
 	CHECK_FALSE(r.walk.parse("mainmenu,", r.err, sizeof(r.err)));

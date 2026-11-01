@@ -962,7 +962,9 @@ int EString::Compare( const EChar* p_String, bool Case_Sensitive ) const
 	//}
 	if ( Case_Sensitive )
 	{
-		if ( 0 == memcmp( m_pBuffer->Data(), p_String, Length ) )
+		// over the shorter one: reading Length bytes of a shorter string ran
+		// past its end (the Mechlopedia's pilot list sorts names this way)
+		if ( 0 == memcmp( m_pBuffer->Data(), p_String, ( Length < myLength ? Length : myLength ) * sizeof(EChar) ) )
 		{
 			if ( Length == myLength )
 				return 0;

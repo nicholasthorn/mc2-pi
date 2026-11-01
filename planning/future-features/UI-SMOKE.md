@@ -183,10 +183,29 @@ cannot say why a click did nothing.
    yet. Still to come: picking salvage, a lost mission
    (`mis_PLAYER_LOST_BIG`), the campaign's end (its last mission plays the
    final video, no results; the driver refuses that win).
-5. Mechlopedia (`MM_MSG_ENCYCLOPEDIA`), load/save (`MM_MSG_SAVE`/`LOAD`, in
-   the temporary config directory only), the in-mission options (Ctrl+O
-   wrapper in `mechcmd2.cpp`), main menu from a logistics screen
-   (`MB_MSG_MAINMENU`) and back.
+5. **Built (2026-11-01):**
+   - Mechlopedia: `mechlopedia-mechs` ... `mechlopedia-history`, its six
+     tabs (`ENCYCLO_*` buttons), from the main menu ("Encyclopedia"; it
+     opens on the tab it last showed) and back with its "Main Menu",
+     which returns where it was opened from.
+   - Main menu from a logistics screen and back: mission selection,
+     briefing and mech bay to `mainmenu` (`MB_MSG_MAINMENU`), and "Return
+     to Game" back to the same screen.
+   - Save and load: `save` and `load`, from the main menu reached from a
+     logistics screen in a campaign (Save is off otherwise). `save+name`
+     types "uismoke" (the dialog suggests the first save in the list,
+     and saving over one asks first), then Save writes it into the walk's
+     temporary config directory and goes back to the logistics screen.
+     The driver saves only when smoke.sh sets `MC2_UISMOKE_SAVES` (it does
+     for its throwaway config directories), so a walk run by hand cannot
+     write into a player's saves. `load+pick` picks that save from the
+     list, then Load restarts the campaign at mission selection; from the
+     start menu, `load,mainmenu` is Cancel.
+   - The mission's options: `mission,options-graphics` sets the flag
+     Ctrl+O sets (`bInvokeOptionsScreenFlag`), and Cancel goes back to
+     `mission`; the driver tells it from the main menu's options by
+     which wrapper is up.
+   Default walk 1 now does all of these, on stock and Omnitech data.
 6. Screenshots per screen (reuse `bench_capture` / `tga_writer`). The
    default walks already run on the Omnitech data folder (2026-11-01).
 

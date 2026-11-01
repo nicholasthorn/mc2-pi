@@ -52,6 +52,8 @@ class Mechlopedia : public LogisticsScreen
 
 	private:
 
+		friend class UiSmokeDriver;	// -uismoke reads which tab is up
+
 		LogisticsScreen*	subScreens[6];
 		int					currentScreen;
 		aListBox			listBox;

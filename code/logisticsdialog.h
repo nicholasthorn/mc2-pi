@@ -210,6 +210,7 @@ class LogisticsSaveDialog : public LogisticsDialog
 		
 
 	 friend void endDialogs();
+	 friend class UiSmokeDriver;	// -uismoke reads its prompts and picks a save
 
 };
 
