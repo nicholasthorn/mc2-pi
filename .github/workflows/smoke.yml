@@ -2,7 +2,7 @@ name: Smoke
 
 # Launches real missions headless (Xvfb + Mesa llvmpipe) and fails on a crash,
 # hang, GL/shader error or STOP line: scripts/smoke.sh. Nightly, on demand, and
-# on PRs that touch code (the PR-level check in .claude/rules/agent-workflow.md);
+# on PRs that touch code (the batch check in .claude/rules/agent-workflow.md);
 # not per push: it needs the built game data and takes several minutes.
 
 on:
