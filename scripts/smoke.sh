@@ -20,7 +20,7 @@
 #   --ui "..."        front-end walks to run, space separated; each is a
 #                     comma-separated list of screens for -uismoke, each
 #                     optionally "<screen>+<action>" (names in
-#                     code/uismokewalk.cpp). "" skips them. Default: the two
+#                     code/uismokewalk.cpp). "" skips them. Default: the three
 #                     walks below (walk 1 for MechCommander Omnitech data
 #                     when the game dir has it)
 #   --timeout S       seconds before a run counts as hung (default: 300)
@@ -47,6 +47,9 @@ set -u
 # 2: a single mission (mc2_02), which starts with no mechs: buy one, put it
 #    in the force, open the mech lab (Cancel), back to the briefing, give
 #    the mech a pilot and launch.
+# 3: the tutorial, from the new campaign dialog: its five missions launch
+#    from mission selection (no logistics, no results); win the first four,
+#    launch the fifth (the driver does not win a campaign's last mission).
 UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
 UI_OPTIONS="$UI_OPTIONS,mechlopedia-mechs,mechlopedia-buildings,mechlopedia-vehicles"
 UI_OPTIONS="$UI_OPTIONS,mechlopedia-weapons,mechlopedia-pilots,mechlopedia-history,mainmenu"
@@ -66,6 +69,9 @@ UI_OPTIONS_MCO="$UI_OPTIONS_MCO,options-graphics,options-hotkeys,mission"
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,salvage,pilotreview,missionselection"
 UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab"
 UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing,mechbay,pilotready+pilot,mission"
+UI_TUTORIAL="mainmenu,campaign+tutorial,missionselection"
+UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection"
+UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection,mission"
 
 GAME_DIR=""
 BUILD_DIR=""
@@ -104,9 +110,9 @@ fi
 # [HiresOffsets] block that no stock layout has
 if [ "$UI_SET" = 0 ]; then
     if grep -qs HiresOffsets "$GAME_DIR/data/art/mcl_mm.fit"; then
-        UI_WALKS="$UI_OPTIONS_MCO $UI_LOGISTICS"
+        UI_WALKS="$UI_OPTIONS_MCO $UI_LOGISTICS $UI_TUTORIAL"
     else
-        UI_WALKS="$UI_OPTIONS $UI_LOGISTICS"
+        UI_WALKS="$UI_OPTIONS $UI_LOGISTICS $UI_TUTORIAL"
     fi
 fi
 

@@ -400,6 +400,22 @@ const char* UiSmokeDriver::press(UiAction action)
 			return "the walk's save is not in the list (save+name first)";
 		}
 		return "screen is gone";
+	case UiAction::PickTutorial:
+		// the new campaign dialog lists the campaigns by their display name,
+		// with the file name hidden: "campaign", then "tutorial"
+		if (LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance()) {
+			aListBox& list = dialog->gameListBox;
+			for (long i = 0; i < list.GetItemCount(); i++) {
+				aLocalizedListItem* item = (aLocalizedListItem*)list.GetItem(i);
+				if (0 == S_stricmp(item->getHiddenText(), "tutorial")) {
+					list.SelectItem(i);
+					dialog->edits[0].setEntry(item->getText());
+					return NULL;
+				}
+			}
+			return "no tutorial in the list";
+		}
+		return "screen is gone";
 	case UiAction::None:
 		break;
 	}

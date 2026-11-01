@@ -86,7 +86,8 @@ enum class UiAction {
 	AssignPilot,		// pilotready+pilot: give the selected mech slot the selected pilot
 	PickSkill,			// promotion+skill: check the first specialty skill
 	NameSave,			// save+name: type the walk's save name ("uismoke")
-	PickSave			// load+pick: pick the walk's save from the list
+	PickSave,			// load+pick: pick the walk's save from the list
+	PickTutorial		// campaign+tutorial: pick the tutorial instead of the campaign
 };
 
 const char* uiScreenName(UiScreen s);
