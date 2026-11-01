@@ -242,8 +242,14 @@ on 2026-10-31.
       gated by `!sameTeam` although its comment suggests every case;
       `SalvageListItem::icon` is never deleted; `LogisticsData::getBestPilot`
       reads `pPilots[0]` with an empty roster; `EWCharString::Format`
-      over-reads and leaks `pTmp` (no callers); a zero font metric makes
-      `renderObjective`'s dot count infinite.
+      over-reads and leaks `pTmp` (no callers; fixed in #60); a zero font metric makes
+      `renderObjective`'s dot count infinite (guarded in #60).
+- [ ] `aAnimButton`'s scaled-render path is broken: it resizes to about
+      0.5 * scale * width squared (`gui/abutton.cpp`, `resize(width() *
+      scaleX, ...)`). #60 made the animation read `getScaleY()` for Y (it
+      read X twice), which only changes which animations take that path;
+      it does not fix the scaling. No shipped `.fit` sets X and Y scales
+      separately, as far as checked. (2026-11-01)
 - [x] `streamToBuffer` (`gameos_graphics.cpp`): a failed `glMapBufferRange`
       only `gosASSERT`s (compiled out) and draws stale data. (PR #5 review)
       Fixed on `fix/passing-bugs`: the draw is skipped, also when
