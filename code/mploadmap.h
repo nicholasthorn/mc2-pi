@@ -34,7 +34,6 @@ public:
 	virtual ~MPLoadMap();
 	
 	void init(FitIniFile* file);
-	bool isDone();
 	virtual void		begin();
 	virtual void		end();
  	virtual void		render( int xOffset, int yOffset );

@@ -211,10 +211,6 @@ int	MPHostGame::handleMessage( unsigned long message, unsigned long who)
 
 }
 
-bool MPHostGame::isDone()
-{
-	return bDone;
-}
 
 void MPHostGame::update()
 {
