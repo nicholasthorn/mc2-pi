@@ -14,6 +14,7 @@
 #include "utils/timing.h"
 #include "utils/frame_stats.h"
 #include "utils/tga_writer.h"
+#include "utils/args_file.h"
 
 #include <signal.h>
 #include <string>
@@ -382,10 +383,64 @@ static void draw_screen( void )
 
 extern float frameRate;
 
+#ifdef __ANDROID__
+// Android has no shell, no working directory of ours and no HOME. Run in the
+// app's files folder (where adb pushes the game data), take the command line
+// (and leading NAME=value environment settings) from mc2args.txt there, and
+// write stdout and stderr to mc2.log beside it, so a -bench run's [BENCH]
+// lines and CSV can be pulled back with adb.
+static std::vector<std::string> g_android_args;
+static std::vector<char*> g_android_argv;
+
+static void android_prepare(int& argc, char**& argv)
+{
+    const char* dir = SDL_AndroidGetExternalStoragePath();
+    if(dir && chdir(dir) == 0)
+        setenv("HOME", dir, 1);
+    if(freopen("mc2.log", "w", stdout)) {
+        dup2(fileno(stdout), fileno(stderr));
+        setvbuf(stdout, NULL, _IOLBF, 0);
+    }
+    printf("[ANDROID] files folder: %s\n", dir ? dir : SDL_GetError());
+
+    if(argc > 1)
+        return;
+    FILE* f = fopen("mc2args.txt", "rb");
+    if(!f)
+        return;
+    std::string text;
+    char buf[512];
+    size_t n;
+    while((n = fread(buf, 1, sizeof(buf), f)) > 0)
+        text.append(buf, n);
+    fclose(f);
+
+    g_android_args = args_file::parse(text);
+    // leading NAME=value tokens set the environment, as on a shell line
+    // (MC2_VSYNC=0, MC2_STOP_EXITS=1 for bench runs)
+    for(const auto& setting : args_file::takeEnv(g_android_args)) {
+        setenv(setting.first.c_str(), setting.second.c_str(), 1);
+        printf("[ANDROID] %s=%s\n", setting.first.c_str(), setting.second.c_str());
+    }
+    g_android_args.insert(g_android_args.begin(), (argc > 0 && argv[0]) ? argv[0] : "mc2");
+    for(std::string& a : g_android_args)
+        g_android_argv.push_back(&a[0]);
+    g_android_argv.push_back(NULL);
+    argc = (int)g_android_args.size();
+    argv = g_android_argv.data();
+    printf("[ANDROID] mc2args.txt:");
+    for(int i = 1; i < argc; ++i)
+        printf(" %s", argv[i]);
+    printf("\n");
+}
+#endif
 
 #ifndef DISABLE_GAMEOS_MAIN
 int main(int argc, char** argv)
 {
+#ifdef __ANDROID__
+    android_prepare(argc, argv);
+#endif
     //signal(SIGTRAP, SIG_IGN);
 
     // gather command line

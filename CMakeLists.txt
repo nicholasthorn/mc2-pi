@@ -101,20 +101,31 @@ add_definitions(-DUSE_ASSEMBLER_CODE=0)
 add_definitions(-DLINUX_BUILD)
 
 find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
-find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2main)
+# Android: SDL's Java activity calls SDL_main itself; there is no SDL2main.
+# The tools that need SDL2_ttf are not built there (see the end of the file).
+if(NOT ANDROID)
+    find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2main)
+endif()
 find_package(SDL2_mixer REQUIRED)
 #required by text_tool
-find_package(SDL2_ttf REQUIRED)
+if(NOT ANDROID)
+    find_package(SDL2_ttf REQUIRED)
+endif()
 find_package(ZLIB REQUIRED)
 
 # MC2_GLES: render through OpenGL ES 3.1 (Raspberry Pi 4/400) instead of
 # desktop GL. GLES entry points come straight from libGLESv2, no GLEW.
 option(MC2_GLES "Use OpenGL ES 3.1 instead of desktop OpenGL" OFF)
 if(MC2_GLES)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GLESV2 REQUIRED IMPORTED_TARGET glesv2)
+    if(ANDROID)
+        # the NDK's own libraries (Meta Quest test build)
+        set(MC2_GL_LIBS GLESv3 EGL)
+    else()
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(GLESV2 REQUIRED IMPORTED_TARGET glesv2)
+        set(MC2_GL_LIBS PkgConfig::GLESV2)
+    endif()
     add_definitions(-DMC2_GLES)
-    set(MC2_GL_LIBS PkgConfig::GLESV2)
     message("Rendering backend: OpenGL ES 3.1")
 else()
     find_package(GLEW REQUIRED)
@@ -137,6 +148,13 @@ get_filename_component(COM_PATH2 "./GameOS/gameos" ABSOLUTE)
 
 set(COMMON_INCLUDE_DIRS  ${COM_PATH1} ${COM_PATH2})
 set(THIRDPARTY_INCLUDE_DIRS "${CMAKE_PREFIX_PATH}/include")
+if(ANDROID)
+    # the NDK toolchain makes CMAKE_PREFIX_PATH a list: include/ of each entry
+    set(THIRDPARTY_INCLUDE_DIRS "")
+    foreach(_prefix ${CMAKE_PREFIX_PATH})
+        list(APPEND THIRDPARTY_INCLUDE_DIRS "${_prefix}/include")
+    endforeach()
+endif()
 set(THIRDPARTY_INTREE_DIR "./thirdparty")
 
 add_subdirectory("./mclib/" "./out/mclib")
@@ -259,7 +277,14 @@ else()
 endif()
 
 
-add_executable(mc2 ${SOURCES} ${MAIN_SRC})
+if(ANDROID)
+    # SDL's Java activity loads the game as libmain.so and calls SDL_main
+    # (SDL.h renames main) on its own thread; see android/README.md
+    add_library(mc2 SHARED ${SOURCES} ${MAIN_SRC})
+    set_target_properties(mc2 PROPERTIES OUTPUT_NAME main)
+else()
+    add_executable(mc2 ${SOURCES} ${MAIN_SRC})
+endif()
 # new, game-free code: strict warnings. benchdirector.cpp stays on the legacy
 # flags: it is glue that includes most of the game's 2001 headers.
 # benchscenario.cpp includes inifile.h, whose dstd.h has MSVC-only
@@ -285,9 +310,12 @@ endif()
 target_link_libraries(mc2 mclib gosfx mlr stuff gui gameos gameos_main windows ZLIB::ZLIB ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer ${ADDITIONAL_LIBS} ${MC2_GL_LIBS})
 
 add_subdirectory("./res" "./out/res")
-add_subdirectory("./data_tools" "./out/data_tools")
-add_subdirectory("./text_tool" "./out/text_tool")
-add_subdirectory("./Viewer" "./out/Viewer")
+# Android builds the game only; the data is built on a PC and pushed
+if(NOT ANDROID)
+    add_subdirectory("./data_tools" "./out/data_tools")
+    add_subdirectory("./text_tool" "./out/text_tool")
+    add_subdirectory("./Viewer" "./out/Viewer")
+endif()
 
 # Unit tests (doctest + CTest): see tests/unit/CMakeLists.txt.
 option(MC2_BUILD_TESTS "Build the unit tests (run with ctest)" ON)
