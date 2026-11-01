@@ -38,8 +38,40 @@ env:
   MISSIONS: "mc2_01 mc2_03 mc2_10 mc2_17 mc2_24"
 
 jobs:
+  # A push to a PR that changed only docs since a commit that already passed
+  # this workflow skips the run (scripts/ci_docs_only.sh); the smoke job
+  # skips with the data job. Nightly and manual runs always run.
+  changes:
+    name: Docs-only push?
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      docs_only: ${{ steps.gate.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Gate
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "${{ github.event.action }}" = synchronize ]; then
+            git fetch -q --no-tags origin "$BEFORE" "$AFTER" 2>/dev/null || true
+            bash scripts/ci_docs_only.sh "$BEFORE" "$AFTER" smoke.yml | tee -a "$GITHUB_OUTPUT"
+          else
+            echo docs_only=false | tee -a "$GITHUB_OUTPUT"
+          fi
+
   data:
     name: Game data (mc2srcdata, cached)
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     outputs:
       key: ${{ steps.key.outputs.key }}
