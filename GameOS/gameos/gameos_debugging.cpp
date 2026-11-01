@@ -32,11 +32,15 @@ static void output_debug_text(const char* text)
 
 }
 
-// Formats "<header>: <message>\n" into text (MAX_LOG_LINE bytes) and logs it.
-static void logmsg(const char* header, const char* fmt, va_list ap, char* text)
+// Formats "<header>: <message>\n" and logs it; also copies it into out
+// (MAX_LOG_LINE bytes) when given one, for STOP's message box.
+static void logmsg(const char* header, const char* fmt, va_list ap, char* out = NULL)
 {
 	assert(fmt);
+	if (out) out[0] = '\0';
 	if (!strlen(fmt)) return;
+
+	char				text[MAX_LOG_LINE] = {0};
 
     // header plus ": " (the message used to overwrite the separator)
     size_t header_len = strlen(header) + 2;
@@ -53,21 +57,31 @@ static void logmsg(const char* header, const char* fmt, va_list ap, char* text)
 		text[len + 1] = '\0';
 	}
     output_debug_text(text);
+    if (out) memcpy(out, text, MAX_LOG_LINE);
+}
+
+static void logmsgf(char* out, const char* header, const char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    logmsg(header, fmt, ap, out);
+    va_end(ap);
 }
 
 // The message box a player sees before the game ends. Not for automated runs
 // (smoke, bench, UI walks): under Xvfb nobody would close it. Fails quietly
 // where SDL has no way to show one (e.g. KMSDRM with no window manager).
-// Parented to the game window, with the mouse let go, so it is not hidden
-// behind a fullscreen window the player cannot click out of.
+// Parented to the game window, with the mouse let go as set_mouse_capture()
+// does (gameosmain.cpp), so a fullscreen window cannot hide it. Plain SDL
+// calls: the data tools link this file without the window or GL code.
 static void show_error_box(const char* text)
 {
     if (gos_IsAutomatedRun())
         return;
     SDL_Window* window = SDL_GL_GetCurrentWindow();
     if (window) {
-        SDL_SetRelativeMouseMode(SDL_FALSE);
         SDL_SetWindowGrab(window, SDL_FALSE);
+        SDL_CaptureMouse(SDL_FALSE);
         SDL_ShowCursor(SDL_ENABLE);
     }
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MechCommander 2", text, window);
@@ -75,8 +89,9 @@ static void show_error_box(const char* text)
 
 // _Exit, not exit: static destructors over a broken engine can crash and hide
 // the message.
-[[noreturn]] static void exit_after_error(const char* text)
+[[noreturn]] static void exit_after_error(const char* text, const char* reason)
 {
+    fprintf(stderr, "STOP: exiting (%s)\n", reason);
     fflush(stdout);
     fflush(stderr);
     show_error_box(text);
@@ -91,10 +106,8 @@ static void show_error_box(const char* text)
 static void stop_exit_unless_disabled(const char* text)
 {
     static const bool exits = envFlagOr(getenv("MC2_STOP_EXITS"), true);
-    if (!exits)
-        return;
-    fprintf(stderr, "STOP: exiting (MC2_STOP_EXITS=0 carries on)\n");
-    exit_after_error(text);
+    if (exits)
+        exit_after_error(text, "MC2_STOP_EXITS=0 carries on");
 }
 
 // those are game specific callbacks (should move them outside to game)
@@ -102,7 +115,7 @@ int __cdecl InternalFunctionStop( const char* fmt, ... )
 {
 	assert(fmt);
 	va_list	ap;
-	char text[MAX_LOG_LINE] = {0};
+	char text[MAX_LOG_LINE];
 
     va_start(ap, fmt);
     logmsg("STOP", fmt, ap, text);
@@ -114,42 +127,31 @@ int __cdecl InternalFunctionStop( const char* fmt, ... )
 
 int __cdecl InternalFunctionStop( const char* Message, const char* value)
 {
-    // Same "STOP: " prefix and trailing newline as logmsg, so smoke's ^STOP:
-    // check also sees STOP(("... %s", str)), which resolves to this overload.
-    char text[MAX_LOG_LINE] = {0};
-    int len = snprintf(text, sizeof(text), "STOP: ");
-    snprintf(text + len, sizeof(text) - len - 1, Message, value);
-    len = (int)strlen(text);
-    text[len] = '\n';
-    output_debug_text(text);
+    // STOP(("... %s", str)) resolves to this overload; same "STOP: " line as
+    // the variadic one, so smoke's ^STOP: check sees it.
+    char text[MAX_LOG_LINE];
+    logmsgf(text, "STOP", Message, value);
     stop_exit_unless_disabled(text);
     return enter_debugger;
 }
 
 void __cdecl gos_FatalExit( const char* message )
 {
-    char text[MAX_LOG_LINE] = {0};
-    if (message) {
-        snprintf(text, sizeof(text) - 1, "STOP: %s", message);
-        size_t len = strlen(text);
-        if (len == 0 || text[len - 1] != '\n')
-            text[len] = '\n';
-        output_debug_text(text);
-    } else {
-        snprintf(text, sizeof(text), "A fatal error ended the game; the log has the details.\n");
-    }
-    fprintf(stderr, "STOP: exiting (fatal error)\n");
-    exit_after_error(text);
+    char text[MAX_LOG_LINE];
+    if (message)
+        logmsgf(text, "STOP", "%s", message);
+    else
+        snprintf(text, sizeof(text), "A fatal error ended the game; the log has the details.");
+    exit_after_error(text, "fatal error");
 }
 
 int __cdecl InternalFunctionPause( const char* fmt, ... )
 {
 	assert(fmt);
 	va_list	ap;
-	char text[MAX_LOG_LINE] = {0};
 
     va_start(ap, fmt);
-    logmsg("PAUSE", fmt, ap, text);
+    logmsg("PAUSE", fmt, ap);
     va_end(ap);
 
     return enter_debugger;
@@ -162,10 +164,9 @@ void __cdecl InternalFunctionSpew( const char* Group, const char* fmt, ... )
 
     char buf[256];
     StringFormat(buf, sizeof(buf)-1, "SPEW: <%s>", Group ? Group : "");
-    char text[MAX_LOG_LINE] = {0};
 
     va_start(ap, fmt);
-    logmsg(buf, fmt, ap, text);
+    logmsg(buf, fmt, ap);
     va_end(ap);
 }
 

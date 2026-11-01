@@ -148,8 +148,8 @@ extern DebuggerPtr debugger;
 void ABL_Fatal (long errCode, const char* s) {
 
 	ABLFatalCallback(errCode, s);
-	// The game's callback STOPs, which ends the game unless MC2_STOP_EXITS=0;
-	// a fatal error ends it either way. It has already logged the message.
+	// The game's callback ends the game (ablFatalCallback); in case another
+	// one returns, end it here. The callback has reported the message.
 	gos_FatalExit(NULL);
 }
 
