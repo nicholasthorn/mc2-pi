@@ -211,7 +211,7 @@ void recordLibraryUsed (SymTableNodePtr memberNodePtr) {
 
 	//---------------------------------------------------
 	// New library, so record it if we still have room...
-	if (NumLibrariesUsed > MAX_LIBRARIES_USED)
+	if (NumLibrariesUsed >= MAX_LIBRARIES_USED)
 		ABL_Fatal(0, " ABL: Too many libraries referenced from module ");
 
 	LibrariesUsed[NumLibrariesUsed++] = library;
@@ -519,10 +519,12 @@ void enterStandardRoutine (const char* name, long routineKey, bool isOrder, cons
 
 	long tableIndex = routineKey;
 	if (tableIndex == -1) {
-		if (NumStandardFunctions == MAX_STANDARD_FUNCTIONS)
+		if (NumStandardFunctions >= MAX_STANDARD_FUNCTIONS)
 			ABL_Fatal(0, " ABL.enterStandardRoutine: Too Many Standard Functions ");
 		tableIndex = NumStandardFunctions++;
 	}
+	if ((tableIndex < 0) || (tableIndex >= MAX_STANDARD_FUNCTIONS))
+		ABL_Fatal(0, " ABL.enterStandardRoutine: bad routine key ");
 
 	SymTableNodePtr routineIdPtr;
 	enterNameLocalSymTable(routineIdPtr, name);

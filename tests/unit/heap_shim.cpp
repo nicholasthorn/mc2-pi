@@ -249,6 +249,14 @@ int __cdecl InternalFunctionStop (const char *Message, const char *value)
 	abort();
 }
 
+// Fatal() funnel (engine definition: gameos_debugging.cpp).
+void __cdecl gos_FatalExit (const char *message)
+{
+	fprintf(stderr, "\n[mc2_tests heap_shim] FATAL: %s\n", message ? message : "");
+	fflush(stderr);
+	abort();
+}
+
 // PAUSE() funnel (inifile.cpp) -- non-fatal in the engine (dialog + continue);
 // in tests just log and keep going. Returning 0 skips ENTER_DEBUGGER.
 int __cdecl InternalFunctionPause (const char *Message, ...)

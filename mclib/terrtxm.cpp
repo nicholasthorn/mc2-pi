@@ -875,6 +875,10 @@ void TerrainTextures::combineTxm (MemoryPtr dest, DWORD binNumber, long type, lo
 {
 	MemoryPtr combineRAM = types[type].textureData[mipLevel];
 	MemoryPtr maskRAM = types[type].maskData[(binNumber-1) + (mipLevel * MC_MASK_NUM)];
+	// a map can name a terrain type whose texture or mask never loaded (mod data):
+	// leave the base tile as it is
+	if (!combineRAM || !maskRAM)
+		return;
 
 	long mipSize = 0;
 	switch (mipLevel)
@@ -1326,7 +1330,10 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 				//Base is now a BLANK ALPHA MASK for new Terrain                     
 				//This means we shove a blank transparent texture                    
 				//into the starting buffer.  Easily done with memset(dest,0,sizeof); 
-				memcpy(ourRAM,texture,mipSize * mipSize * sizeof(DWORD));
+				if (texture)	// NULL when the type's texture never loaded (mod data)
+					memcpy(ourRAM,texture,mipSize * mipSize * sizeof(DWORD));
+				else
+					memset(ourRAM,0,mipSize * mipSize * sizeof(DWORD));
 				forceAlphaOpaque(ourRAM,kmp);
 			}
 			else

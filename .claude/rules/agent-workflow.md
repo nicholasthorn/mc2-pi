@@ -61,10 +61,12 @@ A batch is 3 to 5 commits or one finished logical step.
   things, and waiting only adds the CI time to every batch. Fix what review
   finds, or say why not, in the next push.
 - The app reports the CI result. A red run is fixed before the next batch.
-- A push that changes only docs (`*.md`, `planning/`, `.claude/`) after a
-  green run skips both workflows (`scripts/ci_docs_only.sh`), so a
-  `PROGRESS.md` update or a `pi-port` merge that brings only docs costs
-  nothing.
+- After a green run, a push that changes only docs (`*.md`, `planning/`,
+  `.claude/`), or only merges `pi-port` in, skips both workflows
+  (`scripts/ci_skip.sh`). Syncing with `pi-port`, including resolving the
+  usual `PROGRESS.md` conflict, therefore costs nothing; a conflict fix that
+  changes code runs everything. Code that came in from `pi-port` is tested
+  in combination with yours only by `pi-port`'s own run after the merge.
 
 Run `scripts/check.sh --level batch` (both renderers plus a local smoke)
 only when CI's round trip is the slower path:

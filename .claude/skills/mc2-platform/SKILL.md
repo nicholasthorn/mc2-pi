@@ -25,8 +25,10 @@ Line numbers drift: grep the symbol before citing a line.
   `gos_FileSize`, `gos_DoesFileExist`. Thin wrappers: path rules live in
   `mclib/file.cpp` (`/mc2-file-formats`).
 - `GameOS/gameos/gameos_debugging.cpp`: `InternalFunctionStop` / `Pause`,
-  logging. `STOP(...)` (in `GameOS/include/gameos.hpp`) **logs and continues**:
-  the `exit(1)` is commented out.
+  `gos_FatalExit`, logging. `STOP(...)` (in `GameOS/include/gameos.hpp`)
+  logs, shows a message box (not in automated runs) and exits 1;
+  `MC2_STOP_EXITS=0` makes it log and continue. `Fatal()` / `ABL_Fatal()`
+  always end through `gos_FatalExit`.
 - `GameOS/gameos/gameos_res.cpp`: loads the `mc2res` resource library.
 - `GameOS/src/platform_*.cpp` + `GameOS/include/platform_*.h`: Win32 API
   emulation (`_open`, `_stricmp`, `MessageBox`, `timeGetTime`, mbstring, ...).

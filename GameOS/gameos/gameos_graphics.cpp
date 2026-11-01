@@ -18,6 +18,7 @@
 #include "utils/gl_utils.h"
 #include "utils/Image.h"
 #include "utils/vec.h"
+#include "utils/stereo.h"
 #include "utils/string_utils.h"
 #include "utils/timing.h"
 #include "gos_render.h"
@@ -2893,6 +2894,16 @@ void __stdcall gos_SetRenderViewport(float x, float y, float w, float h)
 vec4 __stdcall gos_GetRenderViewport() {
     gosASSERT(g_gos_renderer);
 	return g_gos_renderer->getRenderViewport();
+}
+
+// -stereo: draws go out as they are issued (flush() is empty), so changing
+// the GL viewport between eyes is enough; draw_screen() resets it to the
+// whole window every frame
+void __stdcall gos_SetStereoEye(int eye)
+{
+    int vp[4];
+    stereo::eyeViewport(eye, Environment.drawableWidth, Environment.drawableHeight, vp);
+    glViewport(vp[0], vp[1], vp[2], vp[3]);
 }
 
 const mat4& __stdcall gos_GetProjection() {

@@ -233,6 +233,7 @@ class Camera
 
 		float 					cameraShiftZ;
 		float 					goalPositionZ;
+		float					eyeOffset;				//-stereo: this eye's sideways offset, applied last in setCameraOrigin
 
 		float					fogStart;				//Altitude at which fog starts
 		float					fogFull;				//Altitude at which fog is Full;
@@ -303,6 +304,7 @@ class Camera
 			setCameraRotation(0.0,0.0);
 
 			cameraShiftZ = goalPositionZ = 0.0f;
+			eyeOffset = 0.0f;
 	
 			lightDirection.Zero();
 			
@@ -494,6 +496,7 @@ class Camera
 		
 		virtual long update (void);
 		virtual void render (void);
+		void renderWorld (void);		//render() once, or once per eye side by side under -stereo
 
 		virtual long activate (void);
 		virtual void reset (void)

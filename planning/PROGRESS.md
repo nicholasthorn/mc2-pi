@@ -17,9 +17,11 @@ belongs in commit messages and PRs.
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)
 - [x] CI: Linux x64 GCC, Linux x64 Clang, Linux arm64 GLES, Windows MSVC, shader validation (GLSL ES 3.10 + GLSL 4.20); Dependabot
 - [x] Agent setup: `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, this file
-- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings (82 cases)
-- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); smoke and bench set `MC2_STOP_EXITS=1`, so a `STOP` ends the run (#22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, mech lab, pilot ready, launch)
-- [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
+- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings, bench stages, stereo viewports (116 cases)
+- [x] Unit tests: doctest harness in `tests/unit/` under CTest, run by CI on all four configurations; FIT/packet/file, CSV, FST, paths, pixel repack, RollDice, audio pan, JPEG, PE strings, TGA writer, frame stats, bench scenarios, global map IO, render heuristics, bounded strings, bench stages (117 cases)
+- [x] Smoke runs: `-autoexit <gameplay frames>`, `scripts/smoke.sh` (Xvfb + llvmpipe), `scripts/build_gamedata.sh`; nightly `smoke.yml` on x64 desktop GL and arm64 GLES (mc2_01/03/10/17/24); a `STOP` ends the game by default (#46; smoke and bench pin `MC2_STOP_EXITS=1`, #22); front-end walks with `-uismoke` (main menu, options, campaign and single-mission dialogs, briefing, mech bay, purchase, mech lab, pilot ready, launch)
+- [x] Benchmark: `scripts/bench.sh` runs missions with `-bench <csv>` (fixed 1/30 s game step and mission clock, fixed seed, input ignored), per-frame logic/render/swap ms + draw calls + triangles to CSV, plus named stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`), `-benchfov` / `--fov` to force the camera FOV, `[BENCH]` p50/p95/p99/max summary into `results.csv`; `--perf` adds a `perf record -g` run per mission sampling gameplay frames only (game drives perf's control FIFO), `MC2_FRAME_POINTERS` build option; `--scenario bench/*.fit` stages a scripted battle (units gathered and fighting, damage off, camera path, artillery) with named segments timed separately (`segments.csv`) and screenshots; `-bench` also turns sound off and logs a per-frame game-state checksum
+- [x] Stereo debug view (VR Phase 1, first slice): `-stereo <separation>` draws the world side by side from two eye cameras; game state unchanged (bench checksum), shadows, clouds and overlays still from the game camera (`future-features/VR-TABLETOP.md`)
 - [x] Sanitizers: `MC2_SANITIZE`; unit tests under ASan + UBSan on every push; nightly sanitized smoke (x64, 3000 frames); no UBSan suppressions (the five missions run clean)
 - [x] Mods: MechCommander Omnitech data (object types past `object2.pak`, wide map packets, `.burnin.jpg` colour maps, `mc2res.dll` strings, 512 object textures) loads and plays; Clan Wars mission 1 checked in play (PR 17, `future-features/MOD-COMPAT.md`)
 - [x] Warnings + static analysis: `-Wall -Wextra -Werror` on new code; `-fpermissive` removed; cppcheck gate against a CI-generated baseline (changed files per push, full tree nightly); baseline 523 after fixing error-level bugs, filtering the deliberate "Stuff"/gosFX member hiding and constructor `init()`/destructor `destroy()` calls, the printf length-modifier sweep and most `uninitMemberVar`; 413 after every `uninitMemberVar` was initialised or suppressed with a reason (#23, #24)
@@ -34,7 +36,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`: `Fatal()` returns because `STOP` only logs, until step 4 of the `STOP` plan) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
+- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` (60 left with cppcheck 2.19 after `Fatal()` became `[[noreturn]]`, which cleared 24) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [ ] Deterministic smoke runs (seed the RNG): `-bench` does this for bench runs; smoke runs could pass it too
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
@@ -126,12 +128,15 @@ Added 2026-10-31.
   - Next: `nullPointerRedundantCheck` (84, mostly `if (!p) Fatal(...)`:
     better after the STOP/Fatal work below), `allocaCalled` (27) and the
     rest.
+  - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
+    became `[[noreturn]]`),
+    `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
   - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
     each batch, so the count only goes down.
-- [ ] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
+- [x] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
       the 2026-10-29 "leave as is"). GameOS documents `STOP` as "can not be
       continued"; only the port's commented-out `exit(1)` in
       `InternalFunctionStop` lets code run on into the NULL or full array a
@@ -154,9 +159,33 @@ Added 2026-10-31.
      switch off, no `STOP` fired in the 30 stock missions, both UI walks
      (GL and GLES, 600 frames) or 100 Omnitech missions (GL, 300 frames);
      the NaN move order is a `PAUSE` and skips the order.
-  4. Then make exiting the default, keep an opt-out variable for mod
+  4. [x] Then make exiting the default, keep an opt-out variable for mod
      bring-up, and mark `Fatal()` / `ABL_Fatal()` `[[noreturn]]` so cppcheck
-     and the compilers can see that code after them doesn't run.
+     and the compilers can see that code after them doesn't run. Done
+     2026-11-01: `STOP` (and `Assert`) log, show an SDL message box (not in
+     automated runs) and `_Exit(1)`; `MC2_STOP_EXITS=0` makes them carry on.
+     `Fatal()` / `ABL_Fatal()` end through `gos_FatalExit()` even then.
+     The exit now calls `SDL_Quit` (after the message) before `_Exit`, so
+     the display mode is put back. The box was checked on Linux (Xvfb, no
+     window manager, `FullScreen = TRUE`, missing mission): it shows the
+     `STOP` text over the game window, and OK ends the game with status 1.
+     Still to check: the box on Windows and under a desktop window manager,
+     and the Pi console after a `STOP`.
+     Follow-ups from the review:
+     - [x] The `STOP:` line format smoke relies on is unit tested
+       (`formatLogLine`, 2026-11-01).
+     - Decided, not a bug: an ABL syntax error ends the game even with
+       `MC2_STOP_EXITS=0`, so mod bring-up sees one compile error (with
+       file and line) per run. Listing more would need `syntaxError` (131
+       callers) to keep parsing after an error and every
+       `ABLi_preProcess` / `ABLi_loadLibrary` caller (9) to check the
+       error count, which none does today; `MAX_SYNTAX_ERRORS` was cut
+       from 20 to 1 in the original source.
+     - [ ] Screens smoke has not opened (save/load, Mechlopedia, results,
+       salvage) may hold `STOP`s that used to be harmless (UI smoke
+       slices).
+     - [ ] A `STOP` off the main thread shows an unparented box (none
+       known: no game code runs on an SDL callback thread).
 
 ## Tidy up (from the 2026-10-31 transcript sweep)
 
@@ -290,6 +319,24 @@ on 2026-10-31.
       following bytes as another pointer. (10-29)
 - [x] Faster save dialog that also fixes a leak (`2059e8eb`). (10-29, done
       10-31)
+- [ ] From the 2026-11-01 sweep, settled by step 4 of the `STOP` plan
+      (#46): these now end the game cleanly instead of crashing, and only
+      run on with `MC2_STOP_EXITS=0` (mod bring-up). Port them only if mods
+      should carry on past them: `80e98102` (`ObjectTypeManager::load` uses NULL after a
+      CRAPPY_OBJECT `Fatal`), `424b2ce7` (`Mission::addMover` treats a
+      vehicle in the force group as a mech; the one-argument overload has
+      the same pattern), `9356f8e3` + `6daa0905` (a module with compile
+      errors still runs).
+- [ ] Leads from the same sweep, not ported as they are: a mission with no
+      MOVE data runs on with `GameMap == NULL` after its `STOP` (`f1eaa6ee`;
+      exit like the bad-packet branch instead); the graphics options list
+      each resolution about four times (`9cbe2ea7`); the briefing minimap may
+      upload alpha-0 water and concrete cells (`3c8dd69e`, check by eye
+      first); `shader_builder.cpp` `parse_uniforms` reads past `typeNames`
+      for a `sampler2DArray` uniform (`7c3a382a`, latent: no shader has one);
+      `controlgui.cpp` adds `hiResOffsetX` but not `hiResOffsetY` to the
+      video box (`51ddcf25`, check in game). Never port `c92175fd`: it
+      treats real callback addresses on Linux and arm64 as bogus.
 - [x] Mod-tolerance null guards: `a03e13a2`, `294fd42e`, `aa20a308`,
       `84e1774a`, `d21e7855`, `1cf8c7b8`. (10-29, done 10-31: `294fd42e`,
       `d21e7855`, `1cf8c7b8` ported; `a03e13a2` and `aa20a308` not needed
@@ -380,8 +427,12 @@ Taken so far:
 
 Candidates:
 
-- [ ] Keep sweeping the remaster's history for fixes to shared `code/` and
-      `mclib/` files.
+- [x] Full sweep of the remaster's history (2026-11-01, `fork/main` at
+      `63bb0832`, no commits since 2026-07-05): the 419 fix-like commits that
+      touch files both repos have, checked against this code. 23 applied
+      (stock-data fixes and mod-data guards, branch `fix/backport-sweep`),
+      21 were already fixed here, 375 are remaster-only. Left open: see
+      "Back-ports from the remaster not yet done".
 - [ ] **Later game data: upscaled textures and art.** The remaster ships
       AI-upscaled (4x) terrain, building, mech and UI art. This port's
       `File::open` already loads a loose file in preference to the FST archive,
@@ -408,9 +459,8 @@ Candidates:
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
-- `-mission <name>` with a mission that does not exist crashes (SIGSEGV) instead of reporting an error. With `MC2_STOP_EXITS=1` it exits 1 at the first `STOP` ("Unable to open Mission File") instead.
 - Fog byte semantics differ: actors (and crater/gvactor/mech3d) turn "no fog" (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Original behaviour, kept; worth checking visually on the Pi.
-- `Fatal()` / `ABL_Fatal()` return: `STOP` only logs (`InternalFunctionStop`, its `exit(1)` is commented out), so code after a fatal error carries on, usually into the NULL or full array it was guarding (`if (!p) Fatal(...); p->...`; ~35 sites, most of the remaining cppcheck `nullPointerRedundantCheck`, plus some `arrayIndexOutOfBoundsCond`). Making them abort (noreturn) would end the game cleanly instead, but any Fatal that fires harmlessly today would start quitting. Decided 2026-10-29: leave as is for now; reversed 2026-10-31, see "Make `STOP` / `Fatal()` stop again" in the to-do list (step 1, `MC2_STOP_EXITS=1` for smoke and bench, is in).
+- With `MC2_STOP_EXITS=0` (mod bring-up), `STOP` and `Assert` log and carry on, so code after them runs into whatever they were guarding; a missing mission then runs until a `Fatal` ends it.
 - `mech3d.cpp` helicopter dust cloud computes a motion-relative matrix and then draws with the plain one, unlike the water wake next to it. May be deliberate; unverified.
 - Destroyed forests never reopen their pathing areas: `TerrainObjectType` declares its own `subType`, shadowing `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s `getObjectType()->getSubType() == TERROBJ_FOREST` (the base field, always 0) is never true and `openSubAreas()` never runs. Same in the original source, so shipped behaviour. Removing the shadow would fix it but changes gameplay (and `ObjectManager::getSpecificObjects` for terrain objects). Decided 2026-11-01: keep the shipped behaviour (cppcheck finding suppressed with that reason).
 
@@ -420,9 +470,17 @@ Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing) kept as shipped by decision and suppressed with that reason.
 
+- 2026-11-01: VR Phase 1, first slice (branch `vr-phase1`): `-stereo <separation>` side-by-side debug view. The engine could already draw a frame twice (`renderLists` rewinds its lists); meshes now take the camera and viewport at draw time (the GPU path used the update-time ones), terrain and water are re-projected per eye with the game camera's visibility kept, each eye is an offset applied last in `Camera::setCameraOrigin` (`Camera::renderWorld`), and GameOS points the GL viewport at one half (`gos_SetStereoEye`). Mono screenshots byte-identical to before, game-state checksum unchanged with `-stereo`, eyes checked by measured disparity (first version had them swapped). Overlays, mouse picking, shadows and clouds still follow the game camera: a view for checking the rendering, not for playing. Measured cost on mc2_19 (llvmpipe): CPU frame 1.36 to 1.40x mono. Built and run on GL and GLES; MSVC, Clang and arm64 left to CI.
+- 2026-11-01: STOP follow-ups (branch `fix/stop-followups`): the `STOP:` log line format (prefix, one trailing newline, truncation) moved from `logmsg` to `formatLogLine()` in `str_bounded.cpp` with unit tests, as did the message box's prefix strip (`logLineMessage()`); behaviour unchanged. ABL syntax errors ending the game under the opt-out recorded as a decision (see the `STOP` plan). Ubuntu 26.04: GL and GLES builds and unit tests (117 cases); MSVC, Clang and arm64 left to CI.
+- 2026-11-01: Full sweep of the remaster's history (branch `fix/backport-sweep`): 419 fix-like commits on shared files checked, 23 ported. Stock data: a leftover `ENTER_DEBUGGER` in `UserHeap::pointerOnHeap` (SIGTRAP from the briefing's empty-model `SimpleCamera::setObject`), `gos_SetMousePosition` warped to 0..1 as pixels, `calcAttackPlan` divided by a zero threat rating, `GlobalMap::destroy` leaked its three pointer arrays every mission, an unbounded height read in `calcBestGoalFromTarget`, the `txmmgr` vertex and shape pools handed out memory past their heap when full (and the untextured copies wrote one slot past their block), mech and vehicle paint colours swapped on an LOD change (cache-hit branches stored them unconverted under `BGR`), `iconsPerPage` used the atlas width, and the logistics CSV reader stepped past a short row's NUL (now `code/csvfield.h`, unit tested). Mod data: missing terrain textures and masks, ABL assignment from broken bytecode, the pilot-ready screen lost after a first mission without logistics, objective copies of an unknown species, icon indexes past the atlas, more than 256 cursors, short or oversized briefing TGAs, unknown TGL node types and vertex indices, the mission-selection button off-by-one, and out-of-range ABL routine keys and full routine tables.
+- 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
+- 2026-11-01: CI also skips pushes that only merge `pi-port` into a PR: `scripts/ci_docs_only.sh` becomes `scripts/ci_skip.sh`, which also skips when the PR's own non-docs patch (merge-base to head) has the same patch id before and after the push, so the push only brought `pi-port` in plus docs. Merging one PR used to rerun every open PR, as each session synced `pi-port` and its `PROGRESS.md` conflict; those syncs now skip. A conflict fix that changes code still runs in full. Accepted risk: the combination with code from `pi-port` is first tested by `pi-port`'s own run after the merge.
+- 2026-11-01: VR Phase 0, PC part (branch `vr-plan`): `-bench` reports per-stage times (`camera`, `terrain_geom`, `objects`, `shape_xform`, `world_render`, `ui_render` as `<stage>_ms`) and `-benchfov` / `bench.sh --fov` force the camera FOV. Quiet mc2_19 runs under llvmpipe put stereo at about 1.5x the mono CPU frame (24 ms against 15.4 ms here), the wide FOV alone at about +8% CPU and +26% triangles, terrain nearly flat with FOV, and show the terrain window's edge in view at 100 degrees. Phase 1 audit in the plan: every update-time projecting function also changes state (LOD swaps, `inView` feeding gameplay, animation timers, the texture manager's count/fill split), so the logic eye stays the un-tracked game camera and the render eyes get a transform-only pass. Pi runs still to do for the go/no-go. Also fixed: Windows `timing::ticks2ms` returned 1000 x ticks, so Windows `-bench` milliseconds were wrong. Results in `future-features/VR-TABLETOP.md`.
+- 2026-11-01: VR plan revised (branch `vr-plan`): first target is the game's own view in stereo with head tracking and stick panning, no whole-map rendering; tabletop becomes a later option. Scale estimate from the engine's constants (0.2 m per world unit): at 6 mm miniatures scale (1:285) a 1.8 x 0.9 m dining table holds about 20 x 10 terrain vertices, inside today's 30 to 60 vertex window. `future-features/VR-TABLETOP.md`.
 - 2026-11-01: cppcheck `memsetClassFloat` (43) closed (branch `fix/cppcheck-memset`): the ASE shape parser zero-fills its vertex and triangle lists instead of `0xff`, so a mesh without texture faces no longer keeps NaN UVs (game data differs only in `tgl.fst`); the gate drops `memsetClassFloat` for zero fills (all-bits-zero is 0.0f on IEEE 754) and still reports non-zero ones. Baseline to regenerate from CI after merge.
 - 2026-11-01: CI skips docs-only pushes: a "changes" job in `ci.yml` and `smoke.yml` runs `scripts/ci_docs_only.sh`, and the build, test and smoke jobs skip when everything changed since the previous push is docs (`*.md`, `planning/`, `.claude/`, `docs`, `devdoc.txt`) and that previous commit passed the same workflow. A cancelled or failed run, a force push or a new branch always runs in full. Docs-only PRs no longer start `ci.yml` at all (`paths-ignore`) (#45). Same PR: agents run `/simplify`, `/code-review` and `/code-review high` while CI runs on the push, instead of waiting for green first.
 - 2026-11-01: MechCommander Omnitech front-end screen size (branch `omnitech-frontend-res`): the front end runs at 1280x1024 when `mcl_mm.fit` has a `[HiresOffsets]` block (Omnitech's layouts reach 1194x896 and were cut off at 800x600), else 800x600 as before; mode switches, the load screen check and the screen slides follow it. Omnitech's full logistics walk passes and every screen shows in full (frames on a 1280x1024 Xvfb).
+- 2026-11-01: UI smoke walks on MechCommander Omnitech data (branch `smoke-mco-walks`): `smoke.sh` without `--ui` picks an Omnitech walk 1 when the game dir's `data/art/mcl_mm.fit` has a `[HiresOffsets]` block: Omnitech's new campaign opens mission selection with no mechs, so the walk goes on to buy, add, pilot and launch. Both default walks pass on Omnitech and on stock data.
 - 2026-11-01: agent workflow Tier 2 moves to CI: after `/simplify` + `/code-review`, a batch is pushed to a draft PR and `ci.yml` / `smoke.yml` do the four-configuration build and the smoke missions; local `check.sh --level batch` only for crash debugging or GLES-only changes. Five sessions running batch checks at once were queueing for the same WSL CPUs to repeat what CI runs in 2 to 9 minutes. Also: no `pgrep -f smoke.sh` waits, which matched other sessions' runs.
 - 2026-10-31: MechCommander Omnitech mech lab (branch `omnitech-mechlab`): the mech lab takes its fixed statics from Omnitech's 15-static `mcl_mc.fit` as Omnitech's code does (stock's 56 otherwise), so "change loadout" in the mech bay is back on. "Buy" on Omnitech's purchase screen works; the UI walk's purchase was a 100 t Atlas on a 65 t mission. Details in `MOD-COMPAT.md` item 12.
 

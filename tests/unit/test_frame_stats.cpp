@@ -124,4 +124,47 @@ TEST_CASE("summary line is one parseable [BENCH] line")
 	              " render_ms=10.00 swap_ms=5.00 draws=200 tris=2000");
 }
 
+TEST_CASE("stage slots: one per name, in first-use order, until full")
+{
+	std::vector<std::string> names;
+	CHECK(frame_stats::stageSlot(names, "camera") == 0);
+	CHECK(frame_stats::stageSlot(names, "terrain_geom") == 1);
+	CHECK(frame_stats::stageSlot(names, "camera") == 0);
+	CHECK(names.size() == 2);
+
+	CHECK(frame_stats::stageSlot(names, nullptr) == -1);
+	CHECK(frame_stats::stageSlot(names, "") == -1);
+
+	for (size_t i = names.size(); i < frame_stats::kMaxStages; ++i)
+		CHECK(frame_stats::stageSlot(names, ("s" + std::to_string(i)).c_str()) == (int)i);
+	CHECK(frame_stats::stageSlot(names, "one_too_many") == -1);
+	CHECK(names.size() == frame_stats::kMaxStages);
+}
+
+TEST_CASE("stages are averaged and become extra columns and keys")
+{
+	const std::vector<std::string> stages = { "camera", "terrain_geom" };
+	std::vector<FrameSample> frames;
+	frames.push_back(sample(10.0, 100, 1000));
+	frames.push_back(sample(30.0, 300, 3000));
+	frames[0].stage_ms[0] = 1.0;
+	frames[0].stage_ms[1] = 2.5;
+	frames[1].stage_ms[0] = 3.0;
+	frames[1].stage_ms[1] = 0.5;
+
+	const frame_stats::Summary s = frame_stats::summarize(frames);
+	CHECK(s.stage_ms[0] == doctest::Approx(2.0));
+	CHECK(s.stage_ms[1] == doctest::Approx(1.5));
+
+	CHECK(frame_stats::csvHeader(stages) ==
+			"frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris,segment,state,camera_ms,terrain_geom_ms");
+	CHECK(frame_stats::csvRow(7, frames[0], stages) ==
+			"7,10.000,2.500,5.000,2.500,100,1000,0,00000000,1.000,2.500");
+	CHECK(frame_stats::summaryLine("all", s, stages) ==
+			"[BENCH] segment=all frames=2 fps=50.0 avg_ms=20.00 p50_ms=10.00"
+			" p95_ms=30.00 p99_ms=30.00 max_ms=30.00 logic_ms=5.00"
+			" render_ms=10.00 swap_ms=5.00 draws=200 tris=2000"
+			" camera_ms=2.00 terrain_geom_ms=1.50");
+}
+
 }

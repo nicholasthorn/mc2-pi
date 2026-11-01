@@ -1054,6 +1054,7 @@ void Terrain::geometry (void)
 			currentVertex->py = screenPos.y;
 			currentVertex->pz = screenPos.z;
 			currentVertex->pw = screenPos.w;
+			currentVertex->calcThisFrame |= 4;		//projectForEye() redoes these
 			
 			//----------------------------------------------------------------------------------
 			//We must transform these but should NOT draw any face where all three are fogged. 
@@ -1137,6 +1138,39 @@ void Terrain::geometry (void)
 	// update the cloud layer
 	if (Terrain::cloudLayer)
 		Terrain::cloudLayer->update();
+}
+
+//---------------------------------------------------------------------------
+// -stereo: redo the screen positions geometry() and the water setup stored
+// this frame, with the current eye camera. Which vertices and quads draw
+// (clipInfo) stays the logic camera's, so the texture manager's vertex counts
+// from the update still fit. Nothing else geometry() does is repeated.
+void Terrain::projectForEye (void)
+{
+	VertexPtr currentVertex = vertexList;
+	Stuff::Vector4D screenPos;
+	for (long i=0;i<numberVertices;i++,currentVertex++)
+	{
+		if (currentVertex->calcThisFrame & 4)
+		{
+			Stuff::Vector3D vertex3D(currentVertex->vx,currentVertex->vy,currentVertex->pVertex->elevation);
+			eye->projectZ(vertex3D,screenPos);
+			currentVertex->px = screenPos.x;
+			currentVertex->py = screenPos.y;
+			currentVertex->pz = screenPos.z;
+			currentVertex->pw = screenPos.w;
+		}
+
+		if (currentVertex->calcThisFrame & 2)
+		{
+			Stuff::Vector3D vertex3D(currentVertex->vx,currentVertex->vy,currentVertex->wElevation);
+			eye->projectZ(vertex3D,screenPos);
+			currentVertex->wx = screenPos.x;
+			currentVertex->wy = screenPos.y;
+			currentVertex->wz = screenPos.z;
+			currentVertex->ww = screenPos.w;
+		}
+	}
 }
 
 //---------------------------------------------------------------------------

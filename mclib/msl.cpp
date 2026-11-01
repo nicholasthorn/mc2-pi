@@ -227,8 +227,19 @@ long TG_TypeMultiShape::LoadBinaryCopy (const char *fileName)
 				listOfTypeShapes[i]->init();
 				listOfTypeShapes[i]->LoadBinaryCopy(binFile);
 			}
+			else
+			{
+				// a node type this code does not know (mod data): its size is
+				// unknown, so the rest of the file cannot be read. Keep the
+				// nodes read so far instead of using the NULL slots below.
+				numTG_TypeShapes = i;
+				break;
+			}
 		}
-	
+
+		if (numTG_TypeShapes == 0)
+			return -1;	// nothing usable: fail as a missing file does
+
 		//Setup Heirarchy again because pointers are not valid!
 		for (int i=0;i<numTG_TypeShapes;i++)
 		{
@@ -1288,6 +1299,9 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
     __int64 x;
     x=GetCycles();
 #endif
+    // -bench: per-eye cost of VR stereo includes this (gos_BenchStageId)
+    static const int benchId = gos_BenchStageId("shape_xform");
+    gos_BenchStageStart(benchId);
 
     Stuff::LinearMatrix4D 	shapeOrigin;
     Stuff::LinearMatrix4D	shadowOrigin;
@@ -1689,6 +1703,7 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
     // the caller's list stays in effect for anything drawn after this shape
     TG_Shape::s_listOfLights = allLights;
     TG_Shape::s_numLights = numAllLights;
+    gos_BenchStageStop(benchId);
     return(0);
 }
 

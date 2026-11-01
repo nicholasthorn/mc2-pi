@@ -11,6 +11,10 @@
 // GL- and SDL-free so it can be unit tested.
 namespace frame_stats {
 
+// Named stages the game times inside a frame (gos_BenchStageStart/Stop):
+// extra CSV columns and [BENCH] keys "<name>_ms", in first-use order.
+const size_t kMaxStages = 8;
+
 struct FrameSample {
 	double total_ms = 0.0;   // whole main-loop iteration
 	double logic_ms = 0.0;   // Environment.DoGameLogic(), plus the main loop's
@@ -22,6 +26,7 @@ struct FrameSample {
 	uint32_t tris = 0;       // triangles in those draw calls
 	uint32_t segment = 0;    // scripted-scenario segment (gos_BenchSegment)
 	uint32_t state = 0;      // game-state checksum (gos_BenchStateHash), 0 = none
+	double stage_ms[kMaxStages] = {};  // time in each named stage this frame
 };
 
 struct Summary {
@@ -37,6 +42,7 @@ struct Summary {
 	double swap_ms = 0.0;
 	double draws = 0.0;      // average per frame
 	double tris = 0.0;
+	double stage_ms[kMaxStages] = {};
 };
 
 // Nearest-rank percentile (p in 0..100) of unsorted values; 0 if empty.
@@ -44,11 +50,29 @@ double percentile(std::vector<double> values, double p);
 
 Summary summarize(const std::vector<FrameSample>& frames);
 
-std::string csvHeader();
-std::string csvRow(long frame, const FrameSample& s);
+// Slot of a stage name, added to names on first use; -1 for a null or empty
+// name, or when kMaxStages names are taken. Inline: gameos.cpp keeps the
+// registry, and the gameos library does not link this file.
+inline int stageSlot(std::vector<std::string>& names, const char* name)
+{
+	if (!name || !*name)
+		return -1;
+	for (size_t i = 0; i < names.size(); ++i)
+		if (names[i] == name)
+			return (int)i;
+	if (names.size() >= kMaxStages)
+		return -1;
+	names.push_back(name);
+	return (int)names.size() - 1;
+}
+
+std::string csvHeader(const std::vector<std::string>& stages = std::vector<std::string>());
+std::string csvRow(long frame, const FrameSample& s,
+		const std::vector<std::string>& stages = std::vector<std::string>());
 
 // "[BENCH] segment=<name> frames=... fps=... avg_ms=... ..." on one line.
-std::string summaryLine(const char* segment, const Summary& s);
+std::string summaryLine(const char* segment, const Summary& s,
+		const std::vector<std::string>& stages = std::vector<std::string>());
 
 }
 

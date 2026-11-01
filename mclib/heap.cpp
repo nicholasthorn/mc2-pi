@@ -2121,8 +2121,6 @@ void HeapList::dumpLog (void)
 
 bool UserHeap::pointerOnHeap (void *ptr)
 {
-    // sebi NB!
-    ENTER_DEBUGGER;
 #ifndef USE_GOS_HEAP
 	if (IsBadReadPtr(getHeapPtr(),totalSize))
 		return false;

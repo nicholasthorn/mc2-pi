@@ -91,8 +91,9 @@ into it):
   windowed, so it behaves the same on any display.
 - `-bench <csv>` makes a run deterministic (fixed game step, fixed seed) and
   writes per-frame timings; `bench/README.md` describes scripted scenarios.
-- `MC2_STOP_EXITS=1` makes a `STOP` end the run (the smoke and bench scripts
-  set it), so a fatal error cannot pass unnoticed.
+- A `STOP` (a fatal engine error) shows a message box and ends the game.
+  `MC2_STOP_EXITS=0` makes it log and carry on instead, to see more than one
+  problem in one run when bringing up mod data.
 - `MC2_VSYNC=0` turns vsync off (on by default), to measure frame rate past
   the display refresh rate.
 - `MC2_SHADER_HOT_RELOAD=1` reloads shaders when their files change (off by

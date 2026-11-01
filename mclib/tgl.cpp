@@ -539,6 +539,12 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 
 		for (uint32_t i = 0; i < numTypeTriangles; i++)
 		{
+			// a vertex index past the list (mod data) read beyond it, here and
+			// wherever the triangle is used: point it at vertex 0 instead
+			for (uint32_t j = 0; j < 3; ++j)
+				if ((DWORD)listOfTypeTriangles[i].Vertices[j] >= numTypeVertices)
+					listOfTypeTriangles[i].Vertices[j] = 0;
+
 			TG_TypeTriangle triType = listOfTypeTriangles[i];
 
 			for (uint32_t j = 0; j < 3; ++j)
@@ -2508,12 +2514,6 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 
             GatherLightsParameters(&lightData_);
 
-			cur_viewport[0] = viewMulX;
-			cur_viewport[1] = viewMulY;
-			cur_viewport[2] = viewAddX;
-			cur_viewport[3] = viewAddY;
-			cur_shape2clip = *shapeToClip;
-
 			// FIXME: this (listOfTypeTriangles[0]) is not correct if model has more than 1 texture! 
 			mcTextureManager->addRenderShape(theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].mcTextureNodeIndex, MC2_DRAWSOLID | addFlags);
 		}
@@ -2748,10 +2748,12 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 				Stuff::Matrix4D forceZMatrix = Stuff::Matrix4D::Identity;
 				forceZMatrix(2, 2) = 0.0f;
 				forceZMatrix(3, 2) = forceZ;
-				mvp.Multiply(cur_shape2clip, forceZMatrix);
+				mvp.Multiply(*shapeToClip, forceZMatrix);
 			}
 			else {
-				mvp = cur_shape2clip;
+				// the matrix for the camera drawing now (each eye under -stereo),
+				// not the one from the update-time transform
+				mvp = *shapeToClip;
 			}
 
 			TG_RenderShape rs;
@@ -2760,7 +2762,11 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			rs.vdecl_ = theShape->vdecl_;
 			rs.mvp_ = mvp;
 			rs.mw_ = *shapeToWorld;
-			memcpy(rs.viewport_, cur_viewport, 4 * sizeof(float));
+			// draw-time viewport, like the matrix
+			rs.viewport_[0] = viewMulX;
+			rs.viewport_[1] = viewMulY;
+			rs.viewport_[2] = viewAddX;
+			rs.viewport_[3] = viewAddY;
             rs.light_data_buffer_index_ = mcTextureManager->addLightDataStructure(&lightData_);
 
 			mcTextureManager->addRenderShape(

@@ -188,9 +188,16 @@ void MissionBegin::begin()
 		curScreenX = 0;
 		curScreenY = 1;
 
+		// a first mission that skips logistics but shows mission selection puts
+		// that screen in the pilot-ready cell below; reset the grid so later
+		// missions get pilot assignment back (mod campaigns, never stock)
+		for (int i = 0; i < DIM_SCREEN_X; i++)
+			for (int j = 0; j < DIM_SCREEN_Y; j++)
+				screens[i][j] = singlePlayerScreens[i][j];
+
 		if ( LogisticsData::instance->skipLogistics() )
 		{
-					
+
 			if ( LogisticsData::instance->showChooseMission() )
 			{
 				curScreenX = 3;

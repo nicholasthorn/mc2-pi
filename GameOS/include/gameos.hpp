@@ -1961,6 +1961,32 @@ const char* __stdcall gos_GetBenchScenario();
 void __stdcall gos_BenchSegment( const char* name );
 void __stdcall gos_BenchScreenshot( const char* name );
 void __stdcall gos_BenchStateHash( unsigned int hash );
+//
+// Named stages inside a frame (with -bench): each name gets a "<name>_ms"
+// CSV column and [BENCH] key, the frame's total time between Start and Stop
+// (a stage entered several times a frame adds up). gos_BenchStageId(name)
+// returns the stage's id (call once, e.g. into a static), or -1 without
+// -bench or once 8 names are taken; Start/Stop ignore -1. Not reentrant:
+// do not nest a stage inside itself.
+//
+int __stdcall gos_BenchStageId( const char* name );
+void __stdcall gos_BenchStageStart( int id );
+void __stdcall gos_BenchStageStop( int id );
+//
+// "-benchfov <degrees>" (with -bench): the camera's field of view, forced
+// every frame, or 0 when not set (VR cost estimates: a headset sees about
+// 100 degrees, the game camera 40).
+//
+float __stdcall gos_GetBenchFOV();
+//
+// "-stereo <separation>": side-by-side stereo debug view (VR plan, Phase 1).
+// gos_GetStereoSeparation() is the distance between the two eye cameras in
+// world units, or 0 when off. gos_SetStereoEye(eye) points the GL viewport
+// at the left half (0), the right half (1) or the whole window (-1); every
+// draw after it, screen-space or 3D, lands in that part of the window.
+//
+float __stdcall gos_GetStereoSeparation();
+void __stdcall gos_SetStereoEye( int eye );
 
 
 
@@ -3259,6 +3285,13 @@ extern void __cdecl InternalFunctionSpewV( int Flags, const char* Group, const c
 extern int __cdecl InternalFunctionStop( const char* Message, ... );
 extern int __cdecl InternalFunctionStop( const char* Message, const char* value);
 extern int __cdecl InternalFunctionPause( const char* Message, ... );
+//
+// Ends the process after an error code cannot recover from (Fatal(),
+// ABL_Fatal()): logs "STOP: <message>" unless message is NULL (already
+// logged), shows a message box unless this is an automated run, and exits
+// with status 1. Unlike STOP, MC2_STOP_EXITS=0 does not keep it going.
+//
+[[noreturn]] extern void __cdecl gos_FatalExit( const char* message );
 extern void __stdcall gosLabRatStart( DWORD Handle );
 extern void __stdcall gosLabRatEnd( DWORD Handle );
 extern void __stdcall gosLabRatSet( DWORD Handle, DWORD Value );
