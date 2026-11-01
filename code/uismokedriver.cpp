@@ -310,7 +310,8 @@ const char* UiSmokeDriver::press(UiAction action)
 		// campaign's last one plays the final video instead
 		if (LogisticsData::instance->isSingleMission())
 			return "only a campaign mission shows the results";
-		if (LogisticsData::instance->campaignOver())
+		// (campaignOver() only turns true once the win is counted)
+		if (LogisticsData::instance->isLastMission())
 			return "the campaign's last mission shows no results";
 		scenarioResult = mis_PLAYER_WIN_BIG;	// what Mission::update's win cheat sets
 		return NULL;
@@ -398,6 +399,22 @@ const char* UiSmokeDriver::press(UiAction action)
 				}
 			}
 			return "the walk's save is not in the list (save+name first)";
+		}
+		return "screen is gone";
+	case UiAction::PickTutorial:
+		// the new campaign dialog lists the campaigns by their display name,
+		// with the file name hidden: "campaign", then "tutorial"
+		if (LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance()) {
+			aListBox& list = dialog->gameListBox;
+			for (long i = 0; i < list.GetItemCount(); i++) {
+				aLocalizedListItem* item = (aLocalizedListItem*)list.GetItem(i);
+				if (0 == S_stricmp(item->getHiddenText(), "tutorial")) {
+					list.SelectItem(i);
+					dialog->edits[0].setEntry(item->getText());
+					return NULL;
+				}
+			}
+			return "no tutorial in the list";
 		}
 		return "screen is gone";
 	case UiAction::None:

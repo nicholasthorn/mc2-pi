@@ -70,6 +70,9 @@ class LogisticsMissionInfo
 		const EString&		getCampaignDisplayName() const { return campaignDisplayName; }
 
 		bool				campaignOver() const;
+		// whether winning the current mission ends the campaign (by the rule
+		// setMissionComplete moves on to the next group with)
+		bool				isLastMission() const;
 
 		const char*			getCurrentBigVideo() const;
 		const char*			getFinalVideo() const;

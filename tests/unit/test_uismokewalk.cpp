@@ -65,8 +65,9 @@ TEST_CASE("routes are the buttons a player presses") {
 	// only back to the campaign
 	for (int i = 0; i < (int)UiScreen::Count; ++i) {
 		const UiScreen s = (UiScreen)i;
+		// mission selection too: the tutorials skip both results screens
 		const bool results = s == UiScreen::Salvage || s == UiScreen::PilotReview
-				|| s == UiScreen::Promotion;
+				|| s == UiScreen::Promotion || s == UiScreen::MissionSelection;
 		const UiAction expected = results ? UiAction::WinMission
 				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions : UiAction::None;
 		CHECK(uiRoute(UiScreen::Mission, s) == expected);
@@ -110,6 +111,9 @@ TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
 	CHECK(uiRoute(UiScreen::Load, UiScreen::MainMenu) == UiAction::DialogCancel);
 
 	CHECK(uiScreenAction(UiScreen::Save, "name", 4) == UiAction::NameSave);
+	CHECK(uiScreenAction(UiScreen::CampaignSelect, "tutorial", 8) == UiAction::PickTutorial);
+	// the tutorials launch from mission selection
+	CHECK(uiRoute(UiScreen::MissionSelection, UiScreen::Mission) == UiAction::Next);
 	CHECK(uiScreenAction(UiScreen::Load, "pick", 4) == UiAction::PickSave);
 	CHECK(uiScreenAction(UiScreen::Load, "name", 4) == UiAction::None);
 }
@@ -152,9 +156,14 @@ TEST_CASE("parse reads screen+action steps") {
 			r.err, sizeof(r.err)));
 	CHECK(r.walk.step(3) == UiScreen::Promotion);
 	CHECK(r.walk.stepAction(3) == UiAction::PickSkill);
+	// the tutorial: no logistics, no results
+	REQUIRE(r.walk.parse("mainmenu,campaign+tutorial,missionselection,mission,missionselection,mission",
+			r.err, sizeof(r.err)));
+	CHECK(r.walk.stepAction(1) == UiAction::PickTutorial);
+	CHECK(std::strcmp(uiActionName(UiAction::PickTutorial), "tutorial") == 0);
 	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,pilotreview+skill", r.err, sizeof(r.err)));
-	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,missionselection", r.err, sizeof(r.err)));
-	CHECK(std::strstr(r.err, "no route from mission to missionselection") != nullptr);
+	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,briefing", r.err, sizeof(r.err)));
+	CHECK(std::strstr(r.err, "no route from mission to briefing") != nullptr);
 }
 
 TEST_CASE("an in-screen action is pressed after the hold, then held again") {
