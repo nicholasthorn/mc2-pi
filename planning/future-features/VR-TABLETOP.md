@@ -461,12 +461,36 @@ mc2_19 is a night map, whose shadows come from point and spot lights.) The
 cloud layer needs nothing: `Clouds::update` never sets `renderClouds`, so it
 is not drawn in this build.
 
-Worse in this debug view: world-anchored overlays (selection brackets,
-health bars, `FloatHelp`) are part of the interface, drawn once over the
-whole window at the game camera's positions, so they match neither squashed
-half (a unit at mono x = 600 is at 300 and 700 in the halves, its bracket at
-600). Mouse picking and the cursor are full-window too. `-stereo` is for
-looking at the rendering, not for playing; Phase 2 draws overlays per eye.
+World-anchored overlays are per eye too (third slice, `vr-overlays`).
+Selection brackets, health bars, icons and select boxes were already drawn
+inside each eye's pass, but from the screen bounds `recalcBounds` computes
+with the game camera, so they had no parallax: both halves showed them at
+the same x, in the screen plane. Floating text (`FloatHelp`: unit names,
+sensor labels) was queued and drawn once over the whole window, matching
+neither half. Now:
+
+- An eye differs from the game camera by a sideways shift only, so a point's
+  screen x moves by a constant times its 1/depth (`screenPos.w`).
+  `Camera::renderWorld` measures that constant per eye on the camera's
+  look-at point (`Camera::eyeParallax`); `Camera::overlayShiftX` turns it
+  into a shift for a given `screenPos.w`, which the `Appearance` draw
+  functions and `getEyeScreenPos()` (sensor labels) add. `getScreenPos()`
+  stays the game camera's position.
+  It is 0 outside an eye's pass, so picking, drag-select and culling, which
+  read the bounds during the update, are unchanged.
+- Floating text added during an eye's pass is drawn in that eye's half and
+  dropped (`FloatHelp::renderAndResetFrom`); text set during the update (HUD
+  text) is still drawn once over the whole window.
+
+Measured on mc2_19 screenshots (green bars and brackets only): the shift
+between the halves went from 0 px to -15 px (engage) and -30 px (close-up),
+matching the scene's -12 to -32 px. Mono is byte-identical, the state
+checksum unchanged. The whole box shifts by its centre's parallax, a close
+enough fit for a box a few metres deep.
+
+Still full-window: mouse picking and the cursor, and the interface panels.
+`-stereo` is for looking at the rendering, not for playing; Phase 2 puts the
+interface on its own layer and picks with a controller ray.
 
 Not covered by an automated check yet: the eye order. It rests on one
 measured sign in `setCameraOrigin`; a flip passes the unit tests and the
@@ -478,6 +502,16 @@ Objects and terrain the game camera culls are missing at the edges of an
 eye's view; with eyes 8 m apart that is a sliver, with a headset-wide FOV it
 is not (Phase 2 needs the render eyes to cull for themselves, which means
 sizing the texture manager's counts for every eye).
+
+Deferred to Phase 2 (decided 2026-11-01): the in-view results are gameplay
+state as well as draw state. `inView` / `canBeSeen()` decide which vehicles
+animate, sensor and fire-range checks in `mech.cpp`, and `windowsVisible`;
+the terrain's `clipInfo` also sets the active object blocks. Widening them
+for the eyes would make stereo gameplay drift from mono. The fix is a second,
+draw-only result ("drawn by some eye") next to the game camera's exact one,
+through `Terrain::geometry`, each appearance's `recalcBounds` and the draw
+lists; it belongs with the OpenXR eyes, where the gap is large, rather than
+the -stereo debug view, where it is a sliver.
 
 Each half keeps the full window's aspect ratio, so the eyes are squashed 2:1
 in this view; Phase 2 gives each eye its own projection and viewport size.

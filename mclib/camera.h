@@ -234,6 +234,7 @@ class Camera
 		float 					cameraShiftZ;
 		float 					goalPositionZ;
 		float					eyeOffset;				//-stereo: this eye's sideways offset, applied last in setCameraOrigin
+		float					eyeParallax;			//-stereo: overlay x shift per unit of screen w for this eye (renderWorld)
 
 		float					fogStart;				//Altitude at which fog starts
 		float					fogFull;				//Altitude at which fog is Full;
@@ -304,7 +305,7 @@ class Camera
 			setCameraRotation(0.0,0.0);
 
 			cameraShiftZ = goalPositionZ = 0.0f;
-			eyeOffset = 0.0f;
+			eyeOffset = eyeParallax = 0.0f;
 	
 			lightDirection.Zero();
 			
@@ -497,6 +498,16 @@ class Camera
 		virtual long update (void);
 		virtual void render (void);
 		void renderWorld (void);		//render() once, or once per eye side by side under -stereo
+
+		//Where an overlay drawn from the game camera's screen position lands,
+		//in x, for the eye being drawn: the -stereo eyes are a sideways shift,
+		//so the move is eyeParallax times the point's screen w (1/depth). A
+		//head-tracked eye (VR Phase 2) needs a full re-projection here. The
+		//test keeps mono exact (0 * a NaN w would not be 0).
+		float overlayShiftX (float screenW)
+		{
+			return (eyeParallax != 0.0f) ? eyeParallax * screenW : 0.0f;
+		}
 
 		virtual long activate (void);
 		virtual void reset (void)

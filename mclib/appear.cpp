@@ -40,6 +40,18 @@ extern bool useFog;
 
 //---------------------------------------------------------------------------
 // class Appearance
+float Appearance::eyeShift (void)
+{
+	return eye ? eye->overlayShiftX(screenPos.w) : 0.0f;
+}
+
+Stuff::Vector4D Appearance::getEyeScreenPos (void)
+{
+	Stuff::Vector4D result = screenPos;
+	result.x += eyeShift();
+	return result;
+}
+
 void * Appearance::operator new (size_t mySize)
 {
 	void* result = NULL;
@@ -66,7 +78,7 @@ void Appearance::drawTextHelp (char *text, unsigned long color)
 {
 	DWORD width, height;
 	Stuff::Vector4D moveHere;
-	moveHere = screenPos;
+	moveHere = getEyeScreenPos();
 
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
@@ -88,7 +100,7 @@ void Appearance::drawPilotName(char *text, unsigned long color )
 {
 	DWORD width, height;
 	Stuff::Vector4D moveHere;
-	moveHere = screenPos;
+	moveHere = getEyeScreenPos();
 
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
@@ -119,11 +131,12 @@ void Appearance::drawSelectBox (DWORD color)
 	}
 	else
 	{
-		ul.x = upperLeft.x;
+		const float shift = eyeShift();
+		ul.x = upperLeft.x + shift;
 		ul.y = upperLeft.y;
 		ul.z = HUD_DEPTH;
 
-		br.x = lowerRight.x;
+		br.x = lowerRight.x + shift;
 		br.y = lowerRight.y;
 		br.z = HUD_DEPTH;
 	}
@@ -253,11 +266,12 @@ void Appearance::drawSelectBrackets (DWORD color)
 	Stuff::Vector4D			pos2;
 	Stuff::Vector4D			ul, br;
 
-	ul.x = upperLeft.x;
+	const float shift = eyeShift();
+	ul.x = upperLeft.x + shift;
 	ul.y = upperLeft.y;
 	ul.z = HUD_DEPTH;
 
-	br.x = lowerRight.x;
+	br.x = lowerRight.x + shift;
 	br.y = lowerRight.y;
 	br.z = HUD_DEPTH;
 
@@ -437,7 +451,7 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 	float			offset = 8.0 * eye->getScaleFactor();
 	float			trueHeight = HEIGHT * eye->getScaleFactor();
 	float			Y = upperLeft.y - offset - trueHeight -  2 * bmpHeight;
-	float			X = (upperLeft.x + lowerRight.x)/2.f - bmpWidth/2.f;
+	float			X = (upperLeft.x + lowerRight.x)/2.f - bmpWidth/2.f + eyeShift();
 
 	gos_VERTEX v[4]; 
 
@@ -475,7 +489,7 @@ void Appearance::drawBars (void)
 	float			trueWidth = WIDTH * eye->getScaleFactor() * 2;
 	float			trueHeight = HEIGHT * eye->getScaleFactor();
 	float			topY = upperLeft.y - offset - trueHeight;
-	float			leftX = floor((upperLeft.x + lowerRight.x)/2.f - trueWidth / 2);
+	float			leftX = floor((upperLeft.x + lowerRight.x)/2.f - trueWidth / 2 + eyeShift());
 	
 	DWORD					color;
 	
