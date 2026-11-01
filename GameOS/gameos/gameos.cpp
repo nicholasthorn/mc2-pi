@@ -156,7 +156,6 @@ void __stdcall gos_DestroyMemoryHeap(HGOSHEAP Heap, bool shouldBeEmpty/* = true*
 {
     // shouldBeEmpty ?? should Instances be zero or what?
     delete Heap;
-    Heap = nullptr;
 }
 void __stdcall gos_PushCurrentHeap(HGOSHEAP Heap)
 {

@@ -3187,16 +3187,11 @@ long MechWarrior::calcMovePath (long selectionIndex, unsigned long moveParams) {
 			startTime = GetCycles();
 			long thruArea[2] = {-1, -1};
 			long goalDoor = -1;
-			if (curGlobalStep == (numGlobalSteps - 2)) {
-				// Second from last, so the actual goal cell instead of the door
-				thruArea[0] = globalStep->thruArea;
-				goalDoor = globalStep->goalDoor;
-			}
-			else {
-				thruArea[0] = globalStep->thruArea;
-				thruArea[1] = moveOrders.globalPath[curGlobalStep+1].thruArea;
-				goalDoor = moveOrders.globalPath[curGlobalStep+1].goalDoor;
-			}
+			// (curGlobalStep < numGlobalSteps - 2 here; the second-from-last
+			// step is handled by the else-if branch below)
+			thruArea[0] = globalStep->thruArea;
+			thruArea[1] = moveOrders.globalPath[curGlobalStep+1].thruArea;
+			goalDoor = moveOrders.globalPath[curGlobalStep+1].goalDoor;
 			numSteps = myVehicle->calcMovePath(
                     moveOrders.path[pathNum], start, thruArea, goalDoor, moveOrders.globalGoalLocation, &goal, globalStep->goalCell, moveParams | MOVEPARAM_STATIONARY_MOVERS);
 #ifdef LAB_ONLY
