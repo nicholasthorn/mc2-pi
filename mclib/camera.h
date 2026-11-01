@@ -521,6 +521,12 @@ class Camera
 			return vrEye != NULL;
 		}
 
+		//VR: objects pass the view-cone and on-screen tests in recalcBounds,
+		//only the distance test culls them, so a head-tracked eye finds them
+		//wherever it looks. MC2_DRAW_ALL=1 does the same in a flat game, to
+		//check that it changes nothing in the game itself.
+		bool drawsAll (void);
+
 		virtual long activate (void);
 		virtual void reset (void)
 		{

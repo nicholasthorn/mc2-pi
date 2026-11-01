@@ -1082,7 +1082,7 @@ bool BldgAppearance::recalcBounds (void)
 			// WE have removed the atans here by simply taking the tan of the angle we want above.
 			float object_angle = fabs(objectCenter.z) * clip_distance;
 			float extent_angle = bldgShape->GetExtentRadius() / distanceToEye;
-			if (object_angle > (vClipConstant + extent_angle))
+			if ((object_angle > (vClipConstant + extent_angle)) && !eye->drawsAll())
 			{
 				//In theory, we would return here.  Object is NOT on screen.
 				inView = false;
@@ -1090,7 +1090,7 @@ bool BldgAppearance::recalcBounds (void)
 			else
 			{
 				object_angle = fabs(objectCenter.x) * clip_distance;
-				if (object_angle > (hClipConstant + extent_angle))
+				if ((object_angle > (hClipConstant + extent_angle)) && !eye->drawsAll())
 				{
 					//In theory, we would return here.  Object is NOT on screen.
 					inView = false;
@@ -1156,9 +1156,9 @@ bool BldgAppearance::recalcBounds (void)
 			lowerRight.x += (appearType->boundsLowerRightX * eye->getScaleFactor());
 			lowerRight.y += (appearType->boundsLowerRightY * eye->getScaleFactor());
 
-			if ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
+			if (eye->drawsAll() || ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
 				(upperLeft.x <= eye->getScreenResX()) &&
-				(upperLeft.y <= eye->getScreenResY()))
+				(upperLeft.y <= eye->getScreenResY())))
 			{
 				//We are on screen.  Figure out selection box.
 				Stuff::Vector3D boxCoords[8];
@@ -1273,9 +1273,9 @@ bool BldgAppearance::recalcBounds (void)
 				lowerRight.x = maxX;
 				lowerRight.y = maxY;
 				
-				if ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
+				if (eye->drawsAll() || ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
 					(upperLeft.x <= eye->getScreenResX()) &&
-					(upperLeft.y <= eye->getScreenResY()))
+					(upperLeft.y <= eye->getScreenResY())))
 				{
 					inView = true;
 
@@ -3573,7 +3573,7 @@ bool TreeAppearance::recalcBounds (void)
 			// WE have removed the atans here by simply taking the tan of the angle we want above.
 			float object_angle = fabs(objectCenter.z) * clip_distance;
 			float extent_angle = treeShape->GetExtentRadius() / distanceToEye;
-			if (object_angle > (vClipConstant + extent_angle))
+			if ((object_angle > (vClipConstant + extent_angle)) && !eye->drawsAll())
 			{
 				//In theory, we would return here.  Object is NOT on screen.
 				inView = false;
@@ -3581,7 +3581,7 @@ bool TreeAppearance::recalcBounds (void)
 			else
 			{
 				object_angle = fabs(objectCenter.x) * clip_distance;
-				if (object_angle > (hClipConstant + extent_angle))
+				if ((object_angle > (hClipConstant + extent_angle)) && !eye->drawsAll())
 				{
 					//In theory, we would return here.  Object is NOT on screen.
 					inView = false;
@@ -3711,9 +3711,9 @@ bool TreeAppearance::recalcBounds (void)
 			lowerRight.x = maxX;
 			lowerRight.y = maxY;
 			
-			if ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
+			if (eye->drawsAll() || ((lowerRight.x >= 0) && (lowerRight.y >= 0) &&
 				(upperLeft.x <= eye->getScreenResX()) &&
-				(upperLeft.y <= eye->getScreenResY()))
+				(upperLeft.y <= eye->getScreenResY())))
 			{
 				inView = true;
 		

@@ -1493,14 +1493,14 @@ void GameObjectManager::render (bool terrain, bool movers, bool other) {
 	{
 		for (long terrainBlock = 0; terrainBlock < Terrain::numObjBlocks; terrainBlock++) 
 		{
-			if (Terrain::objBlockInfo[terrainBlock].active) 
+			if (gos_IsVR() ? Terrain::objBlockInfo[terrainBlock].drawn : Terrain::objBlockInfo[terrainBlock].active) 
 			{
 				long numObjs = Terrain::objBlockInfo[terrainBlock].numObjects;
 				long objIndex = Terrain::objBlockInfo[terrainBlock].firstHandle;
 				for (long terrainObj = 0; terrainObj < numObjs; terrainObj++, objIndex++) 
 				{
 					if (objList[objIndex] &&
-						Terrain::objVertexActive[objList[objIndex]->getVertexNum()])
+						(gos_IsVR() ? Terrain::objVertexDrawn[objList[objIndex]->getVertexNum()] : Terrain::objVertexActive[objList[objIndex]->getVertexNum()]))
 					{
 						objList[objIndex]->render();
 						if (MaxObjectsDrawn) 
@@ -1624,14 +1624,14 @@ void GameObjectManager::renderShadows (bool terrain, bool movers, bool other) {
 	{
 		for (long terrainBlock = 0; terrainBlock < Terrain::numObjBlocks; terrainBlock++) 
 		{
-			if (Terrain::objBlockInfo[terrainBlock].active) 
+			if (gos_IsVR() ? Terrain::objBlockInfo[terrainBlock].drawn : Terrain::objBlockInfo[terrainBlock].active) 
 			{
 				long numObjs = Terrain::objBlockInfo[terrainBlock].numObjects;
 				long objIndex = Terrain::objBlockInfo[terrainBlock].firstHandle;
 				for (long terrainObj = 0; terrainObj < numObjs; terrainObj++, objIndex++) 
 				{
 					if (objList[objIndex] &&
-						Terrain::objVertexActive[objList[objIndex]->getVertexNum()]) 
+						(gos_IsVR() ? Terrain::objVertexDrawn[objList[objIndex]->getVertexNum()] : Terrain::objVertexActive[objList[objIndex]->getVertexNum()])) 
 					{
 						objList[objIndex]->renderShadows();
 						if (MaxObjectsDrawn) {
@@ -2827,6 +2827,46 @@ ArtilleryPtr GameObjectManager::createArtillery (long artilleryType, Stuff::Vect
 	}
 	
 	return(artillery);
+}
+
+//---------------------------------------------------------------------------
+// VR: terrain objects an eye may see (Terrain::objVertexDrawn) but the game
+// camera does not: their appearance only, as updateAppearancesOnly does, so
+// they can be drawn. The game's own update of them is untouched.
+void GameObjectManager::updateDrawnAppearances (void)
+{
+	if (!renderObjects)
+		return;
+
+	for (long terrainBlock = 0; terrainBlock < Terrain::numObjBlocks; terrainBlock++) 
+	{
+		if (!Terrain::objBlockInfo[terrainBlock].drawn) 
+			continue;
+
+		long numObjs = Terrain::objBlockInfo[terrainBlock].numObjects;
+		long objIndex = Terrain::objBlockInfo[terrainBlock].firstHandle;
+		for (long terrainObj = 0; terrainObj < numObjs; terrainObj++, objIndex++) 
+		{
+			if (!objList[objIndex] || !objList[objIndex]->getExists())
+				continue;
+			long vertexNum = objList[objIndex]->getVertexNum();
+			if (!Terrain::objVertexDrawn[vertexNum] || Terrain::objVertexActive[vertexNum])
+				continue;
+
+			if (objList[objIndex]->getAppearance()->recalcBounds()) 
+			{
+				Stuff::Vector3D pos = objList[objIndex]->getPosition();
+				float rot = objList[objIndex]->getRotation();
+				pos.z = land->getTerrainElevation(pos);
+				long drawFlags = objList[objIndex]->drawFlags;
+				int teamID = objList[objIndex]->getTeamId();
+				objList[objIndex]->getAppearance()->setObjectParameters(pos,rot,drawFlags,teamID,Team::getRelation(teamID, Team::home->getId()));
+
+				objList[objIndex]->getAppearance()->update( false );
+				objList[objIndex]->getAppearance()->setVisibility(true, true);	
+			}
+		}
+	}
 }
 
 void GameObjectManager::updateAppearancesOnly( bool terrain, bool movers, bool other)
