@@ -2223,7 +2223,7 @@ GameObjectPtr GameObjectManager::findObjectByMouse (long mouseX,
 			GameObjectPtr obj = searchList[objIndex];
 			Assert(obj != NULL, objIndex, " GameObjectManager.findObjectByMouse: NULL obj ");
 			AppearancePtr objAppearance = obj->getAppearance();
-			if (objAppearance && objAppearance->canBeSeen()) 
+			if (objAppearance && objAppearance->canBeSeen() && (!gos_IsVR() || eye->seesForGame(obj->getPosition()))) 
 			{
 				if (obj->getWindowsVisible() == (turn - VISIBLE_THRESHOLD))
 				{
@@ -2292,7 +2292,8 @@ GameObjectPtr GameObjectManager::findMoverByMouse (long mouseX,
 				GameObjectPtr obj = searchList[objIndex];
 				Assert(obj != NULL, objIndex, " GameObjectManager.findObjectByMouse: NULL obj ");
 				AppearancePtr objAppearance = obj->getAppearance();
-				if (objAppearance && objAppearance->canBeSeen()) 
+				//VR: see Camera::seesForGame
+				if (objAppearance && objAppearance->canBeSeen() && (!gos_IsVR() || eye->seesForGame(obj->getPosition()))) 
 				{
 					if (obj->getWindowsVisible() == (turn - VISIBLE_THRESHOLD)) 
 					{
@@ -2335,7 +2336,8 @@ GameObjectPtr GameObjectManager::findMoverByMouse (long mouseX,
 				if (obj->getCommanderId() == commanderId)
 					continue;
 				AppearancePtr objAppearance = obj->getAppearance();
-				if (objAppearance && objAppearance->canBeSeen()) 
+				//VR: see Camera::seesForGame
+				if (objAppearance && objAppearance->canBeSeen() && (!gos_IsVR() || eye->seesForGame(obj->getPosition()))) 
 				{
 					if (obj->getWindowsVisible() == (turn - VISIBLE_THRESHOLD)) 
 					{
@@ -2444,7 +2446,9 @@ bool GameObjectManager::moverInRect(long index, Stuff::Vector3D &dStart, Stuff::
 	if (checkMover && checkMover->getExists() && (checkMover->getTeam() == Team::home))
 	{
 		AppearancePtr objAppearance = checkMover->getAppearance();
-		if (objAppearance /*&& objAppearance->canBeSeen() */) 
+		//VR: screen positions are kept for movers the eyes may see too, so only
+		//those the game camera sees can be drag-selected (Camera::seesForGame)
+		if (objAppearance /*&& objAppearance->canBeSeen() */ && (!gos_IsVR() || eye->seesForGame(checkMover->getPosition()))) 
 		{
 //			if (checkMover->getWindowsVisible() > (turn - VISIBLE_THRESHOLD)) 
 			{
@@ -2830,6 +2834,27 @@ ArtilleryPtr GameObjectManager::createArtillery (long artilleryType, Stuff::Vect
 }
 
 //---------------------------------------------------------------------------
+// A terrain object's appearance alone, no game logic: placed where the object
+// is and updated, if it is within view (updateAppearancesOnly,
+// updateDrawnAppearances).
+static void refreshAppearanceOnly (GameObjectPtr obj)
+{
+	if (obj->getAppearance()->recalcBounds()) 
+	{
+		// Must force here as well.
+		Stuff::Vector3D pos = obj->getPosition();
+		float rot = obj->getRotation();
+		pos.z = land->getTerrainElevation(pos);
+		long drawFlags = obj->drawFlags;
+		int teamID = obj->getTeamId();
+		obj->getAppearance()->setObjectParameters(pos,rot,drawFlags,teamID,Team::getRelation(teamID, Team::home->getId()));
+
+		obj->getAppearance()->update( false );
+		obj->getAppearance()->setVisibility(true, true);	
+	}
+}
+
+//---------------------------------------------------------------------------
 // VR: terrain objects an eye may see (Terrain::objVertexDrawn) but the game
 // camera does not: their appearance only, as updateAppearancesOnly does, so
 // they can be drawn. The game's own update of them is untouched.
@@ -2853,18 +2878,7 @@ void GameObjectManager::updateDrawnAppearances (void)
 			if (!Terrain::objVertexDrawn[vertexNum] || Terrain::objVertexActive[vertexNum])
 				continue;
 
-			if (objList[objIndex]->getAppearance()->recalcBounds()) 
-			{
-				Stuff::Vector3D pos = objList[objIndex]->getPosition();
-				float rot = objList[objIndex]->getRotation();
-				pos.z = land->getTerrainElevation(pos);
-				long drawFlags = objList[objIndex]->drawFlags;
-				int teamID = objList[objIndex]->getTeamId();
-				objList[objIndex]->getAppearance()->setObjectParameters(pos,rot,drawFlags,teamID,Team::getRelation(teamID, Team::home->getId()));
-
-				objList[objIndex]->getAppearance()->update( false );
-				objList[objIndex]->getAppearance()->setVisibility(true, true);	
-			}
+			refreshAppearanceOnly(objList[objIndex]);
 		}
 	}
 }
@@ -2886,19 +2900,7 @@ void GameObjectManager::updateAppearancesOnly( bool terrain, bool movers, bool o
 						(Terrain::objVertexActive[objList[objIndex]->getVertexNum()] || (turn < 3)) && 
 						objList[objIndex]->getExists())
 					{
-						if (objList[objIndex]->getAppearance()->recalcBounds()) 
-						{
-							// Must force here as well.
-							Stuff::Vector3D pos = objList[objIndex]->getPosition();
-							float rot = objList[objIndex]->getRotation();
-							pos.z = land->getTerrainElevation(pos);
-							long drawFlags = objList[objIndex]->drawFlags;
-							int teamID = objList[objIndex]->getTeamId();
-							objList[objIndex]->getAppearance()->setObjectParameters(pos,rot,drawFlags,teamID,Team::getRelation(teamID, Team::home->getId()));
-
-							objList[objIndex]->getAppearance()->update( false );
-							objList[objIndex]->getAppearance()->setVisibility(true, true);	
-						}
+						refreshAppearanceOnly(objList[objIndex]);
 					}
 				}
 			}
