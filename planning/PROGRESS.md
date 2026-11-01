@@ -108,8 +108,13 @@ Added 2026-10-31.
     after a bounds check that only set a flag. Five `sizeof` of pointer-array
     elements suppressed inline as intended. Baseline regenerated after #33:
     413 -> 310.
+  - [x] `memsetClassFloat` (43) (branch `fix/cppcheck-memset`): 40 are a
+    zero fill, exactly 0.0f on IEEE 754, so the gate drops the check when
+    the source line's fill is 0 and still reports a non-zero one; the two
+    real ones, `0xff` fills in the ASE parser (`tgl.cpp`), are now zero
+    (a mesh without texture faces kept NaN UVs in `tgl.fst`).
   - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
-    became `[[noreturn]]`), `memsetClassFloat` (43),
+    became `[[noreturn]]`),
     `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
@@ -419,6 +424,7 @@ Candidates:
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
+- 2026-11-01: cppcheck `memsetClassFloat` (43) closed (branch `fix/cppcheck-memset`): the ASE shape parser zero-fills its vertex and triangle lists instead of `0xff`, so a mesh without texture faces no longer keeps NaN UVs (game data differs only in `tgl.fst`); the gate drops `memsetClassFloat` for zero fills (all-bits-zero is 0.0f on IEEE 754) and still reports non-zero ones. Baseline to regenerate from CI after merge.
 - 2026-11-01: CI skips docs-only pushes: a "changes" job in `ci.yml` and `smoke.yml` runs `scripts/ci_docs_only.sh`, and the build, test and smoke jobs skip when everything changed since the previous push is docs (`*.md`, `planning/`, `.claude/`, `docs`, `devdoc.txt`) and that previous commit passed the same workflow. A cancelled or failed run, a force push or a new branch always runs in full. Docs-only PRs no longer start `ci.yml` at all (`paths-ignore`) (#45). Same PR: agents run `/simplify`, `/code-review` and `/code-review high` while CI runs on the push, instead of waiting for green first.
 - 2026-11-01: MechCommander Omnitech front-end screen size (branch `omnitech-frontend-res`): the front end runs at 1280x1024 when `mcl_mm.fit` has a `[HiresOffsets]` block (Omnitech's layouts reach 1194x896 and were cut off at 800x600), else 800x600 as before; mode switches, the load screen check and the screen slides follow it. Omnitech's full logistics walk passes and every screen shows in full (frames on a 1280x1024 Xvfb).
 - 2026-11-01: agent workflow Tier 2 moves to CI: after `/simplify` + `/code-review`, a batch is pushed to a draft PR and `ci.yml` / `smoke.yml` do the four-configuration build and the smoke missions; local `check.sh --level batch` only for crash debugging or GLES-only changes. Five sessions running batch checks at once were queueing for the same WSL CPUs to repeat what CI runs in 2 to 9 minutes. Also: no `pgrep -f smoke.sh` waits, which matched other sessions' runs.

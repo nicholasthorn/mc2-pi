@@ -19,6 +19,7 @@ Exit status: 0 nothing new, 1 new findings, 2 cppcheck itself failed.
 """
 import argparse
 import collections
+import linecache
 import os
 import re
 import subprocess
@@ -27,7 +28,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ROOT, "scripts", "cppcheck-baseline.txt")
 SEP = "\x1f"  # unit separator: never appears in cppcheck output
-TEMPLATE = SEP.join(["{file}", "{severity}", "{id}", "{message}"])
+TEMPLATE = SEP.join(["{file}", "{line}", "{severity}", "{id}", "{message}"])
 EXCLUDE = ["tests", "thirdparty", "3rdparty"]
 
 # Microsoft's "Stuff" class registration: every class in mclib/stuff, mlr,
@@ -50,6 +51,12 @@ HIDDEN_NAME = re.compile(r"with name '([^']+)' also defined in its parent class"
 # calls of any other name from a constructor or destructor are still reported.
 CTOR_DTOR_CALLS = {"init", "destroy", "close"}
 VIRTUAL_CALL = re.compile(r"^Virtual function '([^']+)' is called from (con|de)structor")
+# memset() with a zero fill on a struct holding floats: all-bits-zero is 0.0f
+# on IEEE 754, which every target is (x86-64, arm64), so only a non-zero fill
+# (which makes NaNs) is reported. The fill is read from the source line, and
+# every memset on that line must be a zero fill.
+MEMSET_CALL = re.compile(r"\bmemset\s*\(")
+ZERO_FILL_MEMSET = re.compile(r"\bmemset\s*\([^,]+,\s*(0+|0[xX]0+|'\\0')\s*,")
 # some messages name a line ("called from constructor 'Camera()' at line
 # 389"); keys must not move when unrelated edits shift the code
 LINE_IN_MESSAGE = re.compile(r"\bat line \d+")
@@ -60,7 +67,14 @@ def key(path, severity, check, message):
                      LINE_IN_MESSAGE.sub("at line N", message)])
 
 
-def ignored(path, check, message):
+def zero_fill_only(text):
+    calls = len(MEMSET_CALL.findall(text))
+    return calls > 0 and len(ZERO_FILL_MEMSET.findall(text)) == calls
+
+
+def ignored(path, line, check, message):
+    if check == "memsetClassFloat":
+        return zero_fill_only(linecache.getline(os.path.join(ROOT, path), line))
     if check == "duplInheritedMember":
         if path.startswith(DELIBERATE_HIDING_DIRS):
             return True
@@ -82,9 +96,9 @@ def run_cppcheck(build_dir, files, jobs):
     findings = collections.Counter()
     for line in r.stderr.splitlines():
         parts = line.split(SEP)
-        if len(parts) != 4:
+        if len(parts) != 5:
             continue
-        path, severity, check, message = parts
+        path, line_no, severity, check, message = parts
         path = os.path.relpath(os.path.abspath(path), ROOT).replace("\\", "/")
         if path.startswith(".."):
             continue  # system headers etc.
@@ -92,7 +106,7 @@ def run_cppcheck(build_dir, files, jobs):
             continue  # -i is not honoured in --project mode by every version
         if severity in ("information", "debug"):
             continue
-        if ignored(path, check, message):
+        if ignored(path, int(line_no) if line_no.isdigit() else 0, check, message):
             continue
         findings[key(path, severity, check, message)] += 1
     # Without --error-exitcode cppcheck exits non-zero only when it failed
