@@ -61,9 +61,21 @@ TEST_CASE("routes are the buttons a player presses") {
 	CHECK(uiRoute(UiScreen::OptionsAudio, UiScreen::OptionsAudio) == UiAction::None);
 	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MainMenu) == UiAction::None);
 	CHECK(uiRoute(UiScreen::SingleMission, UiScreen::MissionSelection) == UiAction::None);
-	// once a mission has started the walk can only end there
-	for (int i = 0; i < (int)UiScreen::Count; ++i)
-		CHECK(uiRoute(UiScreen::Mission, (UiScreen)i) == UiAction::None);
+	// a mission leads only to the results, and they only back to the campaign
+	for (int i = 0; i < (int)UiScreen::Count; ++i) {
+		const UiScreen s = (UiScreen)i;
+		const bool results = s == UiScreen::Salvage || s == UiScreen::PilotReview
+				|| s == UiScreen::Promotion;
+		CHECK(uiRoute(UiScreen::Mission, s) == (results ? UiAction::WinMission : UiAction::None));
+	}
+	CHECK(uiRoute(UiScreen::Salvage, UiScreen::PilotReview) == UiAction::SalvageDone);
+	CHECK(uiRoute(UiScreen::Salvage, UiScreen::Promotion) == UiAction::SalvageDone);
+	CHECK(uiRoute(UiScreen::Promotion, UiScreen::PilotReview) == UiAction::PromotionConfirm);
+	CHECK(uiRoute(UiScreen::Promotion, UiScreen::MissionSelection) == UiAction::None);
+	CHECK(uiRoute(UiScreen::Salvage, UiScreen::MissionSelection) == UiAction::SalvageDone);
+	CHECK(uiRoute(UiScreen::PilotReview, UiScreen::MissionSelection) == UiAction::PilotReviewDone);
+	CHECK(uiRoute(UiScreen::Salvage, UiScreen::Mission) == UiAction::None);
+	CHECK(uiRoute(UiScreen::PilotReview, UiScreen::MainMenu) == UiAction::None);
 	CHECK(uiRoute(UiScreen::Unknown, UiScreen::MainMenu) == UiAction::None);
 }
 
@@ -71,6 +83,7 @@ TEST_CASE("in-screen actions belong to one screen each") {
 	CHECK(uiScreenAction(UiScreen::MechPurchase, "buy", 3) == UiAction::BuyMech);
 	CHECK(uiScreenAction(UiScreen::MechBay, "add", 3) == UiAction::AddToForce);
 	CHECK(uiScreenAction(UiScreen::PilotReady, "pilot", 5) == UiAction::AssignPilot);
+	CHECK(uiScreenAction(UiScreen::Promotion, "skill", 5) == UiAction::PickSkill);
 	CHECK(uiScreenAction(UiScreen::MechBay, "buy", 3) == UiAction::None);
 	CHECK(uiScreenAction(UiScreen::MechPurchase, "bu", 2) == UiAction::None);
 	CHECK(uiScreenAction(UiScreen::MainMenu, "add", 3) == UiAction::None);
@@ -94,6 +107,19 @@ TEST_CASE("parse reads screen+action steps") {
 	CHECK_FALSE(r.walk.parse("mainmenu+", r.err, sizeof(r.err)));
 	CHECK_FALSE(r.walk.parse("mainmenu,nosuch+buy", r.err, sizeof(r.err)));
 	CHECK(std::strstr(r.err, "unknown screen 'nosuch'") != nullptr);
+
+	REQUIRE(r.walk.parse("mainmenu,campaign,mission,salvage,pilotreview,missionselection",
+			r.err, sizeof(r.err)));
+	CHECK(r.walk.numSteps() == 6);
+	CHECK(r.walk.step(3) == UiScreen::Salvage);
+	// a promotion opens over pilot review; with no salvage, straight from the mission
+	REQUIRE(r.walk.parse("mainmenu,campaign,mission,promotion+skill,pilotreview,missionselection",
+			r.err, sizeof(r.err)));
+	CHECK(r.walk.step(3) == UiScreen::Promotion);
+	CHECK(r.walk.stepAction(3) == UiAction::PickSkill);
+	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,pilotreview+skill", r.err, sizeof(r.err)));
+	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,missionselection", r.err, sizeof(r.err)));
+	CHECK(std::strstr(r.err, "no route from mission to missionselection") != nullptr);
 }
 
 TEST_CASE("an in-screen action is pressed after the hold, then held again") {

@@ -68,6 +68,8 @@ public:
 
 private:
 
+	friend class UiSmokeDriver;	// -uismoke presses Done once the screen has slid in
+
 	PilotListBox			pilotListBox;
 	aAnimation				entryAnim;
 	aAnimation				exitAnim;
@@ -241,6 +243,8 @@ private:
 	PilotIcon*		pilotIcon;
 	aAnimation		selSkillAnim;
 	long			lastCheck;
+
+	friend class UiSmokeDriver;	// -uismoke picks a skill and confirms
 
 };
 

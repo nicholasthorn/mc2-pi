@@ -32,17 +32,24 @@
 set -u
 
 # 1: the four options tabs, then a new campaign (its first mission, mc2_01,
-#    skips logistics and loads at once).
+#    skips logistics and loads at once). The walk wins it (the driver's
+#    win, not a fight): pilot review (mc2_01 skips salvage), mission
+#    selection, launch mc2_02 and win it too: salvage, a pilot promotion
+#    (pick a skill), pilot review, back to mission selection.
 # 2: a single mission (mc2_02), which starts with no mechs: buy one, put it
 #    in the force, open the mech lab (Cancel), back to the briefing, give
 #    the mech a pilot and launch.
 UI_OPTIONS="mainmenu,options-graphics,options-audio,options-gameplay,options-hotkeys,mainmenu"
 UI_OPTIONS_MCO="$UI_OPTIONS"
-UI_OPTIONS="$UI_OPTIONS,campaign,mission"
+UI_OPTIONS="$UI_OPTIONS,campaign,mission,pilotreview,missionselection"
+UI_OPTIONS="$UI_OPTIONS,briefing,mechbay,pilotready,mission"
+UI_OPTIONS="$UI_OPTIONS,salvage,promotion+skill,pilotreview,missionselection"
 # MechCommander Omnitech's new campaign opens mission selection instead, with
-# no mechs: buy one, put it in the force, give it a pilot and launch.
+# no mechs: buy one, put it in the force, give it a pilot, launch, win:
+# salvage, pilot review, mission selection.
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,campaign,missionselection,briefing,mechbay"
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,mechpurchase+buy,mechbay+add,pilotready+pilot,mission"
+UI_OPTIONS_MCO="$UI_OPTIONS_MCO,salvage,pilotreview,missionselection"
 UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab"
 UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing,mechbay,pilotready+pilot,mission"
 
