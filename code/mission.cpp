@@ -499,7 +499,7 @@ long Mission::update (void)
 
 		mcTextureManager->clearArrays();
 		
-		ProfileTime(MCTimeInterfaceUpdate,missionInterface->update());
+		BenchStage("interface",ProfileTime(MCTimeInterfaceUpdate,missionInterface->update()));
 
 		// -benchscenario: scripted battle and camera; after the interface
 		// (input) and before the camera update, so its camera wins
@@ -528,7 +528,7 @@ long Mission::update (void)
 #ifdef USE_PATH_COST_TABLE
 		GlobalMoveMap[0]->resetPathCostTable();
 #endif
-		ProfileTime(MCTimePathManagerUpdate,PathManager->update());
+		BenchStage("paths",ProfileTime(MCTimePathManagerUpdate,PathManager->update()));
 
 		if (KillAmbientLight) {
 	//		ambientRed<<16)+(ambientGreen<<8)+ambientBlue;
@@ -558,21 +558,21 @@ long Mission::update (void)
 		//Do not UPDATE the textures during a pause.  
 		//This uncaches things which only objectManager->update can cache back in!!!!!
 		if ( !missionInterface->isPaused() || MPlayer )
-			ProfileTime(MCTimeTXMManagerUpdate,mcTextureManager->update());
+			BenchStage("txm_update",ProfileTime(MCTimeTXMManagerUpdate,mcTextureManager->update()));
 
 		//--------------------------------------
 		// update sensor and contact managers...
 		if (useSensors && ( !missionInterface->isPaused() || MPlayer ) )
-			ProfileTime(MCTimeSensorUpdate, SensorManager->update());
+			BenchStage("sensors",ProfileTime(MCTimeSensorUpdate, SensorManager->update()));
 
 		if (useCollisions && ( !missionInterface->isPaused() || MPlayer ) )
-			ProfileTime(MCTimeCollisionUpdate,ObjectManager->updateCollisions());
+			BenchStage("collisions",ProfileTime(MCTimeCollisionUpdate,ObjectManager->updateCollisions()));
 
 		if (missionBrain)
 		{
 			if ( !missionInterface->isPaused() || MPlayer )
 			{
-				ProfileTime(MCTimeMissionScript,missionBrain->execute());
+				BenchStage("script",ProfileTime(MCTimeMissionScript,missionBrain->execute()));
 				long missionResult = missionBrain->getInteger();
 				if (missionResult == 9999)
 					return(terminationResult = 9999);
