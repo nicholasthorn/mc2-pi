@@ -484,6 +484,7 @@ void
 			Check_Object(node->greater);
 
 			successor = node->greater;
+			// cppcheck-suppress nullPointerRedundantCheck ; node->greater is non-NULL in this branch (Check_Object above); the later test is on successor->greater
 			while (successor->less != NULL)
 			{
 				successor = successor->less;

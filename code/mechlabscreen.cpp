@@ -1095,7 +1095,7 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 					{	
 						if ( pCurVar && !pCurVar->allComponentsAvailable() )
 							pCurDialog = acceptDlg;
-						else if ( pVariant && !pVariant->allComponentsAvailable() )
+						else if ( !pVariant->allComponentsAvailable() )
 							pCurDialog = acceptDlg;
 						else
 							pCurDialog = saveDlg; 
