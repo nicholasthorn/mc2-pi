@@ -232,6 +232,7 @@ Then the **Session status** (every branch and PR the session touched), exactly o
 - `planning/QUALITY-ROADMAP.md`: tests, static analysis, CI, performance to-do list
 - `planning/RELEASES.md`: release packages (Pi 4/400 first, plus Linux and Windows for everyone), support levels, how a release is made
 - `planning/PROGRESS.md`: what is built, what is in progress, dated log
+- `planning/HARDWARE-TESTS.md`: checks only a person, a display or the Pi can run; add to it when a PR leaves one
 - `planning/future-features/`: specced, not built
 - `devdoc.txt`, `docs` (a text file, not a folder): alariq's original dev notes
 
