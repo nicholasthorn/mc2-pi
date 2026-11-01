@@ -168,7 +168,9 @@ static bool canMipmap(TexFormat fmt)
     return fmt == TF_R8 || fmt == TF_RGB8 || fmt == TF_RGBA8;
 }
 
-// a texture just created (bound): mipmaps if they are on and its format can
+// a texture just created from data (bound): mipmaps if they are on and its
+// format can. Dynamic textures, rewritten every frame, get none: their mips
+// would be regenerated on each upload.
 static void addMipmaps(Texture& t)
 {
     if(s_generate_mipmaps && canMipmap(t.fmt_)) {
@@ -235,7 +237,6 @@ Texture createDynamicTexture(int w, int h, TexFormat fmt)
 	t.fmt_ = fmt;
     t.type_ = TT_2D;
     t.format = (GLenum)-1;
-    addMipmaps(t);
 
 	return t;
 }
