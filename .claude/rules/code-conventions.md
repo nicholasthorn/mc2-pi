@@ -19,7 +19,7 @@ Most of the tree is 2001 Microsoft code plus alariq's port. Treat it as legacy:
 - **Networking is stubbed.** Calls into the MP layer can return NULL or dummy
   data (`getPlayerInfo()` etc.); guard them.
 - **Some bugs are kept as shipped.** Original-game behaviour that changes how
-  the game plays (forest pathing, pilot rank order, ...) is kept on purpose
+  the game plays (forest pathing, fog bytes, ...) is kept on purpose
   and listed under "Kept as shipped" in `planning/PROGRESS.md`, with a comment
   at the code. Do not "fix" one of those without a decision from the user. A
   new case like it is reported for a decision, not fixed.

@@ -24,6 +24,9 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Graphics options resolution list** (#53). Options, Graphics: each
       resolution appears once; choosing one and pressing OK saves it, and
       Reset selects the saved one again.
+- [ ] **Pilot auto-assignment** (#64). In logistics, let the game assign
+      pilots: a higher-ranked free pilot is picked before a lower-ranked one,
+      even one with better gunnery.
 - [ ] **PR #9 fixes**: infantry, the font texture, `MemoryStream`; air-strike
       bombers render light grey, not compared with the intended art. (10-31)
 - [ ] **Terrain blend caches** resized to the current size: check on screen.
