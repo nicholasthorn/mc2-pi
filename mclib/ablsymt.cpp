@@ -519,9 +519,15 @@ void enterStandardRoutine (const char* name, long routineKey, bool isOrder, cons
 
 	long tableIndex = routineKey;
 	if (tableIndex == -1) {
-		if (NumStandardFunctions == MAX_STANDARD_FUNCTIONS)
+		if (NumStandardFunctions >= MAX_STANDARD_FUNCTIONS) {
 			ABL_Fatal(0, " ABL.enterStandardRoutine: Too Many Standard Functions ");
+			return;	// ABL_Fatal can return: the tables are full
+		}
 		tableIndex = NumStandardFunctions++;
+	}
+	if ((tableIndex < 0) || (tableIndex >= MAX_STANDARD_FUNCTIONS)) {
+		ABL_Fatal(0, " ABL.enterStandardRoutine: bad routine key ");
+		return;
 	}
 
 	SymTableNodePtr routineIdPtr;
@@ -538,8 +544,10 @@ void enterStandardRoutine (const char* name, long routineKey, bool isOrder, cons
 	FunctionInfoTable[tableIndex].numParams = 0;
 	if (paramList) {
 		FunctionInfoTable[tableIndex].numParams = strlen(paramList);
-		if (FunctionInfoTable[tableIndex].numParams > MAX_FUNCTION_PARAMS)
+		if (FunctionInfoTable[tableIndex].numParams > MAX_FUNCTION_PARAMS) {
 			ABL_Fatal(0, " ABL.enterStandardRoutine: Too Many Standard Function Params ");
+			FunctionInfoTable[tableIndex].numParams = MAX_FUNCTION_PARAMS;	// params[] holds no more
+		}
 		for (long i = 0; i < FunctionInfoTable[tableIndex].numParams; i++)
 			switch (paramList[i]) {
 				case '?':

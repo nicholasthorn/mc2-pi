@@ -227,6 +227,14 @@ long TG_TypeMultiShape::LoadBinaryCopy (const char *fileName)
 				listOfTypeShapes[i]->init();
 				listOfTypeShapes[i]->LoadBinaryCopy(binFile);
 			}
+			else
+			{
+				// a node type this code does not know (mod data): its size is
+				// unknown, so the rest of the file cannot be read. Keep the
+				// nodes read so far instead of using the NULL slots below.
+				numTG_TypeShapes = i;
+				break;
+			}
 		}
 	
 		//Setup Heirarchy again because pointers are not valid!

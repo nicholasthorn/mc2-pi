@@ -235,7 +235,11 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
 	// The target can sit at any byte offset inside a packed array or record,
 	// so store scalars with memcpy rather than through the StackItem union
 	// (which needs pointer alignment).
-	if ((targetTypePtr == RealTypePtr) && (expressionTypePtr == IntegerTypePtr)) {
+	if (!targetTypePtr || !targetPtr || !tos) {
+		// broken bytecode (a module with syntax errors) can leave these NULL:
+		// skip the store, the pop() below still balances the stack
+		}
+	else if ((targetTypePtr == RealTypePtr) && (expressionTypePtr == IntegerTypePtr)) {
 		//-------------------------
 		// integer assigned to real
 		float value = (float)(tos->integer);

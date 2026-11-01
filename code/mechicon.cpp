@@ -358,7 +358,10 @@ void MechIcon::setDrawBack( bool bSet)
 
 	DWORD* pSrcData = pSrcRow;
 
-	for( int j = 0; j < unitIconY; ++j )
+	// an icon index past the atlas (mod data) read beyond s_MechTextures
+	const bool inAtlas = whichMech >= 0 && (whichMech + 1) * unitIconX <= s_MechTextures->width
+		&& 2 * unitIconY <= s_MechTextures->height;
+	for( int j = 0; inAtlas && j < unitIconY; ++j )
 	{
 		pDestData = pDestRow;
 		pSrcData = pSrcRow;
@@ -537,8 +540,10 @@ bool MechIcon::init( long whichIndex )
 
 	pSrcRow += tmpOffset;
 
-
-	for( int j = 0; j < unitIconY; ++j )
+	// an icon index past the atlas (mod data) read beyond s_MechTextures
+	const bool inAtlas = whichIndex >= 0 && (whichIndex + 1) * unitIconX <= s_MechTextures->width
+		&& unitIconY <= s_MechTextures->height;
+	for( int j = 0; inAtlas && j < unitIconY; ++j )
 	{
 		// the pixels follow an 18-byte TGA header, so the source DWORDs are
 		// not aligned: copy the row bytewise
@@ -1196,8 +1201,10 @@ bool VehicleIcon::init( Mover* pMover )
 
 	pSrcRow += tmpOffset;
 
-
-	for( int j = 0; j < unitIconY; ++j )
+	// an icon index past the atlas (mod data) read beyond s_VehicleTextures
+	const bool inAtlas = whichMech >= 0 && (whichMech + 1) * unitIconX <= s_VehicleTextures->width
+		&& unitIconY <= s_VehicleTextures->height;
+	for( int j = 0; inAtlas && j < unitIconY; ++j )
 	{
 		// unaligned source (pixels follow the 18-byte TGA header)
 		memcpy( pDestRow, pSrcRow, unitIconX * sizeof(DWORD) );
