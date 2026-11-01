@@ -113,9 +113,18 @@ Added 2026-10-31.
     the source line's fill is 0 and still reports a non-zero one; the two
     real ones, `0xff` fills in the ASE parser (`tgl.cpp`), are now zero
     (a mesh without texture faces kept NaN UVs in `tgl.fst`).
+  - [x] `duplInheritedMember` (41) (branch `fix/cppcheck-dupl`): two real
+    ones, both latent: `Camera::destroy` is now virtual (`eye->destroy()`
+    ran Camera's on a GameCamera), and the accept-variant dialog's own
+    `selectedName` is gone (a delete would have removed the wrong variant;
+    stock data has no delete button there). Dead duplicates removed
+    (`Building::isVisible`, `BattleMech::initOptimalCells`, two MP
+    `isDone`); 28 intended ones suppressed inline with the reason, the two
+    save-game struct fields among them (loads tell types apart by size).
+    Left: `TerrainObjectType::subType`, the shipped-game forest pathing
+    bug (fixing it changes gameplay: needs a decision).
   - Next: `nullPointerRedundantCheck` (60 left with 2.19 after `Fatal()`
-    became `[[noreturn]]`),
-    `duplInheritedMember` (41), `allocaCalled` (27) and the rest.
+    became `[[noreturn]]`), `allocaCalled` (27) and the rest.
   - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
     (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
     a second cppcheck version in the nightly run, or clang-tidy's init checks.
@@ -453,6 +462,7 @@ Candidates:
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-01: cppcheck `duplInheritedMember` (41) triaged (branch `fix/cppcheck-dupl`): `Camera::destroy` virtual; the accept-variant dialog deletes the variant its prompt names (latent: no delete button in stock data); dead duplicates removed; 28 intended cases suppressed inline with reasons; `TerrainObjectType::subType` (forest pathing, shipped behaviour) left for a gameplay decision.
 - 2026-11-01: STOP follow-ups (branch `fix/stop-followups`): the `STOP:` log line format (prefix, one trailing newline, truncation) moved from `logmsg` to `formatLogLine()` in `str_bounded.cpp` with unit tests, as did the message box's prefix strip (`logLineMessage()`); behaviour unchanged. ABL syntax errors ending the game under the opt-out recorded as a decision (see the `STOP` plan). Ubuntu 26.04: GL and GLES builds and unit tests (117 cases); MSVC, Clang and arm64 left to CI.
 - 2026-11-01: Full sweep of the remaster's history (branch `fix/backport-sweep`): 419 fix-like commits on shared files checked, 23 ported. Stock data: a leftover `ENTER_DEBUGGER` in `UserHeap::pointerOnHeap` (SIGTRAP from the briefing's empty-model `SimpleCamera::setObject`), `gos_SetMousePosition` warped to 0..1 as pixels, `calcAttackPlan` divided by a zero threat rating, `GlobalMap::destroy` leaked its three pointer arrays every mission, an unbounded height read in `calcBestGoalFromTarget`, the `txmmgr` vertex and shape pools handed out memory past their heap when full (and the untextured copies wrote one slot past their block), mech and vehicle paint colours swapped on an LOD change (cache-hit branches stored them unconverted under `BGR`), `iconsPerPage` used the atlas width, and the logistics CSV reader stepped past a short row's NUL (now `code/csvfield.h`, unit tested). Mod data: missing terrain textures and masks, ABL assignment from broken bytecode, the pilot-ready screen lost after a first mission without logistics, objective copies of an unknown species, icon indexes past the atlas, more than 256 cursors, short or oversized briefing TGAs, unknown TGL node types and vertex indices, the mission-selection button off-by-one, and out-of-range ABL routine keys and full routine tables.
 - 2026-11-01: Step 4 of the `STOP` plan (branch `fix/stop-exit-default`): `STOP` and `Assert` end the game by default (log, SDL message box parented to the game window with the mouse released, `_Exit(1)`); no box under `-autoexit` / `-bench` / `-uismoke`; `MC2_STOP_EXITS=0` carries on as before. `Fatal()` and `ABL_Fatal()` are `[[noreturn]]` and end through the new `gos_FatalExit()` regardless of the switch. A missing `-mission` now exits 1 with "Unable to open Mission File" instead of a segfault. cppcheck 2.19 over the whole tree, before and after: 24 `nullPointerRedundantCheck`, 3 `arrayIndexOutOfBoundsCond` and 1 `negativeIndex` gone, and one real bug found: ABL's `LibrariesUsed[25]` took a 26th entry (`>` for `>=`), fixed. Ubuntu 26.04: GL and GLES builds, unit tests, all 30 stock missions and both UI walks on both renderers (64/64); MSVC, Clang and arm64 left to CI; message box not seen (needs a windowed run).
