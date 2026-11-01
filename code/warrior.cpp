@@ -6280,8 +6280,8 @@ long MechWarrior::orderPatrolPath (bool unitOrder, bool setTacOrder, long origin
 long MechWarrior::orderPowerUp (bool unitOrder, long origin) {
 
 	MoverPtr myVehicle = getVehicle();
-	if (!myVehicle)
-		return(TACORDER_FAILURE);
+	if (!myVehicle)		// nothing to power up or down
+		return(TACORDER_SUCCESS);
 	if ((myVehicle->getStatus() != OBJECT_STATUS_SHUTDOWN))
 		return TACORDER_SUCCESS;
 
@@ -6317,8 +6317,8 @@ long MechWarrior::orderPowerUp (bool unitOrder, long origin) {
 long MechWarrior::orderPowerDown (bool unitOrder, long origin) {
 
 	MoverPtr myVehicle = getVehicle();
-	if (!myVehicle)
-		return(TACORDER_FAILURE);
+	if (!myVehicle)		// nothing to power up or down
+		return(TACORDER_SUCCESS);
 	if ((myVehicle->getStatus() == OBJECT_STATUS_SHUTDOWN) || (myVehicle->getStatus() == OBJECT_STATUS_SHUTTING_DOWN))
 		return(TACORDER_SUCCESS);
 	if (myVehicle->isDisabled())

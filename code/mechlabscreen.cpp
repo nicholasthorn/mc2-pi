@@ -1070,6 +1070,10 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 	{
 		case MB_MSG_NEXT: // actuall accept
 			{
+				// accept clears pVariant; a second accept before the screen
+				// closes has nothing to accept
+				if ( !pVariant )
+					break;
 				// make sure we have the money...
 				float newCost = pVariant->getCost();
 				// figure out change
