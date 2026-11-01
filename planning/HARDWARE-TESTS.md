@@ -85,10 +85,13 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       panel work; a trigger pulled off the panel and swept onto it does
       not click; left stick pans the right way, right stick turns the
       right way and zooms (up is in); B + click force-fires; menu pauses;
-      A brings the HUD in front, held A moves and sizes it and logs
-      `MC2_XR_HUD`. The system menu or Guardian releases everything (no
-      stuck scroll or button). 2026-11-01 (mouse cursor build): panel
-      clicks and sticks fine; the rest not tried.
+      A brings the HUD in front, held A + left stick moves and sizes it
+      and logs `MC2_XR_HUD`. The system menu or Guardian releases
+      everything (no stuck scroll or button). 2026-11-01: panel clicks,
+      sticks, system menu, click hold (side buttons, move orders, drags),
+      A and held A all fine; held A moved to the left stick alone
+      afterwards (to check). Not tried: grip, B force fire, menu button,
+      Guardian.
 
 ## Releases (`RELEASES.md`)
 

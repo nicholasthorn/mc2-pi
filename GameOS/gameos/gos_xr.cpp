@@ -422,18 +422,18 @@ void readHudSettings()
     placeHud();
 }
 
-// Holding A: the sticks move the quad instead of the camera. Left stick
-// up/down: further/nearer; right stick up/down: higher/lower; right stick
-// left/right: narrower/wider.
-void adjustHud(const float left[2], const float right[2])
+// Holding A: the left stick moves the quad instead of the camera (the
+// right thumb is on A). Up/down: higher/lower; right/left: larger/smaller.
+// Its distance stays as set (MC2_XR_HUD): nearer or further mostly changes
+// how large it looks, which the size does too.
+void adjustHud(const float left[2])
 {
     const float dt = g.frame.predictedDisplayPeriod > 0 ? (float)g.frame.predictedDisplayPeriod * 1e-9f : 1.0f / 72.0f;
     const float deadZone = 0.2f;
     auto rate = [deadZone](float v) { return std::fabs(v) < deadZone ? 0.0f : v; };
-    g.hudDistance = std::min(4.0f, std::max(0.5f, g.hudDistance + 0.5f * rate(left[1]) * dt));
-    g.hudDown = std::min(1.2f, std::max(-0.3f, g.hudDown - 0.5f * rate(right[1]) * dt));
-    g.hudWidth = std::min(4.0f, std::max(0.5f, g.hudWidth + 0.5f * rate(right[0]) * dt));
-    if(rate(left[1]) != 0.0f || rate(right[0]) != 0.0f || rate(right[1]) != 0.0f) {
+    g.hudDown = std::min(1.2f, std::max(-0.3f, g.hudDown - 0.5f * rate(left[1]) * dt));
+    g.hudWidth = std::min(4.0f, std::max(0.5f, g.hudWidth + 0.5f * rate(left[0]) * dt));
+    if(rate(left[0]) != 0.0f || rate(left[1]) != 0.0f) {
         g.hudAdjusted = true;
         placeHud();
     }
@@ -1048,7 +1048,7 @@ void pollInput()
         g.hudAdjusted = false;
     }
     if(buttons[BUTTON_A]) {
-        adjustHud(left, right);
+        adjustHud(left);
         g.stickActions = 0;
     } else {
         if(g.buttonDown[BUTTON_A] && g.hudAdjusted)

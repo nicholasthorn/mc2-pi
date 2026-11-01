@@ -663,10 +663,19 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   button is Escape (pause menu).
 - **The HUD can be moved:** A puts the quad in front of where the head is
   and faces (keeping its distance and angle). Holding A, the left stick
-  up moves it further (down: nearer), the right stick up raises it (down:
-  lowers), right makes it wider (left: narrower); on letting go the log prints the
-  `MC2_XR_HUD=distance,degrees,width` line to keep in `mc2args.txt`, which
-  sets where it starts (default `1.5,30,2`).
+  up raises it (down: lowers) and right makes it larger (left: smaller);
+  the right stick is left alone, as the right thumb is on A (first
+  version used both sticks: hard to use in the headset). Its distance
+  stays as set: nearer or further mostly changes how large it looks. On
+  letting go the log prints the `MC2_XR_HUD=distance,degrees,width` line
+  to keep in `mc2args.txt`, which sets where it starts (default
+  `1.5,30,2`).
+
+Third run (click-hold build, after merging `vr-openxr`): side buttons work
+on the first pull, move orders near the centre every time, the dot holds
+still through a pull, a deliberate drag still draws a selection box; A
+and held A work, but holding A with the right thumb made the right stick
+hard to use, so the HUD now moves on the left stick alone.
 
 - **A VR pointer instead of the mouse cursor:** the pointing hand shows a
   beam, ending in a dot where it meets the HUD (1.5 m long when it meets
