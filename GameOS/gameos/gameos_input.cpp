@@ -78,7 +78,10 @@ extern SDL_Window* g_sdl_window;
 void __stdcall gos_SetMousePosition( float XPosition, float YPosition )
 {
     if(g_sdl_window) {
-        SDL_WarpMouseInWindow(g_sdl_window, (int)XPosition, (int)YPosition);
+        // the position is 0..1, as gos_GetMouseInfo returns it; SDL wants window pixels
+        int w = 0, h = 0;
+        SDL_GetWindowSize(g_sdl_window, &w, &h);
+        SDL_WarpMouseInWindow(g_sdl_window, (int)(XPosition * (float)w), (int)(YPosition * (float)h));
     }
 }
 
