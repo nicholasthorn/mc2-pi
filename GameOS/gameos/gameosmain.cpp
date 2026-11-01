@@ -409,10 +409,15 @@ static void android_prepare(int& argc, char**& argv)
 
     if(argc > 1)
         return;
+    // by full path: SDL resolves a relative one against the internal storage
+    // folder and the APK assets, not the current directory
+    const std::string argsPath = std::string(dir ? dir : ".") + "/mc2args.txt";
     size_t len = 0;
-    char* text = (char*)SDL_LoadFile("mc2args.txt", &len);
-    if(!text)
+    char* text = (char*)SDL_LoadFile(argsPath.c_str(), &len);
+    if(!text) {
+        printf("[ANDROID] no %s, starting normally\n", argsPath.c_str());
         return;
+    }
     args = args_file::parse(std::string(text, len));
     SDL_free(text);
 
