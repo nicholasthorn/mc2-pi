@@ -44,6 +44,8 @@ Summary summarize(const std::vector<FrameSample>& frames)
 		s.swap_ms += f.swap_ms;
 		draws += f.draws;
 		tris += f.tris;
+		for (size_t i = 0; i < kMaxStages; ++i)
+			s.stage_ms[i] += f.stage_ms[i];
 	}
 
 	const double n = (double)frames.size();
@@ -54,6 +56,8 @@ Summary summarize(const std::vector<FrameSample>& frames)
 	s.swap_ms /= n;
 	s.draws = draws / n;
 	s.tris = tris / n;
+	for (size_t i = 0; i < kMaxStages; ++i)
+		s.stage_ms[i] /= n;
 	std::sort(totals.begin(), totals.end());
 	s.p50_ms = percentileSorted(totals, 50.0);
 	s.p95_ms = percentileSorted(totals, 95.0);
@@ -62,21 +66,30 @@ Summary summarize(const std::vector<FrameSample>& frames)
 	return s;
 }
 
-std::string csvHeader()
+std::string csvHeader(const std::vector<std::string>& stages)
 {
-	return "frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris,segment,state";
+	std::string header = "frame,total_ms,logic_ms,render_ms,swap_ms,draws,tris,segment,state";
+	for (const std::string& name : stages)
+		header += "," + name + "_ms";
+	return header;
 }
 
-std::string csvRow(long frame, const FrameSample& s)
+std::string csvRow(long frame, const FrameSample& s, size_t numStages)
 {
 	char buf[176];
 	snprintf(buf, sizeof(buf), "%ld,%.3f,%.3f,%.3f,%.3f,%u,%u,%u,%08x", frame,
 			s.total_ms, s.logic_ms, s.render_ms, s.swap_ms,
 			(unsigned)s.draws, (unsigned)s.tris, (unsigned)s.segment, (unsigned)s.state);
-	return buf;
+	std::string row = buf;
+	for (size_t i = 0; i < numStages && i < kMaxStages; ++i) {
+		snprintf(buf, sizeof(buf), ",%.3f", s.stage_ms[i]);
+		row += buf;
+	}
+	return row;
 }
 
-std::string summaryLine(const char* segment, const Summary& s)
+std::string summaryLine(const char* segment, const Summary& s,
+		const std::vector<std::string>& stages)
 {
 	char buf[384];
 	snprintf(buf, sizeof(buf),
@@ -86,7 +99,12 @@ std::string summaryLine(const char* segment, const Summary& s)
 			segment, s.frames, s.fps, s.avg_ms, s.p50_ms,
 			s.p95_ms, s.p99_ms, s.max_ms, s.logic_ms,
 			s.render_ms, s.swap_ms, s.draws, s.tris);
-	return buf;
+	std::string line = buf;
+	for (size_t i = 0; i < stages.size() && i < kMaxStages; ++i) {
+		snprintf(buf, sizeof(buf), " %s_ms=%.2f", stages[i].c_str(), s.stage_ms[i]);
+		line += buf;
+	}
+	return line;
 }
 
 }

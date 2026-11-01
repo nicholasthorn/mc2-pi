@@ -39,6 +39,10 @@
 #                      --frames. Each segment gets a row per run in
 #                      segments.csv, and the screenshots it asks for are saved
 #                      as logs/*.frames_<segment>.tga.
+#   --fov DEG          force the camera's field of view (-benchfov; the game
+#                      uses 40, a headset about 100). Name it in --label: the
+#                      per-stage times (<stage>_ms, bench/README.md) are in
+#                      each run's log and frames CSV, not in results.csv.
 #   --perf             after the timed runs, one extra run per mission and
 #                      renderer under "perf record -g", sampling gameplay
 #                      frames only (the game switches it on and off). Its fps
@@ -82,6 +86,7 @@ PERF=0
 PERF_FREQ=999
 CALL_GRAPH=fp
 SCENARIO=""
+FOV=""
 MISSIONS_SET=0
 FRAMES_SET=0
 SRC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -94,7 +99,8 @@ while [ $# -gt 0 ]; do
         --renderers) RENDERERS="$2"; shift 2 ;;
         --frames)    FRAMES="$2"; FRAMES_SET=1; shift 2 ;;
         --scenario)  SCENARIO="$2"; shift 2 ;;
-        --runs)      RUNS="$2"; shift 2 ;;
+        --fov)       FOV="$2"; shift 2 ;;
+        --runs)     RUNS="$2"; shift 2 ;;
         --vsync)     VSYNC="$2"; shift 2 ;;
         --cool-to)   COOL_TO="$2"; shift 2 ;;
         --timeout)   TIMEOUT="$2"; shift 2 ;;
@@ -162,6 +168,7 @@ if [ -n "$SCENARIO" ]; then
     [ $MISSIONS_SET = 0 ] && [ -n "$m" ] && MISSIONS="$m"
     [ $FRAMES_SET = 0 ] && [ -n "$f" ] && FRAMES="$f"
 fi
+[ -n "$FOV" ] && SCENARIO_ARGS+=(-benchfov "$FOV")
 
 # Same first-launch config step as smoke.sh (see there). The settings in
 # options.cfg change the numbers, so its hash goes into every result row.

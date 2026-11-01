@@ -1602,6 +1602,13 @@ long Camera::update (void)
 	updateGoalPosition(newPosition);
 	updateGoalRotation();
 	updateGoalFOV();
+
+	// -benchfov: a headset-wide view for VR cost estimates
+	if (gos_GetBenchFOV() > 0.0f)
+	{
+		camera_fov = gos_GetBenchFOV();
+		cosHalfFOV = cos(camera_fov * 0.7071f * DEGREES_TO_RADS);
+	}
 	
 	setPosition(newPosition);		//THIS ALWAYS sets z position for us now!!!!!
 
