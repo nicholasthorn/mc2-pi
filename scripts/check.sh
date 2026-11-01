@@ -1,5 +1,6 @@
 #!/bin/bash
-# Checks to run before a commit (default) or a push (--level batch). When
+# Checks to run before a commit (default), or the CI batch checks run locally
+# (--level batch: crash debugging, GLES-only changes). When
 # each level runs: .claude/rules/agent-workflow.md.
 #
 #   commit  In each --build-dir: incremental build and unit tests. Then shader

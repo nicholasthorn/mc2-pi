@@ -1,7 +1,9 @@
 # Agent workflow: worktrees and three tiers of checks
 
-Cheap checks on every commit, heavier ones batched, the heaviest at the PR.
-The goal is fast commits without letting untested or tangled code pile up.
+Cheap checks locally on every commit; the full matrix and the smoke missions
+on GitHub CI, through a draft PR opened early. The goal is fast commits
+without letting untested or tangled code pile up, and without several
+sessions queueing for the same WSL CPUs to repeat what CI does anyway.
 
 ## Setup: one worktree per session or feature
 
@@ -18,6 +20,10 @@ The goal is fast commits without letting untested or tangled code pile up.
 - Never edit, build or run in a worktree or build directory another session
   is using. The main checkout is the user's.
 - When the branch has landed: `git worktree remove ../mc2-<name>`.
+- WSL is one machine shared by every session: same `/tmp`, same process
+  list, same CPUs. To wait for your own command, run it in the background
+  and wait for that process; never poll with `pgrep -f smoke.sh` or similar,
+  which also matches other sessions' runs.
 
 ## Tier 1: every commit (minutes at most)
 
@@ -38,30 +44,34 @@ Also before each commit:
 
 No missions and no review agents at this tier.
 
-## Tier 2: every batch
+## Tier 2: every batch, on CI
 
-A batch is 3 to 5 commits or one finished logical step, and always before a
-push.
+A batch is 3 to 5 commits or one finished logical step.
 
-```bash
-scripts/check.sh --level batch --build-dir <gl build> --build-dir <gles build> \
-    --game-dir <game data>
-```
+- Review the batch locally: `/simplify`, then `/code-review` on the commits
+  since the last batch. Fix what it finds, or say why not.
+- Push to `pi`. After the first batch, open a **draft PR** against `pi-port`:
+  `ci.yml` runs only on PRs (and pushes to `pi-port`), so the draft PR is
+  what puts the branch on CI. Later batches are pushes to the same PR.
+- CI then does the batch checks: `ci.yml` (four configurations, unit tests
+  also under ASan + UBSan, shader validation, cppcheck on changed files) and,
+  when code changed, `smoke.yml` (five missions at 3000 frames on x64 desktop
+  GL, arm64 GLES and x64 sanitized). Do not repeat those locally.
+- Keep working while it runs; the app reports the result. A red run is fixed
+  before the next batch.
 
-Both renderers, plus a short smoke run with each build (mc2_01 and mc2_03,
-600 frames, headless llvmpipe).
+Run `scripts/check.sh --level batch` (both renderers plus a local smoke)
+only when CI's round trip is the slower path:
 
-Then review the batch: `/simplify`, then `/code-review` on the commits since
-the last batch. Fix what it finds, or say why not, before continuing.
+- debugging a crash or sanitizer finding, where you need the logs now;
+- a change to GLES-only code or shaders, when one local GLES build catches a
+  mistake faster than waiting for the arm64 job.
 
 ## Tier 3: the PR
 
-- Before opening it: `/code-review high` on the whole branch. Fix real
+- Before marking it ready: `/code-review high` on the whole branch. Fix real
   findings; list the ones you defer in the PR description.
-- CI runs on the PR by itself: `ci.yml` (four configurations, unit tests also
-  under ASan + UBSan, shader validation, cppcheck on changed files) and
-  `smoke.yml` (five missions at 3000 frames on x64 desktop GL, arm64 GLES and
-  x64 sanitized). Do not repeat those locally.
+- CI must be green on the final push.
 - The PR description says what was verified where (which renderer, which
   platform, run or only built).
 - Update `planning/PROGRESS.md` (see `CLAUDE.md`).

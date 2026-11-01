@@ -107,8 +107,9 @@ refactoring, and only for code you are changing.
 
 - Which checks run when (every commit, every batch, at the PR) is in
   `agent-workflow.md`. Agents run them themselves and report the result.
-- Agents **do** run headless smoke missions (`scripts/smoke.sh`, llvmpipe) as
-  part of the batch checks, when built game data is available.
+- Agents **do** run headless smoke missions (`scripts/smoke.sh`, llvmpipe)
+  when debugging a crash or when CI's round trip is the slower path
+  (`agent-workflow.md`, Tier 2); otherwise `smoke.yml` runs them on the PR.
 - Agents **do not** launch the game in a window, or run anything on the Pi,
   without asking: these need a display or the hardware. Say which command to
   run and what it would verify.
