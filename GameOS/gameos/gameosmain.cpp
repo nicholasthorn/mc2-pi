@@ -1,5 +1,6 @@
 #include "gameos.hpp"
 #include "gos_render.h"
+#include "gos_xr.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -571,7 +572,7 @@ int main(int argc, char** argv)
         graphics::swap_window(win);
 		uint64_t swapped_tick = timing::gettickcount();
 
-        g_exit |= gosExitGameOS();
+        g_exit |= gosExitGameOS() || gos_xr::exitRequested();
 
 		uint64_t end_tick = timing::gettickcount();
 		double dt_sec = timing::ticks2sec(end_tick - start_tick - capture_ticks);

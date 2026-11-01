@@ -34,6 +34,10 @@ set(SOURCES ${SOURCES}
     utils/string_utils.cpp
     utils/file_utils.cpp
     )
+if(MC2_OPENXR)
+    list(APPEND SOURCES gos_xr.cpp)
+    set_source_files_properties(gos_xr.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+endif()
 
 # frame_stats and tga_writer are only used by the main loop (-bench). The link
 # line lists gameos before gameos_main, so in gameos they would never be
@@ -47,6 +51,9 @@ include_directories("../include"  ".")
 # thirdparty/stb (this directory is added before the top level adds thirdparty)
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/thirdparty")
 include_directories(${THIRDPARTY_INCLUDE_DIRS})
+if(MC2_OPENXR)
+    include_directories(SYSTEM "${OPENXR_INCLUDE_DIR}")
+endif()
 
 add_library(gameos ${SOURCES})
 add_library(gameos_main ${MAIN_SRC})
