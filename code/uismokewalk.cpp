@@ -23,11 +23,32 @@ const char* const SCREEN_NAMES[(int)UiScreen::Count] = {
 	"salvage",
 	"pilotreview",
 	"promotion",
+	"mechlopedia-mechs",
+	"mechlopedia-buildings",
+	"mechlopedia-vehicles",
+	"mechlopedia-weapons",
+	"mechlopedia-pilots",
+	"mechlopedia-history",
+	"save",
+	"load",
 };
 
 bool isOptions(UiScreen s)
 {
 	return s >= UiScreen::OptionsGraphics && s <= UiScreen::OptionsHotkeys;
+}
+
+bool isMechlopedia(UiScreen s)
+{
+	return s >= UiScreen::MechlopediaMechs && s <= UiScreen::MechlopediaHistory;
+}
+
+// the logistics screens with a "Main Menu" button the walk uses; the main
+// menu's "Return to Game" (and the dialogs it opens) go back to the one it
+// came from
+bool hasMainMenuButton(UiScreen s)
+{
+	return s == UiScreen::MissionSelection || s == UiScreen::Briefing || s == UiScreen::MechBay;
 }
 
 } // namespace
@@ -54,8 +75,17 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 
 	if (isOptions(from) && isOptions(to))
 		return (UiAction)((int)UiAction::OptionsTab0 + (int)to - (int)UiScreen::OptionsGraphics);
-	if (isOptions(from) && to == UiScreen::MainMenu)
+	// Cancel goes back to the main menu, or to the mission it was opened in
+	if (isOptions(from) && (to == UiScreen::MainMenu || to == UiScreen::Mission))
 		return UiAction::OptionsCancel;
+
+	if (isMechlopedia(from) && isMechlopedia(to))
+		return (UiAction)((int)UiAction::MechlopediaTab0 + (int)to - (int)UiScreen::MechlopediaMechs);
+	if (isMechlopedia(from) && (to == UiScreen::MainMenu || hasMainMenuButton(to)))
+		return UiAction::MechlopediaExit;
+
+	if (hasMainMenuButton(from) && to == UiScreen::MainMenu)
+		return UiAction::MainMenu;
 
 	switch (from) {
 	case UiScreen::MainMenu:
@@ -66,6 +96,30 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::NewCampaign;
 		if (to == UiScreen::SingleMission)
 			return UiAction::SingleMission;
+		// the first time on its first tab, then on the one it last showed
+		if (isMechlopedia(to))
+			return UiAction::OpenMechlopedia;
+		if (to == UiScreen::Save)
+			return UiAction::OpenSave;
+		if (to == UiScreen::Load)
+			return UiAction::OpenLoad;
+		if (hasMainMenuButton(to))
+			return UiAction::ReturnToGame;
+		break;
+	case UiScreen::Save:
+		// saving (and Cancel) goes back to the logistics screen the main menu
+		// was opened from
+		if (hasMainMenuButton(to))
+			return UiAction::SaveAccept;
+		break;
+	case UiScreen::Load:
+		// a loaded campaign restarts at its current mission
+		if (to == UiScreen::MissionSelection || to == UiScreen::Mission)
+			return UiAction::LoadAccept;
+		// Cancel at the start menu; opened from a logistics screen, Cancel
+		// goes back to that screen (and Save's too), which no walk uses yet
+		if (to == UiScreen::MainMenu)
+			return UiAction::DialogCancel;
 		break;
 	case UiScreen::CampaignSelect:
 		// where OK leads depends on the campaign's first mission: the stock
@@ -122,6 +176,8 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 		// opens over pilot review as it comes up
 		if (to == UiScreen::Salvage || to == UiScreen::PilotReview || to == UiScreen::Promotion)
 			return UiAction::WinMission;
+		if (to == UiScreen::OptionsGraphics)
+			return UiAction::MissionOptions;
 		break;
 	case UiScreen::Salvage:
 		if (to == UiScreen::PilotReview || to == UiScreen::Promotion
@@ -156,6 +212,8 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechBay, "add", UiAction::AddToForce },
 	{ UiScreen::PilotReady, "pilot", UiAction::AssignPilot },
 	{ UiScreen::Promotion, "skill", UiAction::PickSkill },
+	{ UiScreen::Save, "name", UiAction::NameSave },
+	{ UiScreen::Load, "pick", UiAction::PickSave },
 };
 
 } // namespace

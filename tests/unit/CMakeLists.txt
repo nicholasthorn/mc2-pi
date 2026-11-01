@@ -36,6 +36,7 @@ add_executable(mc2_tests
     test_stereo.cpp
     test_args_file.cpp
     test_csvfield.cpp
+    test_estring.cpp
 
     # Real engine TUs: the file / ini / packet / FST / CSV stack. This is the
     # whole link frontier; nothing else from mclib or GameOS is needed.
@@ -49,6 +50,7 @@ add_executable(mc2_tests
     ${MC2_SRC}/mclib/err.cpp
     ${MC2_SRC}/mclib/csvfile.cpp
     ${MC2_SRC}/mclib/paths.cpp
+    ${MC2_SRC}/mclib/estring.cpp
     ${MC2_SRC}/mclib/routines.cpp      # RollDice / RandomNumber (gos_rand from test_routines.cpp)
 
     # GL- and SDL-free GameOS helpers
@@ -90,7 +92,7 @@ set_source_files_properties(
     test_fst_roundtrip.cpp test_lzdecomp.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp
-    test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_csvfield.cpp test_args_file.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_csvfield.cpp test_args_file.cpp test_estring.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp

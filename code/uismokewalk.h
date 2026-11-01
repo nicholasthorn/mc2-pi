@@ -27,6 +27,14 @@ enum class UiScreen {
 	PilotReview,		// mission results: pilot review (PilotReviewScreen)
 	Promotion,			// pilot review's promotion dialog (PilotPromotionArea), which
 						// opens by itself when a pilot gains a rank
+	MechlopediaMechs,	// the six tabs of the Mechlopedia (main menu "Encyclopedia")
+	MechlopediaBuildings,
+	MechlopediaVehicles,
+	MechlopediaWeapons,
+	MechlopediaPilots,
+	MechlopediaHistory,
+	Save,				// "save game" dialog (LogisticsSaveDialog::begin)
+	Load,				// "load game" dialog (LogisticsSaveDialog::beginLoad)
 	Count
 };
 
@@ -56,11 +64,29 @@ enum class UiAction {
 	SalvageDone,		// salvage "Done"
 	PilotReviewDone,	// pilot review "Done"
 	PromotionConfirm,	// promotion "Confirm", back to pilot review
+	MissionOptions,		// mission -> options: no button, the driver asks for the
+						// options screen as Ctrl+O does
+	OpenMechlopedia,	// main menu "Encyclopedia" (opens on the tab it last showed)
+	MechlopediaTab0,	// Mechlopedia tab buttons
+	MechlopediaTab1,
+	MechlopediaTab2,
+	MechlopediaTab3,
+	MechlopediaTab4,
+	MechlopediaTab5,
+	MechlopediaExit,	// Mechlopedia "Main Menu": back where it was opened from
+	MainMenu,			// logistics screen "Main Menu"
+	ReturnToGame,		// main menu "Return to Game", back to that logistics screen
+	OpenSave,			// main menu "Save Game" (only in a campaign, from logistics)
+	OpenLoad,			// main menu "Load Game"
+	SaveAccept,			// save dialog "Save": back to the logistics screen
+	LoadAccept,			// load dialog "Load"
 	// in-screen actions
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force
 	AssignPilot,		// pilotready+pilot: give the selected mech slot the selected pilot
-	PickSkill			// promotion+skill: check the first specialty skill
+	PickSkill,			// promotion+skill: check the first specialty skill
+	NameSave,			// save+name: type the walk's save name ("uismoke")
+	PickSave			// load+pick: pick the walk's save from the list
 };
 
 const char* uiScreenName(UiScreen s);
