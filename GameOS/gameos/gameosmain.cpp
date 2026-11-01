@@ -441,6 +441,9 @@ int main(int argc, char** argv)
     for(int i=1;i<argc;++i)
         if(0 == strcmp(argv[i], "-deterministic"))
             deterministic = true;
+    if(deterministic)
+        printf("[DETERMINISTIC] fixed %.4f s game step, seed %u, sound off\n",
+                BENCH_FRAME_LENGTH, BENCH_SEED);
     g_bench = bench_csv != NULL;
     g_fixed_step = g_bench || deterministic;
     gos_SetFixedFrameLength(g_fixed_step ? BENCH_FRAME_LENGTH : 0.0f);

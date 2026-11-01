@@ -179,17 +179,24 @@ report() {
 EXTRA=()
 [ "$DETERMINISTIC" = 1 ] && EXTRA=(-deterministic)
 
-for m in $MISSIONS; do
-    log="$LOG_DIR/$m.log"
-    run_game "$log" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
+# mission_checks LOG: add to reasons when the run never reached [AUTOEXIT],
+# or spent its frames before the mission started. code/mission.cpp prints
+# [MISSION] on the mission's first frame; it must come before [AUTOEXIT] or
+# the frames were spent in menus / loading.
+mission_checks() {
+    local log="$1" mline aline
     grep -q '^\[AUTOEXIT\]' "$log" || reasons+=("never reached $FRAMES frames")
-    # code/mission.cpp prints [MISSION] on the mission's first frame; it must
-    # come before [AUTOEXIT] or the frames were spent in menus / loading.
     mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
     aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
     if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
         reasons+=("mission never started")
     fi
+}
+
+for m in $MISSIONS; do
+    log="$LOG_DIR/$m.log"
+    run_game "$log" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
+    mission_checks "$log"
     summary="$(grep -m1 '^\[AUTOEXIT\]' "$log")"
     if [ "$DETERMINISTIC" = 1 ]; then
         # A second run must end in the same game state: [STATEHASH] is the
@@ -199,13 +206,18 @@ for m in $MISSIONS; do
         first=("${reasons[@]}"); first_secs=$secs
         log2="$LOG_DIR/$m.again.log"
         run_game "$log2" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
+        mission_checks "$log2"
         nbad2=$(grep -cE "$BAD" "$log2")
-        [ "$nbad2" -gt 0 ] && reasons+=("$nbad2 error line(s) in the second run")
-        reasons=("${first[@]}" "${reasons[@]}")
+        [ "$nbad2" -gt 0 ] && reasons+=("$nbad2 error line(s) ($log2)")
+        second=("${reasons[@]}")
+        reasons=("${first[@]}")
+        for r in "${second[@]}"; do reasons+=("second run: $r"); done
         secs=$((first_secs + secs))
         h1=$(grep -m1 '^\[STATEHASH\]' "$log" | cut -d' ' -f2)
         h2=$(grep -m1 '^\[STATEHASH\]' "$log2" | cut -d' ' -f2)
-        if [ -z "$h1" ] || [ -z "$h2" ]; then
+        if [ ${#reasons[@]} -gt 0 ]; then
+            :   # a run failed on its own; its reasons say why
+        elif [ -z "$h1" ] || [ -z "$h2" ]; then
             reasons+=("no [STATEHASH] line")
         elif [ "$h1" != "$h2" ]; then
             reasons+=("game state differs between two runs ($h1, $h2; second log $log2)")
