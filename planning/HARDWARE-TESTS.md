@@ -89,9 +89,9 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       and what the first start writes to `options.cfg` (RELEASES.md: ship a
       low-detail template if it picks too high).
 
-- [ ] **Phase 5, `v0.1.0-rc1`**: run by hand on Windows, Linux x64 and a
+- [ ] **Phase 5, `v0.2.0-rc1`**: run by hand on Windows, Linux x64 and a
       Pi 400.
-- [ ] **Phase 6, `v0.1.0`**: Pi hardware results in the release notes.
+- [ ] **Phase 6, `v0.2.0`**: Pi hardware results in the release notes.
 
 ## Done
 

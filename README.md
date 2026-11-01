@@ -34,9 +34,9 @@ historical reasons: the Pi port is where this started.
 | Fatal engine errors (`STOP`) end the game with a message instead of carrying on into a crash | Done |
 | Mod content: MechCommander Omnitech, with all 28 Clan Wars missions, its front end and mech lab | Done: all missions load and pass a headless smoke run; mission 1 checked in play |
 | Stereo panning for positional sound | Done |
-| CI: four build configurations, unit tests (also under ASan + UBSan), shader validation, smoke missions, cppcheck | Done |
+| CI: four build configurations, unit tests (also under ASan + UBSan), shader validation, smoke missions, cppcheck | Done; the cppcheck baseline is empty (every finding fixed or suppressed with a reason) |
 | Benchmarks: deterministic `-bench` runs, scripted battle scenarios with screenshots, `perf` profiles of gameplay frames | Done |
-| Downloadable builds (Pi, Linux, Windows) | Planned ([planning/RELEASES.md](planning/RELEASES.md)); until then, build from source |
+| Downloadable builds (Pi, Linux, Windows) | First release candidate, `v0.2.0-rc1`, being tested before it is published ([planning/RELEASES.md](planning/RELEASES.md)); until then, build from source |
 
 **Raspberry Pi 4/400**
 
@@ -52,7 +52,8 @@ historical reasons: the Pi port is where this started.
 | Area | Status |
 |---|---|
 | Phase 0: per-stage frame timings and a wide-FOV bench mode (`-benchfov`), to size the work | Done on PC; Pi runs pending |
-| Phase 1: side-by-side stereo debug view (`-stereo <separation>`) on PC | First slice done |
+| Phase 1: side-by-side stereo debug view (`-stereo <separation>`) on PC | Three slices done: the world, shadows and world-anchored overlays per eye |
+| Quest test build: a flat Android APK that runs the bench, for the go/no-go | Built; not yet run on a headset |
 | Head tracking, Quest Link, standalone Quest build | Planned; nothing runs in a headset yet |
 
 ## Platforms
@@ -67,8 +68,14 @@ historical reasons: the Pi port is where this started.
 
 ## Quick start
 
-Full instructions: [BUILD-LINUX.md](BUILD-LINUX.md), [BUILD-PI.md](BUILD-PI.md),
-[BUILD-WIN.md](BUILD-WIN.md).
+**Release packages** (from the first published release, on the
+[Releases](https://github.com/nicholasthorn/mc2-pi/releases) page): unpack
+the one for your platform and follow its `INSTALL.md`
+([dist/INSTALL.md](dist/INSTALL.md)): install a few packages, build the game
+data with the bundled tools, start the game. No compiler needed.
+
+**From source:** full instructions in [BUILD-LINUX.md](BUILD-LINUX.md),
+[BUILD-PI.md](BUILD-PI.md), [BUILD-WIN.md](BUILD-WIN.md).
 
 **1. Build the game** (Linux; on the Pi add `-DMC2_GLES=ON`):
 
@@ -125,7 +132,11 @@ build and smoke jobs once the previous push passed (`scripts/ci_skip.sh`).
   default: it polls the shader files twice a second).
 - Workflows: [ci.yml](.github/workflows/ci.yml),
   [smoke.yml](.github/workflows/smoke.yml),
-  [static.yml](.github/workflows/static.yml).
+  [static.yml](.github/workflows/static.yml),
+  [release.yml](.github/workflows/release.yml) (packages and a draft release
+  from a `v*` tag; a dry run nightly and on packaging PRs).
+- Release packages: `scripts/package.sh --build-dir build --platform
+  linux-x86_64 --version vX.Y.Z` (also `rpi-arm64`, `windows-x64`).
 
 Conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md) and
 [.claude/rules/](.claude/rules/). Progress and plans live in
@@ -148,21 +159,21 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
 - **Mods** ([planning/future-features/MOD-COMPAT.md](planning/future-features/MOD-COMPAT.md)):
   more Omnitech campaigns, and an MC2X campaign (Dark Gray: Borderworlds).
 - **Downloadable builds** on GitHub Releases
-  ([planning/RELEASES.md](planning/RELEASES.md)): a lean package for the Pi
-  4/400 on Raspberry Pi OS, tested on hardware before each release, plus
-  ready-to-run builds for everyone else: Linux AppImages (x64 and arm64) and a
-  Windows zip. Engine only; each package includes the tools to build the game
-  data.
+  ([planning/RELEASES.md](planning/RELEASES.md)): the packaging and the
+  release workflow are built (a Pi 4/400 tarball, a Linux x64 tarball and a
+  Windows zip; engine only, the Linux and Pi packages with the tools to build
+  the game data). Next: `v0.2.0-rc1` checked by hand on Windows, Linux and a
+  Pi 400 and published, then Linux AppImages (x64 and arm64) and smoke tests
+  of the packages themselves.
 - **Quality** ([planning/QUALITY-ROADMAP.md](planning/QUALITY-ROADMAP.md)): more
-  unit tests, the cppcheck cleanup, sanitized smoke on arm64, smoke runs that
-  reach the logistics and save/load screens, and a Pi as a self-hosted CI
-  runner.
+  unit tests, sanitized smoke on arm64, smoke runs that reach the save/load
+  screens, a reproducible data build, and a Pi as a self-hosted CI runner.
 - **VR on Meta Quest 2**
   ([planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md)):
   first the game's own view in stereo, with the head moving the camera and
   the 2D interface on a floating panel, over Quest Link on PC and then as a
   standalone Quest build; later, as an option, a tabletop mode with the
-  battlefield at miniatures scale. Phase 0 and the first slice of phase 1 are
+  battlefield at miniatures scale. Phase 0 and three slices of phase 1 are
   in (see the table above).
 
 ## Repository layout
@@ -186,4 +197,5 @@ planning/    progress log, roadmap, future features
   repository.
 - alariq's code is licensed under GPL v3 (see [license.txt](license.txt)), and
   so are the changes in this fork.
-- Third-party libraries use their own licenses.
+- Third-party libraries use their own licenses; release packages list them
+  in `licenses/` ([dist/licenses/](dist/licenses/)).
