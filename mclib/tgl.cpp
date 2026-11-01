@@ -865,7 +865,8 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 	listOfTypeVertices = (TG_TypeVertexPtr)TG_Shape::tglHeap->Malloc(sizeof(TG_TypeVertex) * numTypeVertices);
 	gosASSERT(listOfTypeVertices != NULL);
 
-	memset(listOfTypeVertices,0xff,sizeof(TG_TypeVertex) * numTypeVertices);
+	// zero, not 0xff (NaN floats): the loop below sets every field anyway
+	memset(listOfTypeVertices,0,sizeof(TG_TypeVertex) * numTypeVertices);
 
 	//---------------------------
 	// Create vertex normal list
@@ -924,7 +925,9 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 	listOfTypeTriangles = (TG_TypeTrianglePtr)TG_Shape::tglHeap->Malloc(sizeof(TG_TypeTriangle) * numTypeTriangles);
 	gosASSERT(listOfTypeTriangles != NULL);
 
-	memset(listOfTypeTriangles,0xff,sizeof(TG_TypeTriangle) * numTypeTriangles);
+	// zero, not 0xff: uvdata is only read when the file has texture faces
+	// (MESH_NUMTVFACES), and 0xff left NaN UVs in the shape otherwise
+	memset(listOfTypeTriangles,0,sizeof(TG_TypeTriangle) * numTypeTriangles);
 
 	for (int i=0;i<numTypeTriangles;i++)
 	{
