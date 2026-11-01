@@ -3,7 +3,15 @@ name: CI
 on:
   push:
     branches: [pi-port]
+  # A PR that only touches docs never needs the build. A docs-only push to a
+  # PR that also changes code is caught by the "changes" job below instead.
   pull_request:
+    paths-ignore:
+      - "**.md"
+      - "planning/**"
+      - ".claude/**"
+      - "docs"
+      - "devdoc.txt"
   workflow_dispatch:
 
 permissions:
@@ -14,8 +22,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Skips every other job when this push changed only docs since a commit
+  # that already passed CI (scripts/ci_docs_only.sh). Skipped jobs count as
+  # passed. Pull requests are judged per push, not on their whole diff.
+  changes:
+    name: Docs-only push?
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      docs_only: ${{ steps.gate.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+          fetch-depth: 0
+      - name: Gate
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = push ] || [ "${{ github.event.action }}" = synchronize ]; then
+            git fetch -q --no-tags origin "$BEFORE" "$AFTER" 2>/dev/null || true
+            bash scripts/ci_docs_only.sh "$BEFORE" "$AFTER" ci.yml | tee -a "$GITHUB_OUTPUT"
+          else
+            echo docs_only=false | tee -a "$GITHUB_OUTPUT"
+          fi
+
   shaders:
     name: Shaders (GLSL ES 3.10 + GLSL 4.20)
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -24,6 +64,8 @@ jobs:
 
   cppcheck:
     name: cppcheck (changed files)
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -62,6 +104,8 @@ jobs:
 
   sanitizers:
     name: Unit tests (ASan + UBSan)
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -90,6 +134,8 @@ jobs:
 
   linux:
     name: ${{ matrix.name }}
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -153,6 +199,8 @@ jobs:
 
   windows:
     name: Windows x64 MSVC (desktop GL)
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: windows-2022
     defaults:
       run:
