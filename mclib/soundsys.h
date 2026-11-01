@@ -31,6 +31,10 @@
 #include"paths.h"
 #endif
 
+#ifndef WAVEPARSE_H
+#include"waveparse.h"
+#endif
+
 #ifndef INIFILE_H
 #include"inifile.h"
 #endif
@@ -67,15 +71,6 @@
 #define MAX_QUEUED_MESSAGES			8
 //---------------------------------------------------------------------------
 // Classes
-#pragma pack(1)
-typedef struct {     
-	WORD  wFormatTag;     
-	WORD  nChannels; 
-    DWORD nSamplesPerSec;     
-	DWORD nAvgBytesPerSec;     
-	WORD  nBlockAlign; 
-} MC2_WAVEFORMATEX;
-#pragma pack()
 
 //---------------------------------------------------------------------------
 typedef struct _SoundBite
