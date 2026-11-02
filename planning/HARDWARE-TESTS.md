@@ -101,6 +101,15 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.
+- [ ] **Straight ahead, the cases not yet tried** (branch `vr-start-pose`):
+      hold the Oculus button to recentre (the log says `moving LOCAL`, and the
+      view and HUD follow); take the headset off and on mid-game, also briefly
+      while looking to one side (does the world turn under you?); start with
+      poor light or position tracking off. Launched on the desk and then put
+      on, and with the system menu up: fine on 2026-11-02.
+- [ ] **Pointing at rotated buildings and long walls**: hover names and clicks
+      land where the beam points, and a point on a long wall whose centre is
+      out of the game camera's view still works. Only rotation 0 was checked.
 
 ## Releases (`RELEASES.md`)
 
