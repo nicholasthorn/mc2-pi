@@ -622,10 +622,18 @@ Known gaps:
   flags): the mc2_01 buildings vanished. Now one index buffer and one draw
   per texture (`TG_TypeShape::textureIb_`), flags from one place
   (`GPUTextureFlags`), GPU buffers also for shapes parsed from ASE. Checked
-  on the desktop with `MC2_VR_PATHS=1` (a flat game on the VR render paths)
-  and `MC2_SHOT_FRAME=n`. Still wrong on that path: dark semi-transparent
-  textures (sandbag emplacements) come out opaque, because the CPU path
-  blends alpha-textured shapes and the GPU path can only alpha-test.
+  on the desktop with `MC2_VR_PATHS=1` (a flat game on the VR render paths,
+  mipmaps included) and `MC2_SHOT_FRAME=n`.
+- **The GPU path never alpha-tested.** `renderLists` set the texture
+  address mode from a hardware node's flags but not the alpha-test state,
+  which is what picks the shader variant with the `discard`
+  (`getFlagsFromStates`), so alpha textures drew their transparent texels
+  as the underlying black: trees as black boards, holes in hut roofs
+  filled in, sandbag netting as solid blobs. One render-state call fixes
+  all three. (A first guess, mipmaps averaging alpha, was wrong: the
+  desktop reproduced the boards without mipmaps.) Still open on that path:
+  the CPU path blends alpha-textured shapes, the GPU path only tests, so
+  soft edges are hard and the translucent compass is not drawn.
 - **Geometry behind the camera:** the GPU mesh shader divided by `w` itself
   and kept `abs()`, so geometry behind the camera was drawn mirrored (huge
   dark wedges once objects behind the game camera were drawn; the likely

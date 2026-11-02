@@ -2501,6 +2501,10 @@ bool gos_CreateRenderer(HGOSWINDOW win, int w, int h) {
     graphics::RenderContextHandle ctx = graphics::init_render_context(win);
     if(!ctx)
         return false;
+    // the VR render paths on a desktop (gos_IsVR): mipmaps too, as the
+    // headset build has them, so what they do to alpha textures shows here
+    if(getenv("MC2_VR_PATHS") && getenv("MC2_VR_PATHS")[0] == '1')
+        setGenerateMipmaps(true);
 
     graphics::make_current_context(ctx);
 
