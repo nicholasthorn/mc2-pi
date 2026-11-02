@@ -68,12 +68,12 @@ class FloatHelp
 		static void renderAll (void);
 
 		//-stereo: how many helps are set, and drawing (then dropping) the ones
-		//set since 'first', i.e. during one eye's pass. VR drops them undrawn.
+		//set since 'first', i.e. during one eye's pass.
 		static DWORD count (void)
 		{
 			return currentFloatHelp;
 		}
-		static void renderAndResetFrom (DWORD first, bool draw = true);
+		static void renderAndResetFrom (DWORD first);
 
 		static void setFloatHelp(char * txt, 
 								Stuff::Vector4D screenPos, 

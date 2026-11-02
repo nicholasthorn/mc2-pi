@@ -1702,11 +1702,21 @@ void Camera::renderWorld (void)
 
 	// eye -1 is the game camera, put back for the interface and for mouse
 	// picking, which reads the terrain's screen positions
+	// VR: the game camera's projection, for overlayToEye in the eyes' passes
+	if (vrEyes)
+	{
+		gameClipToWorld = clipToWorld;
+		gameClipX = cameraToClip(LEFT_AXIS,LEFT_AXIS);
+		gameClipY = cameraToClip(UP_AXIS,UP_AXIS);
+	}
+
 	auto setEye = [&](int eyeIndex)
 	{
 		vrEye = (vrEyes && (eyeIndex >= 0)) ? &vrViews[eyeIndex] : NULL;
 		eyeOffset = stereo::eyeOffset(eyeIndex, separation);
 		calculateProjectionConstants();
+		if (vrEye)
+			gameToEyeClip.Multiply(gameClipToWorld, worldToClip);
 		TG_Shape::SetCameraMatrices(&cameraOrigin,&cameraToClip);
 		if (land)
 			land->projectForEye();
@@ -1729,7 +1739,7 @@ void Camera::renderWorld (void)
 		setEye(eyeIndex);
 		render();
 		gos_SetRenderState(gos_State_Fog, 0);	// as Mission::render does before FloatHelp::renderAll
-		FloatHelp::renderAndResetFrom(helpsBeforeEyes, !vrEyes);
+		FloatHelp::renderAndResetFrom(helpsBeforeEyes);
 	}
 	setEye(-1);
 
@@ -1737,6 +1747,42 @@ void Camera::renderWorld (void)
 	// world, only the interface drawn after this, which the headset shows as
 	// a see-through HUD (gos_xr). Meshes take the GPU path and the terrain
 	// draws its whole window while VR is on (gos_IsVR in tgl.cpp, terrain.cpp).
+}
+
+//---------------------------------------------------------------------------
+bool Camera::overlayToEye (const Stuff::Vector4D& anchor, float& x, float& y)
+{
+	if (!vrEye)
+		return true;
+
+	// projectZ: z in [0, 1) only in front of the camera (see TerrainQuad::draw)
+	if ((anchor.z < 0.0f) || (anchor.z >= 1.0f) || (anchor.w <= 0.0f) ||
+		(fabs(viewMulX) < Stuff::SMALL) || (fabs(viewMulY) < Stuff::SMALL))
+		return false;
+
+	// the anchor's game-camera clip coordinates: the engine's w is negative in
+	// front of the camera, and projectZ kept 1/|w|
+	const float clipW = -1.0f / anchor.w;
+	Stuff::Vector4D gameClip;
+	gameClip.x = ((anchor.x - viewAddX) / viewMulX) * clipW;
+	gameClip.y = ((anchor.y - viewAddY) / viewMulY) * clipW;
+	gameClip.z = anchor.z * clipW;
+	gameClip.w = clipW;
+
+	Stuff::Vector4D eyeClip;
+	eyeClip.Multiply(gameClip, gameToEyeClip);
+	if (eyeClip.w >= 0.0f)			// behind the eye
+		return false;
+
+	const float eyeRhw = 1.0f / eyeClip.w;
+	const float eyeX = (eyeClip.x * eyeRhw) * viewMulX + viewAddX;
+	const float eyeY = (eyeClip.y * eyeRhw) * viewMulY + viewAddY;
+	const float scaleX = (cameraToClip(LEFT_AXIS,LEFT_AXIS) * fabs(eyeRhw)) / (gameClipX * anchor.w);
+	const float scaleY = (cameraToClip(UP_AXIS,UP_AXIS) * fabs(eyeRhw)) / (gameClipY * anchor.w);
+
+	x = eyeX + (x - anchor.x) * scaleX;
+	y = eyeY + (y - anchor.y) * scaleY;
+	return true;
 }
 
 //---------------------------------------------------------------------------
@@ -2311,6 +2357,48 @@ void Camera::setCameraOrigin (void)
 	
 	if (usePerspective)
 		clipToWorld.Invert(worldToClip);
+}
+
+//---------------------------------------------------------------------------
+// VR: a controller's aim pose (OpenXR LOCAL space, the ray along its -z) as
+// a ray in the game's world (z up), moved and turned with the game camera as
+// the head-tracked eyes are (vr_eye::eyeBasis). Call with the game camera in
+// place (outside an eye's pass). unitsPerMetre: world units per real metre.
+bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
+	Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre)
+{
+	if (vrEye)
+		return false;
+	vr_eye::Basis game;
+	for (int c=0;c<3;c++)
+	{
+		game.x[c] = cameraOrigin(LEFT_AXIS,c);
+		game.y[c] = cameraOrigin(UP_AXIS,c);
+		game.z[c] = cameraOrigin(FORWARD_AXIS,c);
+	}
+	Stuff::Point3D gamePosition(cameraOrigin);
+	game.position[0] = gamePosition.x;
+	game.position[1] = gamePosition.y;
+	game.position[2] = gamePosition.z;
+
+	float position[3], orientation[4];
+	vr_eye::fromXr(xrPosition, xrOrientation, position, orientation);
+	const float worldUp[3] = {0.0f, 1.0f, 0.0f};
+	unitsPerMetre = worldUnitsPerMeter * gos_GetVRWorldScale();
+	const vr_eye::Basis ray = vr_eye::eyeBasis(game, worldUp, orientation, position,
+		unitsPerMetre, gos_GetVRKeepGamePitch());
+
+	// the camera frame is (-x, z, y) of the game's world (see projectZ); the
+	// ray goes where the camera looks, minus its FORWARD_AXIS row
+	float view[3];
+	vr_eye::viewDirection(ray, view);
+	origin.x = -ray.position[0];
+	origin.y = ray.position[2];
+	origin.z = ray.position[1];
+	direction.x = -view[0];
+	direction.y = view[2];
+	direction.z = view[1];
+	return true;
 }
 
 //---------------------------------------------------------------------------

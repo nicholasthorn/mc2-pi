@@ -238,6 +238,9 @@ class Camera
 		float					eyeOffset;				//-stereo: this eye's sideways offset, applied last in setCameraOrigin
 		float					eyeParallax;			//-stereo: overlay x shift per unit of screen w for this eye (renderWorld)
 		const gosVREyeView*		vrEye;					//VR: the head-tracked eye being drawn (renderWorld), or NULL
+		Stuff::Matrix4D			gameClipToWorld;		//VR: the game camera's clipToWorld, kept for the eyes (overlayToEye)
+		Stuff::Matrix4D			gameToEyeClip;			//VR: game camera clip space to the eye's (overlayToEye)
+		float					gameClipX, gameClipY;	//VR: the game camera's cameraToClip scale on x and y (overlayToEye)
 
 		float					fogStart;				//Altitude at which fog starts
 		float					fogFull;				//Altitude at which fog is Full;
@@ -310,6 +313,7 @@ class Camera
 			cameraShiftZ = goalPositionZ = 0.0f;
 			eyeOffset = eyeParallax = 0.0f;
 			vrEye = NULL;
+			gameClipX = gameClipY = 1.0f;
 	
 			lightDirection.Zero();
 			
@@ -465,7 +469,10 @@ class Camera
 		}
 				
 		void inverseProjectZ (Stuff::Vector4D &screen, Stuff::Vector3D &point);
-		
+
+		bool vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
+			Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre);
+
 		void projectCamera (Stuff::Vector3D &point);
 
 		unsigned long inverseProject (Stuff::Vector2DOf<long> &screenPos, Stuff::Vector3D &point);
@@ -513,13 +520,22 @@ class Camera
 			return (eyeParallax != 0.0f) ? eyeParallax * screenW : 0.0f;
 		}
 
-		//VR: overlays are drawn from the game camera's screen positions, which a
-		//turned head does not match, so the head-tracked eyes leave them out
-		//(the game frame on the tablet has them)
+		//VR: a head-tracked eye is being drawn. Overlays then go through
+		//overlayToEye, and the CPU path's game-camera projections are left out.
 		bool hidesOverlays (void)
 		{
 			return vrEye != NULL;
 		}
+
+		//VR: where an overlay point lands in the head-tracked eye being drawn.
+		//anchor is the object's game-camera projection (Appearance::screenPos,
+		//with its depth); x, y is a point drawn relative to it on the game
+		//camera's screen (a bracket corner, a bar). The anchor is taken back
+		//to its world point through the game camera and projected through the
+		//eye, and the point's offset from it scaled by the eye's size at that
+		//depth. False when the object is behind the game camera or the eye: no
+		//overlay. Outside an eye's pass the point is left as it is.
+		bool overlayToEye (const Stuff::Vector4D& anchor, float& x, float& y);
 
 		//VR: objects pass the view-cone and on-screen tests in recalcBounds,
 		//only the distance test culls them, so a head-tracked eye finds them
