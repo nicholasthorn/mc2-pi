@@ -680,10 +680,20 @@ Known gaps:
   to 70.0 before, 68.7 to 69.0 after, p95 16.4 to 18.2 before, 18.0 to 19.4
   after, median 14.0 ms either way (the 72 Hz cap). Game-step frames: logic
   3.7 to 4.4 ms, p50 14.4 ms, p95 27 ms (a step frame that misses becomes a
-  28 ms double frame); about 1 to 3 % of frames double. **To do:** get the
-  2 ms back; the suspects are the per-draw linear search for a light entry
-  and the 200-entry light block uploaded per draw (both deferred from the
-  review of #84).
+  28 ms double frame); about 1 to 3 % of frames double.
+  **Recovered, and more (branch `perf/vr-light-lookup`):** the block, its
+  per-draw search and its entry limit are gone, each shape's lights going with
+  its draw as three `vec4` uniforms, and the mesh path no longer looks up its
+  material, uniforms and samplers by name per draw. Same pixels. Quest 2, three
+  alternating pairs of mc2_19: `world_render` 9.31 to 9.37 ms down to 5.93 to
+  5.98 (below the 7.1 to 7.4 before the lighting fix), fps 68.7 to 68.8 up to
+  70.0 to 70.4, p95 18.4 to 18.6 down to 16.4 to 16.6; mc2_01 fly-in
+  `world_render` 8.2 down to 3.8 ms. p99 stays about 28 ms: a game-step frame
+  that misses still doubles. Step-frame logic rose from 3.7 to 4.9 ms with no
+  logic change; the earlier builds rise and fall the same way against render
+  work, so probably a lower CPU clock when less is asked of it (not checked).
+  Still per draw: `glUseProgram` twice, and `glGetError` on each uniform that
+  changed (trees change three).
 - **To do: chain-link fences are solid bands at a distance.** At full size the
   mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
   separately, so a mipped fence is uniform grey with dark colour bled in;
