@@ -85,6 +85,17 @@ float gameFieldOfView(const float leftFov[4], const float rightFov[4], float hei
 // above, 0 for "0" (keep the game's own), -1 for anything else.
 float parseGameFov(const char* text);
 
+// Overlays are in window coordinates, stretched over the eye's image, so a
+// font pixel's size in the eye depends on the game's resolution. How much to
+// scale text by, in x and y, for a font pixel to be kOverlayTextEyePixels eye
+// pixels across at any resolution (judged in the Quest 2). 1 when a size is
+// not known.
+const float kOverlayTextEyePixels = 0.825f;
+// Bars, icons and brackets, as a share of the text's scale in x: narrower, at
+// 0.393 eye pixels to a game pixel (also judged in the Quest 2).
+const float kOverlayMarkerShareX = 0.393f / kOverlayTextEyePixels;
+void overlayTextScale(int windowWidth, int windowHeight, int eyeWidth, int eyeHeight, float& scaleX, float& scaleY);
+
 // A fixed head rotation given as text (MC2_XR_POSE=yaw,pitch in degrees: yaw
 // about +y, left, then pitch about +x, up, in OpenXR's axes) as a quaternion
 // (x, y, z, w). False when the text is not two numbers.

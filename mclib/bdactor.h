@@ -373,6 +373,9 @@ class BldgAppearance : public ObjectAppearance
 
 		virtual bool PerPolySelect (long mouseX, long mouseY);
 
+		virtual bool worldRayHit (const Stuff::Vector3D& origin, const Stuff::Vector3D& direction,
+			float& distance, Stuff::Vector3D& aimAt);
+
 		virtual bool isForestClump (void)
 		{	
 			return appearType->isForestClump;

@@ -10,6 +10,7 @@
 
 #ifndef BDACTOR_H
 #include"bdactor.h"
+#include"utils/vr_controls.h"
 #endif
 
 #ifndef CAMERA_H
@@ -956,6 +957,59 @@ Stuff::Vector3D BldgAppearance::getNodeIdPosition (long nodeId)
 bool BldgAppearance::PerPolySelect (long mouseX, long mouseY)
 {
 	return bldgShape->PerPolySelect(mouseX,mouseY);
+}
+
+//-----------------------------------------------------------------------------
+// VR pointer: the shape's own bounding box, in its own axes, placed as update
+// places it, so a long building is not a big sphere. aimAt is halfway along the
+// ray's path through the box: on the ray, so on the shape for the picking that
+// follows (PerPolySelect) if the ray meets it, not just its box, and near where
+// the player points, where the box's centre of a long building may be another
+// object's on the game camera's screen, or off that screen altogether.
+bool BldgAppearance::worldRayHit (const Stuff::Vector3D& origin, const Stuff::Vector3D& direction,
+	float& distance, Stuff::Vector3D& aimAt)
+{
+	if (!bldgShape)
+		return false;
+
+	Stuff::Point3D xlatPosition;
+	xlatPosition.x = -position.x;
+	xlatPosition.y = position.z;
+	xlatPosition.z = position.y;
+	Stuff::LinearMatrix4D shapeToWorld, worldToShape;
+	Stuff::UnitQuaternion qRotation;
+	qRotation = Stuff::EulerAngles(0.0f,rotation * DEGREES_TO_RADS,0.0f);
+	shapeToWorld.BuildRotation(qRotation);
+	shapeToWorld.BuildTranslation(xlatPosition);
+	worldToShape.Invert(shapeToWorld);
+
+	Stuff::Point3D worldOrigin, shapeOrigin;
+	worldOrigin.x = -origin.x;
+	worldOrigin.y = origin.z;
+	worldOrigin.z = origin.y;
+	shapeOrigin.Multiply(worldOrigin,worldToShape);
+
+	Stuff::Vector3D worldDirection, shapeDirection;
+	worldDirection.x = -direction.x;
+	worldDirection.y = direction.z;
+	worldDirection.z = direction.y;
+	shapeDirection.Multiply(worldDirection,worldToShape);
+
+	const Stuff::Vector3D minBox = bldgShape->GetMinBox();
+	const Stuff::Vector3D maxBox = bldgShape->GetMaxBox();
+	const float o[3] = {shapeOrigin.x, shapeOrigin.y, shapeOrigin.z};
+	const float d[3] = {shapeDirection.x, shapeDirection.y, shapeDirection.z};
+	const float lo[3] = {minBox.x, minBox.y, minBox.z};
+	const float hi[3] = {maxBox.x, maxBox.y, maxBox.z};
+	float leaving = 0.0f;
+	if (!vr_controls::rayHitsBox(o,d,lo,hi,distance,&leaving))
+		return false;
+
+	const float halfway = (distance + leaving) * 0.5f;
+	aimAt.x = origin.x + direction.x * halfway;
+	aimAt.y = origin.y + direction.y * halfway;
+	aimAt.z = origin.z + direction.z * halfway;
+	return true;
 }
 
 //-----------------------------------------------------------------------------
