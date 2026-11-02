@@ -4657,7 +4657,9 @@ long MoveMap::setUp (long mapULr,
 	else
 		map[goalR * maxWidth + goalC].setFlag(MOVEFLAG_GOAL);
 
+#ifdef LAB_ONLY		// only the LAB_ONLY timers read it; a clock read per call otherwise
 	__int64 startTime = GetCycles();
+#endif
 
 	if (params & MOVEPARAM_STATIONARY_MOVERS)
 		if (placeStationaryMoversCallback)
@@ -4684,7 +4686,9 @@ long MoveMap::setUp (long level,
 					 long offsets,
 					 unsigned long params) {
 
+#ifdef LAB_ONLY		// only the LAB_ONLY timers read it; a clock read per call otherwise
 	__int64 startTime = GetCycles();
+#endif
 
 	//-----------------------------------------------------------------------------
 	// If the map has not been allocated yet, then the tile height and width passed
@@ -4944,7 +4948,9 @@ inline bool MoveMap::adjacentCellOpenJUMP (long r, long c, long dir) {
 //---------------------------------------------------------------------------
 
 inline int MoveMap::calcHPrime (int r, int c) {
+#ifdef LAB_ONLY		// only the LAB_ONLY timers read it; a clock read per call otherwise
 	__int64 startTime = GetCycles();
+#endif
 	long sum = 0;
 	if (r > goalR)
 		sum += (r - goalR);
