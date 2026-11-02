@@ -578,6 +578,11 @@ int main(int argc, char** argv)
 
         graphics::make_current_context(ctx);
 		uint64_t render_tick = timing::gettickcount();
+        // MC2_SHOT_FRAME=n (with -bench): a screenshot of gameplay frame n,
+        // named "shot", for missions without a bench scenario
+        static const long shot_frame = getenv("MC2_SHOT_FRAME") ? atol(getenv("MC2_SHOT_FRAME")) : -1;
+        if(g_bench && g_gameplay_started && frame_count == shot_frame)
+            g_bench_shot = "shot";
         draw_screen();
 		uint64_t capture_ticks = 0;
         if(!g_bench_shot.empty()) {

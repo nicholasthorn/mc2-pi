@@ -2934,7 +2934,11 @@ int __stdcall gos_GetVREyeViews(gosVREyeView views[2])
 
 bool __stdcall gos_IsVR()
 {
-    return gos_xr::active();
+    // MC2_VR_PATHS=1: a flat game takes the VR render paths too (GPU meshes,
+    // distance-only culling, the whole terrain window), to compare them with
+    // the flat paths on a desktop; not for playing
+    static const bool forced = getenv("MC2_VR_PATHS") && getenv("MC2_VR_PATHS")[0] == '1';
+    return forced || gos_xr::active();
 }
 
 bool __stdcall gos_GetVRKeepGamePitch()
