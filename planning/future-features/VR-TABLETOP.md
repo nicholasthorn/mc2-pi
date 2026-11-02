@@ -661,17 +661,27 @@ Known gaps:
 - **To do: the terrain window's edge** is visible at a headset's field of
   view (a hard border, then the cloud layer as a grey wall): a larger window
   for VR, or haze pulled in to the window's radius.
-- **To do: lighting on the GPU path. Near trees are black, and mechs and
-  trees change brightness in a step with distance** (headset, mc2_01; near
-  trees reproduce on the desktop with `MC2_VR_PATHS=1`, frame 5, also before
-  blending; the flat game is right). `calc_light` takes light slot 0 as the
-  sun and slot 1 as ambient, but a tree turns the sun off while it transforms
-  and `GatherLightsParameters` skips inactive lights, so its ambient lands in
-  slot 0 and is multiplied by the normal: black when facing away. Reading
-  lights by type in a debug shader brings the colours back. Separately, a
-  per-tree ambient makes each tree a new light entry, and near trees use
-  entries at or past the 32 the shader's block holds. Those out-of-range
-  reads may be the step on mechs: not confirmed.
+- **Lighting on the GPU path.** Near trees were black, and mechs and trees
+  changed brightness in a step with distance (headset, mc2_01; near trees
+  reproduced on the desktop with `MC2_VR_PATHS=1`, frame 5, also before
+  blending; the flat game was right). Three defects: `calc_light` takes the
+  sun and ambient from fixed slots, but a tree turns the sun off while it
+  transforms and `GatherLightsParameters` filled the next free slot, so its
+  ambient lit it as a sun; a per-tree ambient makes each tree a new light
+  entry, mc2_01 needs 140, and the shader's block held 32 (now 200, of 80
+  bytes each, sharing the nearest past that); and `gos_UpdateBuffer` sized the
+  buffer below the block, so reads past it were undefined. Near trees are
+  fixed on the desktop. Not yet run on the Quest 2, so the step on mechs and
+  the larger block on its driver are unconfirmed.
+- **To do: chain-link fences are solid bands at a distance.** At full size the
+  mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
+  separately, so a mipped fence is uniform grey with dark colour bled in;
+  coverage then has no gaps to show. Alpha-weighted mipmaps for alpha textures
+  would fix it (and any dark fringe on distant trees).
+- Untextured shapes on the GPU path use `gos_vertex_lighted`, which does not
+  match the mesh vertex layout or take `wvp_`, so that path needs its own fix
+  (and has no per-shape alpha). Translucent world textures get coverage rather
+  than blending; none is known to look wrong.
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.
