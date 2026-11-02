@@ -694,8 +694,13 @@ Known gaps:
   that misses still doubles. Step-frame logic rose from 3.7 to 4.9 ms with no
   logic change; the earlier builds rise and fall the same way against render
   work, so probably a lower CPU clock when less is asked of it (not checked).
-  Still per draw: `glUseProgram` twice, and `glGetError` on each uniform that
-  changed (trees change three).
+  **Fewer driver calls per draw (branch `perf/vr-mesh-driver-calls`):** a mesh
+  node applies its states and material once, and its draws leave the program,
+  buffers and attributes bound for the next, down from 36 calls for a tree
+  (counted from the code) to 6 with the last draw's buffers, 12 with new ones.
+  Same pixels. Quest 2, three alternating pairs of mc2_19: `world_render` 5.74
+  to 5.82 ms down to 5.47 to 5.54, p95 16.28 to 16.53 down to 15.93 to 16.18;
+  fps 69.8 to 70.1 either way, p99 about 28 ms and double frames unchanged.
 - **To do: chain-link fences are solid bands at a distance.** At full size the
   mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
   separately, so a mipped fence is uniform grey with dark colour bled in;
