@@ -91,12 +91,14 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       one click, not a drag box, and lands where the beam was; a drag select while
       turning the head; pointing well away from the gaze clicks nothing, and never
       a mirrored spot; with the head still, a pointer on the world is clickable at
-      once. Sticks pan and turn as before whichever way the head looks. Brackets
+      once, and a quick pull while the head turns still clicks. With a level head a
+      click never lands under the camera. Clouds, on a mission that has them, do not
+      judder or jump with the head. Sticks pan and turn as before whichever way the head looks. Brackets
       and health bars stay on their units through a fast head turn. The minimap's
       wedge turns with the head and stays sane looking up at the sky. Buildings
       behind the start point change state when shot at while you look at them.
       `mc2.log`'s frame rate and `logic_ms` against `MC2_XR_FOLLOW=0` in the mc2_19
-      bench. The system menu changes nothing.
+      bench, with the head still or `MC2_XR_POSE` set. The system menu changes nothing.
 - [ ] **Controllers** (branch `vr-controllers`, Phase 3 progress): in the
       main menu and in a mission, either hand shows a beam, with a dot
       where it meets the interface and no mouse cursor; trigger clicks

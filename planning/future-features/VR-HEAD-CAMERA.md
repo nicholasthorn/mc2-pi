@@ -131,5 +131,22 @@ camera's screen down to the top of the panel, a little more than the eyes see.
 ## Still open
 
 - Headset checks: `HARDWARE-TESTS.md`.
+- **The pointer while the head turns.** Each game step moves the pick on the game's
+  screen, and past about 40 degrees a second that is more than `kAlphaNear`, so the
+  pointer is invalid until the late alpha reading catches up. A fast trigger pull
+  then can lose the click. Widening `kAlphaNear` risks clicking the panel near its
+  edge, so it waits for what the headset shows.
+- **Clouds.** `Clouds::render` draws from the game camera's projection in the eyes
+  (it did before too, fixed to the game's view). It now turns with the head, once a
+  step. Not looked at in the headset.
+- **Tiles under a level head.** Vertices near the camera's up axis skip the screen
+  test (`CLIP_THRESHOLD_DISTANCE`), so a tile straddling the view plane could take a
+  click. The same geometry exists at the game's pitch, and the desktop round trip
+  came back right; a click landing under the camera would be this.
+- **Comparing runs.** What is active depends on the head, so a bench comparison in
+  the headset wants `MC2_XR_POSE` or `MC2_XR_FOLLOW=0`.
+- `gos_GetVRHead` takes the left eye's orientation: right for a Quest, whose eyes
+  share one; a headset with canted displays would want the average. Its hold logic
+  has no unit test, being a few lines beside GameOS state.
 - A trigger held for a long time holds what counts as in view too; harmless, but it
   is a difference.

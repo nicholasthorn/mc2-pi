@@ -2392,7 +2392,7 @@ void Camera::setCameraOrigin (void)
 	// eyes', so only what it counts as in view moves, and what reads it for that
 	// goes with it: the matrices, cameraFrame and lookVector. cameraRotation and
 	// projectionAngle stay the game's, for the sticks, the sound and the eyes.
-	else if (vrFollowsHead && usePerspective)
+	else if (vrFollowsHead)
 	{
 		vrGameOrigin = cameraOrigin;
 		const float worldUp[3] = {0.0f, 1.0f, 0.0f};
@@ -2436,7 +2436,7 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 {
 	if (vrEye)
 		return false;
-	const vr_eye::Basis game = basisOf((vrFollowsHead && usePerspective) ? vrGameOrigin : cameraOrigin);
+	const vr_eye::Basis game = basisOf(vrFollowsHead ? vrGameOrigin : cameraOrigin);
 
 	float position[3], orientation[4];
 	vr_eye::fromXr(xrPosition, xrOrientation, position, orientation);
@@ -2461,7 +2461,7 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 //---------------------------------------------------------------------------
 void Camera::setVRHead (const float orientation[4])
 {
-	vrFollowsHead = (orientation != NULL);
+	vrFollowsHead = (orientation != NULL) && usePerspective;
 	if (orientation)
 		memcpy(vrHead,orientation,sizeof(vrHead));
 }

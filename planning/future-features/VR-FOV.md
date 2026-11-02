@@ -41,7 +41,7 @@ a picture; it shows as what the game does with the view:
   `genactor.cpp`, `bdactor.cpp`. So movers animate, set `windowsVisible` and
   carry screen bounds everywhere within `MaxClipDistance`. The to-do's
   "units between the two do not animate" is not true for mechs and vehicles
-  after #79; check a turret, not a mech, when looking for the gap.
+  after #79; check an ordinary building, not a mech, when looking for the gap.
 - **Cone tests #79 did not touch** still use `cosHalfFOV` alone: the mech arm
   pieces (`Mech3DAppearance::leftArmRecalc` / `rightArmRecalc`), artillery
   markers (`artlry.cpp`), clouds (`clouds.cpp`). `GameObject::onScreen`
@@ -156,7 +156,7 @@ line; `android/README.md` or the VR plan's controls section: `MC2_XR_FOV`.
    with `-benchfov 100` before and after gives the same `[STATEHASH]`.
 3. `gos_GetVRFieldOfView` and the `Mission::update` hook (steps 3, 4).
 4. Desktop: `MC2_VR_PATHS=1 ./mc2 -mission mc2_01 -autoexit 600` (the window
-   shows the 100 degree view; a turret at the edge turns), then with
+   shows the 100 degree view), then with
    `MC2_XR_FOV=60` and `MC2_XR_FOV=200` (clamp message).
 5. Flat game unchanged: `scripts/smoke.sh --deterministic` on one mission
    before and after, same `[STATEHASH]`.
@@ -164,8 +164,7 @@ line; `android/README.md` or the VR plan's controls section: `MC2_XR_FOV`.
    `--fov 40`: `objects_ms`, `logic_ms`.
 7. Headset (`android/README.md`, `MC2_XR_PICK_LOG=1` in `mc2args.txt`):
    the log line's numbers; a world click near the edge of the view picks
-   (the log says "screen on"); a turret or gate at the side of the view
-   acts; selection brackets and health bars look the same size as before;
+   (the log says "screen on"); selection brackets and health bars look the same size as before;
    `mc2.log`'s frame rate against the 66 fps of #79.
 
 ## Gotchas
@@ -221,8 +220,8 @@ line; `android/README.md` or the VR plan's controls section: `MC2_XR_FOV`.
    behind the camera (clip `w > 0`) lands mirrored on the screen. The wider
    cone makes it rarer, not impossible (head turned round). Keep
    `seesForGame`'s `w < 0` guard and `vrPickWorld`'s `onScreen` test.
-10. **More blocks active means more game objects updating.** Turrets,
-    buildings, trees in the newly active blocks take the full
+10. **More blocks active means more game objects updating.** Ordinary
+    buildings and trees in the newly active blocks take the full
     `GameObject::update`, not `refreshAppearanceOnly`; the render side does
     not change (it already draws the whole window). Phase 0's 8% was measured
     on the PC at 100; measure at 110 on the headset, where the 30 Hz step is
@@ -289,7 +288,8 @@ being no eyes to ask):
 - One earlier 50-second mc2_01 run held about 66 fps with the CPU clock lower
   and no more load; not explained, and not seen in these five runs, where the
   clocks were higher.
-- Not checked: a turret at the side of the view (mc2_01 has none).
+- Turrets update every step whatever the view, so there is no turret to check
+  (`VR-HEAD-CAMERA.md`).
 
 ## Found in review (2026-11-02)
 
