@@ -197,6 +197,17 @@ int CPrefs::load( const char* pFileName ) {
 			if (result != NO_ERR)
 				resolutionY = 600;
 
+			// VR: the interface is drawn on a panel of its own, whatever the
+			// headset's window. Options saved in the headset can hold the window's
+			// size (3664 on the Quest 2), beyond the largest layout (1920): the
+			// interface then fills a corner of the panel.
+			if (gos_IsVR() && (resolutionX > 1920))
+			{
+				printf("[VR] options.cfg resolution %ldx%ld has no interface layout: 800x600\n", (long)resolutionX, (long)resolutionY);
+				resolutionX = 800;
+				resolutionY = 600;
+			}
+
 			result = prefsFile->readIdBoolean("FullScreen",fullScreen);
 			if (result != NO_ERR)
 				fullScreen = false;

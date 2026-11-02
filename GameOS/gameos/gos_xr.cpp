@@ -123,6 +123,7 @@ struct State {
     bool presenceKnown = false; // the runtime reports the headset going on
     bool userPresent = true;    // false only when the runtime says so
     bool alignWhenSettled = false;  // just put on: see alignToHead
+    bool sessionFocused = false;
     vr_controls::HeadSettle settle;
     XrView views[2] = {};
     bool viewsValid = false;
@@ -432,7 +433,7 @@ void stickInput(XrPath hand, float stick[2])
 }
 
 // A space's pose in another at the frame's display time.
-bool locateIn(XrSpace space, XrSpace base, vr_controls::Pose& pose)
+bool locateIn(XrSpace space, XrSpace base, vr_controls::Pose& pose, bool mustBeTracked = false)
 {
     if(space == XR_NULL_HANDLE || g.frame.predictedDisplayTime == 0)
         return false;
@@ -441,6 +442,10 @@ bool locateIn(XrSpace space, XrSpace base, vr_controls::Pose& pose)
         return false;
     const XrSpaceLocationFlags valid = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
     if((location.locationFlags & valid) != valid)
+        return false;
+    // valid may be a last known pose, which holds perfectly still
+    const XrSpaceLocationFlags tracked = XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT;
+    if(mustBeTracked && (location.locationFlags & tracked) != tracked)
         return false;
     pose.position[0] = location.pose.position.x;
     pose.position[1] = location.pose.position.y;
@@ -470,16 +475,26 @@ void placeHud()
 // over adb, the session has focus on the desk, and a panel placed from there
 // is below and far from the head that then picks the headset up. And after
 // it is put on, not until the head holds still: the runtime says so as the
-// headset nears the face, still pointing anywhere.
+// headset nears the face, still pointing anywhere. That wait counts only with
+// focus and live tracking: while the headset wakes, its pose can be a stale
+// one that looks perfectly still and then jumps.
 void alignToHead()
 {
     if(!g.alignPending || !g.userPresent || g.frame.predictedDisplayTime < g.alignAfter)
         return;
     vr_controls::Pose head;
-    if(!locateIn(g.viewSpace, g.localSpace, head))
+    if(!locateIn(g.viewSpace, g.localSpace, head, g.alignWhenSettled)) {
+        g.settle = vr_controls::HeadSettle();
         return;     // not tracked yet: next frame
-    if(g.alignWhenSettled && !vr_controls::headSettled(g.settle, head, (double)g.frame.predictedDisplayTime * 1e-9))
-        return;
+    }
+    if(g.alignWhenSettled) {
+        if(!g.sessionFocused) {
+            g.settle = vr_controls::HeadSettle();
+            return;
+        }
+        if(!vr_controls::headSettled(g.settle, head, (double)g.frame.predictedDisplayTime * 1e-9))
+            return;
+    }
 
     const vr_controls::Pose level = vr_controls::levelPose(head);
     XrReferenceSpaceCreateInfo info = xrStruct<XrReferenceSpaceCreateInfo>(XR_TYPE_REFERENCE_SPACE_CREATE_INFO);
@@ -725,6 +740,7 @@ void pollEvents()
         if(event.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
             const XrEventDataSessionStateChanged& changed = *(XrEventDataSessionStateChanged*)&event;
             printf("[XR] session state %d\n", (int)changed.state);
+            g.sessionFocused = changed.state == XR_SESSION_STATE_FOCUSED;
             if(changed.state == XR_SESSION_STATE_READY) {
                 XrSessionBeginInfo begin = xrStruct<XrSessionBeginInfo>(XR_TYPE_SESSION_BEGIN_INFO);
                 begin.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
@@ -744,6 +760,7 @@ void pollEvents()
             // the system's recentre (hold the Oculus button) moves LOCAL
             const XrEventDataReferenceSpaceChangePending& change = *(XrEventDataReferenceSpaceChangePending*)&event;
             if(change.referenceSpaceType == XR_REFERENCE_SPACE_TYPE_LOCAL) {
+                printf("[XR] the system is moving LOCAL (a recentre)\n");
                 g.alignPending = true;
                 g.alignAfter = change.changeTime;
                 g.alignWhenSettled = false;     // the player asked, now
@@ -1176,18 +1193,6 @@ bool present(int width, int height)
 {
     if(g.session == XR_NULL_HANDLE)
         return false;
-    // The game draws the size the window had when it was made. The surface can
-    // grow later (seen when the headset wakes), and copying all of it would
-    // shrink the interface into the quad's lower left.
-    static int loggedWidth = 0, loggedHeight = 0;
-    if(width != loggedWidth || height != loggedHeight) {
-        printf("[XR] window surface %dx%d, the game draws %dx%d\n", width, height,
-                Environment.drawableWidth, Environment.drawableHeight);
-        loggedWidth = width;
-        loggedHeight = height;
-    }
-    width = Environment.drawableWidth;
-    height = Environment.drawableHeight;
     if(!g.frameBegun) {
         // not visible yet: no frame paces the loop
         SDL_Delay(10);
