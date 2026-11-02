@@ -962,6 +962,10 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 		{
 			const DWORD type = listOfLights[iLight]->lightType;
 
+			// counts every active light: none at all draws a shape at full white
+			// (calc_light), a list the shader cannot read does not
+			num_lights++;
+
 			// each in its own slot, not the next free one: a tree turns the sun
 			// off while it transforms, and its ambient then lit it as a sun
 			// (black when facing away). The shader reads no other kind of light.
@@ -1006,8 +1010,6 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 			lights->lightColor[slot][1] = ((startLight >> 8) & 0x000000ff) / 255.0f;
 			lights->lightColor[slot][2] = ((startLight) & 0x000000ff) / 255.0f;
 			lights->lightColor[slot][3] = 1.0f;
-
-			num_lights++;
 		}
 	}
 

@@ -35,6 +35,7 @@
 #include "platform_str.h"
 #include <stddef.h> // linux offsetof()
 #include <new> // for placement new
+#include "render_heuristics.h"
 
 //-------------------------------------------------------------------------------
 // Include Files
@@ -86,8 +87,6 @@ extern bool useShadows;
 bool useLocalShadows = false;
 
 bool renderTGLShapes = true;
-
-#include "render_heuristics.h"
 
 bool silentMode = false;		//Used for automated builds to keep errors from popping up.
 
