@@ -17,13 +17,13 @@
 #endif
 
 #include"globalmapio.h"
+#include <stdio.h>		// [PATHS] tally in MOVE_cleanup
 
 #define	MOVELOG
 
 #ifdef MOVELOG
 #ifndef GAMELOG_H
 #include"gamelog.h"
-#include <stdio.h>
 #endif
 #endif
 
