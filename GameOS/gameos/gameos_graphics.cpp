@@ -500,12 +500,19 @@ class gosMesh {
 
 		static void drawIndexed(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl, gosRenderMaterial* material);
 		static void drawIndexed(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl);
+		static void drawBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl);
+		static void endBatch();
 
 		static const std::string s_tex1;
 		static const std::string s_tex2;
 		static const std::string s_tex3;
 
     private:
+
+        // what a batch of draws left bound
+        static HGOSBUFFER s_batch_ib;
+        static HGOSBUFFER s_batch_vb;
+        static HGOSVERTEXDECLARATION s_batch_vdecl;
 
         // GPU buffer size, in full CPU-side meshes
         static const int STREAM_BUFFER_DRAWS = 4;
@@ -762,6 +769,55 @@ void gosMesh::drawIndexed(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vd
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+}
+
+HGOSBUFFER gosMesh::s_batch_ib = nullptr;
+HGOSBUFFER gosMesh::s_batch_vb = nullptr;
+HGOSVERTEXDECLARATION gosMesh::s_batch_vdecl = nullptr;
+
+// drawIndexed() leaving everything bound for the next draw, which sets only
+// what differs. Instances of a shape share their buffers.
+void gosMesh::drawBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl)
+{
+	int index_size = ib->element_size_;
+	gosASSERT(index_size == 2 || index_size == 4);
+
+	if (ib->count_ == 0)
+		return;
+
+	if (ib != s_batch_ib) {
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib->buffer_);
+		s_batch_ib = ib;
+	}
+	if (vb != s_batch_vb || vdecl != s_batch_vdecl) {
+		if (vdecl != s_batch_vdecl) {
+			if (s_batch_vdecl)
+				s_batch_vdecl->end();
+			s_batch_vdecl = vdecl;
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, vb->buffer_);
+		s_batch_vb = vb;
+		vdecl->apply();
+	}
+
+	GLenum pt = GL_TRIANGLES;
+	countDraw(pt, ib->count_);
+	glDrawElements(pt, ib->count_, index_size == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, NULL);
+}
+
+void gosMesh::endBatch()
+{
+	if (s_batch_vdecl)
+		s_batch_vdecl->end();
+	s_batch_vdecl = nullptr;
+	s_batch_vb = nullptr;
+	s_batch_ib = nullptr;
+
+	glUseProgram(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	CHECK_GL_ERROR;
 }
 
 
@@ -1340,6 +1396,7 @@ class gosRenderer {
         void drawIndexedTris(gos_VERTEX* vertices, int num_vertices, WORD* indices, int num_indices);
 		void drawIndexedTris(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl, const float* mvp);
 		void drawIndexedTris(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl);
+		void drawBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl);
         void drawText(const char* text);
 
         void beginFrame();
@@ -2137,6 +2194,18 @@ void gosRenderer::drawIndexedTris(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLAR
     afterDrawCall();
 }
 
+void gosRenderer::drawBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl)
+{
+    gosASSERT(ib && vb);
+    gosASSERT((ib->count_ % 3) == 0);
+
+    if(beforeDrawCall()) return;
+
+    gosMesh::drawBatched(ib, vb, vdecl);
+
+    afterDrawCall();
+}
+
 static int get_next_break(const char* text) {
     const char* start = text;
     do {
@@ -2896,6 +2965,23 @@ void __stdcall gos_RenderIndexedArray(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDE
     g_gos_renderer->drawIndexedTris(ib, vb, vdecl);
 }
 
+void __stdcall gos_ApplyRenderStates()
+{
+    gosASSERT(g_gos_renderer);
+    g_gos_renderer->applyRenderStates();
+}
+
+void __stdcall gos_RenderIndexedArrayBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl)
+{
+    gosASSERT(g_gos_renderer);
+    g_gos_renderer->drawBatched(ib, vb, vdecl);
+}
+
+void __stdcall gos_EndIndexedArrayBatch()
+{
+    gosMesh::endBatch();
+}
+
 void __stdcall gos_SetRenderState( gos_RenderState RenderState, int Value )
 {
     gosASSERT(g_gos_renderer);
@@ -3421,7 +3507,7 @@ void __stdcall gos_SetRenderMaterialParameterMat4(HGOSMATERIALPARAM param, const
 void __stdcall gos_ApplyRenderMaterialParameters(HGOSRENDERMATERIAL material)
 {
 	gosASSERT(material);
-	material->apply();
+	material->getShader()->applyUniforms();
 }
 
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot)

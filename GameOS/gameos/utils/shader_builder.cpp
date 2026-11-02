@@ -717,7 +717,11 @@ glsl_program::~glsl_program()
 void glsl_program::apply()
 {
     glUseProgram(shp_);
+    applyUniforms(true);
+}
 
+void glsl_program::applyUniforms(bool check_errors)
+{
     UniArr_t::iterator it = uniforms_.begin(); 
     UniArr_t::iterator end = uniforms_.end(); 
     for(;it!=end;++it)
@@ -731,7 +735,7 @@ void glsl_program::apply()
             } else {
                 // cppcheck-suppress invalidPointerCast ; data_ is raw uniform storage (new unsigned char[]) holding the floats/ints GL reads
                 uniformFuncs[puni->type_](puni->index_, puni->num_el_, (float *) puni->data_);
-                if(GL_INVALID_OPERATION == glGetError())
+                if(check_errors && GL_INVALID_OPERATION == glGetError())
                     log_error("Error setting variable\n");
             }
             puni->is_dirty_ = false;

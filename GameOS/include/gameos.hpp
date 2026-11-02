@@ -2393,6 +2393,16 @@ void __stdcall gos_RenderIndexedArray( gos_VERTEX_3UV* pVertexArray, DWORD Numbe
 
 void __stdcall gos_RenderIndexedArray(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl, const float* mvp); //sebi
 void __stdcall gos_RenderIndexedArray(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl); //sebi
+// Many draws with one set of render states (the GPU mesh nodes): set the states,
+// gos_ApplyRenderStates, gos_ApplyRenderMaterial, then for each draw its
+// parameters and gos_RenderIndexedArrayBatched, which applies no states and
+// leaves the program and buffers bound. No other drawing until
+// gos_EndIndexedArrayBatch, which unbinds them and reports any GL error since
+// the batch's start; the states and material may change between draws by
+// repeating the first steps.
+void __stdcall gos_ApplyRenderStates();
+void __stdcall gos_RenderIndexedArrayBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl);
+void __stdcall gos_EndIndexedArrayBatch();
 
 
 void __stdcall gos_SetRenderViewport(float x, float y, float w, float h);
@@ -2696,8 +2706,9 @@ void __stdcall gos_SetRenderMaterialParameterMat4(HGOSRENDERMATERIAL material, c
 HGOSMATERIALPARAM __stdcall gos_GetRenderMaterialParameter(HGOSRENDERMATERIAL material, const char* name);
 void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSMATERIALPARAM param, const float* v);
 void __stdcall gos_SetRenderMaterialParameterMat4(HGOSMATERIALPARAM param, const float* m);
-// gos_ApplyRenderMaterial for the later draws of a material: the parameters
-// only, as its sampler units stay set
+// gos_ApplyRenderMaterial for the later draws of a material, still current:
+// the parameters only, as its sampler units stay set. GL errors stay pending
+// (gos_EndIndexedArrayBatch reports them).
 void __stdcall gos_ApplyRenderMaterialParameters(HGOSRENDERMATERIAL material);
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot);
 
