@@ -240,7 +240,7 @@ void MC_TextureManager::start (void)
 	masterTextureNodes[0].lastUsed = -1;
 	masterTextureNodes[0].textureData = NULL;
 
-    lightDataStructuresCapacity = 128;
+    lightDataStructuresCapacity = MAX_HW_LIGHT_ENTRIES;
     lightDataStructuresCount = 0;
     lightData_ = new TG_HWLightsData[lightDataStructuresCapacity];
 	lightDataBuffer_ = gos_CreateBuffer(gosBUFFER_TYPE::UNIFORM, gosBUFFER_USAGE::STATIC_DRAW, sizeof(TG_HWLightsData) * lightDataStructuresCapacity, 1, NULL);
@@ -790,12 +790,34 @@ uint32_t MC_TextureManager::addLightDataStructure(TG_HWLightsData* light_data)
 
     // unique data passed, so add it
 
-    if(lightDataStructuresCount + 1 >= lightDataStructuresCapacity)
+    // the shader's block is full: the entry nearest in colour, as an index past
+    // the block would read anything
+    if(lightDataStructuresCount >= lightDataStructuresCapacity)
     {
-        TG_HWLightsData* new_lights_data = new TG_HWLightsData[lightDataStructuresCapacity + 128];
-        memcpy(new_lights_data, lightData_, sizeof(TG_HWLightsData)*lightDataStructuresCount);
-        delete[] lightData_;
-        lightData_ = new_lights_data;
+        static bool warned = false;
+        if(!warned)
+        {
+            warned = true;
+            printf("[LIGHTS] more than %u light entries: sharing the nearest\n", (unsigned)lightDataStructuresCapacity);
+        }
+        uint32_t nearest = 0;
+        float nearestDistance = -1.0f;
+        for(uint32_t i = 0; i < lightDataStructuresCount; ++i)
+        {
+            float distance = 0.0f;
+            for(int l = 0; l < MAX_HW_LIGHTS_IN_WORLD; ++l)
+                for(int c = 0; c < 3; ++c)
+                {
+                    const float d = lightData_[i].lightColor[l][c] - light_data->lightColor[l][c];
+                    distance += d * d;
+                }
+            if((nearestDistance < 0.0f) || (distance < nearestDistance))
+            {
+                nearestDistance = distance;
+                nearest = i;
+            }
+        }
+        return nearest;
     }
 
     lightData_[lightDataStructuresCount] = *light_data;
@@ -893,21 +915,44 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 {
 	gosASSERT(lights);
 
+	// from nothing: what was gathered last must not stay in a slot now off, and
+	// entries are compared whole
+	*lights = TG_HWLightsData();
+
 	uint32_t num_lights = 0;
-	const uint32_t max_num_lights = MAX_HW_LIGHTS_IN_WORLD;
 
 	const TG_LightPtr* listOfLights = TG_Shape::s_listOfLights;
 	const DWORD numLights = TG_Shape::s_numLights;
 
 	for (uint32_t iLight = 0; iLight < numLights; iLight++)
 	{
-		if (num_lights == max_num_lights)
-			break;
-
 		if ((listOfLights[iLight] != NULL) && (listOfLights[iLight]->active))
 		{
-
 			const DWORD type = listOfLights[iLight]->lightType;
+
+			// each in its own slot, not the next free one: a tree turns the sun
+			// off while it transforms, and its ambient then lit it as a sun
+			// (black when facing away). The shader reads no other kind of light.
+			int slot = -1;
+			switch (type)
+			{
+			case TG_LIGHT_AMBIENT:
+				slot = HW_LIGHT_AMBIENT;
+				break;
+			case TG_LIGHT_INFINITE:
+			case TG_LIGHT_INFINITEWITHFALLOFF:
+				slot = HW_LIGHT_SUN;
+				break;
+			case TG_LIGHT_POINT:
+			case TG_LIGHT_TERRAIN:
+			case TG_LIGHT_SPOT:
+				break;
+			default:
+				STOP(("Unknown light type id: %d", type));
+			}
+			// the first of a kind, as before
+			if ((slot < 0) || (lights->lightColor[slot][3] != 0.0f))
+				continue;
 
 			Stuff::LinearMatrix4D light2world;
 			if (TG_LIGHT_AMBIENT != type)
@@ -915,41 +960,20 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 			else
 				light2world = Stuff::LinearMatrix4D::Identity;
 
-			memcpy(lights->lightToWorld[num_lights], (const float*)light2world, 12*sizeof(float));
-			lights->lightToWorld[num_lights][12] = lights->lightToWorld[num_lights][13] = lights->lightToWorld[num_lights][14] = 0.0f;
-			lights->lightToWorld[num_lights][15] = 1.0f;
-
 			Stuff::UnitVector3D uVec;
 			light2world.GetLocalForwardInWorld(&uVec);
-			lights->lightDir[num_lights][0] = uVec.x;
-			lights->lightDir[num_lights][1] = uVec.y;
-			lights->lightDir[num_lights][2] = uVec.z;
+			lights->lightDir[slot][0] = uVec.x;
+			lights->lightDir[slot][1] = uVec.y;
+			lights->lightDir[slot][2] = uVec.z;
 
-			lights->lightDir[num_lights][3] = (float)type;
+			lights->lightDir[slot][3] = (float)type;
 
 			DWORD startLight = listOfLights[iLight]->GetaRGB();
 
-			lights->lightColor[num_lights][0] = ((startLight >> 16) & 0x000000ff) / 255.0f;
-			lights->lightColor[num_lights][1] = ((startLight >> 8) & 0x000000ff) / 255.0f;
-			lights->lightColor[num_lights][2] = ((startLight) & 0x000000ff) / 255.0f;
-			lights->lightColor[num_lights][3] = 1.0f;
-
-			switch (type)
-			{
-			case TG_LIGHT_AMBIENT:
-				break;
-			case TG_LIGHT_INFINITE:
-			case TG_LIGHT_INFINITEWITHFALLOFF:
-				break;
-			case TG_LIGHT_POINT:
-				break;
-			case TG_LIGHT_TERRAIN:
-				break;
-			case TG_LIGHT_SPOT:
-				break;
-			default:
-				STOP(("Unknown light type id: %d", type));
-			}
+			lights->lightColor[slot][0] = ((startLight >> 16) & 0x000000ff) / 255.0f;
+			lights->lightColor[slot][1] = ((startLight >> 8) & 0x000000ff) / 255.0f;
+			lights->lightColor[slot][2] = ((startLight) & 0x000000ff) / 255.0f;
+			lights->lightColor[slot][3] = 1.0f;
 
 			num_lights++;
 		}
@@ -1100,19 +1124,13 @@ void MC_TextureManager::renderLists (void)
 
     // copy global list of light data into GPU buffer
     
-	const uint32_t gpu_buf_size = gos_GetBufferSizeBytes(lightDataBuffer_);
-    const uint32_t cpu_buf_size = lightDataStructuresCount*sizeof(TG_HWLightsData);
-    if(gpu_buf_size < cpu_buf_size) {
-        gos_DestroyBuffer(lightDataBuffer_);
-        lightDataBuffer_ = gos_CreateBuffer(gosBUFFER_TYPE::UNIFORM, gosBUFFER_USAGE::STATIC_DRAW, cpu_buf_size, 1, lightData_);
-	    gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
-    }
-    else {
-        gos_UpdateBuffer(lightDataBuffer_, lightData_, 0, cpu_buf_size);
-	    gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
-    }
-    //
-    
+	// the whole block: gos_UpdateBuffer sizes the buffer to what it is given, and
+	// one smaller than the shader's block reads undefined data (no lights: full
+	// white). No entries, as in the flat game: nothing reads it.
+	const uint32_t cpu_buf_size = lightDataStructuresCount ? lightDataStructuresCapacity*sizeof(TG_HWLightsData) : 0;
+	gos_UpdateBuffer(lightDataBuffer_, lightData_, 0, cpu_buf_size);
+	gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
+
     // update scene data uniform buffer
     sceneData_->fog_start = eye->fogStart;
     sceneData_->fog_end = eye->fogFull;
