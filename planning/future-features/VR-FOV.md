@@ -275,9 +275,20 @@ being no eyes to ask):
 - Frame rate in that run (`VrApi` in logcat), quiet mc2_01: 72 fps in nearly
   every second after 9 seconds of startup, under 1% stale frames, GPU 71% on
   average, CPU and GPU 14.3 ms against a 13.9 ms budget. No 40-degree run to
-  compare with, and no battle: the mc2_19 bench at `MC2_XR_FOV=0` and the
-  default is still to do.
+  compare with, and no battle: see the mc2_19 bench below.
 - Step 5 (the arm cone tests) left out: nothing shows the gap yet.
+
+- Quest 2, mc2_19 bench, 3600 frames, build 235feba7, three runs at
+  `MC2_XR_FOV=0` and two at the default (115.6), alternating: 69.6 to 70.0 fps
+  against 69.4 to 69.5; the game step, frames with `logic_ms` over 2, 4.8 ms
+  against 4.95 ms; `objects_ms` 0.86 against 0.88; p99 about 27.8 ms in both.
+  Both sit a little under 72 in this battle. The wider view costs about
+  0.1 ms a step here, and few turrets are near this fight. The state hash
+  differs between runs at the same setting, so it cannot compare them.
+- One earlier 50-second mc2_01 run held about 66 fps with the CPU clock lower
+  and no more load; not explained, and not seen in these five runs, where the
+  clocks were higher.
+- Not checked: a turret at the side of the view (mc2_01 has none).
 
 ## Found in review (2026-11-02)
 
