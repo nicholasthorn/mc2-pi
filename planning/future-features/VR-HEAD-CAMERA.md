@@ -128,10 +128,23 @@ One run of each, 3600 frames, fixed head (`MC2_XR_POSE=0,0`), nobody moving:
 | 800x600 | off | 68.5 | 18.81 | 27.86 | 1.53 | 0.75 | 9.25 |
 
 So neither following nor the window setting costs anything measurable here, and all
-four match #86's 69.5 or so. The low rate of the first run is therefore something this
-bench does not do: a moving head, the pointer picking, or `mc2_01` played by hand. To
-find it: `mc2_01` worn and played the same way, default against `MC2_XR_FOLLOW=0`.
-`bench.sh`'s rule holds: one run each, so differences of a few tenths mean nothing.
+four match #86's 69.5 or so. One run each, so differences of a few tenths mean nothing.
+
+## Frame rate: mc2_01 played by hand (2026-11-02, build 805b4004, 3664x1920)
+
+Two runs of 2 minutes, worn, the same player, following first and then
+`MC2_XR_FOLLOW=0` (`VrApi`, seconds at the game's own 72 Hz):
+
+| Following | Median fps | Mean | Under 60 | fps per 10 s |
+|---|---|---|---|---|
+| on | 50 | 52.1 | 73% | 69 67 58 55 54 72 51 43 40 39 41 42 47 |
+| off | 42 | 48.1 | 80% | 62 66 62 54 44 40 39 40 40 42 42 48 50 |
+
+Both have CPU level 5 and GPU level 4, and no errors; all 31 presses were valid. So
+**following does not cause the drop**: it is as low or lower without it, and two
+hand-played runs cannot rank them more finely than that. Both fall from the mid 60s
+to about 40 within a minute, which the `mc2_19` bench (fixed head, no pointer) does not
+do. Cause not found: a separate question from this feature.
 
 ## The minimap's wedge
 
