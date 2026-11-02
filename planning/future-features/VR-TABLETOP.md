@@ -613,6 +613,17 @@ Known gaps:
   those in VR, and `GameObjectManager::updateDrawnAppearances` updates only
   the appearance of objects drawn but outside the game camera's view.
   Quest 2: objects everywhere in the window, 66.0 fps (from 67.0).
+- **Shapes with more than one texture** were drawn on the GPU path with
+  their first triangle's texture (an old FIXME), and in VR the update-time
+  draw reservation and the draw disagreed on the alpha-test flag, so the
+  texture manager silently dropped the draw (nodes are keyed by texture and
+  flags): the mc2_01 buildings vanished. Now one index buffer and one draw
+  per texture (`TG_TypeShape::textureIb_`), flags from one place
+  (`GPUTextureFlags`), GPU buffers also for shapes parsed from ASE. Checked
+  on the desktop with `MC2_VR_PATHS=1` (a flat game on the VR render paths)
+  and `MC2_SHOT_FRAME=n`. Still wrong on that path: dark semi-transparent
+  textures (sandbag emplacements) come out opaque, because the CPU path
+  blends alpha-textured shapes and the GPU path can only alpha-test.
 - **Geometry behind the camera:** the GPU mesh shader divided by `w` itself
   and kept `abs()`, so geometry behind the camera was drawn mirrored (huge
   dark wedges once objects behind the game camera were drawn; the likely
