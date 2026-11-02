@@ -137,6 +137,19 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       out of the game camera's view still works. Rotated ones were checked on
       the desktop only, with rays from the game camera.
 
+## Quest playtest fixes (`quest-playtest-fixes`)
+
+- [ ] **Video sound on the Quest:** a briefing video with its own sound
+      (`node_*`, `cinema*`) is heard, and a skipped video's sound stops.
+- [ ] **The buzz:** play mc2_03 to the end, listening for a cyclic buzz in the
+      last quarter.
+- [ ] **Mech lab drags on the Quest:** drag 1x1 and 2x2 components out of the
+      diagram and from the list; drag with the other hand's trigger brushed.
+- [ ] **Saving with no keyboard:** a new save and a new variant start with an
+      unused name, OK works, and the save loads.
+- [ ] **Flat mech lab:** drag a component by mouse from its edge, and flick it;
+      it should still pick up what was pressed.
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **A package on a clean machine** (phase 1 exit): unpack the Linux x64

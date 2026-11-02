@@ -19,6 +19,26 @@ LogisticsDialog.cpp			: Implementation of the LogisticsDialog component.
 #include"sounds.h"
 #include"gamesound.h"
 
+// A headset has no keyboard, so a save or a variant starts with a name nobody
+// has used, and OK works straight away. A name in the list can still be picked
+// to replace it.
+static void setUnusedNameForVR( aEdit& edit, aListBox& list, const char* base, bool variantName )
+{
+	char name[32];
+	for ( int n = 1; n < 1000; n++ )
+	{
+		sprintf( name, "%s %d", base, n );
+		bool used = variantName && !LogisticsData::instance->canReplaceVariant( name );
+		for ( int i = 0; i < list.GetItemCount() && !used; i++ )
+			used = S_stricmp( static_cast<aTextListItem*>( list.GetItem( i ) )->getText(), name ) == 0;
+		if ( !used )
+		{
+			edit.setEntry( name );
+			return;
+		}
+	}
+}
+
 LogisticsOKDialog* LogisticsOKDialog::s_instance = NULL;
 LogisticsSaveDialog* LogisticsSaveDialog::s_instance = NULL;
 LogisticsVariantDialog* LogisticsVariantDialog::s_instance = NULL;
@@ -471,7 +491,9 @@ void LogisticsSaveDialog::begin()
 	statics[MAP_STATIC].setTexture( ( unsigned long)0 );
 
 	aListItem* pItem = gameListBox.GetItem( 0 );
-	if ( pItem )
+	if ( gos_IsVR() )
+		setUnusedNameForVR( edits[0], gameListBox, "Save", false );
+	else if ( pItem )
 	{
 		pItem->select();
 		edits[0].setEntry( ((aTextListItem*)pItem)->getText() );
@@ -1256,6 +1278,8 @@ void LogisticsVariantDialog::begin()
 
 
 	initVariantList();
+	if ( gos_IsVR() )
+		setUnusedNameForVR( edits[0], gameListBox, "Variant", true );
 	status = RUNNING;
 	bPromptOverwrite = 0;
 	bDeletePrompt = 0;
@@ -1636,6 +1660,8 @@ void LogisticsAcceptVariantDialog::begin()
 
 	edits[0].allowIME( false );
 	edits[0].setFocus(true);
+	if ( gos_IsVR() )
+		setUnusedNameForVR( edits[0], gameListBox, "Variant", true );
 
 
 	LogisticsDialog::begin();
