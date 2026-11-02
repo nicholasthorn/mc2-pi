@@ -115,6 +115,9 @@ struct glsl_program {
 
     bool reload();
     void apply();
+    // apply() for a program already current. Without check_errors, for draw
+    // loops: a failed glUniform stays pending for the caller's CHECK_GL_ERROR.
+    void applyUniforms(bool check_errors = false);
 
     bool setFloat(const char* name, const float v);
     bool setFloat2(const char* name, const float v[2]);

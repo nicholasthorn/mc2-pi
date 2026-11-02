@@ -817,16 +817,18 @@ mat4 gos2my(Stuff::LinearMatrix4D& m)
 class ShapeRenderer {
 
 	HGOSRENDERMATERIAL mat_;
-	DWORD texture_id_;
 	// looked up once per node: about 1500 draws per eye in VR
 	HGOSMATERIALPARAM world_, wvp_, projection_, vp_, mesh_params_, sun_color_, sun_dir_, ambient_;
 
 public:
 
-	// the alpha test state must be set: it picks the material's variant
+	// for one node, whose draws then change no state. The alpha test state must
+	// be set: it picks the material's variant
 	void setMaterial(DWORD texture_id)
 	{
-		texture_id_ = texture_id;
+		gos_SetRenderState(gos_State_Texture, texture_id);
+		gos_ApplyRenderStates();
+
 		mat_ = texture_id == 0 ? gos_getRenderMaterial("gos_vertex_lighted") : gos_getRenderMaterial("gos_tex_vertex_lighted");
 
 		world_ = gos_GetRenderMaterialParameter(mat_, "world_");
@@ -855,7 +857,6 @@ public:
 
 	void render(const TG_RenderShape& rs, const mat4& world, const mat4& wvp, float hud_element)
 	{
-		gos_SetRenderState(gos_State_Texture, texture_id_);
 		gos_SetRenderViewport(rs.viewport_[2], rs.viewport_[3], rs.viewport_[0], rs.viewport_[1]);
 
 		gos_SetRenderMaterialParameterMat4(world_, (const float*)world);
@@ -876,7 +877,7 @@ public:
 		// TODO: either use this or setMat4("wvp_", ...);
 		//mat->setTransform(*wvp_);
 
-		gos_RenderIndexedArray(rs.ib_, rs.vb_, rs.vdecl_);
+		gos_RenderIndexedArrayBatched(rs.ib_, rs.vb_, rs.vdecl_);
 	}
 
 };
@@ -997,6 +998,7 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 				static bool b_old_way = false;
 				if (b_old_way)
 				{
+					gos_EndIndexedArrayBatch();	// it unbinds what the batch left bound
 					gos_SetRenderState(gos_State_Texture, masterTextureNodes[textureIndex].get_gosTextureHandle());
 					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
 					gos_SetRenderViewport(rs->viewport_[2], rs->viewport_[3], rs->viewport_[0], rs->viewport_[1]);
@@ -1023,6 +1025,8 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 			//masterHardwareVertexNodes[i].numShapes = 0;
 		}
 	}
+
+	gos_EndIndexedArrayBatch();
 
 	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
 	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
