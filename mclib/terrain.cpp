@@ -99,6 +99,7 @@ char * 						Terrain::colorMapName = NULL;
 long		   				Terrain::numObjBlocks = 0;
 ObjBlockInfo				*Terrain::objBlockInfo = NULL;
 bool						*Terrain::objVertexActive = NULL;
+bool						*Terrain::objVertexDrawn = NULL;
 
 float 						*Terrain::tileRowToWorldCoord = NULL;
 float 						*Terrain::tileColToWorldCoord = NULL;
@@ -464,6 +465,10 @@ long Terrain::init( unsigned long verticesPerMapSide, PacketFile* pakFile, unsig
 	gosASSERT(objVertexActive != NULL);
 	
 	memset(objVertexActive,0,sizeof(bool)*numObjBlocks);
+
+	objVertexDrawn = (bool *)terrainHeap->Malloc(sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
+	gosASSERT(objVertexDrawn != NULL);
+	memset(objVertexDrawn,0,sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
 	
 	moverBlockList = (long *)terrainHeap->Malloc(sizeof(long) * numberBlocks);
 	gosASSERT(moverBlockList != NULL);
@@ -702,6 +707,12 @@ void Terrain::destroy (void)
 	{
 		terrainHeap->Free(objVertexActive);
 		objVertexActive = NULL;
+	}
+
+	if (objVertexDrawn)
+	{
+		terrainHeap->Free(objVertexDrawn);
+		objVertexDrawn = NULL;
 	}
 	
  	if (terrainHeap)
@@ -960,6 +971,7 @@ void Terrain::geometry (void)
 		// Figure out if we are in front of camera or not.  Should be faster then actual project!
 		// Should weed out VAST overwhelming majority of vertices!
 		bool onScreen = false;
+		bool gameOnScreen = true;		//the game camera's own answer (VR: see below)
 	
 		//-----------------------------------------------------------------
 		// Find angle between lookVector of Camera and vector from camPos
@@ -1007,6 +1019,14 @@ void Terrain::geometry (void)
 				}
 			}
 			
+			//VR: the head-tracked eyes look anywhere, so every vertex in the
+			//window is projected and drawn (each eye re-projects it,
+			//projectForEye); the gameplay decision below, which object blocks
+			//are active, keeps the game camera's view
+			gameOnScreen = onScreen;
+			if (gos_IsVR())
+				onScreen = true;
+
 			if (onScreen)
 			{
 				if (distanceToEye > Camera::MaxClipDistance)
@@ -1079,7 +1099,12 @@ void Terrain::geometry (void)
 		else
 			currentVertex->clipInfo = inView;
 		
-		if (currentVertex->clipInfo)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
+		//the game camera's own view, for picking (Camera::inverseProject):
+		//in VR clipInfo covers the whole window, behind the camera too
+		if (currentVertex->clipInfo && gameOnScreen)
+			currentVertex->calcThisFrame |= 8;
+
+		if (currentVertex->clipInfo && gameOnScreen)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
 		{
 			setObjBlockActive(currentVertex->getBlockNumber(), true);
 			setObjVertexActive(currentVertex->vertexNum,true);
@@ -1108,6 +1133,18 @@ void Terrain::geometry (void)
 					mostWY = screenPos.y;
 				}
 			}
+		}
+
+		//what is drawn (in VR the whole window): the objects there are drawn,
+		//updated by the game or, if it does not, appearance only
+		//(GameObjectManager::updateDrawnAppearances)
+		if (currentVertex->clipInfo)
+		{
+			long block = currentVertex->getBlockNumber();
+			if ((block >= 0) && (block < numObjBlocks))
+				objBlockInfo[block].drawn = true;
+			if ((currentVertex->vertexNum >= 0) && (currentVertex->vertexNum < (realVerticesMapSide * realVerticesMapSide)))
+				objVertexDrawn[currentVertex->vertexNum] = true;
 		}
 
 		currentVertex++;
@@ -1321,7 +1358,10 @@ void Terrain::setObjBlockActive (long blockNum, bool active)
 void Terrain::clearObjBlocksActive (void)
 {
 	for (long i = 0; i < numObjBlocks; i++)
+	{
 		setObjBlockActive(i, false);
+		objBlockInfo[i].drawn = false;
+	}
 }	
 
 //---------------------------------------------------------------------------
@@ -1335,6 +1375,7 @@ void Terrain::setObjVertexActive (long vertexNum, bool active)
 void Terrain::clearObjVerticesActive (void)
 {
 	memset(objVertexActive,0,sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
+	memset(objVertexDrawn,0,sizeof(bool) * realVerticesMapSide * realVerticesMapSide);
 }
 
 //---------------------------------------------------------------------------

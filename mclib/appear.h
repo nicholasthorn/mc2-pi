@@ -165,6 +165,12 @@ class Appearance
 		float eyeShift (void);
 		Stuff::Vector4D getEyeScreenPos (void);
 
+		//-stereo and VR: where a point drawn relative to this object on the
+		//game camera's screen (a bracket corner, a bar) lands for the eye being
+		//drawn: Camera::overlayToEye in a head-tracked eye, the sideways shift
+		//under -stereo, unchanged otherwise. False: no overlay in this eye.
+		bool toEye (float& x, float& y);
+
 		virtual bool isMouseOver (float px, float py)
 		{
 			return FALSE;		//Never over a base appearance

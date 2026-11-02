@@ -45,10 +45,19 @@ float Appearance::eyeShift (void)
 	return eye ? eye->overlayShiftX(screenPos.w) : 0.0f;
 }
 
+bool Appearance::toEye (float& x, float& y)
+{
+	if (eye && eye->hidesOverlays())
+		return eye->overlayToEye(screenPos, x, y);
+	x += eyeShift();
+	return true;
+}
+
 Stuff::Vector4D Appearance::getEyeScreenPos (void)
 {
 	Stuff::Vector4D result = screenPos;
-	result.x += eyeShift();
+	if (!toEye(result.x, result.y))
+		result.x = result.y = -10000.0f;		//off screen: nothing for this eye
 	return result;
 }
 
@@ -78,13 +87,15 @@ void Appearance::drawTextHelp (char *text, unsigned long color)
 {
 	DWORD width, height;
 	Stuff::Vector4D moveHere;
-	moveHere = getEyeScreenPos();
-
+	moveHere = screenPos;
+	float textY = lowerRight.y;
+	if (!toEye(moveHere.x, textY))
+		return;
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
 	gos_TextStringLength(&width,&height,text);
 
-	moveHere.y = lowerRight.y + 10.0f;
+	moveHere.y = textY + 10.0f;
 	moveHere.x -= width / 2;
 	moveHere.z = width;
 	moveHere.w = height;
@@ -100,13 +111,15 @@ void Appearance::drawPilotName(char *text, unsigned long color )
 {
 	DWORD width, height;
 	Stuff::Vector4D moveHere;
-	moveHere = getEyeScreenPos();
-
+	moveHere = screenPos;
+	float textY = lowerRight.y;
+	if (!toEye(moveHere.x, textY))
+		return;
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
 	gos_TextStringLength(&width,&height,text);
 
-	moveHere.y = lowerRight.y + 10.0f + height;
+	moveHere.y = textY + 10.0f + height;
 	moveHere.x -= width / 2;
 	moveHere.z = width;
 	moveHere.w = height;
@@ -124,21 +137,26 @@ void Appearance::drawSelectBox (DWORD color)
 	if (appearType && appearType->typeBoundExists())
 	{		   
 		eye->projectZ(appearType->typeUpperLeft,ul);
-		ul.z = HUD_DEPTH;
-		
 		eye->projectZ(appearType->typeLowerRight,br);
+		//VR: projected through the eye already; behind it (depth outside
+		//[0, 1)) projectZ mirrors them, so no box (as toEye does)
+		if (eye->hidesOverlays() &&
+			((ul.z < 0.0f) || (ul.z >= 1.0f) || (br.z < 0.0f) || (br.z >= 1.0f)))
+			return;
+		ul.z = HUD_DEPTH;
 		br.z = HUD_DEPTH;
 	}
 	else
 	{
-		const float shift = eyeShift();
-		ul.x = upperLeft.x + shift;
+		ul.x = upperLeft.x;
 		ul.y = upperLeft.y;
 		ul.z = HUD_DEPTH;
 
-		br.x = lowerRight.x + shift;
+		br.x = lowerRight.x;
 		br.y = lowerRight.y;
 		br.z = HUD_DEPTH;
+		if (!toEye(ul.x, ul.y) || !toEye(br.x, br.y))
+			return;
 	}
 
 	//-----------------------------------------------------
@@ -266,14 +284,15 @@ void Appearance::drawSelectBrackets (DWORD color)
 	Stuff::Vector4D			pos2;
 	Stuff::Vector4D			ul, br;
 
-	const float shift = eyeShift();
-	ul.x = upperLeft.x + shift;
+	ul.x = upperLeft.x;
 	ul.y = upperLeft.y;
 	ul.z = HUD_DEPTH;
 
-	br.x = lowerRight.x + shift;
+	br.x = lowerRight.x;
 	br.y = lowerRight.y;
 	br.z = HUD_DEPTH;
+	if (!toEye(ul.x, ul.y) || !toEye(br.x, br.y))
+		return;
 
 	pos1.x = ul.x;
 	pos1.y = ul.y;
@@ -447,11 +466,17 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 						  unsigned long bmpHeight, unsigned long color, 
 						  unsigned long where )
 {
+	// above the object's bounds, centred (toEye: for the eye being drawn)
+	float			anchorX = (upperLeft.x + lowerRight.x)/2.f;
+	float			anchorY = upperLeft.y;
+	if (!toEye(anchorX, anchorY))
+		return;
+
 	// ignoring where for now
 	float			offset = 8.0 * eye->getScaleFactor();
 	float			trueHeight = HEIGHT * eye->getScaleFactor();
-	float			Y = upperLeft.y - offset - trueHeight -  2 * bmpHeight;
-	float			X = (upperLeft.x + lowerRight.x)/2.f - bmpWidth/2.f + eyeShift();
+	float			Y = anchorY - offset - trueHeight -  2 * bmpHeight;
+	float			X = anchorX - bmpWidth/2.f;
 
 	gos_VERTEX v[4]; 
 
@@ -483,13 +508,19 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 //---------------------------------------------------------------------------
 void Appearance::drawBars (void)
 {
+	// above the object's bounds, centred (toEye: for the eye being drawn)
+	float			anchorX = (upperLeft.x + lowerRight.x)/2.f;
+	float			anchorY = upperLeft.y;
+	if (!toEye(anchorX, anchorY))
+		return;
+
 	//-----------------------------------------
 	// Change to GOS DrawQuad code for HWare!!
 	float			offset = 8.0 * eye->getScaleFactor();		//Remember, EVEN numbers!!!
 	float			trueWidth = WIDTH * eye->getScaleFactor() * 2;
 	float			trueHeight = HEIGHT * eye->getScaleFactor();
-	float			topY = upperLeft.y - offset - trueHeight;
-	float			leftX = floor((upperLeft.x + lowerRight.x)/2.f - trueWidth / 2 + eyeShift());
+	float			topY = anchorY - offset - trueHeight;
+	float			leftX = floor(anchorX - trueWidth / 2);
 	
 	DWORD					color;
 	

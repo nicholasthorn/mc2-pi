@@ -348,6 +348,8 @@ glsl_shader* glsl_shader::makeShader(Shader_t stype, const char* fname, const ch
     const char* strings[] = { prefix == nullptr ? "" : prefix, shader_source.c_str() };
     if(!compile_shader(shader, strings, sizeof(strings)/sizeof(strings[0])))
     {
+        // some drivers (Adreno) fail with an empty info log: name the file
+        log_error("Shader %s did not compile\n", fname);
         glDeleteShader(shader);
         delete pshader;
         return nullptr;
@@ -645,6 +647,7 @@ glsl_program* glsl_program::makeProgram2(const char* name, const char* vp, const
 	CHECK_GL_ERROR
 	if(get_program_error_status(shp, GL_LINK_STATUS))
     {
+        log_error("Program %s did not link\n", name);
         glDeleteProgram(shp);
         return 0;
     }

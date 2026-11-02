@@ -1037,6 +1037,26 @@ const char*			LogisticsMissionInfo::getFinalVideo() const
 	return finalVideoName;
 }
 
+bool LogisticsMissionInfo::isLastMission() const
+{
+	if ( currentStage < 0 || currentStage != groupCount - 1 || currentMission < 0 )
+		return false;
+
+	// the current mission counted as done, as setMissionComplete does
+	const MissionGroup* pGroup = &groups[currentStage];
+	int count = 0;
+	int numberCompleted = 0;
+	bool bAllMandatoryCompleted = true;
+	for ( MISSION_LIST::EConstIterator iter = pGroup->infos.Begin(); !iter.IsDone(); iter++, count++ )
+	{
+		if ( (*iter)->completed || count == currentMission )
+			numberCompleted++;
+		else if ( (*iter)->mandatory )
+			bAllMandatoryCompleted = false;
+	}
+	return numberCompleted >= pGroup->numberToBeCompleted && bAllMandatoryCompleted;
+}
+
 bool LogisticsMissionInfo::campaignOver() const
 {
 	return currentStage == groupCount;

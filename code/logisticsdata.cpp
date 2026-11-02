@@ -2631,9 +2631,13 @@ const EString&	LogisticsData::getCampaignName() const
 
 
 
-bool				LogisticsData::campaignOver() 
-{ 
+bool				LogisticsData::campaignOver()
+{
 	return missionInfo->campaignOver();
+}
+bool				LogisticsData::isLastMission() const
+{
+	return missionInfo->isLastMission();
 }
 const char*			LogisticsData::getCurrentBigVideo() const 
 { 

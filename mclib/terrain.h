@@ -89,6 +89,7 @@
 typedef struct _ObjBlockInfo 
 {
 	bool		active;
+	bool		drawn;						// VR: drawn by an eye this frame (Terrain::geometry), not just seen by the game camera
 	long		numCollidableObjects;
 	long		numObjects;					// includes collidable objects
 	long		firstHandle;				// collidables, followed by non
@@ -166,6 +167,7 @@ class Terrain
 		static ObjBlockInfo						*objBlockInfo;				//Dynamically allocate this please!!
 		
 		static bool								*objVertexActive;			//Stores whether or not this vertices objects need to be updated
+		static bool								*objVertexDrawn;			//VR: this vertex's objects are drawn (an eye may see them; see geometry)
 
 		static float 							*tileRowToWorldCoord;		//Arrays used to help change from tile and cell to actual world position.
 		static float 							*tileColToWorldCoord;		//TILE functions will be obsolete with new system.

@@ -482,6 +482,7 @@ class GameObjectManager {
 
 		void update (bool terrain, bool movers, bool other);
 		void updateAppearancesOnly( bool terrain, bool mover, bool other);
+		void updateDrawnAppearances (void);		// VR: terrain objects drawn but not seen by the game camera
 
 		GameObjectPtr get (GameObjectHandle handle);
 

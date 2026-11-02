@@ -172,6 +172,7 @@ public:
 	int					getBuildings( Building** bdgs, int& count );
 
 	bool				campaignOver();
+	bool				isLastMission() const;
 	const char*			getCurrentBigVideo() const;
 	const char*			getFinalVideo() const;
 

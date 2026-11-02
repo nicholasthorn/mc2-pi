@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include "utils/graphics.h"
 #include "utils/logging.h"
+#include "gos_xr.h"
 
 // FIXME: think how to make it better when different parts need window
 SDL_Window* g_sdl_window = NULL;
@@ -282,6 +283,11 @@ void swap_window(RenderWindowHandle h)
 {
     RenderWindow* rw = (RenderWindow*)h;
     assert(rw && rw->window_);
+    // in VR (MC2_OPENXR) the frame goes to the headset instead
+    int width = 0, height = 0;
+    SDL_GL_GetDrawableSize(rw->window_, &width, &height);
+    if (gos_xr::present(width, height))
+        return;
     SDL_GL_SwapWindow(rw->window_);
 }
 
@@ -402,6 +408,8 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     RenderContext* rc = new RenderContext();
     rc->glcontext_ = glcontext;
     rc->render_window_ = render_window;
+
+	gos_xr::init();
 
 	return rc;
 }

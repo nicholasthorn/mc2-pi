@@ -551,6 +551,10 @@ long Mission::update (void)
 			ObjectManager->updateAppearancesOnly( true, true, true );
 		else
 			ObjectManager->update(true, true, true);
+		// VR: terrain objects outside the game camera's view, drawn for the
+		// head-tracked eyes: appearance only, the game update is as above
+		if (gos_IsVR())
+			ObjectManager->updateDrawnAppearances();
 		gos_BenchStageStop(benchObjects);
 
 		ProfileTime(MCTimeCraterUpdate,craterManager->update());
