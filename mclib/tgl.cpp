@@ -572,6 +572,11 @@ void TG_TypeShape::CreateGPUBuffers (void)
 	if (ib_ || vb_)		//made already
 		return;
 
+	//the data tools (aseconv) parse shapes with no renderer and no GL
+	//context: nothing draws there, so no buffers
+	if (!gos_GetRenderer())
+		return;
+
 	if (numTypeVertices)
 	{
 		// no real index buffer for now...
