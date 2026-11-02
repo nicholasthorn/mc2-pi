@@ -271,7 +271,12 @@ being no eyes to ask):
   never seen before: picks now reach far enough for a beam hundreds of metres
   long, and `vr_controls::beamPose` lost precision working from its middle
   (0.86% off unit in a test). Fixed and pinned by a unit test; the headset has
-  to confirm that this was the cause.
+  to confirm that this was the cause. The next run, about 50 seconds: none.
+- Frame rate in that run (`VrApi` in logcat), quiet mc2_01: 72 fps in nearly
+  every second after 9 seconds of startup, under 1% stale frames, GPU 71% on
+  average, CPU and GPU 14.3 ms against a 13.9 ms budget. No 40-degree run to
+  compare with, and no battle: the mc2_19 bench at `MC2_XR_FOV=0` and the
+  default is still to do.
 - Step 5 (the arm cone tests) left out: nothing shows the gap yet.
 
 ## Alternatives considered
