@@ -722,6 +722,32 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   with hysteresis (on at 0.5, off below 0.3).
 - **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
   button is Escape (pause menu).
+- **Straight ahead is where the head faces.** LOCAL stays wherever the headset
+  was last recentred (136 degrees off and 0.72 m away on one launch), so the
+  HUD could be behind the player and the fly-in played off to one side. The
+  game's space is LOCAL moved to the head (`alignToHead`): when the headset is
+  put on (`XR_EXT_user_presence`, available on the Quest 2) and the head has
+  then held still for 0.75 s (`vr_controls::headSettled`), because the runtime
+  reports it on as it nears the face, still pointing anywhere. Also on the
+  first tracked frame and first focus where presence is not reported, and at
+  once on the system's recentre (not yet tried in the headset).
+- **Overlay text in the eyes.** Names flickered as the head moved: drawn
+  nearest-neighbour, at whole window pixels, in window coordinates squeezed to
+  0.39 by 0.825 of an eye pixel. In an eye, text is now filtered, keeps its
+  fractional position and is widened by `vr_eye::overlayTextScaleX` to keep its
+  shape; bars keep their fraction too. A probe with simulated head motion ruled
+  out the re-projection (`overlayToEye` within 0.004 eye pixels of the same sum
+  in double precision) and movement against the mech (under 0.5 window pixels
+  frame to frame on standing units).
+- **The HUD copy takes what the game drew.** The window surface can grow after
+  start-up, and copying all of it put the interface in the quad's lower left.
+  `present` copies `Environment.drawable*`, and logs the surface size when it
+  changes. The panel was seen small and low after a launch on the desk; this
+  fix has not been seen in the headset yet. The headset reports a display size
+  override of 10992x1920 that nobody here set: unexplained.
+- **Open: hovering over buildings.** `vrPickWorld` tests the ground and movers
+  only, so a ray meeting a wall goes on to the ground behind it, and a name
+  shows only when that point is still inside the building's box on the screen.
 - **The HUD can be moved:** A puts the quad in front of where the head is
   and faces (keeping its distance and angle). Holding A, the left stick
   up raises it (down: lowers) and right makes it larger (left: smaller);
