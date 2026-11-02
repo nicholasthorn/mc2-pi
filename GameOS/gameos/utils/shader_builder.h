@@ -131,10 +131,12 @@ struct glsl_program {
     bool setMat4(const std::string& name , const float v[16]);
 
     // for a value set on every draw: the uniform looked up once (NULL if the
-    // program has no such uniform), good until the next reload()
+    // program has no such uniform). reload() deletes it, and hot reload runs
+    // between frames, so do not keep it across frames.
     glsl_uniform* findUniform(const char* name);
-    // v must be the size of the uniform's type; uni may be NULL
-    static void setUniform(glsl_uniform* uni, const void* v);
+    // uni may be NULL
+    static bool setUniformFloat4(glsl_uniform* uni, const float v[4]);
+    static bool setUniformMat4(glsl_uniform* uni, const float v[16]);
    
     bool is_valid();
 

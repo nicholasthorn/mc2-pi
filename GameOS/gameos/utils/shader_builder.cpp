@@ -839,10 +839,28 @@ glsl_uniform* glsl_program::findUniform(const char* name)
     return it != uniforms_.end() ? it->second : nullptr;
 }
 
-void glsl_program::setUniform(glsl_uniform* uni, const void* v)
+bool glsl_program::setUniformFloat4(glsl_uniform* uni, const float v[4])
 {
-    if(uni)
+    if(uni && uni->type_ == CONSTANT_VEC4)
+    {
         setUniformData(uni, v);
+        return true;
+    }
+    if(uni)
+        log_error("Type mismatch: %s\n", uni->name_.c_str());
+    return false;
+}
+
+bool glsl_program::setUniformMat4(glsl_uniform* uni, const float v[16])
+{
+    if(uni && uni->type_ == CONSTANT_MAT4)
+    {
+        setUniformData(uni, v);
+        return true;
+    }
+    if(uni)
+        log_error("Type mismatch: %s\n", uni->name_.c_str());
+    return false;
 }
 
 bool glsl_program::setFloat4(const std::string& name, const float v[4])

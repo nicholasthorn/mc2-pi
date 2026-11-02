@@ -840,6 +840,17 @@ public:
 		ambient_ = gos_GetRenderMaterialParameter(mat_, "light_ambient_");
 
 		gos_SetRenderMaterialUniformBlockBindingPoint(mat_, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);
+
+		// the sign of stale shaders, now the by-name setters no longer run
+		static bool warned = false;
+		if (texture_id != 0 && !warned && !(world_ && wvp_ && projection_ && vp_ && mesh_params_ && sun_color_ && sun_dir_ && ambient_))
+		{
+			warned = true;
+			printf("[MESH] gos_tex_vertex_lighted lacks a uniform this build sets: shaders/ out of date?\n");
+		}
+
+		// the sampler units; each draw then needs only its parameters
+		gos_ApplyRenderMaterial(mat_);
 	}
 
 	void render(const TG_RenderShape& rs, const mat4& world, const mat4& wvp, float hud_element)
@@ -847,22 +858,20 @@ public:
 		gos_SetRenderState(gos_State_Texture, texture_id_);
 		gos_SetRenderViewport(rs.viewport_[2], rs.viewport_[3], rs.viewport_[0], rs.viewport_[1]);
 
-		gos_SetRenderMaterialParameter(world_, (const float*)world);
-		gos_SetRenderMaterialParameter(wvp_, (const float*)wvp);
+		gos_SetRenderMaterialParameterMat4(world_, (const float*)world);
+		gos_SetRenderMaterialParameterMat4(wvp_, (const float*)wvp);
 
 		const float mesh_params[4] = { rs.alpha_, hud_element, 0.0f, 0.0f };
-		gos_SetRenderMaterialParameter(mesh_params_, mesh_params);
+		gos_SetRenderMaterialParameterFloat4(mesh_params_, mesh_params);
 
-		const float* sun_dir = rs.lights_.lightDir[HW_LIGHT_SUN];
-		const float sun_dir_count[4] = { sun_dir[0], sun_dir[1], sun_dir[2], (float)rs.lights_.numLights_ };
-		gos_SetRenderMaterialParameter(sun_color_, rs.lights_.lightColor[HW_LIGHT_SUN]);
-		gos_SetRenderMaterialParameter(sun_dir_, sun_dir_count);
-		gos_SetRenderMaterialParameter(ambient_, rs.lights_.lightColor[HW_LIGHT_AMBIENT]);
+		gos_SetRenderMaterialParameterFloat4(sun_color_, rs.lights_.lightColor[HW_LIGHT_SUN]);
+		gos_SetRenderMaterialParameterFloat4(sun_dir_, rs.lights_.sunDir);
+		gos_SetRenderMaterialParameterFloat4(ambient_, rs.lights_.lightColor[HW_LIGHT_AMBIENT]);
 
-		gos_SetRenderMaterialParameter(projection_, (const float*)gos_GetProjection());
-		gos_SetRenderMaterialParameter(vp_, (const float*)gos_GetRenderViewport());
+		gos_SetRenderMaterialParameterMat4(projection_, (const float*)gos_GetProjection());
+		gos_SetRenderMaterialParameterFloat4(vp_, (const float*)gos_GetRenderViewport());
 
-		gos_ApplyRenderMaterial(mat_);
+		gos_ApplyRenderMaterialParameters(mat_);
 
 		// TODO: either use this or setMat4("wvp_", ...);
 		//mat->setTransform(*wvp_);
@@ -919,19 +928,14 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 			if ((slot < 0) || (lights->lightColor[slot][3] != 0.0f))
 				continue;
 
-			Stuff::LinearMatrix4D light2world;
-			if (TG_LIGHT_AMBIENT != type)
-				light2world = listOfLights[iLight]->lightToWorld;
-			else
-				light2world = Stuff::LinearMatrix4D::Identity;
-
-			Stuff::UnitVector3D uVec;
-			light2world.GetLocalForwardInWorld(&uVec);
-			lights->lightDir[slot][0] = uVec.x;
-			lights->lightDir[slot][1] = uVec.y;
-			lights->lightDir[slot][2] = uVec.z;
-
-			lights->lightDir[slot][3] = (float)type;
+			if (slot == HW_LIGHT_SUN)
+			{
+				Stuff::UnitVector3D uVec;
+				listOfLights[iLight]->lightToWorld.GetLocalForwardInWorld(&uVec);
+				lights->sunDir[0] = uVec.x;
+				lights->sunDir[1] = uVec.y;
+				lights->sunDir[2] = uVec.z;
+			}
 
 			DWORD startLight = listOfLights[iLight]->GetaRGB();
 
@@ -942,7 +946,7 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 		}
 	}
 
-	lights->numLights_ = num_lights;
+	lights->sunDir[3] = (float)num_lights;
 }
 
 

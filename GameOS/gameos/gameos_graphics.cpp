@@ -3379,10 +3379,22 @@ HGOSMATERIALPARAM __stdcall gos_GetRenderMaterialParameter(HGOSRENDERMATERIAL ma
 	return material->getShader()->findUniform(name);
 }
 
-void __stdcall gos_SetRenderMaterialParameter(HGOSMATERIALPARAM param, const float* v)
+void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSMATERIALPARAM param, const float* v)
 {
 	gosASSERT(v);
-	glsl_program::setUniform(param, v);
+	glsl_program::setUniformFloat4(param, v);
+}
+
+void __stdcall gos_SetRenderMaterialParameterMat4(HGOSMATERIALPARAM param, const float* m)
+{
+	gosASSERT(m);
+	glsl_program::setUniformMat4(param, m);
+}
+
+void __stdcall gos_ApplyRenderMaterialParameters(HGOSRENDERMATERIAL material)
+{
+	gosASSERT(material);
+	material->apply();
 }
 
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot)

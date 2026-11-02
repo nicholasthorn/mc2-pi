@@ -288,12 +288,11 @@ typedef  TG_Light *TG_LightPtr;
 
 struct TG_HWLightsData {
 	float lightColor[MAX_HW_LIGHTS_IN_WORLD][4];
-	float lightDir[MAX_HW_LIGHTS_IN_WORLD][4];
-    int numLights_;
+	float sunDir[4];	// w: how many lights are on; none draws at full white
 
-    TG_HWLightsData():numLights_(0)
+    TG_HWLightsData()
     {
-		memset(lightDir, 0, sizeof(lightDir));
+		memset(sunDir, 0, sizeof(sunDir));
 		memset(lightColor, 0, sizeof(lightColor));
     }
 };
