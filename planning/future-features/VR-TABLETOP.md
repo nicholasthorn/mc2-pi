@@ -670,9 +670,9 @@ Known gaps:
   ambient lit it as a sun; a per-tree ambient makes each tree a new light
   entry, mc2_01 needs 140, and the shader's block held 32 (now 200, of 80
   bytes each, sharing the nearest past that); and `gos_UpdateBuffer` sized the
-  buffer below the block, so reads past it were undefined. Near trees are
-  fixed on the desktop. Not yet run on the Quest 2, so the step on mechs and
-  the larger block on its driver are unconfirmed.
+  buffer below the block, so reads past it were undefined. Quest 2, mc2_01
+  played: near trees in colour, the step gone, the block links on its driver.
+  Frame time has not been measured since this fix.
 - **To do: chain-link fences are solid bands at a distance.** At full size the
   mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
   separately, so a mipped fence is uniform grey with dark colour bled in;

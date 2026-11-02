@@ -92,9 +92,6 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       A and held A all fine; held A moved to the left stick alone
       afterwards (to check). Not tried: grip, B force fire, menu button,
       Guardian.
-- [ ] **VR mesh lighting in the headset** (mc2_01): near trees in colour at the
-      start of the fly-in, no step in brightness on mechs or trees when zooming,
-      no shader link failure on the Adreno driver.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.
@@ -122,7 +119,8 @@ Move items here with the date, the machine and the result.
 
 - [x] Quest 2, blending on the GPU mesh path, mc2_01 (2026-11-02, PR 84):
       the compass and tree edges look right; fly-in frame time unchanged,
-      69.4 fps. (Near trees and the brightness step: see the check above.)
+      69.4 fps. With the lighting fix: near trees in colour, no step in
+      brightness when zooming, no shader link failure on the Adreno driver.
 - [x] Pi 400, GLES build, mc2_01 (2026-10-29, at `10401db`): runs, 58.5 fps
       at the 60 Hz vsync cap; software rendering 50.4 (mc2_01) / 67.1
       (mc2_03) fps.
