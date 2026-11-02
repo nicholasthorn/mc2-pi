@@ -413,6 +413,18 @@ TEST_CASE("rayHitsBox: where a ray first meets a box") {
 	const float low[3] = {0.0f, 0.0f, 0.0f};
 	CHECK_FALSE(vr_controls::rayHitsBox(low, slanted, boxMin, boxMax, distance));
 
+	// where it leaves, when asked: straight through the 20-long box
+	float leaving = 0.0f;
+	REQUIRE(vr_controls::rayHitsBox(origin, along, boxMin, boxMax, distance, &leaving));
+	CHECK(distance == doctest::Approx(90.0f));
+	CHECK(leaving == doctest::Approx(110.0f));
+	// through a corner region: leaves by a side face, sooner than the far end
+	const float tilt[3] = {0.8944272f, 0.4472136f, 0.0f};
+	const float start[3] = {80.0f, 0.0f, 0.0f};
+	REQUIRE(vr_controls::rayHitsBox(start, tilt, boxMin, boxMax, distance, &leaving));
+	CHECK(distance == doctest::Approx(11.18034f));
+	CHECK(leaving == doctest::Approx(22.36068f));
+
 	// from inside: not a hit, as rayHitsSphere
 	const float inside[3] = {100.0f, 0.0f, 0.0f};
 	CHECK_FALSE(vr_controls::rayHitsBox(inside, along, boxMin, boxMax, distance));

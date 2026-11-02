@@ -177,8 +177,8 @@ class Appearance
 		}
 
 		//VR pointer: where a world ray (unit direction) first meets the object,
-		//and a point to aim the game's picking at. False for what has no solid
-		//shape to point at.
+		//and a point on that ray to aim the game's picking at. False for what
+		//has no solid shape to point at.
 		virtual bool worldRayHit (const Stuff::Vector3D& origin, const Stuff::Vector3D& direction,
 			float& distance, Stuff::Vector3D& aimAt)
 		{

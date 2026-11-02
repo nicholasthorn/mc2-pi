@@ -97,6 +97,23 @@ CPrefs::CPrefs() {
 #endif
 }
 
+// VR: the interface is drawn on a panel of its own, whatever the headset's
+// window. Options saved in the headset can hold the window's size (3664 on the
+// Quest 2), beyond the largest layout (1920): the interface then fills a corner
+// of the panel. False until the VR session exists, which starts with the
+// renderer: applyPrefs checks again once it has made that, after the first
+// load. Later loads (the options screen) are caught here, before they can be
+// applied or saved back.
+static bool fitResolutionToVR (CPrefs& prefs)
+{
+	if (!gos_IsVR() || (prefs.resolutionX <= 1920))
+		return false;
+	printf("[VR] options.cfg resolution %ldx%ld has no interface layout: 800x600\n", (long)prefs.resolutionX, (long)prefs.resolutionY);
+	prefs.resolutionX = 800;
+	prefs.resolutionY = 600;
+	return true;
+}
+
 int CPrefs::load( const char* pFileName ) {
 	long result = 0;
 
@@ -293,6 +310,8 @@ int CPrefs::load( const char* pFileName ) {
 	delete prefsFile;
 	prefsFile = NULL;
 
+	fitResolutionToVR(*this);
+
 	return 0;
 }
 
@@ -466,16 +485,9 @@ int CPrefs::applyPrefs(bool applyRes) {
             }
         }
 
-        // VR: the interface is drawn on a panel of its own, whatever the
-        // headset's window. Options saved in the headset can hold the window's
-        // size (3664 on the Quest 2), beyond the largest layout (1920): the
-        // interface then fills a corner of the panel. Here because the VR
-        // session starts with the renderer, after the options are read.
-        if (gos_IsVR() && (this->resolutionX > 1920))
+        // the VR session has just started: the first load could not know
+        if (fitResolutionToVR(*this))
         {
-            printf("[VR] options.cfg resolution %ldx%ld has no interface layout: 800x600\n", (long)this->resolutionX, (long)this->resolutionY);
-            this->resolutionX = 800;
-            this->resolutionY = 600;
             ::resolutionX = this->resolutionX;
             ::resolutionY = this->resolutionY;
         }

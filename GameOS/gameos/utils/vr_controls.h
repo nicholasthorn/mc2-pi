@@ -65,9 +65,10 @@ bool rayHitsSphere(const float origin[3], const float dir[3], const float centre
                    float& distance);
 
 // Where a ray (unit dir) first meets an axis-aligned box in front of its
-// origin. False from inside the box, as for a sphere.
+// origin, and, when asked, where it leaves. False from inside the box, as for
+// a sphere.
 bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3], const float boxMax[3],
-                float& distance);
+                float& distance, float* leaving = nullptr);
 
 // The heading of an orientation: the angle about +y of its -z axis, seen
 // from above. Looking up or down and tilting the head do not change it.

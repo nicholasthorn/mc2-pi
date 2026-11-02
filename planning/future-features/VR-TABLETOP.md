@@ -748,8 +748,9 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   `ResolutionX = 3664` (by what is not known: the options screen can save it),
   which has no layout, so the interface kept its 1920 layout in a far larger
   frame. A capture of the window frame showed it. In VR a saved width above 1920
-  now falls back to 800x600 (`CPrefs::applyPrefs`, after the renderer is made:
-  the VR session starts with it, after the options are read). The headset also reports a display
+  now falls back to 800x600 (`fitResolutionToVR` in `prefs.cpp`: after the
+  renderer is made, as the VR session starts with it, and on later loads, so the
+  options screen cannot apply 3664 or save it back). The headset also reports a display
   size override of 10992x1920 that nobody here set: the game's window is 3664 x
   1920 regardless, so it plays no part here.
 - **Pointing at buildings.** `vrPickWorld` tested the ground and movers only, so
@@ -757,7 +758,7 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   when that point was still on the building on the game camera's screen (about
   30% of them). Buildings now stop the ray (`Appearance::worldRayHit`, the
   shape's own box in its own axes, `vr_controls::rayHitsBox`), and the pick aims
-  at the box's centre. Trees and rock clumps do not stop it, as the game's
+  halfway along the ray's path through the box, near where the player points. Trees and rock clumps do not stop it, as the game's
   picking skips them. A building the game camera does not see cannot be picked,
   as for units (`Camera::seesForGame`). Tents are props in the data
   (`ObjectTypeNum=11`, as barrels and crates) with no `BuildingName`, so they

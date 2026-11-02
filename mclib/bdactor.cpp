@@ -961,8 +961,11 @@ bool BldgAppearance::PerPolySelect (long mouseX, long mouseY)
 
 //-----------------------------------------------------------------------------
 // VR pointer: the shape's own bounding box, in its own axes, placed as update
-// places it, so a long building is not a big sphere. aimAt is the box's centre,
-// which falls on the shape for the picking that follows (PerPolySelect).
+// places it, so a long building is not a big sphere. aimAt is halfway along the
+// ray's path through the box: inside the shape for the picking that follows
+// (PerPolySelect), and near where the player points, where the box's centre of
+// a long building may be another object's on the game camera's screen, or off
+// that screen altogether.
 bool BldgAppearance::worldRayHit (const Stuff::Vector3D& origin, const Stuff::Vector3D& direction,
 	float& distance, Stuff::Vector3D& aimAt)
 {
@@ -998,17 +1001,14 @@ bool BldgAppearance::worldRayHit (const Stuff::Vector3D& origin, const Stuff::Ve
 	const float d[3] = {shapeDirection.x, shapeDirection.y, shapeDirection.z};
 	const float lo[3] = {minBox.x, minBox.y, minBox.z};
 	const float hi[3] = {maxBox.x, maxBox.y, maxBox.z};
-	if (!vr_controls::rayHitsBox(o,d,lo,hi,distance))
+	float leaving = 0.0f;
+	if (!vr_controls::rayHitsBox(o,d,lo,hi,distance,&leaving))
 		return false;
 
-	Stuff::Point3D shapeCentre, worldCentre;
-	shapeCentre.x = (minBox.x + maxBox.x) * 0.5f;
-	shapeCentre.y = (minBox.y + maxBox.y) * 0.5f;
-	shapeCentre.z = (minBox.z + maxBox.z) * 0.5f;
-	worldCentre.Multiply(shapeCentre,shapeToWorld);
-	aimAt.x = -worldCentre.x;
-	aimAt.y = worldCentre.z;
-	aimAt.z = worldCentre.y;
+	const float halfway = (distance + leaving) * 0.5f;
+	aimAt.x = origin.x + direction.x * halfway;
+	aimAt.y = origin.y + direction.y * halfway;
+	aimAt.z = origin.z + direction.z * halfway;
 	return true;
 }
 

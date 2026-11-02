@@ -109,7 +109,8 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       on, and with the system menu up: fine on 2026-11-02.
 - [ ] **Pointing at rotated buildings and long walls**: hover names and clicks
       land where the beam points, and a point on a long wall whose centre is
-      out of the game camera's view still works. Only rotation 0 was checked.
+      out of the game camera's view still works. Rotated ones were checked on
+      the desktop only, with rays from the game camera.
 
 ## Releases (`RELEASES.md`)
 

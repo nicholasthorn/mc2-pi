@@ -190,7 +190,7 @@ bool rayHitsSphere(const float origin[3], const float dir[3], const float centre
 }
 
 bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3], const float boxMax[3],
-                float& distance)
+                float& distance, float* leaving)
 {
     float enter = -1.0e30f, leave = 1.0e30f;
     for(int i = 0; i < 3; ++i) {
@@ -207,6 +207,8 @@ bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3]
     if(enter > leave || enter < 0.0f)
         return false;       // misses, behind, or the origin is inside it
     distance = enter;
+    if(leaving)
+        *leaving = leave;
     return true;
 }
 
