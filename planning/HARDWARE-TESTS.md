@@ -98,6 +98,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       A and held A all fine; held A moved to the left stick alone
       afterwards (to check). Not tried: grip, B force fire, menu button,
       Guardian.
+- [x] Quest 2, fences and tree edges, mc2_01, left eye at a fixed pose
+      (2026-11-02, PR 87 against PR 84): a see-through band of dark wire in
+      both builds, brightness about 94 to 92, leaves slightly lighter, no
+      fringe. Not played with the headset on.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.

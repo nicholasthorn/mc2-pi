@@ -673,11 +673,44 @@ Known gaps:
   buffer below the block, so reads past it were undefined. Quest 2, mc2_01
   played: near trees in colour, the step gone, the block links on its driver.
   Frame time has not been measured since this fix.
-- **To do: chain-link fences are solid bands at a distance.** At full size the
-  mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
-  separately, so a mipped fence is uniform grey with dark colour bled in;
-  coverage then has no gaps to show. Alpha-weighted mipmaps for alpha textures
-  would fix it (and any dark fringe on distant trees).
+- **Chain-link fences and alpha mipmaps.** RGBA textures with transparent
+  texels now get their mips from `buildAlphaMips` (`utils/alpha_mips.cpp`):
+  colour weighted by alpha, and a texel with no coverage takes its colour from
+  the next smaller level, so transparent texels' colour (black or magenta in
+  some textures) no longer bleeds in. Opaque textures keep `glGenerateMipmap`.
+  Checked on the desktop on a throwaway 4x MSAA window: netting, beams and
+  exhaust are closer to the flat game; the fence's mean brightness was already
+  within 1 to 2 levels of it and stays there, as its transparent texels are
+  about the wire's colour.
+  - **The "solid band" was the desktop's doing.** llvmpipe's resolve of the
+    window keeps one sample per pixel: a shader writing alpha 0.5 reads back as
+    fully drawn, and polygon edges stay hard. So any fence alpha that lights
+    that sample looks solid in `glReadPixels`. To see coverage on the desktop,
+    average the samples yourself at capture (blit to a 4x texture, `texelFetch`
+    each sample). With that, the fence was see-through before this change too.
+  - **Quest 2, mc2_01, `MC2_XR_POSE=40,-30`, left eye, both builds:** the fence
+    is a see-through band of dark wire before and after. Mean brightness goes
+    from about 94 to 92 and stddev stays at 10, the same as the desktop with
+    the averaging capture. Tree edges get slightly lighter leaves and no
+    fringe. Over the whole eye the two builds differ by 0.06 levels on average,
+    so this is a small change. Fixed-pose shots, not played.
+    `MC2_XR_POSE` fixes rotation only, so a headset moved between runs shifts
+    the view. By hand, push `shaders/` too: older shaders give `mesh_params_`
+    type errors in `mc2.log` and a pale fence.
+  - **At a distance the mesh is a see-through band, not separate wires.** The
+    flat game alpha-tests full-size texels, so it keeps hard, aliased wires
+    (brightness stddev 27 over the fence, 10 to 13 here). Getting closer would
+    need a LOD bias, which brings back the shimmer mipmaps are there to remove.
+  - **Coverage is not rescaled.** Box-filtered alpha keeps the mean, which is
+    what coverage draws. Over mc2_01's 45 cut-out textures, simulating 4x
+    coverage (alpha rounded to quarters), the median stays within 1% of level
+    0 down to level 5. Only very thin shapes lose it, at very small sizes (one
+    with 5% coverage: 44% of it at level 4). Scaling alpha would also change
+    the mean of blended textures.
+  - **Cost.** Under 0.2 ms per texture on average on the PC, including the
+    upload (mc2_19 VR paths, 3600 frames: 574 generations during play, 93 ms in
+    all, longest 3.8 ms; the texture's scan is counted twice in these). Not
+    timed on the Quest. Repaints regenerate too, through `updateTexture`.
 - Untextured shapes on the GPU path use `gos_vertex_lighted`, which does not
   match the mesh vertex layout or take `wvp_`, so that path needs its own fix
   (and has no per-shape alpha). Translucent world textures get coverage rather
