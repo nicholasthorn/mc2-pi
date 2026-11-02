@@ -1,7 +1,7 @@
 # VR: the game camera follows the head
 
 Status: built on branch `vr-head-camera`, run on a desktop with a fixed head
-pose (2026-11-02), not yet in the headset. Follows `VR-FOV.md`. Line numbers are
+pose and once on a Quest 2 (2026-11-02). Follows `VR-FOV.md`. Line numbers are
 not recorded on purpose: grep the symbol.
 
 ## Problem
@@ -97,6 +97,26 @@ the game's own view, about 570 with a level head), plus one rotation per step.
   from both a build of `pi-port` and this branch. The hash covers movers only; the
   rest rests on the gating above.
 - **Not measured:** the frame rate in the headset, picking with a real hand.
+
+## First run on a Quest 2 (2026-11-02, mc2_01, about 2 minutes, build 87f7d7a5)
+
+The wearer's verdict: "think it's good". From the log:
+
+- 27 presses, 25 valid; hits up to 571 m away were valid, most presses near the
+  middle of the game's screen, as expected with the camera on the gaze. No GL or
+  OpenXR errors, and taking the headset off and on twice changed nothing.
+- 84 sampled picks: 70 on screen, 7 no hit, 7 off screen. Of the off-screen ones
+  several are just below the bottom edge (below).
+- **The window was 3664x1920, not 800x600** (`options.cfg` on the headset, written
+  10:57 that day). At that aspect the eyes want about 132 degrees, the limit gives
+  120, and the game camera covers only about 42 degrees up and down against the
+  eyes' 48 and 50, so the outer band of the view is off its screen. Sums elsewhere
+  in this file and in `VR-FOV.md` that say 115.6 assume 800x600.
+- **Frame rate: 42 to 61 fps in most seconds of the 57 logged (`VrApi`), 72 in only
+  a few**, with CPU level 5 and GPU level 3 to 4, against 72 for #86's quiet mc2_01
+  run. Not explained: that run's window size is not recorded here, and there is no
+  run of this window size with `MC2_XR_FOLLOW=0` to compare. To measure: the mc2_19
+  bench with and without following, at the same window size, then at 800x600.
 
 ## The minimap's wedge
 
