@@ -962,10 +962,10 @@ bool BldgAppearance::PerPolySelect (long mouseX, long mouseY)
 //-----------------------------------------------------------------------------
 // VR pointer: the shape's own bounding box, in its own axes, placed as update
 // places it, so a long building is not a big sphere. aimAt is halfway along the
-// ray's path through the box: inside the shape for the picking that follows
-// (PerPolySelect), and near where the player points, where the box's centre of
-// a long building may be another object's on the game camera's screen, or off
-// that screen altogether.
+// ray's path through the box: on the ray, so on the shape for the picking that
+// follows (PerPolySelect) if the ray meets it, not just its box, and near where
+// the player points, where the box's centre of a long building may be another
+// object's on the game camera's screen, or off that screen altogether.
 bool BldgAppearance::worldRayHit (const Stuff::Vector3D& origin, const Stuff::Vector3D& direction,
 	float& distance, Stuff::Vector3D& aimAt)
 {

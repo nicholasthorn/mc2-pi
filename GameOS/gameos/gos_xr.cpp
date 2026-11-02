@@ -5,9 +5,10 @@
 // draws each eye into its own swapchain image (bindEye) during that frame.
 // present() copies the window's frame into the quad's swapchain and submits
 // the eyes as a projection layer with the quad on top, in a space made from
-// LOCAL with its origin where the head was when the game started, facing the
-// way it faced, or where the system last recentred (alignToHead). LOCAL alone
-// stays wherever the headset was last recentred, which can be any direction.
+// LOCAL with its origin where the head was when the headset last went on,
+// facing the way it faced, or when the system last recentred (alignToHead).
+// LOCAL alone stays wherever the headset was last recentred, which can be any
+// direction.
 //
 // Controllers (pollInput, every frame): the pointing hand's ray becomes the
 // mouse where it meets the quad, the sticks and buttons become keys (see
@@ -472,9 +473,10 @@ void placeHud()
 
 // Makes where the head is now, upright, the origin of everything: the eyes
 // (so straight ahead is the game's view, and the fly-in plays in front of the
-// player) and the quad. On the first frame the head is tracked, when the
-// session first gets focus, each time the headset is put on, and when the
-// system recentres. Not while the runtime says nobody is wearing it: started
+// player) and the quad. Each time the headset is put on, and when the system
+// recentres; where the runtime does not report the headset going on, on the
+// first frame the head is tracked and at first focus. Not while the runtime
+// says nobody is wearing it: started
 // over adb, the session has focus on the desk, and a panel placed from there
 // is below and far from the head that then picks the headset up. And after
 // it is put on, not until the head holds still: the runtime says so as the

@@ -104,13 +104,13 @@ CPrefs::CPrefs() {
 // renderer: applyPrefs checks again once it has made that, after the first
 // load. Later loads (the options screen) are caught here, before they can be
 // applied or saved back.
-static bool fitResolutionToVR (CPrefs& prefs)
+static bool fitResolutionToVR (CPrefs& loaded)
 {
-	if (!gos_IsVR() || (prefs.resolutionX <= 1920))
+	if (!gos_IsVR() || (loaded.resolutionX <= 1920))
 		return false;
-	printf("[VR] options.cfg resolution %ldx%ld has no interface layout: 800x600\n", (long)prefs.resolutionX, (long)prefs.resolutionY);
-	prefs.resolutionX = 800;
-	prefs.resolutionY = 600;
+	printf("[VR] saved resolution %ldx%ld has no interface layout: 800x600\n", (long)loaded.resolutionX, (long)loaded.resolutionY);
+	loaded.resolutionX = 800;
+	loaded.resolutionY = 600;
 	return true;
 }
 

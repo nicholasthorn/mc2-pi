@@ -120,8 +120,9 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       hold the Oculus button to recentre (the log says `moving LOCAL`, and the
       view and HUD follow); take the headset off and on mid-game, also briefly
       while looking to one side (does the world turn under you?); start with
-      poor light or position tracking off. Launched on the desk and then put
-      on, and with the system menu up: fine on 2026-11-02.
+      poor light or position tracking off; put it on with the system menu up
+      (it should align behind the menu, and again when the menu closes).
+      Launched on the desk and then put on: fine on 2026-11-02.
 - [ ] **Pointing at rotated buildings and long walls**: hover names and clicks
       land where the beam points, and a point on a long wall whose centre is
       out of the game camera's view still works. Rotated ones were checked on
