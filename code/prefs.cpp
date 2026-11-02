@@ -97,6 +97,23 @@ CPrefs::CPrefs() {
 #endif
 }
 
+// VR: the interface is drawn on a panel of its own, whatever the headset's
+// window. Options saved in the headset can hold the window's size (3664 on the
+// Quest 2), beyond the largest layout (1920): the interface then fills a corner
+// of the panel. False until the VR session exists, which starts with the
+// renderer: applyPrefs checks again once it has made that, after the first
+// load. Later loads (the options screen) are caught here, before they can be
+// applied or saved back.
+static bool fitResolutionToVR (CPrefs& loaded)
+{
+	if (!gos_IsVR() || (loaded.resolutionX <= 1920))
+		return false;
+	printf("[VR] saved resolution %ldx%ld has no interface layout: 800x600\n", (long)loaded.resolutionX, (long)loaded.resolutionY);
+	loaded.resolutionX = 800;
+	loaded.resolutionY = 600;
+	return true;
+}
+
 int CPrefs::load( const char* pFileName ) {
 	long result = 0;
 
@@ -293,6 +310,8 @@ int CPrefs::load( const char* pFileName ) {
 	delete prefsFile;
 	prefsFile = NULL;
 
+	fitResolutionToVR(*this);
+
 	return 0;
 }
 
@@ -464,6 +483,13 @@ int CPrefs::applyPrefs(bool applyRes) {
                 SPEW(("[INIT]", "Failed to create renderer\n"));
                 return -1;
             }
+        }
+
+        // the VR session has just started: the first load could not know
+        if (fitResolutionToVR(*this))
+        {
+            ::resolutionX = this->resolutionX;
+            ::resolutionY = this->resolutionY;
         }
 
         if (renderer == 3)

@@ -750,6 +750,47 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   with hysteresis (on at 0.5, off below 0.3).
 - **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
   button is Escape (pause menu).
+- **Straight ahead is where the head faces.** LOCAL stays wherever the headset
+  was last recentred (136 degrees off and 0.72 m away on one launch), so the
+  HUD could be behind the player and the fly-in played off to one side. The
+  game's space is LOCAL moved to the head (`alignToHead`): when the headset is
+  put on (`XR_EXT_user_presence`, available on the Quest 2) and the head has
+  then held still for 0.75 s, visible and with live tracking
+  (`vr_controls::headSettled`), and once more when focus first comes after that.
+  The runtime reports it on as it nears the face, still pointing anywhere; while
+  it wakes the pose can be a stale one that looks perfectly still; and the system
+  menu can hold focus for as long as it likes. Also on the
+  first tracked frame and first focus where presence is not reported, and at
+  once on the system's recentre (not yet tried in the headset).
+- **Overlay text in the eyes.** Names flickered as the head moved: drawn
+  nearest-neighbour, at whole units of the game's resolution, which at 800x600
+  are 1.8 by 2.6 eye pixels. In an eye, text is now filtered, keeps its
+  fractional position and is scaled to a fixed size, 0.825 eye pixels to a font
+  pixel at any resolution (`vr_eye::overlayTextScale`, judged in the headset);
+  bars keep their fraction too. A probe with simulated head motion ruled
+  out the re-projection (`overlayToEye` within 0.004 eye pixels of the same sum
+  in double precision) and movement against the mech (under 0.5 window pixels
+  frame to frame on standing units).
+- **The interface's resolution.** The panel's contents came up small in its
+  lower left: `options.cfg` on the headset had been rewritten with
+  `ResolutionX = 3664` (by what is not known: the options screen can save it),
+  which has no layout, so the interface kept its 1920 layout in a far larger
+  frame. A capture of the window frame showed it. In VR a saved width above 1920
+  now falls back to 800x600 (`fitResolutionToVR` in `prefs.cpp`: after the
+  renderer is made, as the VR session starts with it, and on later loads, so the
+  options screen cannot apply 3664 or save it back). The headset also reports a display
+  size override of 10992x1920 that nobody here set: the game's window is 3664 x
+  1920 regardless, so it plays no part here.
+- **Pointing at buildings.** `vrPickWorld` tested the ground and movers only, so
+  a ray meeting a wall went on to the ground behind it, and a name showed only
+  when that point was still on the building on the game camera's screen (about
+  30% of them). Buildings now stop the ray (`Appearance::worldRayHit`, the
+  shape's own box in its own axes, `vr_controls::rayHitsBox`), and the pick aims
+  halfway along the ray's path through the box, near where the player points. Trees and rock clumps do not stop it, as the game's
+  picking skips them. A building the game camera does not see cannot be picked,
+  as for units (`Camera::seesForGame`). Tents are props in the data
+  (`ObjectTypeNum=11`, as barrels and crates) with no `BuildingName`, so they
+  show no name of their own: not confirmed against the flat game.
 - **The HUD can be moved:** A puts the quad in front of where the head is
   and faces (keeping its distance and angle). Holding A, the left stick
   up raises it (down: lowers) and right makes it larger (left: smaller);
