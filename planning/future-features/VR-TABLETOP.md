@@ -642,7 +642,7 @@ Known gaps:
   matches the flat game's (it was an opaque disc over the units); on a
   throwaway 4x MSAA window coverage changes only the edges of trees; with
   every shape forced to half alpha the fade pass draws them translucent.
-  Quest 2, mc2_01 played: trees and the compass look right. Frame time on
+  Quest 2, mc2_01 played: the compass and tree edges look right. Frame time on
   the fly-in (`-bench`, head pose fixed, 900 frames, two runs each) is the
   same with and without this change and with coverage off: 69.4 fps, median
   13.9 ms at the 72 Hz limit. A lower frame rate noticed while playing the
@@ -661,10 +661,17 @@ Known gaps:
 - **To do: the terrain window's edge** is visible at a headset's field of
   view (a hard border, then the cloud layer as a grey wall): a larger window
   for VR, or haze pulled in to the window's radius.
-- **To do: mechs change brightness in a step with distance to the camera**
-  (seen in the headset, mc2_01, on builds before and with blending; not
-  noticed in the flat game). Cause not found. Forcing the level of detail on
-  the desktop (mc2_19) made no visible difference.
+- **To do: lighting on the GPU path. Near trees are black, and mechs and
+  trees change brightness in a step with distance** (headset, mc2_01; near
+  trees reproduce on the desktop with `MC2_VR_PATHS=1`, frame 5, also before
+  blending; the flat game is right). `calc_light` takes light slot 0 as the
+  sun and slot 1 as ambient, but a tree turns the sun off while it transforms
+  and `GatherLightsParameters` skips inactive lights, so its ambient lands in
+  slot 0 and is multiplied by the normal: black when facing away. Reading
+  lights by type in a debug shader brings the colours back. Separately, a
+  per-tree ambient makes each tree a new light entry, and near trees use
+  entries at or past the 32 the shader's block holds. Those out-of-range
+  reads may be the step on mechs: not confirmed.
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.

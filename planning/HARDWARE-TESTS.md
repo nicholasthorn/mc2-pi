@@ -118,7 +118,8 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 Move items here with the date, the machine and the result.
 
 - [x] Quest 2, blending on the GPU mesh path, mc2_01 (2026-11-02, PR 84):
-      trees and the compass look right; fly-in frame time unchanged, 69.4 fps.
+      the compass and tree edges look right; fly-in frame time unchanged,
+      69.4 fps. Near trees black and a brightness step with distance are open.
 - [x] Pi 400, GLES build, mc2_01 (2026-10-29, at `10401db`): runs, 58.5 fps
       at the 60 Hz vsync cap; software rendering 50.4 (mc2_01) / 67.1
       (mc2_03) fps.
