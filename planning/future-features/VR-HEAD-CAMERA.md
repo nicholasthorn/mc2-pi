@@ -131,6 +131,14 @@ camera's screen down to the top of the panel, a little more than the eyes see.
 
 ## Gotchas
 
+0. **Code that steers the game by the screen must not use the followed camera.**
+   `BenchDirector`'s framing projects the fight's centre and moves the camera until it
+   sits at a screen position. Through a followed camera it dragged the camera far
+   from the fight (seen in the headset; on a desktop mc2_19 at 400 frames gave
+   `[STATEHASH] 8374e563` against 866a73f7). It now calls `Camera::dropVRHead`
+   first: the hash matches with following off, level, and at pose 120,-20. It is the
+   only such code found: `projectZ`'s other callers on the update path only draw or
+   pick.
 1. **The game's 2D panel moves with the gaze.** The window's bottom third is the
    panel, and a world pick landing there would click it, so it is refused
    (`gos_xr`, the alpha test). That band is now 32 to 50 degrees below where the

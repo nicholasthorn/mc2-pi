@@ -485,6 +485,17 @@ class Camera
 		//projected in a frame and read in the step used the same screen.
 		void setVRHead (const float orientation[4]);
 
+		//VR: back to the game's own view until the next setVRHead, for code that
+		//steers the game by what is on its screen (BenchDirector's framing).
+		void dropVRHead (void)
+		{
+			if (vrFollowsHead)
+			{
+				vrFollowsHead = false;
+				calculateProjectionConstants();
+			}
+		}
+
 		void projectCamera (Stuff::Vector3D &point);
 
 		unsigned long inverseProject (Stuff::Vector2DOf<long> &screenPos, Stuff::Vector3D &point);
