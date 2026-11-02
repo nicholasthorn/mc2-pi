@@ -113,10 +113,25 @@ The wearer's verdict: "think it's good". From the log:
   eyes' 48 and 50, so the outer band of the view is off its screen. Sums elsewhere
   in this file and in `VR-FOV.md` that say 115.6 assume 800x600.
 - **Frame rate: 42 to 61 fps in most seconds of the 57 logged (`VrApi`), 72 in only
-  a few**, with CPU level 5 and GPU level 3 to 4, against 72 for #86's quiet mc2_01
-  run. Not explained: that run's window size is not recorded here, and there is no
-  run of this window size with `MC2_XR_FOLLOW=0` to compare. To measure: the mc2_19
-  bench with and without following, at the same window size, then at 800x600.
+  a few**, with CPU level 5 and GPU level 3 to 4. Not explained; see the bench below,
+  which does not reproduce it.
+
+## Frame rate: mc2_19 bench on a Quest 2 (2026-11-02, build 805b4004)
+
+One run of each, 3600 frames, fixed head (`MC2_XR_POSE=0,0`), nobody moving:
+
+| Window setting | Following | fps | p95 ms | p99 ms | `logic_ms` | `objects_ms` | `world_render_ms` |
+|---|---|---|---|---|---|---|---|
+| 3664x1920 (camera 120 degrees) | on | 69.0 | 18.18 | 27.94 | 1.49 | 0.75 | 9.21 |
+| 3664x1920 | off | 68.7 | 18.79 | 27.99 | 1.49 | 0.75 | 9.39 |
+| 800x600 in `options.cfg` (camera 115.6) | on | 68.5 | 19.24 | 27.80 | 1.54 | 0.75 | 9.21 |
+| 800x600 | off | 68.5 | 18.81 | 27.86 | 1.53 | 0.75 | 9.25 |
+
+So neither following nor the window setting costs anything measurable here, and all
+four match #86's 69.5 or so. The low rate of the first run is therefore something this
+bench does not do: a moving head, the pointer picking, or `mc2_01` played by hand. To
+find it: `mc2_01` worn and played the same way, default against `MC2_XR_FOLLOW=0`.
+`bench.sh`'s rule holds: one run each, so differences of a few tenths mean nothing.
 
 ## The minimap's wedge
 
