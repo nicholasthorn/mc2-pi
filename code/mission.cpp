@@ -812,7 +812,12 @@ long Mission::getStatus (void) {
 // are. Points the game camera does not see cannot be picked.
 static float vrGroundHeight (void*, float x, float y)
 {
-	return land->getTerrainElevation(Stuff::Vector3D(x,y,0.0f));
+	// off the map there is no ground: getTerrainElevation would say 0 there,
+	// and the ray would meet a flat plane beyond the edge
+	const Stuff::Vector3D position(x,y,0.0f);
+	if (!Terrain::IsValidTerrainPosition(position))
+		return -1.0e6f;
+	return land->getTerrainElevation(position);
 }
 
 static void vrPickWorld (void)
@@ -854,10 +859,9 @@ static void vrPickWorld (void)
 
 	Stuff::Vector4D screen(0.0f,0.0f,0.0f,0.0f);
 	const bool onScreen = hit && eye->projectZ(target,screen);
-	// MC2_XR_PICK_LOG=1: the pick about once a second
-	static const bool logPicks = getenv("MC2_XR_PICK_LOG") && (getenv("MC2_XR_PICK_LOG")[0] == '1');
+	// the pick about once a second (gos_VRPickLog: MC2_XR_PICK_LOG=1)
 	static int logCount = 0;
-	if (logPicks && ((logCount++ % 72) == 0))
+	if (gos_VRPickLog() && ((logCount++ % 72) == 0))
 	{
 		Stuff::Vector3D camera = eye->getPosition();
 		printf("[VR] pick: ray (%.0f %.0f %.0f) dir (%.2f %.2f %.2f), %s at %.0f -> (%.0f %.0f %.0f), screen %s (%.0f %.0f z %.3f w %.5f of %ld x %ld), camera looks at (%.0f %.0f %.0f)\n",

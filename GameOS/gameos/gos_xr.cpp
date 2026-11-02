@@ -68,6 +68,9 @@ enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_COUNT 
 enum PointerTarget { TARGET_NONE, TARGET_HUD, TARGET_WORLD };
 // the window's alpha above which the quad shows interface
 const float kInterfaceAlpha = 0.1f;
+// how near (on the game's screen, 0 to 1) the alpha's reading must be to the
+// world pick for it to count
+const float kAlphaNear = 0.01f;
 
 // The window frame's alpha at up to two points (the quad under the ray, and
 // where the world pick lands on the game's screen), read back without
@@ -78,6 +81,7 @@ struct AlphaProbe {
     GLuint pbo[kSlots] = {};
     GLsync fence[kSlots] = {};
     bool wanted[kSlots][2] = {};
+    float worldAt[kSlots][2] = {};     // where the world point was read
     int next = 0;
 };
 
@@ -157,6 +161,9 @@ struct State {
     AlphaProbe probe;
     float hudAlpha = 1.0f;
     float worldAlpha = 0.0f;
+    float worldAlphaX = -1.0f, worldAlphaY = -1.0f;  // where it was read
+    // the held click's point in the world (LOCAL space), for the beam and dot
+    float heldWorldPoint[3] = {0.0f, 0.0f, 0.0f};
     // the pointer drawn as a beam and a dot (layers over the quad), shown
     // while the game has the controllers
     Image beamImage;
@@ -796,15 +803,21 @@ int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
         else
             vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
     } else {
-        hit = g.target == TARGET_WORLD && g.worldValid;
-        vr_controls::rayPoint(aim, hit ? g.worldMetres : kBeamLength, end);
+        const bool held = g.target == TARGET_WORLD && g.clickHold.holding;
+        hit = held || (g.target == TARGET_WORLD && g.worldValid);
+        if(held)        // the beam ends where the click goes
+            memcpy(end, g.heldWorldPoint, sizeof(end));
+        else
+            vr_controls::rayPoint(aim, hit ? g.worldMetres : kBeamLength, end);
         if(hit) {
             // turned to the eye about the vertical, as large to the eye as on the quad
             float length = 0.0f;
             const float below[3] = {end[0], end[1] - 0.01f, end[2]};
             const float above[3] = {end[0], end[1] + 0.01f, end[2]};
             at = vr_controls::beamPose(below, above, head.position, length);
-            dotSize = kDotSize * g.worldMetres / g.hudDistance;
+            const float toEye[3] = {end[0] - head.position[0], end[1] - head.position[1], end[2] - head.position[2]};
+            const float metres = std::sqrt(toEye[0] * toEye[0] + toEye[1] * toEye[1] + toEye[2] * toEye[2]);
+            dotSize = kDotSize * metres / g.hudDistance;
         }
     }
     float length = 0.0f;
@@ -848,8 +861,11 @@ void collectAlpha()
         if(pixels) {
             if(p.wanted[slot][0])
                 g.hudAlpha = pixels[3] / 255.0f;
-            if(p.wanted[slot][1])
+            if(p.wanted[slot][1]) {
                 g.worldAlpha = pixels[7] / 255.0f;
+                g.worldAlphaX = p.worldAt[slot][0];
+                g.worldAlphaY = p.worldAt[slot][1];
+            }
             glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
         }
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -877,6 +893,8 @@ void requestAlpha(int width, int height)
     }
     p.wanted[slot][0] = g.onQuad;
     p.wanted[slot][1] = g.worldValid;
+    p.worldAt[slot][0] = g.worldX;
+    p.worldAt[slot][1] = g.worldY;
     if(!p.wanted[slot][0] && !p.wanted[slot][1])
         return;
     const float points[2][2] = {{g.hudU, g.hudV}, {g.worldX, g.worldY}};
@@ -1234,9 +1252,13 @@ void pollInput()
         g.clickHold = vr_controls::ClickHold();
     g.target = target;
     bool valid = target == TARGET_HUD && g.onQuad;
-    if(target == TARGET_WORLD && g.worldValid && g.worldAlpha <= kInterfaceAlpha) {
-        // (not where the interface covers the game's screen: the click
-        // would go to the panel)
+    // the world pick, where the window's alpha read there says no interface
+    // covers it on the game's screen (the click would go to the panel). The
+    // alpha comes a frame or two late: until it is read near this point, the
+    // pick is not clickable
+    const bool alphaHere = std::fabs(g.worldX - g.worldAlphaX) < kAlphaNear
+            && std::fabs(g.worldY - g.worldAlphaY) < kAlphaNear;
+    if(target == TARGET_WORLD && g.worldValid && alphaHere && g.worldAlpha <= kInterfaceAlpha) {
         u = g.worldX;
         v = g.worldY;
         valid = true;
@@ -1244,20 +1266,22 @@ void pollInput()
 
     // the pointer stays still through a click (pulling a trigger moves the
     // hand, and the game takes a press that moves for a drag)
+    const bool wasHolding = g.clickHold.holding;
     if(valid)
         vr_controls::holdForClick(g.clickHold, pull[hand], u, v);
     else if(!g.pointerHeld)
         g.clickHold = vr_controls::ClickHold();
+    // in the world, where the hold started, for the beam and dot to show
+    if(g.clickHold.holding && !wasHolding && target == TARGET_WORLD)
+        vr_controls::rayPoint(aim, g.worldMetres, g.heldWorldPoint);
     // a button pressed with nothing to click stays ignored until it is let
     // go: else sweeping onto a target with the trigger held would click there
     if(!valid && !g.pointerHeld)
         g.ignoredButtons |= held & ~g.heldButtons;
     g.ignoredButtons &= held;
-    // MC2_XR_PICK_LOG=1: what each press went to
-    static const bool logPresses = getenv("MC2_XR_PICK_LOG") && getenv("MC2_XR_PICK_LOG")[0] == '1';
     if(held && !g.heldButtons) {
         g.pressTarget = valid ? target : TARGET_NONE;
-        if(logPresses)
+        if(gos_VRPickLog())     // what each press went to
             printf("[XR] press: target %d, valid %d (on quad %d, alpha %.2f; world %d at %.3f %.3f, alpha %.2f, %.1f m)\n",
                     (int)target, (int)valid, (int)g.onQuad, g.hudAlpha, (int)g.worldValid, g.worldX, g.worldY,
                     g.worldAlpha, g.worldMetres);

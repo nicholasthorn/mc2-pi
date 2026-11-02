@@ -2034,6 +2034,8 @@ bool __stdcall gos_VRPointerActive();
 //
 bool __stdcall gos_GetVRPointerRay( float position[3], float orientation[4] );
 void __stdcall gos_SetVRWorldPointer( bool valid, float x, float y, float metres );
+// MC2_XR_PICK_LOG=1: log the world picks and what each press went to.
+bool __stdcall gos_VRPickLog();
 
 
 
