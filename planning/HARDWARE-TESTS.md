@@ -112,7 +112,8 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       sticks, system menu, click hold (side buttons, move orders, drags),
       A and held A all fine; held A moved to the left stick alone
       afterwards (to check). Not tried: grip, menu button, Guardian.
-- [ ] **Button map** (branch `vr-button-map`): hold X and click ground: a mech
+- [x] **Button map** (branch `vr-button-map`; all good on a Quest 2, 2026-11-02,
+      double-pulling the trigger included): hold X and click ground: a mech
       runs. Hold Y and click ground: a jump-capable mech jumps. Hold the left
       stick in and click a building or ground: it fires there. Hold B and click
       several points, then let go: waypoints run in order. Right stick click
