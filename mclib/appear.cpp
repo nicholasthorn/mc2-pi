@@ -137,9 +137,13 @@ void Appearance::drawSelectBox (DWORD color)
 	if (appearType && appearType->typeBoundExists())
 	{		   
 		eye->projectZ(appearType->typeUpperLeft,ul);
-		ul.z = HUD_DEPTH;
-		
 		eye->projectZ(appearType->typeLowerRight,br);
+		//VR: projected through the eye already; behind it (depth outside
+		//[0, 1)) projectZ mirrors them, so no box (as toEye does)
+		if (eye->hidesOverlays() &&
+			((ul.z < 0.0f) || (ul.z >= 1.0f) || (br.z < 0.0f) || (br.z >= 1.0f)))
+			return;
+		ul.z = HUD_DEPTH;
 		br.z = HUD_DEPTH;
 	}
 	else

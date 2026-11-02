@@ -3941,16 +3941,18 @@ void GroundVehicle::render (void)
 				else
 					resourceID = IDS_SENSOR_HEAVY_VEHICLE;
 					
+				Stuff::Vector4D labelPos = appearance->getEyeScreenPos();
 				if ( appearance->canBeSeen() )
-					drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f, resourceID,SD_RED,false);
+					drawSensorTextHelp (labelPos.x, labelPos.y+20.0f, resourceID,SD_RED,false);
 			}
 			else if (cStat == CONTACT_SENSOR_QUALITY_4)
 			{
 				appearance->setBarColor(SB_RED);
 				appearance->render();
 	
+				Stuff::Vector4D labelPos = appearance->getEyeScreenPos();
 				if ( appearance->canBeSeen() )
-					drawSensorTextHelp (appearance->getEyeScreenPos().x, appearance->getEyeScreenPos().y+20.0f,descID,SD_RED,false);
+					drawSensorTextHelp (labelPos.x, labelPos.y+20.0f,descID,SD_RED,false);
 			}
 			else if (alphaValue != 0x0)	//What if we are out of LOS and NOT on sensors!!!  Let 'em fade out.
 			{
