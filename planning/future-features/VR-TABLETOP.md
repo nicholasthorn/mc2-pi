@@ -631,9 +631,22 @@ Known gaps:
   as the underlying black: trees as black boards, holes in hut roofs
   filled in, sandbag netting as solid blobs. One render-state call fixes
   all three. (A first guess, mipmaps averaging alpha, was wrong: the
-  desktop reproduced the boards without mipmaps.) Still open on that path:
-  the CPU path blends alpha-textured shapes, the GPU path only tests, so
-  soft edges are hard and the translucent compass is not drawn.
+  desktop reproduced the boards without mipmaps.)
+- **Blending on the GPU path.** The CPU path blends alpha-textured shapes;
+  the GPU path only tested. Cut-outs (trees, netting) stay with the solids
+  and get alpha to coverage (`gos_State_AlphaToCoverage`) on the eyes' 4x
+  MSAA, with no sorting. The compass and fading shapes (`alphaValue != 0xff`,
+  until now left out of the eyes) go to `MC2_DRAWALPHA` hardware nodes, drawn
+  where the CPU path draws its compass and alpha objects, blended with no
+  depth write. Checked on the desktop with `MC2_VR_PATHS=1`: the compass
+  matches the flat game's (it was an opaque disc over the units); on a
+  throwaway 4x MSAA window coverage changes only the edges of trees; with
+  every shape forced to half alpha the fade pass draws them translucent.
+  Open: a fading shape's parts are unsorted with no depth write, so one part
+  can draw over another; no shape faded on its own in 2500 frames of mc2_01,
+  so a real fade has not been watched. Tree lighting and the green marker in
+  the mc2_19 overview still differ from the flat game; coverage does not
+  change their interiors, so the cause is not alpha, and it is not found.
 - **Geometry behind the camera:** the GPU mesh shader divided by `w` itself
   and kept `abs()`, so geometry behind the camera was drawn mirrored (huge
   dark wedges once objects behind the game camera were drawn; the likely

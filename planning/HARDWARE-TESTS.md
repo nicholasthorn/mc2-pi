@@ -92,6 +92,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       A and held A all fine; held A moved to the left stick alone
       afterwards (to check). Not tried: grip, B force fire, menu button,
       Guardian.
+- [ ] **Trees and the compass in the headset** (mc2_01 past the fly-in): tree
+      edges soft rather than blocky, distant trees not thinned away by
+      mipmapped alpha, the compass translucent and drawn over the world, frame
+      rate not below the 66 fps measured before.
 
 ## Releases (`RELEASES.md`)
 
