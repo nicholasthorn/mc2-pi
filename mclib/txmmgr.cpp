@@ -1115,6 +1115,7 @@ void MC_TextureManager::renderLists (void)
 
 	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
 	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
+	gos_SetRenderState(gos_State_AlphaTest, 0);		// set per node above
 
 	// restore viewport
 	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
