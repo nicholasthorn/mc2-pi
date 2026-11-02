@@ -747,6 +747,18 @@ work (grip and B not tried yet); world selection is what was missing.
   fixed sizes, not the models' bounds. Buildings are picked through the
   ground under them.
 
+Fifth and sixth runs: world clicks did nothing at first. With the pick
+logged (`MC2_XR_PICK_LOG=1`), two bugs: the ray went up when the hand
+pointed down (the engine camera looks along minus its `FORWARD_AXIS` row;
+the eyes use the whole matrix and never noticed), and with nothing to point
+at the pointer was switched off, so the mouse fell back to SDL's 0, 0 and
+the game scrolled the map to its corner by itself (at once when the
+headset started facing away). Fixed: the ray takes minus the row, and the
+pointer stays where it last was (the screen's centre at first). Then
+"starting to be playable": 42 of 45 world clicks valid, the misses at
+points outside the game camera's view (one projected to 1733, 1257 on the
+800x600 screen). Next: picking beyond the game camera's view.
+
 Not done in this slice:
 
 - Analogue stick speed (the keys give the game's fixed scroll and zoom
