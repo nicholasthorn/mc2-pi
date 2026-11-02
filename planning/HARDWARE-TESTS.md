@@ -92,10 +92,9 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       A and held A all fine; held A moved to the left stick alone
       afterwards (to check). Not tried: grip, B force fire, menu button,
       Guardian.
-- [ ] **Trees and the compass in the headset** (mc2_01 past the fly-in): tree
-      edges soft rather than blocky, distant trees not thinned away by
-      mipmapped alpha, the compass translucent and drawn over the world, frame
-      rate not below the 66 fps measured before.
+- [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
+      looks translucent, without parts drawing badly over each other. Forced
+      on the desktop only so far.
 
 ## Releases (`RELEASES.md`)
 
@@ -118,6 +117,8 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 Move items here with the date, the machine and the result.
 
+- [x] Quest 2, blending on the GPU mesh path, mc2_01 (2026-11-02, PR 84):
+      trees and the compass look right; fly-in frame time unchanged, 69.4 fps.
 - [x] Pi 400, GLES build, mc2_01 (2026-10-29, at `10401db`): runs, 58.5 fps
       at the 60 Hz vsync cap; software rendering 50.4 (mc2_01) / 67.1
       (mc2_03) fps.

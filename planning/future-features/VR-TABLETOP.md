@@ -642,6 +642,12 @@ Known gaps:
   matches the flat game's (it was an opaque disc over the units); on a
   throwaway 4x MSAA window coverage changes only the edges of trees; with
   every shape forced to half alpha the fade pass draws them translucent.
+  Quest 2, mc2_01 played: trees and the compass look right. Frame time on
+  the fly-in (`-bench`, head pose fixed, 900 frames, two runs each) is the
+  same with and without this change and with coverage off: 69.4 fps, median
+  13.9 ms at the 72 Hz limit. A lower frame rate noticed while playing the
+  fly-in did not show up in these runs; the fixed pose may look at less than
+  a player does, and being at the limit they do not show spare GPU time.
   Open: a fading shape's parts are unsorted with no depth write, so one part
   can draw over another; no shape faded on its own in 2500 frames of mc2_01,
   so a real fade has not been watched. Tree lighting and the green marker in
@@ -655,6 +661,10 @@ Known gaps:
 - **To do: the terrain window's edge** is visible at a headset's field of
   view (a hard border, then the cloud layer as a grey wall): a larger window
   for VR, or haze pulled in to the window's radius.
+- **To do: mechs change brightness in a step with distance to the camera**
+  (seen in the headset, mc2_01, on builds before and with blending; not
+  noticed in the flat game). Cause not found. Forcing the level of detail on
+  the desktop (mc2_19) made no visible difference.
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.
