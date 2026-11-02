@@ -387,10 +387,6 @@ class MC_TextureManager
 		MC_HardwareVertexArrayNode 		*hardwareVertexData4;		//This holds the vertex draw data for UNTEXTURED triangles!
 		MC_HardwareVertexArrayNode 		*hardwareVertexData5;		//This holds the vertex draw data for UNTEXTURED triangles!
 
-        TG_HWLightsData*                lightData_;
-        uint32_t                        lightDataStructuresCapacity;
-        uint32_t                        lightDataStructuresCount;
-		gosBuffer						*lightDataBuffer_;
         TG_HWSceneData*                 sceneData_;
 		gosBuffer						*sceneDataBuffer_;
 		
@@ -418,10 +414,6 @@ class MC_TextureManager
 			vertexData = vertexData2 = vertexData3 = vertexData4 = vertexData5 = NULL;
 			hardwareVertexData = hardwareVertexData2 = hardwareVertexData3 = hardwareVertexData4 = hardwareVertexData5 = NULL;
 
-			lightData_ = nullptr;
-            lightDataBuffer_ = nullptr;
-            lightDataStructuresCapacity = 0;
-            lightDataStructuresCount = 0;
 
 			sceneData_ = nullptr;
             sceneDataBuffer_ = nullptr;
@@ -493,7 +485,6 @@ class MC_TextureManager
 		void removeTextureNode (DWORD textureNode);
 
 		
-        void resetLightData();
 
  		//-----------------------------------------------------------------
 		// Gets gosTextureHandle for Node ID.  Does all caching necessary.
@@ -1070,7 +1061,6 @@ class MC_TextureManager
 
         // returns index at which this light structure was added
         // ( if same one was found, then that index is returned and nothing is added)
-        uint32_t addLightDataStructure(TG_HWLightsData* lightData);
 
 		void clearArrays (void)
 		{
@@ -1097,8 +1087,6 @@ class MC_TextureManager
 
 			gvManager->reset();
 			rsManager->reset();
-
-            resetLightData();
 		}
 		
 		//Sends down the triangle lists

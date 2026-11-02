@@ -2841,7 +2841,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			rs.viewport_[1] = viewMulY;
 			rs.viewport_[2] = viewAddX;
 			rs.viewport_[3] = viewAddY;
-            rs.light_data_buffer_index_ = mcTextureManager->addLightDataStructure(&lightData_);
+            rs.lights_ = lightData_;
 			rs.alpha_ = alphaValue / 255.0f;
 
 			// each texture's triangles with that texture

@@ -197,6 +197,7 @@ typedef struct gos_StringRes*   HSTRRES; //sebi
 typedef class gosBuffer*		HGOSBUFFER; //sebi
 typedef class gosVertexDeclaration*	HGOSVERTEXDECLARATION; //sebi
 typedef class gosRenderMaterial*	HGOSRENDERMATERIAL; //sebi
+typedef struct glsl_uniform*		HGOSMATERIALPARAM;
 namespace graphics {
     struct RenderWindow;
 };
@@ -2689,6 +2690,15 @@ HGOSRENDERMATERIAL __stdcall gos_getRenderMaterial(const char* material);
 void __stdcall gos_ApplyRenderMaterial(HGOSRENDERMATERIAL material);
 void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSRENDERMATERIAL material, const char* name, const float* v);
 void __stdcall gos_SetRenderMaterialParameterMat4(HGOSRENDERMATERIAL material, const char* name, const float* m);
+// For a parameter set on every draw: look it up once (NULL if the material has
+// no such parameter, which the setters ignore). Shader hot reload deletes it
+// between frames, so do not keep it across frames.
+HGOSMATERIALPARAM __stdcall gos_GetRenderMaterialParameter(HGOSRENDERMATERIAL material, const char* name);
+void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSMATERIALPARAM param, const float* v);
+void __stdcall gos_SetRenderMaterialParameterMat4(HGOSMATERIALPARAM param, const float* m);
+// gos_ApplyRenderMaterial for the later draws of a material: the parameters
+// only, as its sampler units stay set
+void __stdcall gos_ApplyRenderMaterialParameters(HGOSRENDERMATERIAL material);
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot);
 
 
@@ -2795,7 +2805,6 @@ void __stdcall gos_DestroyVertexDeclaration(HGOSVERTEXDECLARATION buffer);
 //
 // Uniform buffers attachment slots (indices)
 // 
-#define LIGHT_DATA_ATTACHMENT_SLOT	0
 #define SCENE_DATA_ATTACHMENT_SLOT	1
 
 

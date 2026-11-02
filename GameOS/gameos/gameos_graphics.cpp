@@ -350,9 +350,14 @@ class gosRenderMaterial {
 
         bool setUniformBlock(const std::string& uniform_block_name, uint32_t unit) {
             gosASSERT(!uniform_block_name.empty());
-            if(program_->uniform_blocks_.count(uniform_block_name)) {
+            auto it = program_->uniform_blocks_.find(uniform_block_name);
+            if(it != program_->uniform_blocks_.end()) {
 				//glBindBufferBase(GL_UNIFORM_BUFFER, , unit);
-				glUniformBlockBinding(program_->shp_, program_->uniform_blocks_[uniform_block_name]->index_, unit);
+				// the program keeps it, so skip repeats (this runs per draw on the mesh path)
+				if(it->second->binding_ != (GLint)unit) {
+					glUniformBlockBinding(program_->shp_, it->second->index_, unit);
+					it->second->binding_ = (GLint)unit;
+				}
                 return true;
             }
             return false;
@@ -3379,7 +3384,6 @@ void __stdcall gos_ApplyRenderMaterial(HGOSRENDERMATERIAL material)
 	material->setSamplerUnit(gosMesh::s_tex1, 0);
 	material->setSamplerUnit(gosMesh::s_tex2, 1);
 	material->setSamplerUnit(gosMesh::s_tex3, 2);
-	material->setUniformBlock("lights_data", 0);
 }
 
 void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSRENDERMATERIAL material, const char* name, const float* v)
@@ -3394,6 +3398,30 @@ void __stdcall gos_SetRenderMaterialParameterMat4(HGOSRENDERMATERIAL material, c
 	gosASSERT(material);
 	gosASSERT(m);
 	material->getShader()->setMat4(name, m);
+}
+
+HGOSMATERIALPARAM __stdcall gos_GetRenderMaterialParameter(HGOSRENDERMATERIAL material, const char* name)
+{
+	gosASSERT(material && name);
+	return material->getShader()->findUniform(name);
+}
+
+void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSMATERIALPARAM param, const float* v)
+{
+	gosASSERT(v);
+	glsl_program::setUniformFloat4(param, v);
+}
+
+void __stdcall gos_SetRenderMaterialParameterMat4(HGOSMATERIALPARAM param, const float* m)
+{
+	gosASSERT(m);
+	glsl_program::setUniformMat4(param, m);
+}
+
+void __stdcall gos_ApplyRenderMaterialParameters(HGOSRENDERMATERIAL material)
+{
+	gosASSERT(material);
+	material->apply();
 }
 
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot)

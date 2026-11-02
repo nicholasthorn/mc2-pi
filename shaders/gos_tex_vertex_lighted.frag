@@ -6,7 +6,6 @@
 
 #include <include/lighting.hglsl>
 
-uniform vec4 light_offset_;
 // x: the shape's alpha (it fades); y: 1 for a HUD element (the compass), at full
 // light and out of the fog, as the CPU path draws it
 uniform PREC vec4 mesh_params_;
@@ -41,8 +40,7 @@ void main(void)
 #if ENABLE_VERTEX_LIGHTING
 	PREC vec3 lighting = VertexLight;
 #else
-    int lights_index = int(light_offset_.x);
-    PREC vec3 lighting = calc_light(lights_index, Normal, VertexLight);
+    PREC vec3 lighting = calc_light(Normal, VertexLight);
 #endif
 
     if(mesh_params_.y == 0.0)
