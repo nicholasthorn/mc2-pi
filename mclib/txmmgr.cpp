@@ -998,6 +998,7 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 				static bool b_old_way = false;
 				if (b_old_way)
 				{
+					gos_EndIndexedArrayBatch();	// it unbinds what the batch left bound
 					gos_SetRenderState(gos_State_Texture, masterTextureNodes[textureIndex].get_gosTextureHandle());
 					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
 					gos_SetRenderViewport(rs->viewport_[2], rs->viewport_[3], rs->viewport_[0], rs->viewport_[1]);

@@ -2397,9 +2397,9 @@ void __stdcall gos_RenderIndexedArray(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDE
 // gos_ApplyRenderStates, gos_ApplyRenderMaterial, then for each draw its
 // parameters and gos_RenderIndexedArrayBatched, which applies no states and
 // leaves the program and buffers bound. No other drawing until
-// gos_EndIndexedArrayBatch, which unbinds them and reports any GL error since
-// the batch's start; the states and material may change between draws by
-// repeating the first steps.
+// gos_EndIndexedArrayBatch, which unbinds them and reports any GL error still
+// pending, whichever draw raised it; the states and material may change between
+// draws by repeating the first steps.
 void __stdcall gos_ApplyRenderStates();
 void __stdcall gos_RenderIndexedArrayBatched(HGOSBUFFER ib, HGOSBUFFER vb, HGOSVERTEXDECLARATION vdecl);
 void __stdcall gos_EndIndexedArrayBatch();

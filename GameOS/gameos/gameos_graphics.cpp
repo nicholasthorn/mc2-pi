@@ -3466,6 +3466,10 @@ void __stdcall gos_ApplyRenderMaterial(HGOSRENDERMATERIAL material)
 {
 	gosASSERT(material);
 
+	// apply() reads the GL error flag per uniform: what earlier draws left must
+	// not be taken for its own, or dropped
+	CHECK_GL_ERROR;
+
 	material->apply();
 	material->setSamplerUnit(gosMesh::s_tex1, 0);
 	material->setSamplerUnit(gosMesh::s_tex2, 1);
