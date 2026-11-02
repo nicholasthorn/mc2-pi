@@ -576,9 +576,11 @@ follow, the code is platform-neutral). Branch `vr-openxr`.
   fading) are left out of the eyes. Its textured lit shader did not link on
   the Adreno driver: `calc_light` copied a whole light record (sixteen
   `mat4`s) into a local; it now reads the fields in place.
-- **Overlays:** brackets, bars and floating text from the world are left
-  out (screen positions from the game camera do not survive a turned head);
-  they need drawing in world space. The interface's own text is in the HUD.
+- **Overlays:** brackets, bars, icons and labels are re-projected per eye
+  (`Camera::overlayToEye`: the object's game-camera projection, with its
+  depth, back to its world point and through the eye; offsets scaled by the
+  eye's size at that depth). Units behind the game camera get none; bars
+  keep the game's pixel size (large next to distant mechs).
 - **Textures:** in VR, 8-bit textures get mipmaps and trilinear, 4x
   anisotropic minification (object textures asked for none, and the
   renderer never made any): distant mechs shimmered.
