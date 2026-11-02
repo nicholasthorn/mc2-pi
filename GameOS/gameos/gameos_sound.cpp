@@ -206,7 +206,15 @@ bool SoundEngine::init(int frequency, bool b_fmt_16_bit, bool b_fmt_signed, bool
                 (audio_format&0xFF),                                                
                 (audio_channels > 2) ? "surround" : (audio_channels > 1) ? "stereo" : "mono",
                 (audio_format&0x1000) ? "Big-Endian" : "Little-Endian",                                
-                audio_buffers);  
+                audio_buffers);
+
+        // what the device gave, which can differ (WASAPI's channel count):
+        // everything converted for the mixer has to match it
+        if(rv != -1) {
+            frequency_ = audio_rate;
+            format_ = audio_format;
+            channels_ = audio_channels;
+        }
     }
 
     int num_allocated_chanels = Mix_AllocateChannels(NUM_CHANNELS);
@@ -215,8 +223,10 @@ bool SoundEngine::init(int frequency, bool b_fmt_16_bit, bool b_fmt_signed, bool
     // Streamed audio (the sound in videos) goes in through the mixer's music
     // hook, which nothing else uses. A second audio device is not an option:
     // SDL on Android has one output to give.
-    streamed_lock_ = SDL_CreateMutex();
-    Mix_HookMusic(mixStreamedAudio, this);
+    if(rv != -1) {
+        streamed_lock_ = SDL_CreateMutex();
+        Mix_HookMusic(mixStreamedAudio, this);
+    }
 
 #if 0
     HGOSAUDIO hres;
@@ -248,6 +258,8 @@ void SoundEngine::update() {
     for(;it!=streamedAudioList_.end();++it) {
         gosStreamedAudio* audio = *it;
         while((bytes_read = audio->dequeueData(buf, sizeof(buf))) > 0) { 
+            if(!streamed_lock_)
+                continue;   // no mixer to take it
             SDL_LockMutex(streamed_lock_);
             streamed_pending_.insert(streamed_pending_.end(), buf, buf + bytes_read);
             SDL_UnlockMutex(streamed_lock_);

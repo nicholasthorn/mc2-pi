@@ -261,9 +261,11 @@ void	ComponentListItem::update()
 		
 		if ( !bCanAdd )
 		{
-			// the press point alone: the cursor may have left the item by now
+			// the press point alone: the cursor may have left the item by now.
+			// In the list too, as a selected item scrolled out still updates.
 			if ( userInput->isLeftDrag() &&
-				pointInside( userInput->getMouseDragX(), userInput->getMouseDragY() ) )
+				pointInside( userInput->getMouseDragX(), userInput->getMouseDragY() )
+				&& ComponentIconListBox::s_instance->pointInside( userInput->getMouseDragX(), userInput->getMouseDragY() ) )
 				startDrag();
 		}
 	}

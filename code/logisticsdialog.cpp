@@ -21,14 +21,23 @@ LogisticsDialog.cpp			: Implementation of the LogisticsDialog component.
 
 // A headset has no keyboard, so a save or a variant starts with a name nobody
 // has used, and OK works straight away. A name in the list can still be picked
-// to replace it.
+// to replace it. Not by the list alone: it can leave out a save of another
+// version or a variant the player would then silently replace.
 static void setUnusedNameForVR( aEdit& edit, aListBox& list, const char* base, bool variantName )
 {
 	char name[32];
 	for ( int n = 1; n < 1000; n++ )
 	{
 		sprintf( name, "%s %d", base, n );
-		bool used = variantName && !LogisticsData::instance->canReplaceVariant( name );
+		bool used;
+		if ( variantName )
+			used = !LogisticsData::instance->canReplaceVariant( name ) || LogisticsData::instance->getVariant( name );
+		else
+		{
+			FullPathFileName path;
+			path.init( savePath, name, ".fit", true );
+			used = fileExists( path ) != 0;
+		}
 		for ( int i = 0; i < list.GetItemCount() && !used; i++ )
 			used = S_stricmp( static_cast<aTextListItem*>( list.GetItem( i ) )->getText(), name ) == 0;
 		if ( !used )
@@ -492,7 +501,10 @@ void LogisticsSaveDialog::begin()
 
 	aListItem* pItem = gameListBox.GetItem( 0 );
 	if ( gos_IsVR() )
+	{
 		setUnusedNameForVR( edits[0], gameListBox, "Save", false );
+		selectedName = "";
+	}
 	else if ( pItem )
 	{
 		pItem->select();
