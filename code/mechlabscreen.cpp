@@ -290,12 +290,16 @@ void MechLabScreen::begin()
 
 			for ( int i = 0; i < maxCount; i++ )
 			{
-				if ( pVar[i]->allComponentsAvailable() )
+				// the mech's own variant is listed whatever it holds: a salvaged
+				// mech, or any on MechCommander Omnitech data, which sells mechs
+				// with components not yet available
+				const bool bOwn = pVar[i]->getName().Compare( pVariant->getName() ) == 0;
+				if ( bOwn || pVar[i]->allComponentsAvailable() )
 				{
 					variantList.AddItem( pVar[i]->getName(), rects[1].getColor() );
-					if ( pVar[i]->getName().Compare( pVariant->getName() )  == 0 )
+					if ( bOwn )
 					{
-						variantList.SelectItem( i );
+						variantList.SelectItem( addedCount );
 						variantList.EditBox().setEntry( pVar[i]->getName() );
 					}
 

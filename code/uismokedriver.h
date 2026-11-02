@@ -28,6 +28,7 @@ private:
 	static MissionResults* results ();
 	static OptionsXScreen* optionsScreen (MainMenu* menu);
 	static UiScreen optionsTab (OptionsXScreen* options);
+	static const char* pickCampaign (const char* fileName);
 	static UiScreen currentScreen ();
 	static const char* press (UiAction action);
 };

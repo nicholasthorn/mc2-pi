@@ -550,8 +550,26 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      `smoke.sh --missions` now takes a `|`-separated list for such names,
      passes them quoted (the game keeps a quoted name whole), and fails a
      run that starts a mission other than the one asked for.
-   - Smoke only: the campaigns themselves (logistics, purchase files, the
-     ABL mission brains over a whole campaign) are not played through.
+   - The first mission of these eight, Clan Wars, Desert Fox and MW2 Mercs
+     (2026-11-02) also passes a UI walk from the new campaign dialog:
+     mission selection, briefing, purchase, pilot, launch (or
+     straight into the mission, as its campaign file says), a win, the
+     results screens, back to mission selection; plain and under ASan +
+     UBSan. Run by hand, as CI has no Omnitech data:
+     `MC2_UISMOKE_CAMPAIGN="clan wars" scripts/smoke.sh --game-dir DIR
+     --missions "" --ui mainmenu,campaign+pick,missionselection,...`.
+   - That walk found Clan Wars could not be started: its first mission's
+     shop was empty and its force starts with no mechs. Stock only sells
+     a mech whose components are all available; Omnitech sells every mech
+     a purchase file names (its `//M23`). `LogisticsData` now does too,
+     on Omnitech data only (told by `frontEndWidth()`), so its other
+     campaigns' shops list everything they name. The mech lab's variant
+     list now always holds the mech's own variant. Not ported: Omnitech's
+     component inventory (`icomponents`), so in the mech lab a part of
+     such a mech that is not yet available warns when removed and cannot
+     be added back, and accepting changes takes stock's dialog.
+   - Later missions of these campaigns are not played through: only that
+     each loads and runs (above).
 
 ## Scope if we do this
 

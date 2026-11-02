@@ -127,6 +127,26 @@ UiScreen UiSmokeDriver::optionsTab(OptionsXScreen* options)
 	return (UiScreen)((int)UiScreen::OptionsGraphics + options->curTab);
 }
 
+// Selects a campaign in the new campaign dialog, as a click would: the
+// dialog lists them by display name, with the file name ("campaign",
+// "tutorial", a mod's) hidden. Returns NULL, or why it could not.
+const char* UiSmokeDriver::pickCampaign(const char* fileName)
+{
+	LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance();
+	if (!dialog)
+		return "screen is gone";
+	aListBox& list = dialog->gameListBox;
+	for (long i = 0; i < list.GetItemCount(); i++) {
+		aLocalizedListItem* item = (aLocalizedListItem*)list.GetItem(i);
+		if (0 == S_stricmp(item->getHiddenText(), fileName)) {
+			list.SelectItem(i);
+			dialog->edits[0].setEntry(item->getText());
+			return NULL;
+		}
+	}
+	return "no such campaign in the list";
+}
+
 UiScreen UiSmokeDriver::currentScreen()
 {
 	if (MissionResults* r = results()) {
@@ -347,14 +367,22 @@ const char* UiSmokeDriver::press(UiAction action)
 		if (MechPurchaseScreen* purchase = MechPurchaseScreen::instance()) {
 			MechListBox& list = purchase->variantListBox;
 			long i = 0;
+			int cheapest = -1;
 			for (; i < list.GetItemCount(); i++) {
 				LogisticsMech* mech = ((MechListBoxItem*)list.GetItem(i))->getMech();
+				if (cheapest < 0 || mech->getCost() < cheapest)
+					cheapest = mech->getCost();
 				if (LogisticsData::instance->canAddMechToForceGroup(mech)
 						&& NO_ERR == LogisticsData::instance->canPurchaseMech(mech->getVariant()))
 					break;
 			}
-			if (i == list.GetItemCount())
-				return "no mech fits the drop weight and the C-bills";
+			if (i == list.GetItemCount()) {
+				static char why[128];
+				snprintf(why, sizeof(why), "no mech fits the drop weight and the C-bills"
+						" (%ld listed, cheapest %d, C-bills %d)",
+						list.GetItemCount(), cheapest, LogisticsData::instance->getCBills());
+				return why;
+			}
 			list.SelectItem(i);
 		}
 		return pressButton(screen, MB_MSG_ADD);
@@ -402,21 +430,15 @@ const char* UiSmokeDriver::press(UiAction action)
 		}
 		return "screen is gone";
 	case UiAction::PickTutorial:
-		// the new campaign dialog lists the campaigns by their display name,
-		// with the file name hidden: "campaign", then "tutorial"
-		if (LogisticsSaveDialog* dialog = LogisticsSaveDialog::instance()) {
-			aListBox& list = dialog->gameListBox;
-			for (long i = 0; i < list.GetItemCount(); i++) {
-				aLocalizedListItem* item = (aLocalizedListItem*)list.GetItem(i);
-				if (0 == S_stricmp(item->getHiddenText(), "tutorial")) {
-					list.SelectItem(i);
-					dialog->edits[0].setEntry(item->getText());
-					return NULL;
-				}
-			}
-			return "no tutorial in the list";
-		}
-		return "screen is gone";
+		return pickCampaign("tutorial");
+	case UiAction::PickCampaign: {
+		// a walk cannot carry a campaign's file name ("mercenarys star"):
+		// smoke runs name it in the environment
+		const char* name = getenv("MC2_UISMOKE_CAMPAIGN");
+		if (!name || !*name)
+			return "campaign+pick needs MC2_UISMOKE_CAMPAIGN (a campaign's file name)";
+		return pickCampaign(name);
+	}
 	case UiAction::None:
 		break;
 	}

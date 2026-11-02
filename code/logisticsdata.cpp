@@ -17,6 +17,7 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #include"team.h"
 #include"mech.h"
 #include"logisticsmissioninfo.h"
+#include"logisticsscreen.h"
 #include"packet.h"
 #include"movobj.h"
 #include"gamesound.h"
@@ -1476,6 +1477,15 @@ LogisticsVariant* LogisticsData::getVariant( const char* mechName )
 	return NULL;
 }
 
+// Stock only sells a mech whose components are all available. MechCommander
+// Omnitech sells every mech a purchase file names, and its campaigns count on
+// it (Clan Wars' first mission sold nothing, and could not be launched). Its
+// data is told by the front-end layouts made for it.
+static bool mechsNeedAvailableComponents()
+{
+	return LogisticsScreen::frontEndWidth() == 800;
+}
+
 long LogisticsData::updateAvailability()
 {
 	bNewWeapons = 0;
@@ -1604,6 +1614,8 @@ long LogisticsData::updateAvailability()
 				componentCount = 255;
 				bool bRight = true;
 				(*vIter)->getComponents( componentCount, componentArray );
+				if ( !mechsNeedAvailableComponents() )
+					componentCount = 0;
 				for ( int i = 0; i < componentCount; i++ )
 				{
 					if ( !available[componentArray[i]] ) // unavailable componets
@@ -1747,6 +1759,8 @@ void LogisticsData::appendAvailability(const char* pFileName, bool* availableArr
 				long componentArray[256];
 				bool bRight = true;
 				(*vIter)->getComponents( componentCount, componentArray );
+				if ( !mechsNeedAvailableComponents() )
+					componentCount = 0;
 				for ( int i = 0; i < componentCount; i++ )
 				{
 					LogisticsComponent* pComp = getComponent(componentArray[i]);

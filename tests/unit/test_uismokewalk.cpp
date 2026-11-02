@@ -112,6 +112,8 @@ TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
 
 	CHECK(uiScreenAction(UiScreen::Save, "name", 4) == UiAction::NameSave);
 	CHECK(uiScreenAction(UiScreen::CampaignSelect, "tutorial", 8) == UiAction::PickTutorial);
+	CHECK(uiScreenAction(UiScreen::CampaignSelect, "pick", 4) == UiAction::PickCampaign);
+	CHECK(uiScreenAction(UiScreen::Load, "tutorial", 8) == UiAction::None);
 	// the tutorials launch from mission selection
 	CHECK(uiRoute(UiScreen::MissionSelection, UiScreen::Mission) == UiAction::Next);
 	CHECK(uiScreenAction(UiScreen::Load, "pick", 4) == UiAction::PickSave);

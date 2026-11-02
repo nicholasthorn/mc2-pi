@@ -174,6 +174,9 @@ cannot say why a click did nothing.
    no results), so the driver refuses that win
    (`LogisticsData::isLastMission()`; `campaignOver()` only turns true
    once the win is counted). It runs on stock and Omnitech data.
+   `campaign+pick` picks any campaign by file name, from
+   `MC2_UISMOKE_CAMPAIGN` (a walk cannot carry a name with spaces): how
+   Omnitech's campaign packs are walked (`MOD-COMPAT.md` item 13).
 4. **Built (2026-11-01):** out of a mission. `mission` leads to `salvage`,
    `pilotreview` or `promotion`: once the mission has been held, the driver
    sets `scenarioResult` to a big win, as `Mission::update`'s

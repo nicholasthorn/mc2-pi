@@ -87,7 +87,8 @@ enum class UiAction {
 	PickSkill,			// promotion+skill: check the first specialty skill
 	NameSave,			// save+name: type the walk's save name ("uismoke")
 	PickSave,			// load+pick: pick the walk's save from the list
-	PickTutorial		// campaign+tutorial: pick the tutorial instead of the campaign
+	PickTutorial,		// campaign+tutorial: pick the tutorial instead of the campaign
+	PickCampaign		// campaign+pick: pick the campaign MC2_UISMOKE_CAMPAIGN names
 };
 
 const char* uiScreenName(UiScreen s);

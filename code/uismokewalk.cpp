@@ -217,6 +217,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::Save, "name", UiAction::NameSave },
 	{ UiScreen::Load, "pick", UiAction::PickSave },
 	{ UiScreen::CampaignSelect, "tutorial", UiAction::PickTutorial },
+	{ UiScreen::CampaignSelect, "pick", UiAction::PickCampaign },
 };
 
 } // namespace
