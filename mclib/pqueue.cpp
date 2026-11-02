@@ -57,17 +57,38 @@ void PriorityQueue::upHeap (int curIndex) {
 	// sort up the heap...
 	while (pqList[curIndex/2].key >= stopKey) {
 		pqList[curIndex] = pqList[curIndex/2];
+		setPos(curIndex);
 		curIndex /= 2;
 	}
 	pqList[curIndex] = startNode;
+	setPos(curIndex);
 }
 
 //---------------------------------------------------------------------------
 
 int PriorityQueue::insert (PQNode& item) {
 
-	if (numItems == maxItems)
+	//------------------------------------------------------------------
+	// pqList holds maxItems nodes, slots 0 to maxItems - 1 (0 is the
+	// sentinel): it is full at maxItems - 1 items, not maxItems, or the
+	// next insert writes one past the end.
+	if (numItems >= maxItems - 1)
 		return(1);
+
+	if (!linearFind) {
+		if (item.id >= kMaxIndexedId)
+			linearFind = true;
+		else if (item.id >= posById.size()) {
+			size_t size = posById.size() * 2;
+			if (size < item.id + 1)
+				size = item.id + 1;
+			if (size > kMaxIndexedId)
+				size = kMaxIndexedId;
+			posById.resize(size, 0);
+		}
+		else if (find(item.id))
+			linearFind = true;		// queued twice: the scan returns the first
+	}
 
 	pqList[++numItems] = item;
 	upHeap(numItems);
@@ -92,9 +113,11 @@ void PriorityQueue::downHeap (int curIndex) {
 		if (stopKey <= pqList[nextIndex].key)
 			break;
 		pqList[curIndex] = pqList[nextIndex];
+		setPos(curIndex);
 		curIndex = nextIndex;
 	}
 	pqList[curIndex] = startNode;
+	setPos(curIndex);
 }
 
 //---------------------------------------------------------------------------
@@ -123,6 +146,15 @@ void PriorityQueue::change (int itemIndex, int newValue) {
 //---------------------------------------------------------------------------
 
 int PriorityQueue::find (unsigned int id) {
+
+	if (!linearFind) {
+		if (id < posById.size()) {
+			int index = posById[id];
+			if ((index >= 1) && (index <= numItems) && (pqList[index].id == id))
+				return(index);
+		}
+		return(0);
+	}
 
 	for (int index = 0; index <= numItems; index++)
 		if (pqList[index].id == id)
