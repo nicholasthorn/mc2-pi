@@ -782,7 +782,10 @@ headset's while in VR:
 - Later, if needed: the game camera following the head's yaw, so turning
   the head keeps the cone where the player looks.
 - Overlaps the culling work (#79): agree it with that branch before
-  starting.
+  starting. Widen the picking guard with it: `Camera::seesForGame` keeps
+  mouse picking to the game camera's frustum, so widening one without the
+  other leaves picking at 40 degrees (or lets it reach tiles the game does
+  not project).
 
 Not done in this slice:
 
