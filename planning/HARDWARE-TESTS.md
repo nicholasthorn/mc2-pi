@@ -76,6 +76,23 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Render performance candidates** (`future-features/PI-RENDER-PERF.md`):
       each is measured with `scripts/bench.sh` on the Pi before and after.
 
+## On the Quest (VR, `future-features/VR-TABLETOP.md`)
+
+- [ ] **Controllers** (branch `vr-controllers`, Phase 3 progress): in the
+      main menu and in a mission, either hand shows a beam, with a dot
+      where it meets the interface and no mouse cursor; trigger clicks
+      (one click per pull, nothing lost), grip right-clicks, drags on the
+      panel work; a trigger pulled off the panel and swept onto it does
+      not click; left stick pans the right way, right stick turns the
+      right way and zooms (up is in); B + click force-fires; menu pauses;
+      A brings the HUD in front, held A + left stick moves and sizes it
+      and logs `MC2_XR_HUD`. The system menu or Guardian releases
+      everything (no stuck scroll or button). 2026-11-01: panel clicks,
+      sticks, system menu, click hold (side buttons, move orders, drags),
+      A and held A all fine; held A moved to the left stick alone
+      afterwards (to check). Not tried: grip, B force fire, menu button,
+      Guardian.
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **A package on a clean machine** (phase 1 exit): unpack the Linux x64

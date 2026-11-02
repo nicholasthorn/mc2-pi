@@ -626,11 +626,176 @@ Known gaps:
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.
-- No controllers yet (Phase 3): the mouse and keyboard do not reach the
-  headset build.
+- Controllers: see Phase 3 progress (the interface works by ray; picking
+  in the world is still to do).
 - The Guardian (boundary) takes the headset to passthrough when it thinks
   it is outside its play area; the session then stays VISIBLE, not
   FOCUSED.
+
+## Phase 3 progress: controllers (2026-11-01)
+
+Branch `vr-controllers` (off `vr-openxr`). The controllers stand in for the
+mouse and keyboard inside GameOS, so the game's input code is unchanged:
+
+- **Input sampling at 30 Hz** (a bug in the 30 Hz step): `process_events`
+  sampled the keys and buttons every headset frame, but the game only reads
+  them on frames it steps, and a click counts only on the frame its state is
+  `KEY_PRESSED` (`UserInput::update`). At 72 frames for 30 steps most clicks
+  and key presses turned into "held" before the game saw them; mouse motion
+  and the wheel were reset on the frames in between too. Now input is
+  sampled only on frames with a game step. The flat game steps every frame,
+  so nothing changes there.
+- **Virtual mouse and keys** (`gos_input`: `setVirtualPointer`,
+  `setVirtualKey`): applied over SDL's state when it is sampled; a press
+  that starts and ends between two samples still counts once.
+- **OpenXR actions** (`gos_xr::pollInput`, every frame): one action set
+  bound to the Touch controllers (`/interaction_profiles/oculus/touch_controller`).
+  The hand that last pulled its trigger or grip points; its aim ray is the
+  mouse where it meets the interface quad (`vr_controls::rayHitsQuad`,
+  unit-tested), kept 8 px inside the window's edges so pointing at the
+  panel's edge does not scroll the map. Trigger is the left button, grip
+  the right. Off the quad the cursor stays where it was and the buttons do
+  nothing (unless a drag started on the quad).
+- **Sticks** (`vr_controls::stickActions`, unit-tested): the left stick pans
+  (arrow keys), the right stick turns (shift + left / right; turning stops
+  the panning, which would otherwise turn too, and the zoom, whose keys do
+  nothing with shift down) and zooms (keypad + / -),
+  with hysteresis (on at 0.5, off below 0.3).
+- **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
+  button is Escape (pause menu).
+- **The HUD can be moved:** A puts the quad in front of where the head is
+  and faces (keeping its distance and angle). Holding A, the left stick
+  up raises it (down: lowers) and right makes it larger (left: smaller);
+  the right stick is left alone, as the right thumb is on A (first
+  version used both sticks: hard to use in the headset). Its distance
+  stays as set: nearer or further mostly changes how large it looks. On
+  letting go the log prints the `MC2_XR_HUD=distance,degrees,width` line
+  to keep in `mc2args.txt`, which sets where it starts (default
+  `1.5,30,2`).
+
+Third run (click-hold build, after merging `vr-openxr`): side buttons work
+on the first pull, move orders near the centre every time, the dot holds
+still through a pull, a deliberate drag still draws a selection box; A
+and held A work, but holding A with the right thumb made the right stick
+hard to use, so the HUD now moves on the left stick alone.
+
+- **A VR pointer instead of the mouse cursor:** the pointing hand shows a
+  beam, ending in a dot where it meets the HUD (1.5 m long when it meets
+  nothing). Both are quad layers over the HUD (static 8x4 and 32x32
+  images filled once, `vr_controls::beamPose` turns the beam about its
+  line to face the eye), so they need no GL drawing in the eye passes; with
+  no depth they draw over the world too, which is right for a hand nearer
+  than anything else. The game draws no cursor while they show
+  (`gos_VRPointerActive`, one check in `UserInput::render`); the cursor
+  shapes (move, attack, cannot) are lost with it, to bring back as the
+  dot's colour.
+
+First headset run (2026-11-01, Quest 2, mc2_01): clicking on the panel
+works, the sticks feel right. The mouse cursor on the HUD felt wrong, so
+the beam and dot replaced it. Mechs disappeared while moving around the
+map: the known gap above (objects are still culled to the game camera's
+40-degree view), not the controllers. Not tried yet: dragging onto the
+panel with the trigger held, the menu button, moving the HUD, the system
+menu.
+
+Second run (beam build): the pointer works, the system menu releases
+everything and pauses. Clicks were unreliable: portraits always worked,
+buttons at the HUD's sides took several clicks, move orders worked only
+near the centre and only sometimes. Cause: the game takes a press that
+moves more than 1.7% of the screen (`mouseDragThreshold`, about 3 cm or
+1.3 degrees on the HUD) for a drag, and pulling a trigger moves the hand
+more than that, so a move order became a selection box. Fix: the pointer
+holds still from when a trigger or grip starts to move until it is let
+go, unless it moves more than 5% of the HUD (then it is a real drag and
+follows the hand); the beam and dot show the held point
+(`vr_controls::holdForClick`). The pointing hand now switches at the start
+of a pull, so the hold covers the whole pull.
+
+A move order through the see-through HUD still goes to the ground the game
+camera sees at that screen position, not to what is behind the dot in the
+headset: world picking (below) is the real fix.
+
+Fourth run: the menu button, the Guardian and held A on the left stick
+work (grip and B not tried yet); world selection is what was missing.
+
+**World picking** (after the fourth run):
+
+- **Interface or world:** each frame `gos_xr` reads back the window's
+  alpha at the quad point under the ray (a pixel-pack buffer and a fence,
+  read on a later frame, so it never waits for the GPU). Where something
+  is drawn the pointer is on the interface, as before; through the quad's
+  see-through parts, or beside the quad, it is on the world. A press stays
+  with what it started on until let go, so a drag-select box can cross the
+  panel's edge.
+- **The ray in the world:** `Camera::vrRayToWorld` puts the aim pose
+  through `vr_eye::eyeBasis` with the game camera, exactly as the eyes are
+  placed, so the ray matches what the eyes show.
+- **The pick** (`vrPickWorld` in `mission.cpp`, after the eyes are drawn,
+  every headset frame): the ray against a sphere about each mover (mechs
+  30 world units, 6 m, half height; vehicles 12), so pointing at a mech's
+  body picks it, then against the ground (`vr_controls::rayHitsGround`,
+  32-unit steps then bisection, up to 8000 units). The nearest hit,
+  projected through the game camera, goes back to GameOS
+  (`gos_SetVRWorldPointer`) and becomes the mouse position on the next
+  sample, so selection, orders, attack targets and drag boxes are the
+  game's own. A point under the interface on the game's screen (its
+  window alpha, read back too) is not clickable: the click would go to
+  the panel.
+- **The beam** ends on the ground or unit, with the dot there, turned to
+  the eye and as large to the eye as on the quad.
+- Limits: only what the game camera sees can be picked (the game's
+  picking reads its own projected terrain); the sky or a point outside
+  that view leaves the pointer with nothing to click. Unit spheres are
+  fixed sizes, not the models' bounds. Buildings are picked through the
+  ground under them.
+
+Fifth and sixth runs: world clicks did nothing at first. With the pick
+logged (`MC2_XR_PICK_LOG=1`), two bugs: the ray went up when the hand
+pointed down (the engine camera looks along minus its `FORWARD_AXIS` row;
+the eyes use the whole matrix and never noticed), and with nothing to point
+at the pointer was switched off, so the mouse fell back to SDL's 0, 0 and
+the game scrolled the map to its corner by itself (at once when the
+headset started facing away). Fixed: the ray takes minus the row, and the
+pointer stays where it last was (the screen's centre at first). Then
+"starting to be playable": 42 of 45 world clicks valid, the misses at
+points outside the game camera's view (one projected to 1733, 1257 on the
+800x600 screen). Next: picking beyond the game camera's view.
+
+**To do: the game camera's field of view in VR** (decided 2026-11-02,
+after the seventh run; not started). The logic eye stays at the game's
+40 degrees so that VR gameplay matches the flat game (the "Phase 1 audit"
+answer above), but the player sees about 100: units between the two do not
+animate, cannot be picked (both `vrPickWorld` and the game's own picking go
+through the game camera's screen) and, through the update gate on `inView`,
+may not be drawn (the missing objects still seen after #79). In VR, "in
+view" should mean what the player sees. Widen the game camera's FOV to the
+headset's while in VR:
+
+- One change for three gaps: animation at the sides, picking over the whole
+  view (making a direct world-point pick in `missiongui.cpp` mostly
+  unneeded), and likely the missing objects.
+- Measure first: more units updated per game step (the step is about 11 ms
+  of the Quest's budget at 30 Hz); `-bench` with `-benchfov` gives the
+  number.
+- Accepted: VR gameplay then differs from a flat run (state checksums no
+  longer match; withdrawing units count as on screen longer).
+- Later, if needed: the game camera following the head's yaw, so turning
+  the head keeps the cone where the player looks.
+- Overlaps the culling work (#79): agree it with that branch before
+  starting. Widen the picking guard with it: `Camera::seesForGame` keeps
+  mouse picking to the game camera's frustum, so widening one without the
+  other leaves picking at 40 degrees (or lets it reach tiles the game does
+  not project).
+
+Not done in this slice:
+
+- Analogue stick speed (the keys give the game's fixed scroll and zoom
+  rates).
+- To try in the headset: A takes the head's heading, but the world stays
+  where it is, so pressing A while looking sideways moves the HUD off the
+  battle. If that annoys, keep the HUD's heading at the world's forward and
+  let A change only height and distance.
+- Not yet run in the headset (see `HARDWARE-TESTS.md`).
 
 ## Open questions
 

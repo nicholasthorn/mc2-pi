@@ -847,7 +847,8 @@ void UserInput::render (void)						//Last thing rendered.  Draws Mouse.
     //sebi, always NOT async mouse
 	//if (!mc2UseAsyncMouse)
 	{
-		if (drawMouse && mouseState != -1)
+		// VR: the controllers draw their own pointer
+		if (drawMouse && mouseState != -1 && !gos_VRPointerActive())
 		{
 			// figure out where to put the thing
 			long mouseX = getMouseX();
