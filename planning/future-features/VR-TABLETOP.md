@@ -759,6 +759,29 @@ pointer stays where it last was (the screen's centre at first). Then
 points outside the game camera's view (one projected to 1733, 1257 on the
 800x600 screen). Next: picking beyond the game camera's view.
 
+**To do: the game camera's field of view in VR** (decided 2026-11-02,
+after the seventh run; not started). The logic eye stays at the game's
+40 degrees so that VR gameplay matches the flat game (the "Phase 1 audit"
+answer above), but the player sees about 100: units between the two do not
+animate, cannot be picked (both `vrPickWorld` and the game's own picking go
+through the game camera's screen) and, through the update gate on `inView`,
+may not be drawn (the missing objects still seen after #79). In VR, "in
+view" should mean what the player sees. Widen the game camera's FOV to the
+headset's while in VR:
+
+- One change for three gaps: animation at the sides, picking over the whole
+  view (making a direct world-point pick in `missiongui.cpp` mostly
+  unneeded), and likely the missing objects.
+- Measure first: more units updated per game step (the step is about 11 ms
+  of the Quest's budget at 30 Hz); `-bench` with `-benchfov` gives the
+  number.
+- Accepted: VR gameplay then differs from a flat run (state checksums no
+  longer match; withdrawing units count as on screen longer).
+- Later, if needed: the game camera following the head's yaw, so turning
+  the head keeps the cone where the player looks.
+- Overlaps the culling work (#79): agree it with that branch before
+  starting.
+
 Not done in this slice:
 
 - Analogue stick speed (the keys give the game's fixed scroll and zoom
