@@ -2951,39 +2951,42 @@ float __stdcall gos_GetVRFieldOfView()
     if(!gos_IsVR())
         return 0.0f;
 
-    // the view cone's test breaks down above 127 degrees: cos(fov * 0.7071)
-    // goes negative and lets through what is behind the camera
-    static const float kMaxFOV = 120.0f;
-    // MC2_VR_PATHS=1 has no eyes to ask
-    const float kNoEyesFOV = 100.0f;
     static const float forced = []() {
         const char* env = getenv("MC2_XR_FOV");
         if(!env)
             return -1.0f;
-        const float value = (float)atof(env);
-        if(value == 0.0f || (value >= 20.0f && value <= kMaxFOV))
-            return value;
-        printf("[VR] MC2_XR_FOV=%s ignored: 0 or 20 to %g\n", env, kMaxFOV);
-        return -1.0f;
+        const float value = vr_eye::parseGameFov(env);
+        if(value < 0.0f)
+            printf("[VR] MC2_XR_FOV=%s ignored: 0 or %g to %g\n", env, vr_eye::kMinGameFov, vr_eye::kMaxGameFov);
+        return value;
     }();
     if(forced >= 0.0f)
         return forced;
 
     // The first eyes the headset gives, kept: there are none while the system
     // menu is up, and falling back would change what is in view every time.
-    static float fov = 0.0f;
-    if(fov == 0.0f) {
+    static bool haveEyes = false;
+    static float leftFov[4], rightFov[4];
+    if(!haveEyes) {
         gosVREyeView views[2];
         if(gos_GetVREyeViews(views) != 2)
-            return kNoEyesFOV;
-        const float heightOverWidth = Environment.screenWidth > 0 ?
-            (float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
-        fov = vr_eye::gameFieldOfView(views[0].fov, views[1].fov, heightOverWidth, kMaxFOV);
+            return 100.0f;      // MC2_VR_PATHS=1 has no eyes to ask
+        memcpy(leftFov, views[0].fov, sizeof(leftFov));
+        memcpy(rightFov, views[1].fov, sizeof(rightFov));
+        haveEyes = true;
+    }
+    // the window can change size during a mission
+    const float heightOverWidth = Environment.screenWidth > 0 ?
+        (float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
+    const float fov = vr_eye::gameFieldOfView(leftFov, rightFov, heightOverWidth);
+    static float logged = 0.0f;
+    if(fov != logged) {
         const float toDegrees = 180.0f / 3.14159265f;
         printf("[VR] eyes: left %.1f %.1f %.1f %.1f, right %.1f %.1f %.1f %.1f degrees; game camera %.1f degrees\n",
-                views[0].fov[0] * toDegrees, views[0].fov[1] * toDegrees, views[0].fov[2] * toDegrees, views[0].fov[3] * toDegrees,
-                views[1].fov[0] * toDegrees, views[1].fov[1] * toDegrees, views[1].fov[2] * toDegrees, views[1].fov[3] * toDegrees,
+                leftFov[0] * toDegrees, leftFov[1] * toDegrees, leftFov[2] * toDegrees, leftFov[3] * toDegrees,
+                rightFov[0] * toDegrees, rightFov[1] * toDegrees, rightFov[2] * toDegrees, rightFov[3] * toDegrees,
                 fov);
+        logged = fov;
     }
     return fov;
 }

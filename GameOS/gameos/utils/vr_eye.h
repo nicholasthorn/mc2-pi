@@ -48,13 +48,23 @@ void viewDirection(const Basis& eye, float direction[3]);
 void clipEdges(const float fov[4], float near, float& leftClip, float& rightClip,
                float& topClip, float& bottomClip);
 
+// The range of the game camera's field of view in VR, in degrees. The view
+// cone's test breaks down above 127: cos(fov * 0.7071) goes negative and lets
+// through what is behind the camera.
+const float kMinGameFov = 20.0f;
+const float kMaxGameFov = 120.0f;
+
 // The field of view, in degrees, that the game camera needs to cover what the
 // two eyes see (fov as in clipEdges). Camera::camera_fov is horizontal and
 // symmetric, and its window is usually wider than the eyes are, so a tall view
 // decides through heightOverWidth (0 when there is no window yet: the eyes'
-// width alone). In [20, maxDegrees], and 20 for a field of view that is no use.
-float gameFieldOfView(const float leftFov[4], const float rightFov[4], float heightOverWidth,
-                      float maxDegrees);
+// width alone). In the range above, and its minimum for a field of view that
+// is no use.
+float gameFieldOfView(const float leftFov[4], const float rightFov[4], float heightOverWidth);
+
+// A field of view given as text (MC2_XR_FOV): its degrees when in the range
+// above, 0 for "0" (keep the game's own), -1 for anything else.
+float parseGameFov(const char* text);
 
 }
 

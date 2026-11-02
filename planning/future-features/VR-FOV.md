@@ -74,20 +74,19 @@ a quarter more triangles (`VR-TABLETOP.md`, Phase 0 results).
 ### 1. The number: a pure function, test first
 
 `vr_eye::gameFieldOfView(const float leftFov[4], const float rightFov[4],
-float heightOverWidth, float maxDegrees)` in `GameOS/gameos/utils/vr_eye.{h,cpp}`
+float heightOverWidth)` in `GameOS/gameos/utils/vr_eye.{h,cpp}`
 (GL-free, already unit tested), returning the horizontal FOV in degrees for
 the game camera:
 
-- horizontal span: from the left eye's `angleLeft` to the right eye's
-  `angleRight` (Quest eyes are parallel, so the union is just that; the
-  inputs are OpenXR's `XrFovf` order: left, right, up, down, radians, left
-  and down negative, as `gosVREyeView::fov`);
-- vertical span: `max(angleUp) - min(angleDown)`; the game camera must cover
-  it too, so convert: `h_v = 2 atan(tan(v / 2) / heightOverWidth)`;
-- result: `max(h, h_v)`, clamped to `[20, maxDegrees]`.
+- half width: the largest of either eye's left and right angles, because the
+  game camera is symmetric (inputs in OpenXR's `XrFovf` order: left, right, up,
+  down, radians, left and down negative, as `gosVREyeView::fov`);
+- half height: the same over the up and down angles; the game camera must cover
+  it too, so convert: `atan(tan(half height) / heightOverWidth)`;
+- result: twice the larger of the two, clamped to `[kMinGameFov, kMaxGameFov]`,
+  20 and 120.
 
-Expect roughly 105 to 115 on a Quest 2 (per eye about 90 by 95, the vertical
-decides). Tests in `tests/unit/test_vr_eye.cpp`: symmetric eyes give the
+A Quest 2 gives 115.6 (eyes -49 to 49 by 48 to -50; the vertical decides). Tests in `tests/unit/test_vr_eye.cpp`: symmetric eyes give the
 union; a tall FOV drives the answer through the aspect; the clamp; and a
 degenerate (zero) FOV gives the minimum, not NaN.
 
@@ -105,26 +104,26 @@ constants follow at the next `calculateProjectionConstants`, which
 `float gos_GetVRFieldOfView()` in `gameos.hpp` / `gameos_graphics.cpp`,
 backed by `gos_xr`:
 
-- `MC2_XR_FOV=<degrees>` (environment, like `MC2_XR_HUD`) overrides,
-  validated 20 to 120; print a line and ignore it when outside;
-- otherwise, while `gos_IsVR()`: `gameFieldOfView` of the eyes located this
-  frame (`gos_xr::eyeViews`, valid after `beginFrame`'s `xrLocateViews`,
-  which `gameosmain.cpp` runs before the game update, so the value is ready
-  in `Mission::update`), **latched**: when the views are not valid this frame
-  (session not focused, system menu, Guardian) return the last value, never
-  40; before any view was located, 100;
+- `MC2_XR_FOV=<degrees>` (environment, like `MC2_XR_HUD`) overrides: 20 to 120,
+  or 0 to keep the game's own (`vr_eye::parseGameFov`); anything else prints a
+  line and is ignored;
+- otherwise, while `gos_IsVR()`: `gameFieldOfView` of the **first** eyes located
+  (`gos_xr::eyeViews`), whose angles are kept, so the session losing focus
+  (system menu, Guardian) changes nothing, never back to 40; the aspect is the
+  window's now, as it can change during a mission. Before any eyes were located,
+  100;
 - not in VR: 0 (off). `MC2_VR_PATHS=1` on a desktop makes `gos_IsVR()` true
   with no eye views, so it gets the 100 default or `MC2_XR_FOV`: that is the
   desktop test.
 
-Log once, with the first located views: `[XR] eye fov L x R by U x D degrees,
-game camera N degrees`.
+Logged when the value changes: `[VR] eyes: left ..., right ... degrees; game
+camera N degrees`.
 
 ### 4. Apply it every game step
 
 In `Mission::update`, in the `-benchfov` block before `eye->update()`:
-`float forced = gos_GetBenchFOV() > 0 ? gos_GetBenchFOV() :
-gos_GetVRFieldOfView(); if (forced > 0) eye->setFixedFieldOfView(forced);`.
+`forcedFOV = gos_GetBenchFOV() > 0 ? gos_GetBenchFOV() : gos_GetVRFieldOfView();
+if (forcedFOV > 0) eye->setFixedFieldOfView(forcedFOV);`.
 Every step, because `Camera::init` resets to 40 at each mission start and
 ABL cinematics set their own FOV. `-benchfov` keeps priority so bench runs
 stay comparable.
@@ -134,9 +133,9 @@ pointer: they widen with the projection. The to-do's worry, "widen the
 picking guard with it", is satisfied by construction; check it, do not
 re-implement it.
 
-### 5. Optional, same branch
+### 5. Left out
 
-Add `|| eye->drawsAll()` to the two arm cone tests in `mech3d.cpp` so a
+Nothing shows this gap yet. If something does: add `|| eye->drawsAll()` to the two arm cone tests in `mech3d.cpp` so a
 blown-off arm is drawn wherever the head looks even if the clamp ever cuts
 the cone short; it matches what #79 did to the body test. Leave `artlry.cpp`
 and `clouds.cpp` alone unless the headset shows a gap.
@@ -241,7 +240,7 @@ line; `android/README.md` or the VR plan's controls section: `MC2_XR_FOV`.
     and unit picking tolerate it (boxes and tiles are many pixels), but
     check that a small distant vehicle can still be clicked.
 14. **Pitch and the sky.** The game camera is pitched down
-    (`projectionAngle`); with a 92 degree vertical the top of its frustum is
+    (`projectionAngle`); with a vertical of about 100 degrees the top of its frustum is
     above the horizon, so `gameOnScreen` marks sky-side vertices and blocks
     as active too. Nothing is drawn by the game camera in VR, so this only
     adds a few active blocks; it is why the vertical should not exceed what
@@ -276,7 +275,6 @@ being no eyes to ask):
   every second after 9 seconds of startup, under 1% stale frames, GPU 71% on
   average, CPU and GPU 14.3 ms against a 13.9 ms budget. No 40-degree run to
   compare with, and no battle: see the mc2_19 bench below.
-- Step 5 (the arm cone tests) left out: nothing shows the gap yet.
 
 - Quest 2, mc2_19 bench, 3600 frames, build 235feba7, three runs at
   `MC2_XR_FOV=0` and two at the default (115.6), alternating: 69.6 to 70.0 fps
