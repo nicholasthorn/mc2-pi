@@ -198,6 +198,41 @@ float yawOf(const float orientation[4])
     return std::atan2(-f[0], -f[2]);
 }
 
+Pose levelPose(const Pose& head)
+{
+    const float yaw = yawOf(head.orientation);
+    Pose pose;
+    for(int i = 0; i < 3; ++i)
+        pose.position[i] = head.position[i];
+    pose.orientation[0] = 0.0f;
+    pose.orientation[1] = std::sin(0.5f * yaw);
+    pose.orientation[2] = 0.0f;
+    pose.orientation[3] = std::cos(0.5f * yaw);
+    return pose;
+}
+
+bool headSettled(HeadSettle& settle, const Pose& head, double seconds, double hold)
+{
+    const float maxTurn = 2.0f * 3.14159265f / 180.0f;
+    const float maxMove = 0.05f;
+    const float yaw = yawOf(head.orientation);
+    float turn = std::fabs(yaw - settle.yaw);
+    if(turn > 3.14159265f)      // either side of straight behind
+        turn = 2.0f * 3.14159265f - turn;
+    const float dx = head.position[0] - settle.position[0];
+    const float dy = head.position[1] - settle.position[1];
+    const float dz = head.position[2] - settle.position[2];
+    if(!settle.started || turn > maxTurn || dx * dx + dy * dy + dz * dz > maxMove * maxMove) {
+        settle.started = true;
+        settle.yaw = yaw;
+        for(int i = 0; i < 3; ++i)
+            settle.position[i] = head.position[i];
+        settle.since = seconds;
+        return false;
+    }
+    return seconds - settle.since >= hold;
+}
+
 uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint32_t previous)
 {
     uint32_t actions = 0;

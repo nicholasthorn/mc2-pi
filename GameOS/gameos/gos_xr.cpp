@@ -4,8 +4,10 @@
 // surface): the whole frame, interface included. In VR the camera also
 // draws each eye into its own swapchain image (bindEye) during that frame.
 // present() copies the window's frame into the quad's swapchain and submits
-// the eyes as a projection layer with the quad on top, in LOCAL space
-// (origin where the head was when the session started).
+// the eyes as a projection layer with the quad on top, in a space made from
+// LOCAL with its origin where the head was when the game started, facing the
+// way it faced, or where the system last recentred (alignToHead). LOCAL alone
+// stays wherever the headset was last recentred, which can be any direction.
 //
 // Controllers (pollInput, every frame): the pointing hand's ray becomes the
 // mouse where it meets the quad, the sticks and buttons become keys (see
@@ -112,6 +114,16 @@ struct State {
     // this frame
     bool frameBegun = false;
     XrFrameState frame = {};
+    // the space everything is in (space) is LOCAL (localSpace) moved to the
+    // head, once its pose is known and not before alignAfter (alignToHead)
+    XrSpace localSpace = XR_NULL_HANDLE;
+    bool alignPending = true;
+    XrTime alignAfter = 0;
+    bool focused = false;
+    bool presenceKnown = false; // the runtime reports the headset going on
+    bool userPresent = true;    // false only when the runtime says so
+    bool alignWhenSettled = false;  // just put on: see alignToHead
+    vr_controls::HeadSettle settle;
     XrView views[2] = {};
     bool viewsValid = false;
     // debugging (MC2_XR_POSE, MC2_XR_SHOT)
@@ -208,10 +220,22 @@ bool initLoader(JavaVM* vm, jobject activity)
 
 bool createInstance(JavaVM* vm, jobject activity)
 {
-    const char* extensions[] = {
+    std::vector<const char*> extensions = {
         XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME,
         XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME,
     };
+    // optional: when the headset goes on a head (see alignToHead)
+    uint32_t available = 0;
+    if(XR_SUCCEEDED(xrEnumerateInstanceExtensionProperties(nullptr, 0, &available, nullptr))) {
+        std::vector<XrExtensionProperties> properties(available, xrStruct<XrExtensionProperties>(XR_TYPE_EXTENSION_PROPERTIES));
+        if(XR_SUCCEEDED(xrEnumerateInstanceExtensionProperties(nullptr, available, &available, properties.data()))) {
+            for(const XrExtensionProperties& property : properties) {
+                if(strcmp(property.extensionName, XR_EXT_USER_PRESENCE_EXTENSION_NAME) == 0)
+                    extensions.push_back(XR_EXT_USER_PRESENCE_EXTENSION_NAME);
+            }
+        }
+    }
+    printf("[XR] user presence: %s\n", extensions.size() > 2 ? "available" : "not available");
     XrInstanceCreateInfoAndroidKHR android = xrStruct<XrInstanceCreateInfoAndroidKHR>(XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR);
     android.applicationVM = vm;
     android.applicationActivity = activity;
@@ -222,8 +246,8 @@ bool createInstance(JavaVM* vm, jobject activity)
     info.applicationInfo.applicationVersion = 1;
     strncpy(info.applicationInfo.engineName, "MC2 GameOS", XR_MAX_ENGINE_NAME_SIZE - 1);
     info.applicationInfo.apiVersion = XR_API_VERSION_1_0;
-    info.enabledExtensionCount = sizeof(extensions) / sizeof(extensions[0]);
-    info.enabledExtensionNames = extensions;
+    info.enabledExtensionCount = (uint32_t)extensions.size();
+    info.enabledExtensionNames = extensions.data();
     if(!ok(xrCreateInstance(&info, &g.instance), "xrCreateInstance"))
         return false;
 
@@ -274,6 +298,8 @@ bool createSession()
     spaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
     spaceInfo.poseInReferenceSpace.orientation.w = 1.0f;
     if(!ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.space), "xrCreateReferenceSpace"))
+        return false;
+    if(!ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.localSpace), "xrCreateReferenceSpace"))
         return false;
     spaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
     return ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.viewSpace), "xrCreateReferenceSpace(VIEW)");
@@ -405,13 +431,13 @@ void stickInput(XrPath hand, float stick[2])
     stick[1] = state.currentState.y;
 }
 
-// A space's pose in the LOCAL space at the frame's display time.
-bool locate(XrSpace space, vr_controls::Pose& pose)
+// A space's pose in another at the frame's display time.
+bool locateIn(XrSpace space, XrSpace base, vr_controls::Pose& pose)
 {
     if(space == XR_NULL_HANDLE || g.frame.predictedDisplayTime == 0)
         return false;
     XrSpaceLocation location = xrStruct<XrSpaceLocation>(XR_TYPE_SPACE_LOCATION);
-    if(XR_FAILED(xrLocateSpace(space, g.space, g.frame.predictedDisplayTime, &location)))
+    if(XR_FAILED(xrLocateSpace(space, base, g.frame.predictedDisplayTime, &location)))
         return false;
     const XrSpaceLocationFlags valid = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
     if((location.locationFlags & valid) != valid)
@@ -426,9 +452,55 @@ bool locate(XrSpace space, vr_controls::Pose& pose)
     return true;
 }
 
+bool locate(XrSpace space, vr_controls::Pose& pose)
+{
+    return locateIn(space, g.space, pose);
+}
+
 void placeHud()
 {
     g.hud = vr_controls::hudPose(g.hudOrigin, g.hudYaw, g.hudDistance, g.hudDown);
+}
+
+// Makes where the head is now, upright, the origin of everything: the eyes
+// (so straight ahead is the game's view, and the fly-in plays in front of the
+// player) and the quad. On the first frame the head is tracked, when the
+// session first gets focus, each time the headset is put on, and when the
+// system recentres. Not while the runtime says nobody is wearing it: started
+// over adb, the session has focus on the desk, and a panel placed from there
+// is below and far from the head that then picks the headset up. And after
+// it is put on, not until the head holds still: the runtime says so as the
+// headset nears the face, still pointing anywhere.
+void alignToHead()
+{
+    if(!g.alignPending || !g.userPresent || g.frame.predictedDisplayTime < g.alignAfter)
+        return;
+    vr_controls::Pose head;
+    if(!locateIn(g.viewSpace, g.localSpace, head))
+        return;     // not tracked yet: next frame
+    if(g.alignWhenSettled && !vr_controls::headSettled(g.settle, head, (double)g.frame.predictedDisplayTime * 1e-9))
+        return;
+
+    const vr_controls::Pose level = vr_controls::levelPose(head);
+    XrReferenceSpaceCreateInfo info = xrStruct<XrReferenceSpaceCreateInfo>(XR_TYPE_REFERENCE_SPACE_CREATE_INFO);
+    info.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
+    info.poseInReferenceSpace.position = {level.position[0], level.position[1], level.position[2]};
+    info.poseInReferenceSpace.orientation = {level.orientation[0], level.orientation[1], level.orientation[2], level.orientation[3]};
+    XrSpace aligned = XR_NULL_HANDLE;
+    if(!ok(xrCreateReferenceSpace(g.session, &info, &aligned), "xrCreateReferenceSpace(aligned)"))
+        return;
+    xrDestroySpace(g.space);
+    g.space = aligned;
+    g.alignPending = false;
+    g.alignWhenSettled = false;
+
+    // in front of the head again, keeping the height and size the player set
+    g.hudOrigin[0] = g.hudOrigin[1] = g.hudOrigin[2] = 0.0f;
+    g.hudYaw = 0.0f;
+    placeHud();
+    printf("[XR] straight ahead is where the head faces: %.0f degrees from LOCAL, %.2f m away\n",
+            vr_controls::yawOf(head.orientation) * 180.0f / 3.14159265f,
+            std::sqrt(head.position[0] * head.position[0] + head.position[1] * head.position[1] + head.position[2] * head.position[2]));
 }
 
 // The quad in front of where the head is and faces, at the set distance and
@@ -657,12 +729,35 @@ void pollEvents()
                 XrSessionBeginInfo begin = xrStruct<XrSessionBeginInfo>(XR_TYPE_SESSION_BEGIN_INFO);
                 begin.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
                 g.running = ok(xrBeginSession(g.session, &begin), "xrBeginSession");
+            } else if(changed.state == XR_SESSION_STATE_FOCUSED && !g.focused) {
+                g.focused = true;
+                // where the runtime reports the headset going on, that says when
+                if(!g.presenceKnown)
+                    g.alignPending = true;
             } else if(changed.state == XR_SESSION_STATE_STOPPING) {
                 xrEndSession(g.session);
                 g.running = false;
             } else if(changed.state == XR_SESSION_STATE_EXITING || changed.state == XR_SESSION_STATE_LOSS_PENDING) {
                 g.exit = true;
             }
+        } else if(event.type == XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING) {
+            // the system's recentre (hold the Oculus button) moves LOCAL
+            const XrEventDataReferenceSpaceChangePending& change = *(XrEventDataReferenceSpaceChangePending*)&event;
+            if(change.referenceSpaceType == XR_REFERENCE_SPACE_TYPE_LOCAL) {
+                g.alignPending = true;
+                g.alignAfter = change.changeTime;
+                g.alignWhenSettled = false;     // the player asked, now
+            }
+        } else if(event.type == XR_TYPE_EVENT_DATA_USER_PRESENCE_CHANGED_EXT) {
+            const XrEventDataUserPresenceChangedEXT& presence = *(XrEventDataUserPresenceChangedEXT*)&event;
+            g.presenceKnown = true;
+            g.userPresent = presence.isUserPresent == XR_TRUE;
+            if(g.userPresent) {
+                g.alignPending = true;
+                g.alignWhenSettled = true;
+                g.settle = vr_controls::HeadSettle();
+            }
+            printf("[XR] headset %s\n", g.userPresent ? "put on" : "taken off");
         } else if(event.type == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
             g.exit = true;
         }
@@ -998,6 +1093,7 @@ void beginFrame()
     if(!ok(xrBeginFrame(g.session, &beginInfo), "xrBeginFrame"))
         return;
     g.frameBegun = true;
+    alignToHead();
 
     if(!g.useEyes || !g.frame.shouldRender)
         return;
@@ -1047,6 +1143,12 @@ int eyeViews(gosVREyeView views[2])
     return 2;
 }
 
+void eyeImageSize(int eye, int& width, int& height)
+{
+    width = g.eyes[eye].width;
+    height = g.eyes[eye].height;
+}
+
 bool bindEye(int eye)
 {
     if(g.session == XR_NULL_HANDLE)
@@ -1074,6 +1176,18 @@ bool present(int width, int height)
 {
     if(g.session == XR_NULL_HANDLE)
         return false;
+    // The game draws the size the window had when it was made. The surface can
+    // grow later (seen when the headset wakes), and copying all of it would
+    // shrink the interface into the quad's lower left.
+    static int loggedWidth = 0, loggedHeight = 0;
+    if(width != loggedWidth || height != loggedHeight) {
+        printf("[XR] window surface %dx%d, the game draws %dx%d\n", width, height,
+                Environment.drawableWidth, Environment.drawableHeight);
+        loggedWidth = width;
+        loggedHeight = height;
+    }
+    width = Environment.drawableWidth;
+    height = Environment.drawableHeight;
     if(!g.frameBegun) {
         // not visible yet: no frame paces the loop
         SDL_Delay(10);
@@ -1354,6 +1468,8 @@ void shutdown()
         xrDestroySpace(g.viewSpace);
     if(g.space != XR_NULL_HANDLE)
         xrDestroySpace(g.space);
+    if(g.localSpace != XR_NULL_HANDLE)
+        xrDestroySpace(g.localSpace);
     if(g.session != XR_NULL_HANDLE)
         xrDestroySession(g.session);
     if(g.instance != XR_NULL_HANDLE)
