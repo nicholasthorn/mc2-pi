@@ -5,6 +5,7 @@
 #include <cstring>
 #include <vector>
 #include "utils/graphics.h"
+#include "utils/alpha_mips.h"
 #include "utils/pixel_repack.h"
 #include "utils/shader_builder.h"
 #include "utils/gl_utils.h"
@@ -168,13 +169,36 @@ static bool canMipmap(TexFormat fmt)
     return fmt == TF_R8 || fmt == TF_RGB8 || fmt == TF_RGBA8;
 }
 
+// the mips of a bound texture from its level 0. RGBA data with transparent
+// texels goes through buildAlphaMips, as glGenerateMipmap bleeds their colour
+// in; rgba8 says that data is RGBA8 (NULL or other data: the driver's mips).
+static void generateMips(const Texture& t, const void* data, bool rgba8)
+{
+    const uint8_t* rgba = (const uint8_t*)data;
+    if(!rgba || !rgba8 || !hasTransparency(rgba, (size_t)t.w * t.h)) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+        return;
+    }
+    static std::vector<uint8_t> mips;
+    buildAlphaMips(rgba, t.w, t.h, mips);
+    const uint8_t* level = mips.data();
+    int w = t.w, h = t.h;
+    for(int l = 1; w > 1 || h > 1; ++l) {
+        w = nextMipSize(w);
+        h = nextMipSize(h);
+        glTexImage2D(GL_TEXTURE_2D, l, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, level);
+        level += (size_t)w * h * 4;
+    }
+    CHECK_GL_ERROR
+}
+
 // a texture just created from data (bound): mipmaps if they are on and its
 // format can. Dynamic textures, rewritten every frame, get none: their mips
 // would be regenerated on each upload.
-static void addMipmaps(Texture& t)
+static void addMipmaps(Texture& t, const void* data)
 {
     if(s_generate_mipmaps && canMipmap(t.fmt_)) {
-        glGenerateMipmap(GL_TEXTURE_2D);
+        generateMips(t, data, t.fmt_ == TF_RGBA8);
         t.mipmapped = true;
     }
 }
@@ -211,7 +235,7 @@ Texture create2DTexture(int w, int h, TexFormat fmt, const uint8_t* texdata)
 	t.fmt_ = fmt;
     t.type_ = TT_2D;
     t.format = (GLenum)-1;
-    addMipmaps(t);
+    addMipmaps(t, texdata);
 
 	return t;
 }
@@ -316,7 +340,7 @@ void updateTexture(const Texture& t, void* pdata, TexFormat pdata_format/*= TF_C
             glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 #endif
 		if(t.mipmapped)
-		    glGenerateMipmap(GL_TEXTURE_2D);
+		    generateMips(t, pdata, t.fmt_ == TF_RGBA8 && (pdata_format == TF_COUNT || pdata_format == TF_RGBA8));
     } else {
         // deprecated
 	    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t.w, t.h, 0, t.format, GL_UNSIGNED_BYTE, pdata);
