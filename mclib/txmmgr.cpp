@@ -1060,6 +1060,10 @@ void MC_TextureManager::renderLists (void)
 				gos_SetRenderState(gos_State_TextureAddress, gos_TextureClamp);
 			else
 				gos_SetRenderState(gos_State_TextureAddress, gos_TextureWrap);
+			// the alpha test picks the shader variant that discards (gosRenderer
+			// getFlagsFromStates); without this the GPU path drew alpha textures'
+			// transparent texels as their underlying black (trees as black boards)
+			gos_SetRenderState(gos_State_AlphaTest, (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST) ? 1 : 0);
 
 			uint32_t totalShapes = masterHardwareVertexNodes[i].numShapes;
 			// in case less shapes were addded in Render() that it was "promised" in Update(), generally etter to investigate and remove all such cases
@@ -1111,6 +1115,7 @@ void MC_TextureManager::renderLists (void)
 
 	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
 	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
+	gos_SetRenderState(gos_State_AlphaTest, 0);		// set per node above
 
 	// restore viewport
 	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);

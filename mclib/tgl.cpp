@@ -532,6 +532,51 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 		listOfTextures = NULL;
 	}
 
+	CreateGPUBuffers();
+
+
+	//Other Data
+	nodeCenter.x = binFile.readFloat();
+	nodeCenter.y = binFile.readFloat();
+	nodeCenter.z = binFile.readFloat();
+	
+	relativeNodeCenter.x = binFile.readFloat();
+	relativeNodeCenter.y = binFile.readFloat();
+	relativeNodeCenter.z = binFile.readFloat();
+	
+	alphaTestOn = false;
+	filterOn = true;
+
+	binFile.read((MemoryPtr)nodeId,TG_NODE_ID);
+	binFile.read((MemoryPtr)parentId,TG_NODE_ID);
+}
+
+//-------------------------------------------------------------------------------
+// The texture manager list a shape's texture t is drawn from on the shader
+// path. MultiTransformShape reserves the draw and Render fills it, under a
+// node keyed by texture and flags, so both must use this: a draw whose flags
+// differ from the reservation is dropped.
+DWORD TG_TypeShape::GPUTextureFlags (DWORD t, DWORD addFlags)
+{
+	DWORD flags = MC2_DRAWSOLID | addFlags;
+	// alpha-tested if the shape asks or, in VR (where alpha shapes take this
+	// path), if the texture has alpha
+	if (alphaTestOn || (gos_IsVR() && listOfTextures[t].textureAlpha))
+		flags |= MC2_ALPHATEST;
+	return flags;
+}
+
+//-------------------------------------------------------------------------------
+void TG_TypeShape::CreateGPUBuffers (void)
+{
+	if (ib_ || vb_)		//made already
+		return;
+
+	//the data tools (aseconv) parse shapes with no renderer and no GL
+	//context: nothing draws there, so no buffers
+	if (!gos_GetRenderer())
+		return;
+
 	if (numTypeVertices)
 	{
 		// no real index buffer for now...
@@ -571,25 +616,35 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 		ib_ = gos_CreateBuffer(gosBUFFER_TYPE::INDEX, gosBUFFER_USAGE::STATIC_DRAW, sizeof(uint16_t), num_indices, ib);
 		vb_ = gos_CreateBuffer(gosBUFFER_TYPE::VERTEX, gosBUFFER_USAGE::STATIC_DRAW, sizeof(TG_HWTypeVertex), num_vertices, vb);
 
+		// one index buffer per texture: a shape drawn with only its first
+		// triangle's texture sampled the wrong image elsewhere (buildings in
+		// mc2_01 vanished under the alpha test in VR)
+		if (numTextures)
+		{
+			numTextureIbs = numTextures;
+			textureIb_ = new HGOSBUFFER[numTextureIbs];
+			uint16_t* textureIndices = new uint16_t[num_indices];
+			for (DWORD t = 0; t < numTextureIbs; t++)
+			{
+				uint32_t count = 0;
+				for (uint32_t i = 0; i < numTypeTriangles; i++)
+				{
+					DWORD handle = listOfTypeTriangles[i].localTextureHandle;
+					if (handle >= numTextureIbs)		// mod data: the first texture, as before
+						handle = 0;
+					if (handle != t)
+						continue;
+					for (uint32_t j = 0; j < 3; ++j)
+						textureIndices[count++] = 3 * i + j;
+				}
+				textureIb_[t] = count ? gos_CreateBuffer(gosBUFFER_TYPE::INDEX, gosBUFFER_USAGE::STATIC_DRAW, sizeof(uint16_t), count, textureIndices) : 0;
+			}
+			delete[] textureIndices;
+		}
+
 		delete[] ib;
 		delete[] vb;
 	}
-
-
-	//Other Data
-	nodeCenter.x = binFile.readFloat();
-	nodeCenter.y = binFile.readFloat();
-	nodeCenter.z = binFile.readFloat();
-	
-	relativeNodeCenter.x = binFile.readFloat();
-	relativeNodeCenter.y = binFile.readFloat();
-	relativeNodeCenter.z = binFile.readFloat();
-	
-	alphaTestOn = false;
-	filterOn = true;
-
-	binFile.read((MemoryPtr)nodeId,TG_NODE_ID);
-	binFile.read((MemoryPtr)parentId,TG_NODE_ID);
 }
 
 //-------------------------------------------------------------------------------
@@ -659,6 +714,15 @@ void TG_TypeShape::destroy (void)
 		gos_DestroyBuffer(ib_);
 		ib_ = 0;
 	}
+
+	for (DWORD t = 0; t < numTextureIbs; t++)
+	{
+		if (textureIb_[t])
+			gos_DestroyBuffer(textureIb_[t]);
+	}
+	delete[] textureIb_;
+	textureIb_ = NULL;
+	numTextureIbs = 0;
 
 	if (vdecl_) {
 		gos_DestroyVertexDeclaration(vdecl_);
@@ -2509,17 +2573,17 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-		if(theShape->alphaTestOn)
-		{
-			addFlags |= MC2_ALPHATEST;
-		}
-
 		if (theShape->ib_ && theShape->vb_) {
 
             GatherLightsParameters(&lightData_);
 
-			// FIXME: this (listOfTypeTriangles[0]) is not correct if model has more than 1 texture! 
-			mcTextureManager->addRenderShape(theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].mcTextureNodeIndex, MC2_DRAWSOLID | addFlags);
+			// one draw per texture the shape uses (see CreateGPUBuffers),
+			// with the flags Render will use (GPUTextureFlags)
+			for (DWORD t = 0; t < theShape->numTextureIbs; t++)
+			{
+				if (theShape->textureIb_[t])
+					mcTextureManager->addRenderShape(theShape->listOfTextures[t].mcTextureNodeIndex, theShape->GPUTextureFlags(t, addFlags));
+			}
 		}
 	}
 
@@ -2740,17 +2804,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-        if(theShape->alphaTestOn ||
-			(gos_IsVR() && theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha))
-		{
-			addFlags |= MC2_ALPHATEST;
-		}
-
 		if (theShape->ib_ && theShape->vb_) {
-
-			// FIXME: this is not correct if model has more than 1 texture! 
-			// TODO: split on per texture batches basis
-			TG_TypeTriangle triType = theShape->listOfTypeTriangles[0];
 
 			Stuff::Matrix4D mvp;
 			if ((forceZ >= 0.0f) && (forceZ < 1.0f))
@@ -2768,7 +2822,6 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			}
 
 			TG_RenderShape rs;
-			rs.ib_ = theShape->ib_;
 			rs.vb_ = theShape->vb_;
 			rs.vdecl_ = theShape->vdecl_;
 			rs.mvp_ = mvp;
@@ -2780,10 +2833,17 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			rs.viewport_[3] = viewAddY;
             rs.light_data_buffer_index_ = mcTextureManager->addLightDataStructure(&lightData_);
 
-			mcTextureManager->addRenderShape(
-				theShape->listOfTextures[triType.localTextureHandle].mcTextureNodeIndex,
-				&rs,
-				MC2_DRAWSOLID | addFlags);
+			// each texture's triangles with that texture
+			for (DWORD t = 0; t < theShape->numTextureIbs; t++)
+			{
+				if (!theShape->textureIb_[t])
+					continue;
+				rs.ib_ = theShape->textureIb_[t];
+				mcTextureManager->addRenderShape(
+					theShape->listOfTextures[t].mcTextureNodeIndex,
+					&rs,
+					theShape->GPUTextureFlags(t, addFlags));
+			}
 		}
 	}
 

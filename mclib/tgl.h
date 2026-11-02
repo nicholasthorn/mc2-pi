@@ -515,6 +515,11 @@ class TG_TypeNode
  		virtual void LoadBinaryCopy (File &binFile);
 		virtual void SaveBinaryCopy (File &binFile);
 
+		//the GPU buffers the shader draw path uses (shapes only)
+		virtual void CreateGPUBuffers (void)
+		{
+		}
+
 };
 
 typedef TG_TypeNode* TG_TypeNodePtr;
@@ -557,6 +562,8 @@ class TG_TypeShape : public TG_TypeNode
 
 		HGOSBUFFER				vb_;
 		HGOSBUFFER				ib_;
+		HGOSBUFFER*				textureIb_;			// per texture: the indices of its triangles into vb_ (NULL: none), so the shader path draws each texture's triangles with that texture
+		DWORD					numTextureIbs;
 		HGOSVERTEXDECLARATION	vdecl_;
 
 	//-----------------
@@ -584,6 +591,8 @@ class TG_TypeShape : public TG_TypeNode
 			hotGreenRGB = 0x000081b6;
 
 			vb_ = ib_ = 0;
+			textureIb_ = NULL;
+			numTextureIbs = 0;
 			vdecl_ = 0;
 		}
 		
@@ -674,6 +683,14 @@ class TG_TypeShape : public TG_TypeNode
 		
  		virtual void LoadBinaryCopy (File &binFile);
 		virtual void SaveBinaryCopy (File &binFile);
+
+		//the vertex and index buffers the shader draw path (TG_Shape::Render)
+		//draws from, made from the final vertex positions: by LoadBinaryCopy,
+		//and by TG_TypeMultiShape after parsing an ASE file
+		virtual void CreateGPUBuffers (void);
+
+		//the texture manager flags texture t is drawn with on that path
+		DWORD GPUTextureFlags (DWORD t, DWORD addFlags);
 };
 
 typedef TG_TypeShape* TG_TypeShapePtr;
