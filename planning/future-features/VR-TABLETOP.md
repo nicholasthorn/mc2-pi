@@ -745,9 +745,14 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   changes. The panel was seen small and low after a launch on the desk; this
   fix has not been seen in the headset yet. The headset reports a display size
   override of 10992x1920 that nobody here set: unexplained.
-- **Open: hovering over buildings.** `vrPickWorld` tests the ground and movers
-  only, so a ray meeting a wall goes on to the ground behind it, and a name
-  shows only when that point is still inside the building's box on the screen.
+- **Pointing at buildings.** `vrPickWorld` tested the ground and movers only, so
+  a ray meeting a wall went on to the ground behind it, and a name showed only
+  when that point was still on the building on the game camera's screen (about
+  30% of them). Buildings now stop the ray (`Appearance::worldRayHit`, the
+  shape's own box in its own axes, `vr_controls::rayHitsBox`), and the pick aims
+  at the box's centre. Trees and rock clumps do not stop it, as the game's
+  picking skips them. A building the game camera does not see cannot be picked,
+  as for units (`Camera::seesForGame`).
 - **The HUD can be moved:** A puts the quad in front of where the head is
   and faces (keeping its distance and angle). Holding A, the left stick
   up raises it (down: lowers) and right makes it larger (left: smaller);

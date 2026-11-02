@@ -175,6 +175,15 @@ class Appearance
 		{
 			return FALSE;		//Never over a base appearance
 		}
+
+		//VR pointer: where a world ray (unit direction) first meets the object,
+		//and a point to aim the game's picking at. False for what has no solid
+		//shape to point at.
+		virtual bool worldRayHit (const Stuff::Vector3D& origin, const Stuff::Vector3D& direction,
+			float& distance, Stuff::Vector3D& aimAt)
+		{
+			return false;
+		}
 				
 		virtual void drawSelectBox (DWORD color);
 

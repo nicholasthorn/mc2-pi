@@ -386,6 +386,38 @@ TEST_CASE("world pick: spheres are hit on their near side, missed beside, ignore
 	CHECK_FALSE(vr_controls::rayHitsSphere(origin, dir, behind, 20.0f, distance));
 }
 
+TEST_CASE("rayHitsBox: where a ray first meets a box") {
+	const float boxMin[3] = {90.0f, -10.0f, -20.0f};
+	const float boxMax[3] = {110.0f, 10.0f, 20.0f};
+	const float origin[3] = {0.0f, 0.0f, 0.0f};
+	const float along[3] = {1.0f, 0.0f, 0.0f};
+	float distance = 0.0f;
+	REQUIRE(vr_controls::rayHitsBox(origin, along, boxMin, boxMax, distance));
+	CHECK(distance == doctest::Approx(90.0f));
+
+	// beside it, and pointing away from it
+	const float beside[3] = {0.0f, 11.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(beside, along, boxMin, boxMax, distance));
+	const float away[3] = {-1.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(origin, away, boxMin, boxMax, distance));
+
+	// at an angle: enters through the top
+	const float above[3] = {100.0f, 50.0f, 0.0f};
+	const float down[3] = {0.0f, -1.0f, 0.0f};
+	REQUIRE(vr_controls::rayHitsBox(above, down, boxMin, boxMax, distance));
+	CHECK(distance == doctest::Approx(40.0f));
+
+	// a slanted ray that passes over the corner misses
+	const float s = 0.7071068f;
+	const float slanted[3] = {s, s, 0.0f};
+	const float low[3] = {0.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(low, slanted, boxMin, boxMax, distance));
+
+	// from inside: not a hit, as rayHitsSphere
+	const float inside[3] = {100.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(inside, along, boxMin, boxMax, distance));
+}
+
 TEST_CASE("sticks: small deflections do nothing, full ones give their direction") {
 	const float centre[2] = {0.0f, 0.0f};
 	const float nudge[2] = {0.2f, -0.2f};

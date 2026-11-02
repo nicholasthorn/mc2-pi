@@ -189,6 +189,27 @@ bool rayHitsSphere(const float origin[3], const float dir[3], const float centre
     return true;
 }
 
+bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3], const float boxMax[3],
+                float& distance)
+{
+    float enter = -1.0e30f, leave = 1.0e30f;
+    for(int i = 0; i < 3; ++i) {
+        if(std::fabs(dir[i]) < 1.0e-7f) {       // parallel to this pair of faces
+            if(origin[i] < boxMin[i] || origin[i] > boxMax[i])
+                return false;
+            continue;
+        }
+        const float a = (boxMin[i] - origin[i]) / dir[i];
+        const float b = (boxMax[i] - origin[i]) / dir[i];
+        enter = std::max(enter, std::min(a, b));
+        leave = std::min(leave, std::max(a, b));
+    }
+    if(enter > leave || enter < 0.0f)
+        return false;       // misses, behind, or the origin is inside it
+    distance = enter;
+    return true;
+}
+
 float yawOf(const float orientation[4])
 {
     const float forward[3] = {0.0f, 0.0f, -1.0f};
