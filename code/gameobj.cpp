@@ -1851,7 +1851,9 @@ extern __int64 MCTimeLOSUpdate;
 
 inline bool GameObject::lineOfSight (GameObjectPtr target, float startExtRad, bool checkVisibleBits) 
 {
-	__int64 timeStart = GetCycles(); 
+#ifdef LAB_ONLY		// only the LAB_ONLY timers read it; a clock read per call otherwise
+	__int64 timeStart = GetCycles();
+#endif
 
 	//If we call this without a target, we have no LOS!!
 	// Keeps it from crashing, too.

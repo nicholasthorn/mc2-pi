@@ -13,7 +13,7 @@ namespace frame_stats {
 
 // Named stages the game times inside a frame (gos_BenchStageStart/Stop):
 // extra CSV columns and [BENCH] keys "<name>_ms", in first-use order.
-const size_t kMaxStages = 8;
+const size_t kMaxStages = 16;
 
 struct FrameSample {
 	double total_ms = 0.0;   // whole main-loop iteration
