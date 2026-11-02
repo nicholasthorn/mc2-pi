@@ -63,6 +63,7 @@ jobs:
         run: >
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_GLES=ON
           -DCMAKE_C_FLAGS=-mtune=cortex-a72 -DCMAKE_CXX_FLAGS=-mtune=cortex-a72
+          "-DMC2_VERSION=$VERSION"
       - name: Build
         run: cmake --build build
       - name: Unit tests
@@ -90,7 +91,7 @@ jobs:
           sudo apt-get install -y -qq cmake ninja-build pkg-config \
             libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo "-DMC2_VERSION=$VERSION"
       - name: Build
         run: cmake --build build
       - name: Unit tests
@@ -133,6 +134,7 @@ jobs:
           cmake -S . -B build64 -G "Visual Studio 17 2022" -A x64
           -DCMAKE_PREFIX_PATH="$(cygpath -m "$GITHUB_WORKSPACE")/3rdparty"
           -DCMAKE_LIBRARY_ARCHITECTURE=x64
+          "-DMC2_VERSION=$VERSION"
       - name: Build
         run: cmake --build build64 --config RelWithDebInfo --target mc2 mc2res_64 mc2_tests -- -m
       - name: Unit tests

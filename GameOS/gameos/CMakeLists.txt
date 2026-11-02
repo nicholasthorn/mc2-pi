@@ -41,10 +41,10 @@ if(MC2_OPENXR)
     set_source_files_properties(gos_xr.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 endif()
 
-# frame_stats and tga_writer are only used by the main loop (-bench). The link
+# frame_stats, tga_writer and log_file are only used by the main loop. The link
 # line lists gameos before gameos_main, so in gameos they would never be
 # pulled in.
-set(MAIN_SRC gameosmain.cpp utils/frame_stats.cpp utils/tga_writer.cpp)
+set(MAIN_SRC gameosmain.cpp gos_logfile.cpp utils/log_file.cpp utils/frame_stats.cpp utils/tga_writer.cpp)
 
 #find_package(SDL2 REQUIRED PATHS "/opt" NO_DEFAULT_PATH)
 #include_directories("${SDL2_PREFIX}/include")
@@ -63,5 +63,19 @@ add_library(gameos_main ${MAIN_SRC})
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
     utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/args_file.cpp
+    utils/log_file.cpp gos_logfile.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+
+# The version the log file names. release.yml passes its tag; otherwise the
+# checkout's, as of the last configure.
+set(MC2_VERSION "" CACHE STRING "Version named in mc2.log (default: git describe)")
+set(_mc2_version "${MC2_VERSION}")
+if(NOT _mc2_version)
+    execute_process(COMMAND git describe --tags --always --dirty
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE _mc2_version OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+endif()
+if(_mc2_version)
+    set_property(SOURCE gos_logfile.cpp APPEND PROPERTY COMPILE_DEFINITIONS "MC2_VERSION=\"${_mc2_version}\"")
+endif()
 
