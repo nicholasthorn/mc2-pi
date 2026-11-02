@@ -240,7 +240,7 @@ void MC_TextureManager::start (void)
 	masterTextureNodes[0].lastUsed = -1;
 	masterTextureNodes[0].textureData = NULL;
 
-    lightDataStructuresCapacity = 128;
+    lightDataStructuresCapacity = MAX_HW_LIGHT_ENTRIES;
     lightDataStructuresCount = 0;
     lightData_ = new TG_HWLightsData[lightDataStructuresCapacity];
 	lightDataBuffer_ = gos_CreateBuffer(gosBUFFER_TYPE::UNIFORM, gosBUFFER_USAGE::STATIC_DRAW, sizeof(TG_HWLightsData) * lightDataStructuresCapacity, 1, NULL);
@@ -665,6 +665,33 @@ void MC_TextureManager::addRenderShape(DWORD nodeId, TG_RenderShape* render_shap
 
 			masterTextureNodes[nodeId].hardwareVertexData3->currentShape = shapes;
 		}
+		else if (masterTextureNodes[nodeId].hardwareVertexData4 &&
+			masterTextureNodes[nodeId].hardwareVertexData4->flags == flags)
+		{
+			TG_RenderShape * shapes = masterTextureNodes[nodeId].hardwareVertexData4->currentShape;
+
+#if defined(_DEBUG) || defined(_ARMOR)
+			TG_RenderShape * oldShapes = shapes;
+			TG_RenderShape * oldStart = (masterTextureNodes[nodeId].hardwareVertexData4->shapes + masterTextureNodes[nodeId].hardwareVertexData4->numShapes);
+#endif
+			gosASSERT(oldShapes < oldStart);
+
+			if (!shapes && !masterTextureNodes[nodeId].hardwareVertexData4->shapes)
+			{
+				masterTextureNodes[nodeId].hardwareVertexData4->currentShape =
+					shapes =
+					masterTextureNodes[nodeId].hardwareVertexData4->shapes =
+					rsManager->getBlock(masterTextureNodes[nodeId].hardwareVertexData4->numShapes);
+			}
+
+			if (shapes && (shapes < (masterTextureNodes[nodeId].hardwareVertexData4->shapes + masterTextureNodes[nodeId].hardwareVertexData4->numShapes)))
+			{
+				*shapes = *render_shape;
+				shapes++;
+			}
+
+			masterTextureNodes[nodeId].hardwareVertexData4->currentShape = shapes;
+		}
 		else	//If we got here, something is really wrong
 		{
 #ifdef _DEBUG
@@ -790,12 +817,34 @@ uint32_t MC_TextureManager::addLightDataStructure(TG_HWLightsData* light_data)
 
     // unique data passed, so add it
 
-    if(lightDataStructuresCount + 1 >= lightDataStructuresCapacity)
+    // the shader's block is full: the entry nearest in colour, as an index past
+    // the block would read anything
+    if(lightDataStructuresCount >= lightDataStructuresCapacity)
     {
-        TG_HWLightsData* new_lights_data = new TG_HWLightsData[lightDataStructuresCapacity + 128];
-        memcpy(new_lights_data, lightData_, sizeof(TG_HWLightsData)*lightDataStructuresCount);
-        delete[] lightData_;
-        lightData_ = new_lights_data;
+        static bool warned = false;
+        if(!warned)
+        {
+            warned = true;
+            printf("[LIGHTS] more than %u light entries: sharing the nearest\n", (unsigned)lightDataStructuresCapacity);
+        }
+        uint32_t nearest = 0;
+        float nearestDistance = -1.0f;
+        for(uint32_t i = 0; i < lightDataStructuresCount; ++i)
+        {
+            float distance = 0.0f;
+            for(int l = 0; l < MAX_HW_LIGHTS_IN_WORLD; ++l)
+                for(int c = 0; c < 3; ++c)
+                {
+                    const float d = lightData_[i].lightColor[l][c] - light_data->lightColor[l][c];
+                    distance += d * d;
+                }
+            if((nearestDistance < 0.0f) || (distance < nearestDistance))
+            {
+                nearestDistance = distance;
+                nearest = i;
+            }
+        }
+        return nearest;
     }
 
     lightData_[lightDataStructuresCount] = *light_data;
@@ -855,7 +904,7 @@ public:
 		lights_data_ = lights_data;
 	}
 
-	void render(HGOSBUFFER vb, HGOSBUFFER ib, HGOSVERTEXDECLARATION vdecl, DWORD texture_id, int light_index)
+	void render(HGOSBUFFER vb, HGOSBUFFER ib, HGOSVERTEXDECLARATION vdecl, DWORD texture_id, int light_index, float alpha, float hud_element)
 	{
 		gos_SetRenderState(gos_State_Texture, texture_id);
 		gos_SetRenderViewport(viewport_[2], viewport_[3], viewport_[0], viewport_[1]);
@@ -868,6 +917,11 @@ public:
 
         float ld[4] = { (float)light_index, 0.0f, 0.0f, 0.0f};
 		gos_SetRenderMaterialParameterFloat4(mat, "light_offset_", ld);
+		if (texture_id != 0)	// the untextured shader has no such uniform
+		{
+			const float mesh_params[4] = { alpha, hud_element, 0.0f, 0.0f };
+			gos_SetRenderMaterialParameterFloat4(mat, "mesh_params_", mesh_params);
+		}
 
 		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "LightsData", LIGHT_DATA_ATTACHMENT_SLOT);
 		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);
@@ -893,21 +947,48 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 {
 	gosASSERT(lights);
 
+	// from nothing: what was gathered last must not stay in a slot now off, and
+	// entries are compared whole
+	*lights = TG_HWLightsData();
+
 	uint32_t num_lights = 0;
-	const uint32_t max_num_lights = MAX_HW_LIGHTS_IN_WORLD;
 
 	const TG_LightPtr* listOfLights = TG_Shape::s_listOfLights;
 	const DWORD numLights = TG_Shape::s_numLights;
 
 	for (uint32_t iLight = 0; iLight < numLights; iLight++)
 	{
-		if (num_lights == max_num_lights)
-			break;
-
 		if ((listOfLights[iLight] != NULL) && (listOfLights[iLight]->active))
 		{
-
 			const DWORD type = listOfLights[iLight]->lightType;
+
+			// counts every active light: none at all draws a shape at full white
+			// (calc_light), a list the shader cannot read does not
+			num_lights++;
+
+			// each in its own slot, not the next free one: a tree turns the sun
+			// off while it transforms, and its ambient then lit it as a sun
+			// (black when facing away). The shader reads no other kind of light.
+			int slot = -1;
+			switch (type)
+			{
+			case TG_LIGHT_AMBIENT:
+				slot = HW_LIGHT_AMBIENT;
+				break;
+			case TG_LIGHT_INFINITE:
+			case TG_LIGHT_INFINITEWITHFALLOFF:
+				slot = HW_LIGHT_SUN;
+				break;
+			case TG_LIGHT_POINT:
+			case TG_LIGHT_TERRAIN:
+			case TG_LIGHT_SPOT:
+				break;
+			default:
+				STOP(("Unknown light type id: %d", type));
+			}
+			// the first of a kind, as before
+			if ((slot < 0) || (lights->lightColor[slot][3] != 0.0f))
+				continue;
 
 			Stuff::LinearMatrix4D light2world;
 			if (TG_LIGHT_AMBIENT != type)
@@ -915,43 +996,20 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 			else
 				light2world = Stuff::LinearMatrix4D::Identity;
 
-			memcpy(lights->lightToWorld[num_lights], (const float*)light2world, 12*sizeof(float));
-			lights->lightToWorld[num_lights][12] = lights->lightToWorld[num_lights][13] = lights->lightToWorld[num_lights][14] = 0.0f;
-			lights->lightToWorld[num_lights][15] = 1.0f;
-
 			Stuff::UnitVector3D uVec;
 			light2world.GetLocalForwardInWorld(&uVec);
-			lights->lightDir[num_lights][0] = uVec.x;
-			lights->lightDir[num_lights][1] = uVec.y;
-			lights->lightDir[num_lights][2] = uVec.z;
+			lights->lightDir[slot][0] = uVec.x;
+			lights->lightDir[slot][1] = uVec.y;
+			lights->lightDir[slot][2] = uVec.z;
 
-			lights->lightDir[num_lights][3] = (float)type;
+			lights->lightDir[slot][3] = (float)type;
 
 			DWORD startLight = listOfLights[iLight]->GetaRGB();
 
-			lights->lightColor[num_lights][0] = ((startLight >> 16) & 0x000000ff) / 255.0f;
-			lights->lightColor[num_lights][1] = ((startLight >> 8) & 0x000000ff) / 255.0f;
-			lights->lightColor[num_lights][2] = ((startLight) & 0x000000ff) / 255.0f;
-			lights->lightColor[num_lights][3] = 1.0f;
-
-			switch (type)
-			{
-			case TG_LIGHT_AMBIENT:
-				break;
-			case TG_LIGHT_INFINITE:
-			case TG_LIGHT_INFINITEWITHFALLOFF:
-				break;
-			case TG_LIGHT_POINT:
-				break;
-			case TG_LIGHT_TERRAIN:
-				break;
-			case TG_LIGHT_SPOT:
-				break;
-			default:
-				STOP(("Unknown light type id: %d", type));
-			}
-
-			num_lights++;
+			lights->lightColor[slot][0] = ((startLight >> 16) & 0x000000ff) / 255.0f;
+			lights->lightColor[slot][1] = ((startLight >> 8) & 0x000000ff) / 255.0f;
+			lights->lightColor[slot][2] = ((startLight) & 0x000000ff) / 255.0f;
+			lights->lightColor[slot][3] = 1.0f;
 		}
 	}
 
@@ -959,6 +1017,93 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 }
 
 
+
+//----------------------------------------------------------------------
+// The GPU mesh nodes (ShapeRenderer), whose vertices the shader transforms.
+// Leaves the viewport and the states it sets as the CPU lists expect them.
+void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
+{
+	static bool bSkip = true;
+
+	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
+
+	for (size_t i = 0; i<nextAvailableHardwareVertexNode; i++)
+	{
+		if (((masterHardwareVertexNodes[i].flags & mustHave) == mustHave) &&
+			!(masterHardwareVertexNodes[i].flags & mustNotHave) &&
+			(masterHardwareVertexNodes[i].shapes))
+		{
+			if (masterHardwareVertexNodes[i].flags & MC2_ISTERRAIN)
+				gos_SetRenderState(gos_State_TextureAddress, gos_TextureClamp);
+			else
+				gos_SetRenderState(gos_State_TextureAddress, gos_TextureWrap);
+			// the alpha test picks the shader variant that discards (gosRenderer
+			// getFlagsFromStates); without this the GPU path drew alpha textures'
+			// transparent texels as their underlying black (trees as black boards)
+			gos_SetRenderState(gos_State_AlphaTest, (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST) ? 1 : 0);
+			// VR: the eyes are multisampled, so a cut-out's soft alpha edge covers
+			// part of a pixel, with no sorting. Blended nodes have their blend.
+			gos_SetRenderState(gos_State_AlphaToCoverage, (gos_IsVR() && (masterHardwareVertexNodes[i].flags & MC2_DRAWSOLID) && (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST)) ? 1 : 0);
+			// the compass: at full light, out of the fog (not the sky, also a
+			// HUD element but solid)
+			const float hudElement = ((masterHardwareVertexNodes[i].flags & MC2_ISCOMPASS) && (masterHardwareVertexNodes[i].flags & MC2_DRAWALPHA)) ? 1.0f : 0.0f;
+
+			uint32_t totalShapes = masterHardwareVertexNodes[i].numShapes;
+			// in case less shapes were addded in Render() that it was "promised" in Update(), generally etter to investigate and remove all such cases
+			if (masterHardwareVertexNodes[i].currentShape != (masterHardwareVertexNodes[i].shapes + masterHardwareVertexNodes[i].numShapes))
+			{
+				totalShapes = masterHardwareVertexNodes[i].currentShape - masterHardwareVertexNodes[i].shapes;
+			}
+			for (uint32_t sh = 0; sh < totalShapes; ++sh)
+			{
+				DWORD textureIndex = masterHardwareVertexNodes[i].textureIndex;
+				if (textureIndex == 1227 && bSkip)
+					continue;
+
+				static bool b_old_way = false;
+				if (b_old_way)
+				{
+					gos_SetRenderState(gos_State_Texture, masterTextureNodes[textureIndex].get_gosTextureHandle());
+					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
+					gos_SetRenderViewport(rs->viewport_[2], rs->viewport_[3], rs->viewport_[0], rs->viewport_[1]);
+
+
+					//gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+					// TODO: set mvp_ in a separate function, like gos_set_render_camera(mvp_)...
+					gos_RenderIndexedArray(rs->ib_, rs->vb_, rs->vdecl_, (const float*)rs->mvp_);
+				}
+				else
+				{
+					DWORD texture = masterTextureNodes[textureIndex].get_gosTextureHandle();
+					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
+
+					
+					mat4 view_mat = gos2my(TG_Shape::s_worldToCamera);
+					mat4 world_mat = gos2my(rs->mw_);
+					mat4 wvp_mat = gos2my(rs->mvp_);
+
+					ShapeRenderer shape_renderer;
+					shape_renderer.setup(&world_mat, &view_mat, &wvp_mat, rs->viewport_);
+					shape_renderer.render(rs->vb_, rs->ib_, rs->vdecl_, texture, rs->light_data_buffer_index_, rs->alpha_, hudElement);
+				}
+
+			}
+
+			//Reset the list to zero length to avoid drawing more then once!
+			//Also comes in handy if gameLogic is not called.
+			masterHardwareVertexNodes[i].currentShape = masterHardwareVertexNodes[i].shapes;
+			//masterHardwareVertexNodes[i].numShapes = 0;
+		}
+	}
+
+	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
+	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
+	gos_SetRenderState(gos_State_AlphaTest, 0);		// set per node above
+	gos_SetRenderState(gos_State_AlphaToCoverage, 0);
+
+	// restore viewport
+	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+}
 
 //----------------------------------------------------------------------
 // Draws all textures with isTerrain set that are solid first,
@@ -1011,25 +1156,15 @@ void MC_TextureManager::renderLists (void)
 		gos_SetRenderState( gos_State_Fog, 0);
 	}
 
-	static bool bSkip = true;
-
-	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
-
     // copy global list of light data into GPU buffer
     
-	const uint32_t gpu_buf_size = gos_GetBufferSizeBytes(lightDataBuffer_);
-    const uint32_t cpu_buf_size = lightDataStructuresCount*sizeof(TG_HWLightsData);
-    if(gpu_buf_size < cpu_buf_size) {
-        gos_DestroyBuffer(lightDataBuffer_);
-        lightDataBuffer_ = gos_CreateBuffer(gosBUFFER_TYPE::UNIFORM, gosBUFFER_USAGE::STATIC_DRAW, cpu_buf_size, 1, lightData_);
-	    gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
-    }
-    else {
-        gos_UpdateBuffer(lightDataBuffer_, lightData_, 0, cpu_buf_size);
-	    gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
-    }
-    //
-    
+	// the whole block: gos_UpdateBuffer sizes the buffer to what it is given, and
+	// one smaller than the shader's block reads undefined data (no lights: full
+	// white). No entries, as in the flat game: nothing reads it.
+	const uint32_t cpu_buf_size = lightDataStructuresCount ? lightDataStructuresCapacity*sizeof(TG_HWLightsData) : 0;
+	gos_UpdateBuffer(lightDataBuffer_, lightData_, 0, cpu_buf_size);
+	gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
+
     // update scene data uniform buffer
     sceneData_->fog_start = eye->fogStart;
     sceneData_->fog_end = eye->fogFull;
@@ -1051,74 +1186,7 @@ void MC_TextureManager::renderLists (void)
     
     
 
-	for (size_t i = 0; i<nextAvailableHardwareVertexNode; i++)
-	{
-		if ((masterHardwareVertexNodes[i].flags & MC2_DRAWSOLID) &&
-			(masterHardwareVertexNodes[i].shapes))
-		{
-			if (masterHardwareVertexNodes[i].flags & MC2_ISTERRAIN)
-				gos_SetRenderState(gos_State_TextureAddress, gos_TextureClamp);
-			else
-				gos_SetRenderState(gos_State_TextureAddress, gos_TextureWrap);
-			// the alpha test picks the shader variant that discards (gosRenderer
-			// getFlagsFromStates); without this the GPU path drew alpha textures'
-			// transparent texels as their underlying black (trees as black boards)
-			gos_SetRenderState(gos_State_AlphaTest, (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST) ? 1 : 0);
-
-			uint32_t totalShapes = masterHardwareVertexNodes[i].numShapes;
-			// in case less shapes were addded in Render() that it was "promised" in Update(), generally etter to investigate and remove all such cases
-			if (masterHardwareVertexNodes[i].currentShape != (masterHardwareVertexNodes[i].shapes + masterHardwareVertexNodes[i].numShapes))
-			{
-				totalShapes = masterHardwareVertexNodes[i].currentShape - masterHardwareVertexNodes[i].shapes;
-			}
-			for (uint32_t sh = 0; sh < totalShapes; ++sh)
-			{
-				DWORD textureIndex = masterHardwareVertexNodes[i].textureIndex;
-				if (textureIndex == 1227 && bSkip)
-					continue;
-
-				static bool b_old_way = false;
-				if (b_old_way)
-				{
-					gos_SetRenderState(gos_State_Texture, masterTextureNodes[textureIndex].get_gosTextureHandle());
-					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
-					gos_SetRenderViewport(rs->viewport_[2], rs->viewport_[3], rs->viewport_[0], rs->viewport_[1]);
-
-
-					//gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
-					// TODO: set mvp_ in a separate function, like gos_set_render_camera(mvp_)...
-					gos_RenderIndexedArray(rs->ib_, rs->vb_, rs->vdecl_, (const float*)rs->mvp_);
-				}
-				else
-				{
-					DWORD texture = masterTextureNodes[textureIndex].get_gosTextureHandle();
-					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
-
-					
-					mat4 view_mat = gos2my(TG_Shape::s_worldToCamera);
-					mat4 world_mat = gos2my(rs->mw_);
-					mat4 wvp_mat = gos2my(rs->mvp_);
-
-					ShapeRenderer shape_renderer;
-					shape_renderer.setup(&world_mat, &view_mat, &wvp_mat, rs->viewport_);
-					shape_renderer.render(rs->vb_, rs->ib_, rs->vdecl_, texture, rs->light_data_buffer_index_);
-				}
-
-			}
-
-			//Reset the list to zero length to avoid drawing more then once!
-			//Also comes in handy if gameLogic is not called.
-			masterHardwareVertexNodes[i].currentShape = masterHardwareVertexNodes[i].shapes;
-			//masterHardwareVertexNodes[i].numShapes = 0;
-		}
-	}
-
-	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
-	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
-	gos_SetRenderState(gos_State_AlphaTest, 0);		// set per node above
-
-	// restore viewport
-	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+	renderHardwareNodes(MC2_DRAWSOLID, 0);
 
 	bool bSkip_DRAWSOLID = false;
 	for (long i=0;i<nextAvailableVertexNode && !bSkip_DRAWSOLID;i++)
@@ -1539,6 +1607,16 @@ void MC_TextureManager::renderLists (void)
     gos_SetRenderState( gos_State_AlphaTest, 0);
 
 	
+	// VR: fading shapes on the GPU path, blended over everything solid. No depth
+	// write: unsorted, what they do not hide must still draw
+	if (gos_IsVR())
+	{
+		gos_SetRenderState( gos_State_ZWrite, 0);
+		renderHardwareNodes(MC2_DRAWALPHA, MC2_ISCOMPASS);
+		gos_SetRenderState( gos_State_ZWrite, 1);
+		gos_SetRenderState( gos_State_TextureAddress, gos_TextureWrap );
+	}
+
 	if (Environment.Renderer == 3)
 	{
 		gos_SetRenderState( gos_State_ShadeMode, gos_ShadeGouraud);
@@ -1696,6 +1774,14 @@ void MC_TextureManager::renderLists (void)
 		}
 	}
 	
+	// VR: the compass on the GPU path, in the states above: over everything, blended
+	if (gos_IsVR())
+	{
+		renderHardwareNodes(MC2_DRAWALPHA | MC2_ISCOMPASS, 0);
+		gos_SetRenderState( gos_State_AlphaTest, 1);
+		gos_SetRenderState( gos_State_TextureAddress, gos_TextureWrap );
+	}
+
 	gos_SetRenderState( gos_State_Filter, gos_FilterNone);
 	
  	for (int i=0;i<nextAvailableVertexNode;i++)

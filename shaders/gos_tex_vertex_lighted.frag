@@ -7,6 +7,9 @@
 #include <include/lighting.hglsl>
 
 uniform vec4 light_offset_;
+// x: the shape's alpha (it fades); y: 1 for a HUD element (the compass), at full
+// light and out of the fog, as the CPU path draws it
+uniform PREC vec4 mesh_params_;
 
 in PREC vec3 Normal;
 //in PREC float FogValue;
@@ -42,10 +45,12 @@ void main(void)
     PREC vec3 lighting = calc_light(lights_index, Normal, VertexLight);
 #endif
 
-    c.xyz = c.xyz * lighting;
+    if(mesh_params_.y == 0.0)
+    {
+        c.xyz = c.xyz * lighting;
+        c.xyz = apply_fog(c.xyz, WorldPos.xyz, CameraPos);
+    }
 
-    c.xyz = apply_fog(c.xyz, WorldPos.xyz, CameraPos);
-
-	FragColor = vec4(c.xyz, c.a);
+	FragColor = vec4(c.xyz, c.a * mesh_params_.x);
 }
 

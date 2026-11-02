@@ -2242,6 +2242,8 @@ enum gos_RenderState
 
 	gos_State_VertexBlend,		// Default: 0						Number of blend weights in each vertex to blend (Only 0 or 1 valid currently)
 
+	gos_State_AlphaToCoverage,	// Default: 0						true/false - A fragment's alpha decides how many samples of a multisampled pixel it covers (no effect without multisampling)
+
 	gos_MaxState				// Marker for last render state
 };
 

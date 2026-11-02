@@ -35,6 +35,7 @@
 #include "platform_str.h"
 #include <stddef.h> // linux offsetof()
 #include <new> // for placement new
+#include "render_heuristics.h"
 
 //-------------------------------------------------------------------------------
 // Include Files
@@ -95,8 +96,8 @@ bool silentMode = false;		//Used for automated builds to keep errors from poppin
 // for now everything seems to be correct thoug, so could enable it by default
 // look into gos_tex_vertex_lighted.vert for where offset is defined
 bool bShadersDrawPathEnabled = false;
-// VR (gos_IsVR) takes that path too, alpha-textured shapes included
-// (alpha-tested): it transforms when drawn, so every head-tracked eye sees
+// VR (gos_IsVR) takes that path too, alpha-textured and fading shapes included
+// (GPUTextureFlags): it transforms when drawn, so every head-tracked eye sees
 // them from its own pose, where the CPU path projects them once, during the
 // update, for the game camera
 
@@ -556,12 +557,19 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 // path. MultiTransformShape reserves the draw and Render fills it, under a
 // node keyed by texture and flags, so both must use this: a draw whose flags
 // differ from the reservation is dropped.
-DWORD TG_TypeShape::GPUTextureFlags (DWORD t, DWORD addFlags)
+DWORD TG_TypeShape::GPUTextureFlags (DWORD t, DWORD addFlags, BYTE alphaValue)
 {
-	DWORD flags = MC2_DRAWSOLID | addFlags;
+	const bool vrAlpha = gos_IsVR() && listOfTextures[t].textureAlpha;
+	// cut-outs are drawn with the solids, softened by alpha to coverage
+	// (renderHardwareNodes)
+	DWORD flags = addFlags;
+	if (GPUMeshBlended(alphaValue, vrAlpha, (addFlags & MC2_ISCOMPASS) != 0))
+		flags |= MC2_DRAWALPHA;
+	else
+		flags |= MC2_DRAWSOLID;
 	// alpha-tested if the shape asks or, in VR (where alpha shapes take this
 	// path), if the texture has alpha
-	if (alphaTestOn || (gos_IsVR() && listOfTextures[t].textureAlpha))
+	if (alphaTestOn || vrAlpha)
 		flags |= MC2_ALPHATEST;
 	return flags;
 }
@@ -1772,7 +1780,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 	lastTurnTransformed = turn;
 
 	bool bDrawnByShader = (bShadersDrawPathEnabled || gos_IsVR()) && !isSpotlight && !isWindow && 
-        (gos_IsVR() || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
+        (gos_IsVR() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
 
 	for (long j=0;j<numVertices;j++)
 	{
@@ -2573,7 +2581,8 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-		if (theShape->ib_ && theShape->vb_) {
+		// faded right out: nothing to see, so no draw in either eye
+		if (theShape->ib_ && theShape->vb_ && alphaValue) {
 
             GatherLightsParameters(&lightData_);
 
@@ -2582,7 +2591,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			for (DWORD t = 0; t < theShape->numTextureIbs; t++)
 			{
 				if (theShape->textureIb_[t])
-					mcTextureManager->addRenderShape(theShape->listOfTextures[t].mcTextureNodeIndex, theShape->GPUTextureFlags(t, addFlags));
+					mcTextureManager->addRenderShape(theShape->listOfTextures[t].mcTextureNodeIndex, theShape->GPUTextureFlags(t, addFlags, alphaValue));
 			}
 		}
 	}
@@ -2639,11 +2648,11 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
 
 	bool bDrawnByShader = (bShadersDrawPathEnabled || gos_IsVR()) && !isSpotlight && !isWindow && 
-        (gos_IsVR() || !theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha) && (alphaValue == 0xff);
+        (gos_IsVR() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
 
 	//VR: this path's vertices were projected for the game camera during the
 	//update, which a head-tracked eye does not match: leave them out of the
-	//eyes (spotlights, windows, fading shapes; the tablet's frame has them)
+	//eyes (spotlights, windows; the tablet's frame has them)
 	if (!bDrawnByShader && eye && eye->hidesOverlays())
 		return;
 
@@ -2804,7 +2813,8 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-		if (theShape->ib_ && theShape->vb_) {
+		// faded right out: nothing to see, so no draw in either eye
+		if (theShape->ib_ && theShape->vb_ && alphaValue) {
 
 			Stuff::Matrix4D mvp;
 			if ((forceZ >= 0.0f) && (forceZ < 1.0f))
@@ -2832,6 +2842,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			rs.viewport_[2] = viewAddX;
 			rs.viewport_[3] = viewAddY;
             rs.light_data_buffer_index_ = mcTextureManager->addLightDataStructure(&lightData_);
+			rs.alpha_ = alphaValue / 255.0f;
 
 			// each texture's triangles with that texture
 			for (DWORD t = 0; t < theShape->numTextureIbs; t++)
@@ -2842,7 +2853,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 				mcTextureManager->addRenderShape(
 					theShape->listOfTextures[t].mcTextureNodeIndex,
 					&rs,
-					theShape->GPUTextureFlags(t, addFlags));
+					theShape->GPUTextureFlags(t, addFlags, alphaValue));
 			}
 		}
 	}

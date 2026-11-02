@@ -631,9 +631,28 @@ Known gaps:
   as the underlying black: trees as black boards, holes in hut roofs
   filled in, sandbag netting as solid blobs. One render-state call fixes
   all three. (A first guess, mipmaps averaging alpha, was wrong: the
-  desktop reproduced the boards without mipmaps.) Still open on that path:
-  the CPU path blends alpha-textured shapes, the GPU path only tests, so
-  soft edges are hard and the translucent compass is not drawn.
+  desktop reproduced the boards without mipmaps.)
+- **Blending on the GPU path.** The CPU path blends alpha-textured shapes;
+  the GPU path only tested. Cut-outs (trees, netting) stay with the solids
+  and get alpha to coverage (`gos_State_AlphaToCoverage`) on the eyes' 4x
+  MSAA, with no sorting. The compass and fading shapes (`alphaValue != 0xff`,
+  until now left out of the eyes) go to `MC2_DRAWALPHA` hardware nodes, drawn
+  where the CPU path draws its compass and alpha objects, blended with no
+  depth write. Checked on the desktop with `MC2_VR_PATHS=1`: the compass
+  matches the flat game's (it was an opaque disc over the units); on a
+  throwaway 4x MSAA window coverage changes only the edges of trees; with
+  every shape forced to half alpha the fade pass draws them translucent.
+  Quest 2, mc2_01 played: the compass and tree edges look right. Frame time on
+  the fly-in (`-bench`, head pose fixed, 900 frames, two runs each) is the
+  same with and without this change and with coverage off: 69.4 fps, median
+  13.9 ms at the 72 Hz limit. A lower frame rate noticed while playing the
+  fly-in did not show up in these runs; the fixed pose may look at less than
+  a player does, and being at the limit they do not show spare GPU time.
+  Open: a fading shape's parts are unsorted with no depth write, so one part
+  can draw over another; no shape faded on its own in 2500 frames of mc2_01,
+  so a real fade has not been watched. Tree lighting and the green marker in
+  the mc2_19 overview still differ from the flat game; coverage does not
+  change their interiors, so the cause is not alpha, and it is not found.
 - **Geometry behind the camera:** the GPU mesh shader divided by `w` itself
   and kept `abs()`, so geometry behind the camera was drawn mirrored (huge
   dark wedges once objects behind the game camera were drawn; the likely
@@ -642,6 +661,27 @@ Known gaps:
 - **To do: the terrain window's edge** is visible at a headset's field of
   view (a hard border, then the cloud layer as a grey wall): a larger window
   for VR, or haze pulled in to the window's radius.
+- **Lighting on the GPU path.** Near trees were black, and mechs and trees
+  changed brightness in a step with distance (headset, mc2_01; near trees
+  reproduced on the desktop with `MC2_VR_PATHS=1`, frame 5, also before
+  blending; the flat game was right). Three defects: `calc_light` takes the
+  sun and ambient from fixed slots, but a tree turns the sun off while it
+  transforms and `GatherLightsParameters` filled the next free slot, so its
+  ambient lit it as a sun; a per-tree ambient makes each tree a new light
+  entry, mc2_01 needs 140, and the shader's block held 32 (now 200, of 80
+  bytes each, sharing the nearest past that); and `gos_UpdateBuffer` sized the
+  buffer below the block, so reads past it were undefined. Quest 2, mc2_01
+  played: near trees in colour, the step gone, the block links on its driver.
+  Frame time has not been measured since this fix.
+- **To do: chain-link fences are solid bands at a distance.** At full size the
+  mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
+  separately, so a mipped fence is uniform grey with dark colour bled in;
+  coverage then has no gaps to show. Alpha-weighted mipmaps for alpha textures
+  would fix it (and any dark fringe on distant trees).
+- Untextured shapes on the GPU path use `gos_vertex_lighted`, which does not
+  match the mesh vertex layout or take `wvp_`, so that path needs its own fix
+  (and has no per-shape alpha). Translucent world textures get coverage rather
+  than blending; none is known to look wrong.
 - Some shimmer remains on distant mechs; spotlights are missing in the
   eyes; the sky dome shows as a grey ring at the horizon; artifacts were seen
   when the bench camera passes through the bombers.

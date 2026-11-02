@@ -1,6 +1,7 @@
 // tests/unit/test_render_heuristics.cpp
 //
-// mclib/render_heuristics.h: LOD switch hysteresis (appearances), the
+// mclib/render_heuristics.h: LOD switch hysteresis (appearances), which GPU
+// meshes are blended (TG_TypeShape::GPUTextureFlags), the
 // point-to-box distance behind terrain light culling (Camera) and the turn
 // rate the texture cache uses to turn times into frame counts (txmmgr).
 
@@ -27,6 +28,20 @@ TEST_CASE("LODSwitchDistance: no flip-flop inside the band")
 	const float d = 1000.0f;
 	CHECK_FALSE(d > LODSwitchDistance(1000.0f, 1, 0));	// at LOD 0: stays 0
 	CHECK(d > LODSwitchDistance(1000.0f, 1, 1));			// at LOD 1: stays 1
+}
+
+TEST_CASE("GPUMeshBlended: fading shapes and the translucent compass, not cut-outs")
+{
+	// solid, and a cut-out (a tree)
+	CHECK_FALSE(GPUMeshBlended(0xff, false, false));
+	CHECK_FALSE(GPUMeshBlended(0xff, true, false));
+	// fading, whatever the texture
+	CHECK(GPUMeshBlended(0x80, false, false));
+	CHECK(GPUMeshBlended(0x80, true, false));
+	CHECK(GPUMeshBlended(0x00, false, false));
+	// the compass with an alpha texture; the sky, also a HUD element, has none
+	CHECK(GPUMeshBlended(0xff, true, true));
+	CHECK_FALSE(GPUMeshBlended(0xff, false, true));
 }
 
 TEST_CASE("PointBoxDistanceSquared")
