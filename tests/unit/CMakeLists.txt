@@ -36,6 +36,7 @@ add_executable(mc2_tests
     test_stereo.cpp
     test_vr_eye.cpp
     test_vr_controls.cpp
+    test_input_latch.cpp
     test_args_file.cpp
     test_csvfield.cpp
     test_estring.cpp
@@ -98,7 +99,7 @@ set_source_files_properties(
     test_fst_roundtrip.cpp test_lzdecomp.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp
-    test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_csvfield.cpp test_args_file.cpp test_estring.cpp test_wave_parse.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_estring.cpp test_wave_parse.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp

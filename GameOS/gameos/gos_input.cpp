@@ -2,21 +2,21 @@
 #include <string.h> // memset
 #include <assert.h>
 #include "gos_input.h"
+#include "utils/input_latch.h"
 
 static input::MouseInfo g_mouse_info;
 static input::KeyboardInfo g_keyboard_info;
 
-// the VR controllers' pointer and keys (setVirtualPointer, setVirtualKey):
-// what is held now, and what was pressed since the last sample
+// the VR controllers' pointer and keys (setVirtualPointer, setVirtualKey),
+// latched between samples
 static struct {
     bool active;
     bool was_active;    // at the last sample
     float x, y;
-    uint32_t held, latched;
+    InputLatch buttons;
 } g_virtual_mouse;
 static const int NUM_VIRTUAL_KEYS = 512;
-static bool g_virtual_keys[NUM_VIRTUAL_KEYS];
-static bool g_virtual_keys_latched[NUM_VIRTUAL_KEYS];
+static InputLatch g_virtual_keys[NUM_VIRTUAL_KEYS];
 
 namespace input {
 
@@ -113,8 +113,7 @@ void updateMouseState() {
     MouseInfo* mi = &g_mouse_info;
 
     Uint32 button_state = SDL_GetMouseState(NULL, NULL);
-    const uint32_t virtual_buttons = g_virtual_mouse.held | g_virtual_mouse.latched;
-    g_virtual_mouse.latched = 0;
+    const uint32_t virtual_buttons = g_virtual_mouse.buttons.sample();
     if(g_virtual_mouse.active) {
         // no jump from wherever the cursor was when the pointer comes back
         if(g_virtual_mouse.was_active) {
@@ -179,11 +178,7 @@ void updateKeyboardState() {
 
         uint8_t ls = ki->last_state_[i];
 
-        bool virtual_down = false;
-        if(i < NUM_VIRTUAL_KEYS) {
-            virtual_down = g_virtual_keys[i] || g_virtual_keys_latched[i];
-            g_virtual_keys_latched[i] = false;
-        }
+        const bool virtual_down = i < NUM_VIRTUAL_KEYS && g_virtual_keys[i].sample() != 0;
         if(state[i] || virtual_down) {
            ls = (ls==KS_FREE||ls==KS_RELEASED) ? KS_PRESSED : KS_HELD;
         } else {
@@ -211,21 +206,18 @@ void setVirtualPointer(float x, float y, uint32_t buttons) {
     g_virtual_mouse.active = true;
     g_virtual_mouse.x = x;
     g_virtual_mouse.y = y;
-    g_virtual_mouse.latched |= buttons & ~g_virtual_mouse.held;
-    g_virtual_mouse.held = buttons;
+    g_virtual_mouse.buttons.set(buttons);
 }
 
 void clearVirtualPointer() {
     g_virtual_mouse.active = false;
-    g_virtual_mouse.held = 0;
+    g_virtual_mouse.buttons.set(0);
 }
 
 void setVirtualKey(int scancode, bool down) {
     if(scancode < 0 || scancode >= NUM_VIRTUAL_KEYS)
         return;
-    if(down && !g_virtual_keys[scancode])
-        g_virtual_keys_latched[scancode] = true;
-    g_virtual_keys[scancode] = down;
+    g_virtual_keys[scancode].set(down ? 1u : 0u);
 }
 
 } // namespace
