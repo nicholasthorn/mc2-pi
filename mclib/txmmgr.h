@@ -1068,6 +1068,9 @@ class MC_TextureManager
 		//Sends down the triangle lists
 		void renderLists (void);
 
+		//Draws the GPU mesh nodes that have all of mustHave and none of mustNotHave
+		void renderHardwareNodes (DWORD mustHave, DWORD mustNotHave);
+
 		DWORD getWidth( DWORD nodeId )
 		{
 			if (nodeId != 0xffffffff)

@@ -690,7 +690,7 @@ class TG_TypeShape : public TG_TypeNode
 		virtual void CreateGPUBuffers (void);
 
 		//the texture manager flags texture t is drawn with on that path
-		DWORD GPUTextureFlags (DWORD t, DWORD addFlags);
+		DWORD GPUTextureFlags (DWORD t, DWORD addFlags, BYTE alphaValue);
 };
 
 typedef TG_TypeShape* TG_TypeShapePtr;
@@ -922,6 +922,7 @@ public:
 	Stuff::Matrix4D mw_; // model -> world
 	float viewport_[4];
     uint32_t light_data_buffer_index_;
+    float alpha_; // the shape's alpha, 0..1: it fades in and out
 };
 ////////////////////////////////////////////////////////////////////////////////
 

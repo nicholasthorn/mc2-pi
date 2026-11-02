@@ -1254,7 +1254,9 @@ class gosRenderer {
 
         uint32_t getFlagsFromStates()
         {
-            return curStates_[gos_State_AlphaTest] ? SHADER_FLAG_INDEX_TO_MASK(gosGLOBAL_SHADER_FLAGS::ALPHA_TEST) : 0;
+            // renderStates_, what the next draw will use: curStates_ is the last
+            // draw's, so a mesh node's first draw picked the other node's variant
+            return renderStates_[gos_State_AlphaTest] ? SHADER_FLAG_INDEX_TO_MASK(gosGLOBAL_SHADER_FLAGS::ALPHA_TEST) : 0;
         }
 
         gosRenderMaterial* getRenderMaterial(const char* name) {
@@ -1403,6 +1405,7 @@ class gosRenderer {
         int glZWrite_ = -1;
         int glZCompare_ = -1;
         int glAlphaMode_ = -1;
+        int glAlphaToCoverage_ = -1;
 
         static const int RENDER_STATES_STACK_SIZE = 16;
         int renderStatesStackPointer;
@@ -1616,6 +1619,7 @@ void gosRenderer::initRenderStates() {
 	renderStates_[gos_State_Lighting] = 0;
 	renderStates_[gos_State_NormalizeNormals] = 0;
 	renderStates_[gos_State_VertexBlend] = 0;
+	renderStates_[gos_State_AlphaToCoverage] = 0;
 
     applyRenderStates();
     renderStatesStackPointer = -1;
@@ -1720,6 +1724,17 @@ void gosRenderer::applyRenderStates() {
        glAlphaMode_ = renderStates_[gos_State_AlphaMode];
    }
    curStates_[gos_State_AlphaMode] = renderStates_[gos_State_AlphaMode];
+
+   ////////////////////////////////////////////////////////////////////////////////
+   if(glAlphaToCoverage_ != (int)renderStates_[gos_State_AlphaToCoverage]) {
+       if(renderStates_[gos_State_AlphaToCoverage]) {
+           glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+       } else {
+           glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+       }
+       glAlphaToCoverage_ = renderStates_[gos_State_AlphaToCoverage];
+   }
+   curStates_[gos_State_AlphaToCoverage] = renderStates_[gos_State_AlphaToCoverage];
 
    ////////////////////////////////////////////////////////////////////////////////
    #if 0 // now in shaders (this is not supported in CORE OpenGL profile

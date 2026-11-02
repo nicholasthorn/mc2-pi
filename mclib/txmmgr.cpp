@@ -855,7 +855,7 @@ public:
 		lights_data_ = lights_data;
 	}
 
-	void render(HGOSBUFFER vb, HGOSBUFFER ib, HGOSVERTEXDECLARATION vdecl, DWORD texture_id, int light_index)
+	void render(HGOSBUFFER vb, HGOSBUFFER ib, HGOSVERTEXDECLARATION vdecl, DWORD texture_id, int light_index, float alpha, float hud_element)
 	{
 		gos_SetRenderState(gos_State_Texture, texture_id);
 		gos_SetRenderViewport(viewport_[2], viewport_[3], viewport_[0], viewport_[1]);
@@ -866,7 +866,7 @@ public:
 		//gos_SetRenderMaterialParameterMat4(mat, "view_", (const float*)*view_);
 		gos_SetRenderMaterialParameterMat4(mat, "wvp_", (const float*)*wvp_);
 
-        float ld[4] = { (float)light_index, 0.0f, 0.0f, 0.0f};
+        float ld[4] = { (float)light_index, alpha, hud_element, 0.0f};
 		gos_SetRenderMaterialParameterFloat4(mat, "light_offset_", ld);
 
 		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "LightsData", LIGHT_DATA_ATTACHMENT_SLOT);
@@ -961,6 +961,93 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 
 
 //----------------------------------------------------------------------
+// The GPU mesh nodes (ShapeRenderer), whose vertices the shader transforms.
+// Leaves the viewport and the states it sets as the CPU lists expect them.
+void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
+{
+	static bool bSkip = true;
+
+	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
+
+	for (size_t i = 0; i<nextAvailableHardwareVertexNode; i++)
+	{
+		if (((masterHardwareVertexNodes[i].flags & mustHave) == mustHave) &&
+			!(masterHardwareVertexNodes[i].flags & mustNotHave) &&
+			(masterHardwareVertexNodes[i].shapes))
+		{
+			if (masterHardwareVertexNodes[i].flags & MC2_ISTERRAIN)
+				gos_SetRenderState(gos_State_TextureAddress, gos_TextureClamp);
+			else
+				gos_SetRenderState(gos_State_TextureAddress, gos_TextureWrap);
+			// the alpha test picks the shader variant that discards (gosRenderer
+			// getFlagsFromStates); without this the GPU path drew alpha textures'
+			// transparent texels as their underlying black (trees as black boards)
+			gos_SetRenderState(gos_State_AlphaTest, (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST) ? 1 : 0);
+			// VR: the eyes are multisampled, so a cut-out's soft alpha edge covers
+			// part of a pixel, with no sorting. Blended nodes have their blend.
+			gos_SetRenderState(gos_State_AlphaToCoverage, (gos_IsVR() && (masterHardwareVertexNodes[i].flags & MC2_DRAWSOLID) && (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST)) ? 1 : 0);
+			// the compass: at full light, out of the fog (not the sky, also a
+			// HUD element but solid)
+			const float hudElement = ((masterHardwareVertexNodes[i].flags & MC2_ISCOMPASS) && (masterHardwareVertexNodes[i].flags & MC2_DRAWALPHA)) ? 1.0f : 0.0f;
+
+			uint32_t totalShapes = masterHardwareVertexNodes[i].numShapes;
+			// in case less shapes were addded in Render() that it was "promised" in Update(), generally etter to investigate and remove all such cases
+			if (masterHardwareVertexNodes[i].currentShape != (masterHardwareVertexNodes[i].shapes + masterHardwareVertexNodes[i].numShapes))
+			{
+				totalShapes = masterHardwareVertexNodes[i].currentShape - masterHardwareVertexNodes[i].shapes;
+			}
+			for (uint32_t sh = 0; sh < totalShapes; ++sh)
+			{
+				DWORD textureIndex = masterHardwareVertexNodes[i].textureIndex;
+				if (textureIndex == 1227 && bSkip)
+					continue;
+
+				static bool b_old_way = false;
+				if (b_old_way)
+				{
+					gos_SetRenderState(gos_State_Texture, masterTextureNodes[textureIndex].get_gosTextureHandle());
+					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
+					gos_SetRenderViewport(rs->viewport_[2], rs->viewport_[3], rs->viewport_[0], rs->viewport_[1]);
+
+
+					//gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+					// TODO: set mvp_ in a separate function, like gos_set_render_camera(mvp_)...
+					gos_RenderIndexedArray(rs->ib_, rs->vb_, rs->vdecl_, (const float*)rs->mvp_);
+				}
+				else
+				{
+					DWORD texture = masterTextureNodes[textureIndex].get_gosTextureHandle();
+					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
+
+					
+					mat4 view_mat = gos2my(TG_Shape::s_worldToCamera);
+					mat4 world_mat = gos2my(rs->mw_);
+					mat4 wvp_mat = gos2my(rs->mvp_);
+
+					ShapeRenderer shape_renderer;
+					shape_renderer.setup(&world_mat, &view_mat, &wvp_mat, rs->viewport_);
+					shape_renderer.render(rs->vb_, rs->ib_, rs->vdecl_, texture, rs->light_data_buffer_index_, rs->alpha_, hudElement);
+				}
+
+			}
+
+			//Reset the list to zero length to avoid drawing more then once!
+			//Also comes in handy if gameLogic is not called.
+			masterHardwareVertexNodes[i].currentShape = masterHardwareVertexNodes[i].shapes;
+			//masterHardwareVertexNodes[i].numShapes = 0;
+		}
+	}
+
+	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
+	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
+	gos_SetRenderState(gos_State_AlphaTest, 0);		// set per node above
+	gos_SetRenderState(gos_State_AlphaToCoverage, 0);
+
+	// restore viewport
+	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+}
+
+//----------------------------------------------------------------------
 // Draws all textures with isTerrain set that are solid first,
 // then draws all alpha with isTerrain set.
 void MC_TextureManager::renderLists (void)
@@ -1011,10 +1098,6 @@ void MC_TextureManager::renderLists (void)
 		gos_SetRenderState( gos_State_Fog, 0);
 	}
 
-	static bool bSkip = true;
-
-	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
-
     // copy global list of light data into GPU buffer
     
 	const uint32_t gpu_buf_size = gos_GetBufferSizeBytes(lightDataBuffer_);
@@ -1051,74 +1134,7 @@ void MC_TextureManager::renderLists (void)
     
     
 
-	for (size_t i = 0; i<nextAvailableHardwareVertexNode; i++)
-	{
-		if ((masterHardwareVertexNodes[i].flags & MC2_DRAWSOLID) &&
-			(masterHardwareVertexNodes[i].shapes))
-		{
-			if (masterHardwareVertexNodes[i].flags & MC2_ISTERRAIN)
-				gos_SetRenderState(gos_State_TextureAddress, gos_TextureClamp);
-			else
-				gos_SetRenderState(gos_State_TextureAddress, gos_TextureWrap);
-			// the alpha test picks the shader variant that discards (gosRenderer
-			// getFlagsFromStates); without this the GPU path drew alpha textures'
-			// transparent texels as their underlying black (trees as black boards)
-			gos_SetRenderState(gos_State_AlphaTest, (masterHardwareVertexNodes[i].flags & MC2_ALPHATEST) ? 1 : 0);
-
-			uint32_t totalShapes = masterHardwareVertexNodes[i].numShapes;
-			// in case less shapes were addded in Render() that it was "promised" in Update(), generally etter to investigate and remove all such cases
-			if (masterHardwareVertexNodes[i].currentShape != (masterHardwareVertexNodes[i].shapes + masterHardwareVertexNodes[i].numShapes))
-			{
-				totalShapes = masterHardwareVertexNodes[i].currentShape - masterHardwareVertexNodes[i].shapes;
-			}
-			for (uint32_t sh = 0; sh < totalShapes; ++sh)
-			{
-				DWORD textureIndex = masterHardwareVertexNodes[i].textureIndex;
-				if (textureIndex == 1227 && bSkip)
-					continue;
-
-				static bool b_old_way = false;
-				if (b_old_way)
-				{
-					gos_SetRenderState(gos_State_Texture, masterTextureNodes[textureIndex].get_gosTextureHandle());
-					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
-					gos_SetRenderViewport(rs->viewport_[2], rs->viewport_[3], rs->viewport_[0], rs->viewport_[1]);
-
-
-					//gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
-					// TODO: set mvp_ in a separate function, like gos_set_render_camera(mvp_)...
-					gos_RenderIndexedArray(rs->ib_, rs->vb_, rs->vdecl_, (const float*)rs->mvp_);
-				}
-				else
-				{
-					DWORD texture = masterTextureNodes[textureIndex].get_gosTextureHandle();
-					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
-
-					
-					mat4 view_mat = gos2my(TG_Shape::s_worldToCamera);
-					mat4 world_mat = gos2my(rs->mw_);
-					mat4 wvp_mat = gos2my(rs->mvp_);
-
-					ShapeRenderer shape_renderer;
-					shape_renderer.setup(&world_mat, &view_mat, &wvp_mat, rs->viewport_);
-					shape_renderer.render(rs->vb_, rs->ib_, rs->vdecl_, texture, rs->light_data_buffer_index_);
-				}
-
-			}
-
-			//Reset the list to zero length to avoid drawing more then once!
-			//Also comes in handy if gameLogic is not called.
-			masterHardwareVertexNodes[i].currentShape = masterHardwareVertexNodes[i].shapes;
-			//masterHardwareVertexNodes[i].numShapes = 0;
-		}
-	}
-
-	// restore state as all old-style geometry is culled on CPU and all vertices are already pretransformed
-	gos_SetRenderState(gos_State_Culling, gos_Cull_None);
-	gos_SetRenderState(gos_State_AlphaTest, 0);		// set per node above
-
-	// restore viewport
-	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+	renderHardwareNodes(MC2_DRAWSOLID, 0);
 
 	bool bSkip_DRAWSOLID = false;
 	for (long i=0;i<nextAvailableVertexNode && !bSkip_DRAWSOLID;i++)
@@ -1539,6 +1555,16 @@ void MC_TextureManager::renderLists (void)
     gos_SetRenderState( gos_State_AlphaTest, 0);
 
 	
+	// VR: fading shapes on the GPU path, blended over everything solid. No depth
+	// write: unsorted, what they do not hide must still draw
+	if (gos_IsVR())
+	{
+		gos_SetRenderState( gos_State_ZWrite, 0);
+		renderHardwareNodes(MC2_DRAWALPHA, MC2_ISCOMPASS);
+		gos_SetRenderState( gos_State_ZWrite, 1);
+		gos_SetRenderState( gos_State_TextureAddress, gos_TextureWrap );
+	}
+
 	if (Environment.Renderer == 3)
 	{
 		gos_SetRenderState( gos_State_ShadeMode, gos_ShadeGouraud);
@@ -1696,6 +1722,14 @@ void MC_TextureManager::renderLists (void)
 		}
 	}
 	
+	// VR: the compass on the GPU path, in the states above: over everything, blended
+	if (gos_IsVR())
+	{
+		renderHardwareNodes(MC2_DRAWALPHA | MC2_ISCOMPASS, 0);
+		gos_SetRenderState( gos_State_AlphaTest, 1);
+		gos_SetRenderState( gos_State_TextureAddress, gos_TextureWrap );
+	}
+
 	gos_SetRenderState( gos_State_Filter, gos_FilterNone);
 	
  	for (int i=0;i<nextAvailableVertexNode;i++)
