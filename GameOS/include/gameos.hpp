@@ -197,6 +197,7 @@ typedef struct gos_StringRes*   HSTRRES; //sebi
 typedef class gosBuffer*		HGOSBUFFER; //sebi
 typedef class gosVertexDeclaration*	HGOSVERTEXDECLARATION; //sebi
 typedef class gosRenderMaterial*	HGOSRENDERMATERIAL; //sebi
+typedef struct glsl_uniform*		HGOSMATERIALPARAM;
 namespace graphics {
     struct RenderWindow;
 };
@@ -2681,6 +2682,11 @@ HGOSRENDERMATERIAL __stdcall gos_getRenderMaterial(const char* material);
 void __stdcall gos_ApplyRenderMaterial(HGOSRENDERMATERIAL material);
 void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSRENDERMATERIAL material, const char* name, const float* v);
 void __stdcall gos_SetRenderMaterialParameterMat4(HGOSRENDERMATERIAL material, const char* name, const float* m);
+// For a parameter set on every draw: look it up once (NULL if the material has
+// no such parameter, which the setter ignores), good within a frame. v must be
+// the size of the parameter's type.
+HGOSMATERIALPARAM __stdcall gos_GetRenderMaterialParameter(HGOSRENDERMATERIAL material, const char* name);
+void __stdcall gos_SetRenderMaterialParameter(HGOSMATERIALPARAM param, const float* v);
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot);
 
 

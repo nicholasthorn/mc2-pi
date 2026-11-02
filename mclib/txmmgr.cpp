@@ -816,66 +816,58 @@ mat4 gos2my(Stuff::LinearMatrix4D& m)
 ////////////////////////////////////////////////////////////////////////////////
 class ShapeRenderer {
 
-	mat4* world_;
-	mat4* view_;
-	mat4* wvp_;
-	float* viewport_;
-	HGOSBUFFER lights_data_;
+	HGOSRENDERMATERIAL mat_;
+	DWORD texture_id_;
+	// looked up once per node: about 1500 draws per eye in VR
+	HGOSMATERIALPARAM world_, wvp_, projection_, vp_, mesh_params_, sun_color_, sun_dir_, ambient_;
 
 public:
 
-	void setup(mat4* world, mat4* view, mat4* wvp, float* viewport)
+	// the alpha test state must be set: it picks the material's variant
+	void setMaterial(DWORD texture_id)
 	{
-		gosASSERT(world && view && wvp && viewport);
-		world_ = world;
-		view_ = view;
-		wvp_ = wvp;
-		viewport_ = viewport;
+		texture_id_ = texture_id;
+		mat_ = texture_id == 0 ? gos_getRenderMaterial("gos_vertex_lighted") : gos_getRenderMaterial("gos_tex_vertex_lighted");
+
+		world_ = gos_GetRenderMaterialParameter(mat_, "world_");
+		wvp_ = gos_GetRenderMaterialParameter(mat_, "wvp_");
+		projection_ = gos_GetRenderMaterialParameter(mat_, "projection_");
+		vp_ = gos_GetRenderMaterialParameter(mat_, "vp");
+		// the untextured shader has no such uniforms: the setter skips them
+		mesh_params_ = gos_GetRenderMaterialParameter(mat_, "mesh_params_");
+		sun_color_ = gos_GetRenderMaterialParameter(mat_, "light_sun_color_");
+		sun_dir_ = gos_GetRenderMaterialParameter(mat_, "light_sun_dir_");
+		ambient_ = gos_GetRenderMaterialParameter(mat_, "light_ambient_");
+
+		gos_SetRenderMaterialUniformBlockBindingPoint(mat_, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);
 	}
 
-	void set_lights_data(const HGOSBUFFER lights_data)
+	void render(const TG_RenderShape& rs, const mat4& world, const mat4& wvp, float hud_element)
 	{
-		lights_data_ = lights_data;
-	}
+		gos_SetRenderState(gos_State_Texture, texture_id_);
+		gos_SetRenderViewport(rs.viewport_[2], rs.viewport_[3], rs.viewport_[0], rs.viewport_[1]);
 
-	void render(HGOSBUFFER vb, HGOSBUFFER ib, HGOSVERTEXDECLARATION vdecl, DWORD texture_id, const TG_HWLightsData& lights, float alpha, float hud_element)
-	{
-		gos_SetRenderState(gos_State_Texture, texture_id);
-		gos_SetRenderViewport(viewport_[2], viewport_[3], viewport_[0], viewport_[1]);
+		gos_SetRenderMaterialParameter(world_, (const float*)world);
+		gos_SetRenderMaterialParameter(wvp_, (const float*)wvp);
 
-		HGOSRENDERMATERIAL mat = texture_id == 0 ? gos_getRenderMaterial("gos_vertex_lighted") : gos_getRenderMaterial("gos_tex_vertex_lighted");
+		const float mesh_params[4] = { rs.alpha_, hud_element, 0.0f, 0.0f };
+		gos_SetRenderMaterialParameter(mesh_params_, mesh_params);
 
-		gos_SetRenderMaterialParameterMat4(mat, "world_", (const float*)*world_);
-		//gos_SetRenderMaterialParameterMat4(mat, "view_", (const float*)*view_);
-		gos_SetRenderMaterialParameterMat4(mat, "wvp_", (const float*)*wvp_);
+		const float* sun_dir = rs.lights_.lightDir[HW_LIGHT_SUN];
+		const float sun_dir_count[4] = { sun_dir[0], sun_dir[1], sun_dir[2], (float)rs.lights_.numLights_ };
+		gos_SetRenderMaterialParameter(sun_color_, rs.lights_.lightColor[HW_LIGHT_SUN]);
+		gos_SetRenderMaterialParameter(sun_dir_, sun_dir_count);
+		gos_SetRenderMaterialParameter(ambient_, rs.lights_.lightColor[HW_LIGHT_AMBIENT]);
 
-		if (texture_id != 0)	// the untextured shader has no such uniforms
-		{
-			const float mesh_params[4] = { alpha, hud_element, 0.0f, 0.0f };
-			gos_SetRenderMaterialParameterFloat4(mat, "mesh_params_", mesh_params);
+		gos_SetRenderMaterialParameter(projection_, (const float*)gos_GetProjection());
+		gos_SetRenderMaterialParameter(vp_, (const float*)gos_GetRenderViewport());
 
-			const float* sun_dir = lights.lightDir[HW_LIGHT_SUN];
-			const float sun_dir_count[4] = { sun_dir[0], sun_dir[1], sun_dir[2], (float)lights.numLights_ };
-			gos_SetRenderMaterialParameterFloat4(mat, "light_sun_color_", lights.lightColor[HW_LIGHT_SUN]);
-			gos_SetRenderMaterialParameterFloat4(mat, "light_sun_dir_", sun_dir_count);
-			gos_SetRenderMaterialParameterFloat4(mat, "light_ambient_", lights.lightColor[HW_LIGHT_AMBIENT]);
-		}
-
-		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);
-
-        const mat4& projection = gos_GetProjection();
-        const vec4& vp = gos_GetRenderViewport();
-
-        gos_SetRenderMaterialParameterMat4(mat, "projection_", projection);
-        gos_SetRenderMaterialParameterFloat4(mat, "vp", vp);
-
-		gos_ApplyRenderMaterial(mat);
+		gos_ApplyRenderMaterial(mat_);
 
 		// TODO: either use this or setMat4("wvp_", ...);
 		//mat->setTransform(*wvp_);
 
-		gos_RenderIndexedArray(ib, vb, vdecl);
-
+		gos_RenderIndexedArray(rs.ib_, rs.vb_, rs.vdecl_);
 	}
 
 };
@@ -961,6 +953,7 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 {
 	static bool bSkip = true;
+	ShapeRenderer shape_renderer;
 
 	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
 
@@ -1011,17 +1004,11 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 				}
 				else
 				{
-					DWORD texture = masterTextureNodes[textureIndex].get_gosTextureHandle();
+					if (sh == 0)	// one texture and one alpha test per node
+						shape_renderer.setMaterial(masterTextureNodes[textureIndex].get_gosTextureHandle());
+
 					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
-
-					
-					mat4 view_mat = gos2my(TG_Shape::s_worldToCamera);
-					mat4 world_mat = gos2my(rs->mw_);
-					mat4 wvp_mat = gos2my(rs->mvp_);
-
-					ShapeRenderer shape_renderer;
-					shape_renderer.setup(&world_mat, &view_mat, &wvp_mat, rs->viewport_);
-					shape_renderer.render(rs->vb_, rs->ib_, rs->vdecl_, texture, rs->lights_, rs->alpha_, hudElement);
+					shape_renderer.render(*rs, gos2my(rs->mw_), gos2my(rs->mvp_), hudElement);
 				}
 
 			}

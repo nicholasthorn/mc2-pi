@@ -129,6 +129,12 @@ struct glsl_program {
     bool setMat3(const char* name, const float v[9]);
     bool setMat4(const char* name, const float v[16]);
     bool setMat4(const std::string& name , const float v[16]);
+
+    // for a value set on every draw: the uniform looked up once (NULL if the
+    // program has no such uniform), good until the next reload()
+    glsl_uniform* findUniform(const char* name);
+    // v must be the size of the uniform's type; uni may be NULL
+    static void setUniform(glsl_uniform* uni, const void* v);
    
     bool is_valid();
 

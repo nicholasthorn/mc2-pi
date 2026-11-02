@@ -833,6 +833,18 @@ bool glsl_program::setFloat3(const char* name, const float v[3])
     return false;
 }
 
+glsl_uniform* glsl_program::findUniform(const char* name)
+{
+    UniArr_t::iterator it = uniforms_.find(name);
+    return it != uniforms_.end() ? it->second : nullptr;
+}
+
+void glsl_program::setUniform(glsl_uniform* uni, const void* v)
+{
+    if(uni)
+        setUniformData(uni, v);
+}
+
 bool glsl_program::setFloat4(const std::string& name, const float v[4])
 {
     UniArr_t::iterator it = uniforms_.find(name);
