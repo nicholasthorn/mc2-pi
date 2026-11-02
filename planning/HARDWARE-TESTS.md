@@ -105,14 +105,19 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       (one click per pull, nothing lost), grip right-clicks, drags on the
       panel work; a trigger pulled off the panel and swept onto it does
       not click; left stick pans the right way, right stick turns the
-      right way and zooms (up is in); B + click force-fires; menu pauses;
+      right way and zooms (up is in); menu pauses;
       A brings the HUD in front, held A + left stick moves and sizes it
       and logs `MC2_XR_HUD`. The system menu or Guardian releases
       everything (no stuck scroll or button). 2026-11-01: panel clicks,
       sticks, system menu, click hold (side buttons, move orders, drags),
       A and held A all fine; held A moved to the left stick alone
-      afterwards (to check). Not tried: grip, B force fire, menu button,
-      Guardian.
+      afterwards (to check). Not tried: grip, menu button, Guardian.
+- [ ] **Button map** (branch `vr-button-map`): hold X and click ground: a mech
+      runs. Hold Y and click ground: a jump-capable mech jumps. Hold the left
+      stick in and click a building or ground: it fires there. Hold B and click
+      several points, then let go: waypoints run in order. Right stick click
+      selects the units in view. Pushing a stick to pan or turn does not click
+      it by accident (a stray right stick click changes the selection).
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.

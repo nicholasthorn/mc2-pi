@@ -743,8 +743,14 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   the panning, which would otherwise turn too, and the zoom, whose keys do
   nothing with shift down) and zooms (keypad + / -),
   with hysteresis (on at 0.5, off below 0.3).
-- **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
-  button is Escape (pause menu).
+- **Buttons** (remapped 2026-11-02, for what is used mid-fight; pointing at
+  small HUD buttons is the slow part in a headset): held while the other hand
+  clicks, B waypoints (Ctrl), X run (Space), Y jump (J), left stick click force
+  fire (F). Right stick click selects the visible units (E); the left menu
+  button is Escape (pause menu). This gives up Shift (add to a selection) and
+  Alt (the mouse moving the camera); turning still sends Shift by itself, and
+  the game matches modifiers exactly, so a command held while turning waits for
+  the turn to end.
 - **The HUD can be moved:** A puts the quad in front of where the head is
   and faces (keeping its distance and angle). Holding A, the left stick
   up raises it (down: lowers) and right makes it larger (left: smaller);
