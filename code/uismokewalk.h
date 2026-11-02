@@ -84,6 +84,7 @@ enum class UiAction {
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force
 	AssignPilot,		// pilotready+pilot: give the selected mech slot the selected pilot
+	ShowMech,			// pilotready+mech: show the first mech of the force, not the pilot
 	PickSkill,			// promotion+skill: check the first specialty skill
 	NameSave,			// save+name: type the walk's save name ("uismoke")
 	PickSave,			// load+pick: pick the walk's save from the list

@@ -763,7 +763,7 @@ void aText::setText( long resID )
 {
 	char tmp[1280];
 	cLoadString( resID, tmp, 1279 );
-	if (tmp[0] != 0)
+	if (tmp[0] != 0 || resID == 0)
 		text = tmp;
 	else
 	{

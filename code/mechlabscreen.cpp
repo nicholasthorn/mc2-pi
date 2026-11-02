@@ -495,6 +495,9 @@ void MechLabScreen::update()
 	{
 		swapVariant();
 	}
+	// Omnitech's layout has a line for the variant under the chassis
+	if ( !stockLayout && textCount > 17 )
+		textObjects[17].setText( tmp );
 
 	
 

@@ -213,6 +213,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechPurchase, "buy", UiAction::BuyMech },
 	{ UiScreen::MechBay, "add", UiAction::AddToForce },
 	{ UiScreen::PilotReady, "pilot", UiAction::AssignPilot },
+	{ UiScreen::PilotReady, "mech", UiAction::ShowMech },
 	{ UiScreen::Promotion, "skill", UiAction::PickSkill },
 	{ UiScreen::Save, "name", UiAction::NameSave },
 	{ UiScreen::Load, "pick", UiAction::PickSave },

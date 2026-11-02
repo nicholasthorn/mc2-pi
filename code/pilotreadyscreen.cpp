@@ -11,6 +11,7 @@ PilotReadyScreen.cpp			: Implementation of the PilotReadyScreen component.
 #include"logisticsmechicon.h"
 #include "../resource.h"
 #include"mechbayscreen.h"
+#include"missionbriefingscreen.h"
 #include"warrior.h"
 #include"gamesound.h"
 #include"multplyr.h"
@@ -173,6 +174,7 @@ void PilotReadyScreen::begin()
 	getButton( MB_MSG_PREV )->disable( false );
 	getButton( MB_MSG_MAINMENU )->disable( false );
 	launchFadeTime = 0;
+	showMissionMap();
 	// initialize both the inventory and icon lists
 	EList< LogisticsMech*, LogisticsMech* > mechList;
 	LogisticsData::instance->getInventory( mechList );
@@ -276,6 +278,20 @@ void PilotReadyScreen::begin()
 	
 }
 
+// Omnitech's layout has a static with no art, drawn white until filled, for the
+// tac map of the mission (the same map as the briefing's)
+void PilotReadyScreen::showMissionMap()
+{
+	const long map = 38;
+	if ( stockLayout || staticCount <= map )
+		return;
+
+	long handle = MissionBriefingScreen::getMissionTGA( LogisticsData::instance->getCurrentMission() );
+	statics[map].setTexture( handle );
+	statics[map].setUVs( 0, 127, 127, 0 );
+	statics[map].setColor( handle ? 0xffffffff : 0 );
+}
+
 void PilotReadyScreen::end()
 {
 	mechDisplay.setMech( NULL );
@@ -323,9 +339,18 @@ void PilotReadyScreen::render(int xOffset, int yOffset )
 
 	if ( mechSelected )
 	{
-		// hack, cover up pilot stuff.
-		GUI_RECT rect = { 77 + xOffset, 317 + yOffset, 720+ xOffset, 515 + yOffset };
-		drawRect( rect, 0xff000000 );
+		// hack, cover up pilot stuff. Omnitech's layout has the rects for it,
+		// for the pilot's panel and the tac map
+		if ( stockLayout || rectCount <= 24 )
+		{
+			GUI_RECT rect = { 77 + xOffset, 317 + yOffset, 720+ xOffset, 515 + yOffset };
+			drawRect( rect, 0xff000000 );
+		}
+		else
+		{
+			rects[19].render( xOffset, yOffset );
+			rects[24].render( xOffset, yOffset );
+		}
 		mechDisplay.render( xOffset, yOffset );
 		// hack, cover up list box overrruns (stock layout only: Omnitech's
 		// 27 and 28 are other pieces, and its code drops this)
@@ -791,6 +816,13 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 
 		sprintf( number, "%d", pCurPilot->getMechKills() );
 		textObjects[7].setText( number );
+
+		// Omnitech's layout counts vehicles apart, under their own icon
+		if ( !stockLayout && textCount > 16 )
+		{
+			sprintf( number, "%d", pCurPilot->getVehicleKills() );
+			textObjects[16].setText( number );
+		}
 
 		EString name = pCurPilot->getName();
 		name.MakeUpper();
