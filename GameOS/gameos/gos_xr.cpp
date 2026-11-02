@@ -1342,7 +1342,9 @@ void pollInput()
         g.contextDown[hand] = context > (g.contextDown[hand] ? 0.35f : 0.6f);
         pull[hand] = std::max(select, context);
         const bool pulling = pull[hand] > (g.pulling[hand] ? 0.1f : 0.15f);
-        if(pulling && !g.pulling[hand] && hand != g.pointingHand) {
+        // not while a button is held: the other hand brushing its trigger would
+        // end a drag in mid-air
+        if(pulling && !g.pulling[hand] && hand != g.pointingHand && !g.heldButtons) {
             g.pointingHand = hand;
             g.clickHold = vr_controls::ClickHold();
         }

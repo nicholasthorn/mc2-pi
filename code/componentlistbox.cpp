@@ -261,9 +261,9 @@ void	ComponentListItem::update()
 		
 		if ( !bCanAdd )
 		{
-			if ( userInput->isLeftDrag() && isInside &&
-				pointInside( userInput->getMouseDragX(), userInput->getMouseDragY() )
-				&& ComponentIconListBox::s_instance->pointInside( userInput->getMouseX(), userInput->getMouseY() ) )
+			// the press point alone: the cursor may have left the item by now
+			if ( userInput->isLeftDrag() &&
+				pointInside( userInput->getMouseDragX(), userInput->getMouseDragY() ) )
 				startDrag();
 		}
 	}
