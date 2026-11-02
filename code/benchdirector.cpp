@@ -315,6 +315,9 @@ void moveCamera (void) {
 	// the HUD at any yaw, tilt or altitude.
 	const BenchCameraKey key = scenario.cameraAt(frame);
 	if (frame >= 2) {
+		// VR: the game's own view, not where the head looks: framing through that
+		// would chase the fight across the map, miles from it
+		eye->dropVRHead();
 		const float d = 100.0f;
 		Stuff::Vector3D p = onGround(viewX + key.dx, viewY + key.dy);
 		Stuff::Vector3D px = p, py = p;

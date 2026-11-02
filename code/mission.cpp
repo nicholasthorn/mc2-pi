@@ -511,6 +511,11 @@ long Mission::update (void)
 		const float forcedFOV = (gos_GetBenchFOV() > 0.0f) ? gos_GetBenchFOV() : gos_GetVRFieldOfView();
 		if (forcedFOV > 0.0f)
 			eye->setFixedFieldOfView(forcedFOV);
+		// VR: and it looks where the head does. Here, after the interface read
+		// the pointer, which the frames since the last step projected through
+		// the camera as it was until now.
+		float vrHead[4];
+		eye->setVRHead(gos_GetVRHead(vrHead) ? vrHead : NULL);
 
 		BenchStage("camera",ProfileTime(MCTimeCameraUpdate,eye->update()));
 		
@@ -859,7 +864,8 @@ static void vrPickWorld (void)
 	}
 
 	Stuff::Vector4D screen(0.0f,0.0f,0.0f,0.0f);
-	const bool onScreen = hit && eye->projectZ(target,screen);
+	// in front: a hand pointing away from where the head looks would mirror
+	const bool onScreen = hit && eye->isInFront(target) && eye->projectZ(target,screen);
 	// the pick about once a second (gos_VRPickLog: MC2_XR_PICK_LOG=1)
 	static int logCount = 0;
 	if (gos_VRPickLog() && ((logCount++ % 72) == 0))

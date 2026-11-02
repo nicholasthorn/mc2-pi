@@ -13,7 +13,8 @@
 // Debugging: MC2_XR_POSE=yaw,pitch fixes the head rotation, MC2_XR_SHOT=n
 // saves the left eye and the window frame as TGAs on the n-th eye frame,
 // MC2_XR_MSAA sets the eyes' samples (default 4). MC2_XR_FOV sets the game
-// camera's field of view (gos_GetVRFieldOfView).
+// camera's field of view (gos_GetVRFieldOfView), MC2_XR_FOLLOW=0 keeps it from
+// following the head (gos_GetVRHead).
 //
 // Controllers (VR plan, Phase 3): the ray from the hand that last pulled
 // its trigger or grip is the mouse where it meets the quad; the trigger is
@@ -63,6 +64,9 @@ bool pointerActive();
 // hand's aim pose when the pointer is on the world, and the game's answer.
 bool pointerRay(float position[3], float orientation[4]);
 void setWorldPointer(bool valid, float x, float y, float metres);
+// A trigger on the pointing hand is being pulled, or a button of the virtual
+// mouse is held: a click or a drag is under way (gos_GetVRHead).
+bool pointerPulled();
 void shutdown();
 #else
 inline bool init() { return false; }
@@ -77,6 +81,7 @@ inline void pollInput() {}
 inline bool pointerActive() { return false; }
 inline bool pointerRay(float*, float*) { return false; }
 inline void setWorldPointer(bool, float, float, float) {}
+inline bool pointerPulled() { return false; }
 inline void shutdown() {}
 #endif
 

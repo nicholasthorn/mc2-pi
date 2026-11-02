@@ -149,6 +149,8 @@ drives today: game update, active-block flags, culling decisions that affect
 gameplay, mouse picking and the interface. Add two **render eyes** that only
 draw.
 
+(Revised again: since #79 and #86 the game camera's matrices do follow the head
+in VR, its yaw and pitch stay the game's; see `VR-HEAD-CAMERA.md`.)
 The logic eye **does not follow the head** (revised after the Phase 1 audit):
 it stays the game's own camera at the game's FOV, because what it counts as
 in view drives gameplay (`inView` / `windowsVisible`). The render eyes take
@@ -841,7 +843,7 @@ headset's while in VR:
 - Accepted: VR gameplay then differs from a flat run (state checksums no
   longer match; withdrawing units count as on screen longer).
 - Later, if needed: the game camera following the head's yaw, so turning
-  the head keeps the cone where the player looks.
+  the head keeps the cone where the player looks. Built: `VR-HEAD-CAMERA.md`.
 - Overlaps the culling work (#79): agree it with that branch before
   starting. Widen the picking guard with it: `Camera::seesForGame` keeps
   mouse picking to the game camera's frustum, so widening one without the
