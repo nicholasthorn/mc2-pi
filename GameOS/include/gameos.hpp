@@ -2026,6 +2026,14 @@ bool __stdcall gos_IsVR();
 //
 float __stdcall gos_GetVRFieldOfView();
 //
+// Where the game camera should look in VR: the head's orientation (as
+// gosVREyeView's), for what the game counts as in view and picks to be where the
+// player looks. False to keep the game's own view: not in VR, no head yet, or
+// MC2_XR_FOLLOW=0. It stays as it was while the system menu is up and through a
+// click or a drag. MC2_VR_PATHS=1 on a desktop takes it from MC2_XR_POSE.
+//
+bool __stdcall gos_GetVRHead( float orientation[4] );
+//
 // True when VR controllers point instead of the mouse and draw their own
 // pointer (a beam and a dot): the game then draws no mouse cursor.
 //

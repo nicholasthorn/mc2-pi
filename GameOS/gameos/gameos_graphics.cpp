@@ -3011,6 +3011,33 @@ float __stdcall gos_GetVRFieldOfView()
     return fov;
 }
 
+bool __stdcall gos_GetVRHead(float orientation[4])
+{
+    static const bool follows = !(getenv("MC2_XR_FOLLOW") && getenv("MC2_XR_FOLLOW")[0] == '0');
+    if(!follows || !gos_IsVR())
+        return false;
+
+    // kept when there are no eyes (the system menu) and through a click or a
+    // drag: the pointer holds still on the game's screen then, and the game
+    // would take a screen that turned under it for a move, so for a drag
+    static bool haveHead = false;
+    static float head[4];
+    gosVREyeView views[2];
+    if(!gos_xr::pointerPulled() && gos_GetVREyeViews(views) == 2) {
+        memcpy(head, views[0].orientation, sizeof(head));
+        haveHead = true;
+    } else if(!haveHead) {
+        // MC2_VR_PATHS=1 has no head: only a fixed pose turns the camera, the
+        // desktop test of all this
+        const char* pose = getenv("MC2_XR_POSE");
+        if(!pose || !vr_eye::parseHeadPose(pose, head))
+            return false;
+        haveHead = true;
+    }
+    memcpy(orientation, head, sizeof(head));
+    return true;
+}
+
 bool __stdcall gos_GetVRKeepGamePitch()
 {
     static const bool keep = getenv("MC2_VR_GAME_PITCH") && getenv("MC2_VR_GAME_PITCH")[0] == '1';

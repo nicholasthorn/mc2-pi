@@ -1985,6 +1985,27 @@ void Camera::inverseProjectZ (Stuff::Vector4D &screen, Stuff::Vector3D &point)
 	if ((viewMulX < Stuff::SMALL) || (viewMulY < Stuff::SMALL))
 		return;
 
+	//VR: the depth guessed below assumes a camera pitched down at a narrow view:
+	//at the headset's, or with the head level, the corners of the screen land
+	//anywhere. Its one user is the minimap's wedge: meet the ground instead.
+	if (gos_IsVR())
+	{
+		const float tanX = tan(camera_fov * 0.5f * DEGREES_TO_RADS);
+		const float tanY = tanX * screenResolution.y / screenResolution.x;
+		const float i[3] = {cameraFrame.i.x, cameraFrame.i.y, cameraFrame.i.z};
+		const float j[3] = {cameraFrame.j.x, cameraFrame.j.y, cameraFrame.j.z};
+		const float k[3] = {cameraFrame.k.x, cameraFrame.k.y, cameraFrame.k.z};
+		const float origin[3] = {-physicalPos.x, physicalPos.z, physicalPos.y};
+		float ground[3];
+		vr_eye::screenToGround(i, j, k, origin, tanX, tanY,
+			screen.x * 2.0f / screenResolution.x - 1.0f, screen.y * 2.0f / screenResolution.y - 1.0f,
+			position.z, MaxClipDistance, ground);
+		point.x = ground[0];
+		point.y = ground[1];
+		point.z = ground[2];
+		return;
+	}
+
 	if ((screen.w == 0.0f) || (screen.z == 0.0f))
 	{
 		if (startZInverse > 1.0f)
@@ -2233,6 +2254,26 @@ bool CameraLineOfSight (Stuff::Vector3D position, Stuff::Vector3D targetPosition
 }
 
 //------------------------------------------------------------
+// VR: a camera matrix as vr_eye sees it. The rows of cameraOrigin are the
+// camera's axes in world space: as projectZ maps them, LEFT_AXIS is screen
+// left, UP_AXIS screen down and FORWARD_AXIS forward.
+static vr_eye::Basis basisOf (const Stuff::LinearMatrix4D &origin)
+{
+	vr_eye::Basis basis;
+	for (int c=0;c<3;c++)
+	{
+		basis.x[c] = origin(LEFT_AXIS,c);
+		basis.y[c] = origin(UP_AXIS,c);
+		basis.z[c] = origin(FORWARD_AXIS,c);
+	}
+	Stuff::Point3D position(origin);
+	basis.position[0] = position.x;
+	basis.position[1] = position.y;
+	basis.position[2] = position.z;
+	return basis;
+}
+
+//------------------------------------------------------------
 void Camera::setCameraOrigin (void)
 {
 	if (!usePerspective)
@@ -2329,23 +2370,10 @@ void Camera::setCameraOrigin (void)
 
 	//------------------------------------------------------------
 	// VR: the head-tracked eye, the game camera above turned and moved by
-	// the head (vr_eye::eyeBasis). The rows of cameraOrigin are the camera's
-	// axes in world space: as projectZ maps them, LEFT_AXIS is screen left,
-	// UP_AXIS screen down and FORWARD_AXIS forward. World up is y.
+	// the head (vr_eye::eyeBasis). World up is y.
 	if (vrEye)
 	{
-		vr_eye::Basis game;
-		for (int c=0;c<3;c++)
-		{
-			game.x[c] = cameraOrigin(LEFT_AXIS,c);
-			game.y[c] = cameraOrigin(UP_AXIS,c);
-			game.z[c] = cameraOrigin(FORWARD_AXIS,c);
-		}
-		Stuff::Point3D gamePosition(cameraOrigin);
-		game.position[0] = gamePosition.x;
-		game.position[1] = gamePosition.y;
-		game.position[2] = gamePosition.z;
-
+		const vr_eye::Basis game = basisOf(cameraOrigin);
 		float headPosition[3], headOrientation[4];
 		vr_eye::fromXr(vrEye->position, vrEye->orientation, headPosition, headOrientation);
 		const float worldUp[3] = {0.0f, 1.0f, 0.0f};
@@ -2358,6 +2386,32 @@ void Camera::setCameraOrigin (void)
 			cameraOrigin(FORWARD_AXIS,c) = eye.z[c];
 		}
 		cameraOrigin.BuildTranslation(Stuff::Point3D(eye.position[0],eye.position[1],eye.position[2]));
+	}
+	// VR: the game camera itself, outside the eyes' passes, looks where the
+	// head does (planning/future-features/VR-HEAD-CAMERA.md): the picture is the
+	// eyes', so only what it counts as in view moves, and what reads it for that
+	// goes with it: the matrices, cameraFrame and lookVector. cameraRotation and
+	// projectionAngle stay the game's, for the sticks, the sound and the eyes.
+	else if (vrFollowsHead)
+	{
+		vrGameOrigin = cameraOrigin;
+		const float worldUp[3] = {0.0f, 1.0f, 0.0f};
+		const vr_eye::Basis follow = vr_eye::followHead(basisOf(cameraOrigin), worldUp, vrHead, gos_GetVRKeepGamePitch());
+		for (int c=0;c<3;c++)
+		{
+			cameraOrigin(LEFT_AXIS,c) = follow.x[c];
+			cameraOrigin(UP_AXIS,c) = follow.y[c];
+			cameraOrigin(FORWARD_AXIS,c) = follow.z[c];
+		}
+		float view[3], i[3], j[3], k[3];
+		vr_eye::viewDirection(follow, view);
+		lookVector.x = view[0];
+		lookVector.y = view[1];
+		lookVector.z = view[2];
+		vr_eye::worldFrame(follow, i, j, k);
+		cameraFrame.i.x = i[0]; cameraFrame.i.y = i[1]; cameraFrame.i.z = i[2];
+		cameraFrame.j.x = j[0]; cameraFrame.j.y = j[1]; cameraFrame.j.z = j[2];
+		cameraFrame.k.x = k[0]; cameraFrame.k.y = k[1]; cameraFrame.k.z = k[2];
 	}
 
 	//------------------------------------------------------------
@@ -2382,17 +2436,7 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 {
 	if (vrEye)
 		return false;
-	vr_eye::Basis game;
-	for (int c=0;c<3;c++)
-	{
-		game.x[c] = cameraOrigin(LEFT_AXIS,c);
-		game.y[c] = cameraOrigin(UP_AXIS,c);
-		game.z[c] = cameraOrigin(FORWARD_AXIS,c);
-	}
-	Stuff::Point3D gamePosition(cameraOrigin);
-	game.position[0] = gamePosition.x;
-	game.position[1] = gamePosition.y;
-	game.position[2] = gamePosition.z;
+	const vr_eye::Basis game = basisOf(vrFollowsHead ? vrGameOrigin : cameraOrigin);
 
 	float position[3], orientation[4];
 	vr_eye::fromXr(xrPosition, xrOrientation, position, orientation);
@@ -2412,6 +2456,14 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 	direction.y = view[2];
 	direction.z = view[1];
 	return true;
+}
+
+//---------------------------------------------------------------------------
+void Camera::setVRHead (const float orientation[4])
+{
+	vrFollowsHead = (orientation != NULL) && usePerspective;
+	if (orientation)
+		memcpy(vrHead,orientation,sizeof(vrHead));
 }
 
 //---------------------------------------------------------------------------
