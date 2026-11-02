@@ -1,6 +1,7 @@
 #include "gameos.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include "utils/vec.h"
@@ -385,6 +386,17 @@ void __stdcall gosAudio_CreateResource( HGOSAUDIO* hgosaudio, enum gosAudio_Reso
 
         from_file = true;
 
+#ifdef __ANDROID__
+        // SDL on Android looks for a relative path in the internal folder and
+        // the APK's assets, not the current directory (android_prepare)
+        std::string android_path;
+        const char* android_dir = SDL_AndroidGetExternalStoragePath();
+        if(android_dir && file_name[0] != '/') {
+            android_path = std::string(android_dir) + "/" + file_name;
+            file_name = android_path.c_str();
+        }
+#endif
+
 #ifndef USE_MIX_LOAD
         SDL_AudioSpec spec;
         SDL_AudioSpec* pspec;
@@ -410,7 +422,9 @@ void __stdcall gosAudio_CreateResource( HGOSAUDIO* hgosaudio, enum gosAudio_Reso
 #else
         chunk = Mix_LoadWAV(file_name);
         if(NULL == chunk) {
-            SPEW(("AUDIO", "gosAudio_CreateResource: Failed to load %s, %s\n", file_name, Mix_GetError()));
+            // PAUSE, not SPEW, which a release build compiles out: silent music
+            // and voices have to show up in the log
+            PAUSE(("gosAudio_CreateResource: Failed to load %s, %s\n", file_name, Mix_GetError()));
             *hgosaudio = NULL;
             return;
         }
