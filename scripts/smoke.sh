@@ -15,7 +15,8 @@
 #   --game-dir DIR    built game data (data/, assets/, *.fst, *.cfg); required
 #   --build-dir DIR   copy mc2, libmc2res_64.so and shaders/ from this build
 #                     into the game dir first (default: use what is there)
-#   --missions "..."  missions to run (default: mc2_01 mc2_03)
+#   --missions "..."  missions to run (default: mc2_01 mc2_03); separate
+#                     them with "|" instead when a name has spaces
 #   --frames N        frames per mission before -autoexit (default: 600)
 #   --ui "..."        front-end walks to run, space separated; each is a
 #                     comma-separated list of screens for -uismoke, each
@@ -202,24 +203,42 @@ report() {
 EXTRA=()
 [ "$DETERMINISTIC" = 1 ] && EXTRA=(-deterministic)
 
-# mission_checks LOG: add to reasons when the run never reached [AUTOEXIT],
-# or spent its frames before the mission started. code/mission.cpp prints
-# [MISSION] on the mission's first frame; it must come before [AUTOEXIT] or
-# the frames were spent in menus / loading.
+# mission_checks LOG NAME: add to reasons when the run never reached
+# [AUTOEXIT], spent its frames before the mission started, or started another
+# mission. code/mission.cpp prints "[MISSION] <name> started" on the
+# mission's first frame; it must come before [AUTOEXIT] or the frames were
+# spent in menus / loading.
 mission_checks() {
-    local log="$1" mline aline
+    local log="$1" name="$2" mline aline started
     grep -q '^\[AUTOEXIT\]' "$log" || reasons+=("never reached $FRAMES frames")
     mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
     aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
     if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
         reasons+=("mission never started")
     fi
+    # a name the game cut short can load another mission ("regis city
+    # battle" as "regis")
+    started=$(grep -m1 '^\[MISSION\]' "$log" | sed 's/^\[MISSION\] //; s/ started$//')
+    if [ -n "$started" ] && [ "${started,,}" != "${name,,}" ]; then
+        reasons+=("started mission '$started'")
+    fi
 }
 
-for m in $MISSIONS; do
+# Mission names with spaces (some fan campaigns: "azure sea"): --missions
+# separated by "|" instead of spaces. The game splits its command line at
+# spaces and keeps a quoted name whole (ParseCommandLine, mechcmd2.cpp).
+if [[ "$MISSIONS" == *"|"* ]]; then
+    IFS='|' read -ra MISSION_LIST <<< "$MISSIONS"
+else
+    read -ra MISSION_LIST <<< "$MISSIONS"
+fi
+
+for m in "${MISSION_LIST[@]}"; do
     log="$LOG_DIR/$m.log"
-    run_game "$log" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
-    mission_checks "$log"
+    arg="$m"
+    case "$m" in *" "*) arg="\"$m\"" ;; esac
+    run_game "$log" -mission "$arg" -autoexit "$FRAMES" "${EXTRA[@]}"
+    mission_checks "$log" "$m"
     summary="$(grep -m1 '^\[AUTOEXIT\]' "$log")"
     if [ "$DETERMINISTIC" = 1 ]; then
         # A second run must end in the same game state: [STATEHASH] is the
@@ -228,8 +247,8 @@ for m in $MISSIONS; do
         # on, to find where two runs part (code/benchdirector.cpp).
         first=("${reasons[@]}"); first_secs=$secs
         log2="$LOG_DIR/$m.again.log"
-        run_game "$log2" -mission "$m" -autoexit "$FRAMES" "${EXTRA[@]}"
-        mission_checks "$log2"
+        run_game "$log2" -mission "$arg" -autoexit "$FRAMES" "${EXTRA[@]}"
+        mission_checks "$log2" "$m"
         nbad2=$(grep -cE "$BAD" "$log2")
         [ "$nbad2" -gt 0 ] && reasons+=("$nbad2 error line(s) ($log2)")
         second=("${reasons[@]}")

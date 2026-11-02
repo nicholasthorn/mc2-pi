@@ -522,9 +522,36 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    ModDB (`moddb.com/mods/mechcommander-omnitech/downloads`), Inno Setup
    installers holding only data, unpacked with `innoextract`. Desert Fox
    (5 missions, `desfox1..5`): installed over the Omnitech folder with
-   lower-case names, no clashes; all 5 pass a 300-frame smoke. Not yet
-   downloaded: Carver V (both), Wolf Dragoons, Clan Eagle, Day of Heroes,
-   Laskos Legion, Volstand, Mercenaries Star.
+   lower-case names, no clashes; all 5 pass a 300-frame smoke.
+   The other eight (2026-11-01), each checked against ModDB's MD5 and
+   unpacked the same way (never run); every mission of each campaign file
+   passes a 300-frame smoke:
+
+   | Pack | Campaign file | Missions |
+   |---|---|---|
+   | Mercenaries Star | `mercenarys star.fit` | 9 |
+   | The Liberation of Volstand | `volstand.fit` | 23 |
+   | Laskos Legion | `laksos legion.fit` | 12 |
+   | Day of Heroes | `day of heroes.fit` | 15 |
+   | Clan Eagle | `eagle_2.01.fit` | 16 |
+   | Wolf Dragoons | `wolfsdragoons.fit` | 21 |
+   | Carver V (original) | `carver V original.fit` | 24 |
+   | Carver V (modified) | `carver5.fit` | 24 |
+
+   - The first six share one game folder: none of their files clash with
+     Omnitech's or with each other (125 are identical copies of Omnitech
+     files). Both Carver V packs replace the stock-named missions
+     `mc2_01`..`mc2_24` (and a few sounds and texture lists), differently,
+     so each needs its own folder.
+   - Mercenaries Star and Wolf Dragoons name some missions with spaces
+     ("azure sea", "epsilon eridani"). The game splits its command line at
+     spaces, so `-mission azure sea` looked for `azure.fit`, and "regis
+     city battle" ran `regis`, another of the pack's missions, and passed.
+     `smoke.sh --missions` now takes a `|`-separated list for such names,
+     passes them quoted (the game keeps a quoted name whole), and fails a
+     run that starts a mission other than the one asked for.
+   - Smoke only: the campaigns themselves (logistics, purchase files, the
+     ABL mission brains over a whole campaign) are not played through.
 
 ## Scope if we do this
 
