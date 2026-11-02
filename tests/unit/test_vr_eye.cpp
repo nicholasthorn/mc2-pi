@@ -185,4 +185,16 @@ TEST_CASE("frustum edges in Camera::setOrthogonal's terms")
 	CHECK(topClip > 0.0f);
 }
 
+TEST_CASE("the view direction is minus z: the engine camera looks that way")
+{
+	// a pointer ray taken along z went up when the hand pointed down (Quest,
+	// VR plan Phase 3); minus z is where the eye, or a pointer, points
+	const vr_eye::Basis eye = vr_eye::eyeBasis(gameCamera(0.6f), kWorldUp, kIdentity, kNoMove, 5.0f, false);
+	float direction[3];
+	vr_eye::viewDirection(eye, direction);
+	CHECK(near3(direction, -eye.z[0], -eye.z[1], -eye.z[2]));
+	// level with the ground for a level head (the horizon stays level)
+	CHECK(direction[1] == doctest::Approx(0.0f).epsilon(1e-5));
+}
+
 }

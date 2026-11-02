@@ -13,6 +13,17 @@
 // Debugging: MC2_XR_POSE=yaw,pitch fixes the head rotation, MC2_XR_SHOT=n
 // saves the left eye and the window frame as TGAs on the n-th eye frame,
 // MC2_XR_MSAA sets the eyes' samples (default 4).
+//
+// Controllers (VR plan, Phase 3): the ray from the hand that last pulled
+// its trigger or grip is the mouse where it meets the quad; the trigger is
+// the left button, the grip the right. Left stick: pan (arrow keys); right
+// stick: turn (shift + left / right) and zoom (keypad + / -). B holds Ctrl,
+// X Shift, Y Alt; the left menu button is Escape. A puts the quad in front
+// of the head; holding A, the left stick raises it (up) or lowers it (down)
+// and makes it larger (right) or smaller (left), and letting go logs the
+// MC2_XR_HUD value to keep. MC2_XR_HUD=distance,
+// degrees,width sets where it starts (default 1.5 m, 30 degrees below the
+// horizon, 2 m wide; with MC2_XR_EYES=0, 1.5 m ahead and 2 m wide).
 
 struct gosVREyeView;
 
@@ -41,6 +52,16 @@ bool exitRequested();
 double logicStep();
 // An OpenXR session exists (gos_IsVR).
 bool active();
+// Every frame, before the input is sampled: reads the controllers into
+// GameOS's virtual mouse and keys.
+void pollInput();
+// The controllers stand in for the mouse, with their own pointer drawn as
+// a beam and a dot: the game draws no cursor.
+bool pointerActive();
+// World picking (gos_GetVRPointerRay, gos_SetVRWorldPointer): the pointing
+// hand's aim pose when the pointer is on the world, and the game's answer.
+bool pointerRay(float position[3], float orientation[4]);
+void setWorldPointer(bool valid, float x, float y, float metres);
 void shutdown();
 #else
 inline bool init() { return false; }
@@ -51,6 +72,10 @@ inline bool present(int, int) { return false; }
 inline bool exitRequested() { return false; }
 inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
+inline void pollInput() {}
+inline bool pointerActive() { return false; }
+inline bool pointerRay(float*, float*) { return false; }
+inline void setWorldPointer(bool, float, float, float) {}
 inline void shutdown() {}
 #endif
 

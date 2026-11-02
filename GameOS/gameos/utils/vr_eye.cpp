@@ -1,4 +1,5 @@
 #include "utils/vr_eye.h"
+#include "utils/vr_math.h"
 
 #include <cmath>
 
@@ -32,15 +33,6 @@ void flatten(const float v[3], const float n[3], float out[3])
 {
     const float d = dot(v, n);
     out[0] = v[0] - d * n[0]; out[1] = v[1] - d * n[1]; out[2] = v[2] - d * n[2];
-}
-
-// the rotation matrix of a unit quaternion, m[row][column], for column vectors
-void quatToMatrix(const float q[4], float m[3][3])
-{
-    const float x = q[0], y = q[1], z = q[2], w = q[3];
-    m[0][0] = 1.0f - 2.0f * (y * y + z * z); m[0][1] = 2.0f * (x * y - z * w);        m[0][2] = 2.0f * (x * z + y * w);
-    m[1][0] = 2.0f * (x * y + z * w);        m[1][1] = 1.0f - 2.0f * (x * x + z * z); m[1][2] = 2.0f * (y * z - x * w);
-    m[2][0] = 2.0f * (x * z - y * w);        m[2][1] = 2.0f * (y * z + x * w);        m[2][2] = 1.0f - 2.0f * (x * x + y * y);
 }
 
 }
@@ -92,7 +84,7 @@ Basis eyeBasis(const Basis& game, const float worldUp[3], const float headOrient
         for(int c = 0; c < 3; ++c)
             pitch[a][c] = keepGamePitch ? dot(gameAxes[a], g[c]) : (a == c ? 1.0f : 0.0f);
     float head[3][3];
-    quatToMatrix(headOrientation, head);
+    vr_math::toMatrix(headOrientation, head);
 
     Basis eye;
     float* eyeAxes[3] = {eye.x, eye.y, eye.z};
@@ -107,6 +99,13 @@ Basis eyeBasis(const Basis& game, const float worldUp[3], const float headOrient
         eye.position[c] = game.position[c] + unitsPerMetre
                 * (g[0][c] * headPosition[0] + g[1][c] * headPosition[1] + g[2][c] * headPosition[2]);
     return eye;
+}
+
+void viewDirection(const Basis& eye, float direction[3])
+{
+    direction[0] = -eye.z[0];
+    direction[1] = -eye.z[1];
+    direction[2] = -eye.z[2];
 }
 
 void clipEdges(const float fov[4], float near, float& leftClip, float& rightClip,

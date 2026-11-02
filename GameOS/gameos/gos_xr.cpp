@@ -6,6 +6,10 @@
 // present() copies the window's frame into the quad's swapchain and submits
 // the eyes as a projection layer with the quad on top, in LOCAL space
 // (origin where the head was when the session started).
+//
+// Controllers (pollInput, every frame): the pointing hand's ray becomes the
+// mouse where it meets the quad, the sticks and buttons become keys (see
+// gos_xr.h for the mapping), through GameOS's virtual mouse and keyboard.
 
 #include "gos_xr.h"
 
@@ -13,16 +17,19 @@
 #include "utils/graphics.h"
 #include "utils/gl_utils.h"
 #include "utils/tga_writer.h"
+#include "utils/vr_controls.h"
 
 #include <EGL/egl.h>
 #include <SDL2/SDL.h>
 #include <jni.h>
+#include "gos_input.h"      // after SDL, which it uses
 
 #define XR_USE_PLATFORM_ANDROID
 #define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -41,6 +48,42 @@ const float kScreenWidth = 2.0f;
 const float kHudDistance = 1.5f;
 const float kHudDown = 0.52f;           // radians below the horizon (30 degrees)
 const float kHudWidth = 2.0f;
+
+// the pointer stays this many of the game's screen pixels inside its edges,
+// where the game would scroll the map (the sticks do that)
+const float kPointerMargin = 12.0f;
+
+// the pointer's beam: its width, and its length when it meets nothing; the
+// dot's size where it meets the quad (metres)
+const float kBeamWidth = 0.006f;
+const float kBeamLength = 1.5f;
+const float kDotSize = 0.025f;
+
+// the controllers' buttons that are not per hand
+enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_COUNT };
+
+// What the pointer is on: the interface on the quad (where its alpha shows
+// something drawn), the world (through the quad's see-through parts, or
+// beside it), or nothing (no controller pose).
+enum PointerTarget { TARGET_NONE, TARGET_HUD, TARGET_WORLD };
+// the window's alpha above which the quad shows interface
+const float kInterfaceAlpha = 0.1f;
+// how near (on the game's screen, 0 to 1) the alpha's reading must be to the
+// world pick for it to count
+const float kAlphaNear = 0.01f;
+
+// The window frame's alpha at up to two points (the quad under the ray, and
+// where the world pick lands on the game's screen), read back without
+// waiting: each frame's request is read on a later frame, once the GPU has
+// finished it.
+struct AlphaProbe {
+    static const int kSlots = 3;
+    GLuint pbo[kSlots] = {};
+    GLsync fence[kSlots] = {};
+    bool wanted[kSlots][2] = {};
+    float worldAt[kSlots][2] = {};     // where the world point was read
+    int next = 0;
+};
 
 struct Image {
     XrSwapchain swapchain = XR_NULL_HANDLE;
@@ -76,6 +119,58 @@ struct State {
     XrQuaternionf fixedOrientation = {};
     int shotFrame = -1;
     int eyeFrames = 0;
+    // the quad: placed at hudYaw from hudOrigin (MC2_XR_HUD, button A)
+    XrSpace viewSpace = XR_NULL_HANDLE;     // the head
+    float hudOrigin[3] = {0.0f, 0.0f, 0.0f};
+    float hudYaw = 0.0f;
+    float hudDistance = kHudDistance;
+    float hudDown = kHudDown;
+    float hudWidth = kHudWidth;
+    vr_controls::Pose hud = {};
+    bool hudAdjusted = false;
+    // controllers: 0 left hand, 1 right
+    XrActionSet actionSet = XR_NULL_HANDLE;
+    XrPath hands[2] = {XR_NULL_PATH, XR_NULL_PATH};
+    XrAction aimAction = XR_NULL_HANDLE;
+    XrAction selectAction = XR_NULL_HANDLE;
+    XrAction contextAction = XR_NULL_HANDLE;
+    XrAction stickAction = XR_NULL_HANDLE;
+    XrAction buttonActions[BUTTON_COUNT] = {};
+    XrSpace aimSpaces[2] = {XR_NULL_HANDLE, XR_NULL_HANDLE};
+    int pointingHand = 1;
+    bool selectDown[2] = {false, false};
+    bool contextDown[2] = {false, false};
+    bool pulling[2] = {false, false};   // trigger or grip on its way down
+    vr_controls::ClickHold clickHold;
+    bool buttonDown[BUTTON_COUNT] = {};
+    uint32_t stickActions = 0;
+    bool pointerHeld = false;       // a button went down with the pointer on a target
+    uint32_t heldButtons = 0;       // the pointing hand's, as mouse button bits
+    uint32_t ignoredButtons = 0;    // pressed with no target, not yet let go
+    PointerTarget target = TARGET_NONE;
+    PointerTarget pressTarget = TARGET_NONE;    // kept while a button is held
+    float hudU = 0.5f, hudV = 0.5f; // the quad under the ray, when on it
+    bool onQuad = false;
+    // the game's world pick (gos_SetVRWorldPointer): where on its screen
+    // (0 to 1) and how far along the ray (metres); stale after a frame
+    // without an answer
+    bool worldValid = false;
+    float worldX = 0.0f, worldY = 0.0f, worldMetres = 0.0f;
+    int worldAge = 0;
+    // the window's alpha at the quad point and at the world pick
+    AlphaProbe probe;
+    float hudAlpha = 1.0f;
+    float worldAlpha = 0.0f;
+    float worldAlphaX = -1.0f, worldAlphaY = -1.0f;  // where it was read
+    // the held click's point in the world (LOCAL space), for the beam and dot
+    float heldWorldPoint[3] = {0.0f, 0.0f, 0.0f};
+    // the pointer drawn as a beam and a dot (layers over the quad), shown
+    // while the game has the controllers
+    Image beamImage;
+    Image dotImage;
+    bool pointerImagesReady = false;
+    bool pointerVisible = false;
+    float pointerX = 0.0f, pointerY = 0.0f;
 };
 State g;
 
@@ -178,10 +273,261 @@ bool createSession()
     XrReferenceSpaceCreateInfo spaceInfo = xrStruct<XrReferenceSpaceCreateInfo>(XR_TYPE_REFERENCE_SPACE_CREATE_INFO);
     spaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
     spaceInfo.poseInReferenceSpace.orientation.w = 1.0f;
-    return ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.space), "xrCreateReferenceSpace");
+    if(!ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.space), "xrCreateReferenceSpace"))
+        return false;
+    spaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
+    return ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.viewSpace), "xrCreateReferenceSpace(VIEW)");
 }
 
-bool createImage(Image& image, int width, int height, bool withDepth, const char* name)
+XrPath toPath(const char* name)
+{
+    XrPath path = XR_NULL_PATH;
+    ok(xrStringToPath(g.instance, name, &path), name);
+    return path;
+}
+
+XrAction createAction(XrActionType type, const char* name, const char* localizedName, bool perHand)
+{
+    XrActionCreateInfo info = xrStruct<XrActionCreateInfo>(XR_TYPE_ACTION_CREATE_INFO);
+    info.actionType = type;
+    strncpy(info.actionName, name, XR_MAX_ACTION_NAME_SIZE - 1);
+    strncpy(info.localizedActionName, localizedName, XR_MAX_LOCALIZED_ACTION_NAME_SIZE - 1);
+    if(perHand) {
+        info.countSubactionPaths = 2;
+        info.subactionPaths = g.hands;
+    }
+    XrAction action = XR_NULL_HANDLE;
+    ok(xrCreateAction(g.actionSet, &info, &action), name);
+    return action;
+}
+
+// The Touch controllers' actions, bound for the Quest. False leaves the game
+// without controllers (the session still runs).
+bool createActions()
+{
+    g.hands[0] = toPath("/user/hand/left");
+    g.hands[1] = toPath("/user/hand/right");
+
+    XrActionSetCreateInfo setInfo = xrStruct<XrActionSetCreateInfo>(XR_TYPE_ACTION_SET_CREATE_INFO);
+    strncpy(setInfo.actionSetName, "gameplay", XR_MAX_ACTION_SET_NAME_SIZE - 1);
+    strncpy(setInfo.localizedActionSetName, "Gameplay", XR_MAX_LOCALIZED_ACTION_SET_NAME_SIZE - 1);
+    if(!ok(xrCreateActionSet(g.instance, &setInfo, &g.actionSet), "xrCreateActionSet"))
+        return false;
+
+    g.aimAction = createAction(XR_ACTION_TYPE_POSE_INPUT, "point", "Point", true);
+    g.selectAction = createAction(XR_ACTION_TYPE_FLOAT_INPUT, "select", "Select (left mouse)", true);
+    g.contextAction = createAction(XR_ACTION_TYPE_FLOAT_INPUT, "context", "Context (right mouse)", true);
+    g.stickAction = createAction(XR_ACTION_TYPE_VECTOR2F_INPUT, "camera", "Camera", true);
+    g.buttonActions[BUTTON_A] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "place_hud", "Place the interface", false);
+    g.buttonActions[BUTTON_B] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "ctrl", "Ctrl", false);
+    g.buttonActions[BUTTON_X] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "shift", "Shift", false);
+    g.buttonActions[BUTTON_Y] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "alt", "Alt", false);
+    g.buttonActions[BUTTON_MENU] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "escape", "Escape", false);
+    if(!g.aimAction || !g.selectAction || !g.contextAction || !g.stickAction)
+        return false;
+    for(XrAction action : g.buttonActions)
+        if(!action)
+            return false;
+
+    const struct { XrAction action; const char* path; } bindings[] = {
+        {g.aimAction, "/user/hand/left/input/aim/pose"},
+        {g.aimAction, "/user/hand/right/input/aim/pose"},
+        {g.selectAction, "/user/hand/left/input/trigger/value"},
+        {g.selectAction, "/user/hand/right/input/trigger/value"},
+        {g.contextAction, "/user/hand/left/input/squeeze/value"},
+        {g.contextAction, "/user/hand/right/input/squeeze/value"},
+        {g.stickAction, "/user/hand/left/input/thumbstick"},
+        {g.stickAction, "/user/hand/right/input/thumbstick"},
+        {g.buttonActions[BUTTON_A], "/user/hand/right/input/a/click"},
+        {g.buttonActions[BUTTON_B], "/user/hand/right/input/b/click"},
+        {g.buttonActions[BUTTON_X], "/user/hand/left/input/x/click"},
+        {g.buttonActions[BUTTON_Y], "/user/hand/left/input/y/click"},
+        {g.buttonActions[BUTTON_MENU], "/user/hand/left/input/menu/click"},
+    };
+    std::vector<XrActionSuggestedBinding> suggested;
+    for(const auto& b : bindings)
+        suggested.push_back({b.action, toPath(b.path)});
+    XrInteractionProfileSuggestedBinding profile = xrStruct<XrInteractionProfileSuggestedBinding>(XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING);
+    profile.interactionProfile = toPath("/interaction_profiles/oculus/touch_controller");
+    profile.countSuggestedBindings = (uint32_t)suggested.size();
+    profile.suggestedBindings = suggested.data();
+    if(!ok(xrSuggestInteractionProfileBindings(g.instance, &profile), "xrSuggestInteractionProfileBindings"))
+        return false;
+
+    XrSessionActionSetsAttachInfo attach = xrStruct<XrSessionActionSetsAttachInfo>(XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO);
+    attach.countActionSets = 1;
+    attach.actionSets = &g.actionSet;
+    if(!ok(xrAttachSessionActionSets(g.session, &attach), "xrAttachSessionActionSets"))
+        return false;
+
+    for(int hand = 0; hand < 2; ++hand) {
+        XrActionSpaceCreateInfo space = xrStruct<XrActionSpaceCreateInfo>(XR_TYPE_ACTION_SPACE_CREATE_INFO);
+        space.action = g.aimAction;
+        space.subactionPath = g.hands[hand];
+        space.poseInActionSpace.orientation.w = 1.0f;
+        if(!ok(xrCreateActionSpace(g.session, &space, &g.aimSpaces[hand]), "xrCreateActionSpace"))
+            return false;
+    }
+    return true;
+}
+
+float floatInput(XrAction action, XrPath hand)
+{
+    XrActionStateGetInfo info = xrStruct<XrActionStateGetInfo>(XR_TYPE_ACTION_STATE_GET_INFO);
+    info.action = action;
+    info.subactionPath = hand;
+    XrActionStateFloat state = xrStruct<XrActionStateFloat>(XR_TYPE_ACTION_STATE_FLOAT);
+    if(XR_FAILED(xrGetActionStateFloat(g.session, &info, &state)) || !state.isActive)
+        return 0.0f;
+    return state.currentState;
+}
+
+bool boolInput(XrAction action)
+{
+    XrActionStateGetInfo info = xrStruct<XrActionStateGetInfo>(XR_TYPE_ACTION_STATE_GET_INFO);
+    info.action = action;
+    XrActionStateBoolean state = xrStruct<XrActionStateBoolean>(XR_TYPE_ACTION_STATE_BOOLEAN);
+    if(XR_FAILED(xrGetActionStateBoolean(g.session, &info, &state)) || !state.isActive)
+        return false;
+    return state.currentState == XR_TRUE;
+}
+
+void stickInput(XrPath hand, float stick[2])
+{
+    stick[0] = stick[1] = 0.0f;
+    XrActionStateGetInfo info = xrStruct<XrActionStateGetInfo>(XR_TYPE_ACTION_STATE_GET_INFO);
+    info.action = g.stickAction;
+    info.subactionPath = hand;
+    XrActionStateVector2f state = xrStruct<XrActionStateVector2f>(XR_TYPE_ACTION_STATE_VECTOR2F);
+    if(XR_FAILED(xrGetActionStateVector2f(g.session, &info, &state)) || !state.isActive)
+        return;
+    stick[0] = state.currentState.x;
+    stick[1] = state.currentState.y;
+}
+
+// A space's pose in the LOCAL space at the frame's display time.
+bool locate(XrSpace space, vr_controls::Pose& pose)
+{
+    if(space == XR_NULL_HANDLE || g.frame.predictedDisplayTime == 0)
+        return false;
+    XrSpaceLocation location = xrStruct<XrSpaceLocation>(XR_TYPE_SPACE_LOCATION);
+    if(XR_FAILED(xrLocateSpace(space, g.space, g.frame.predictedDisplayTime, &location)))
+        return false;
+    const XrSpaceLocationFlags valid = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
+    if((location.locationFlags & valid) != valid)
+        return false;
+    pose.position[0] = location.pose.position.x;
+    pose.position[1] = location.pose.position.y;
+    pose.position[2] = location.pose.position.z;
+    pose.orientation[0] = location.pose.orientation.x;
+    pose.orientation[1] = location.pose.orientation.y;
+    pose.orientation[2] = location.pose.orientation.z;
+    pose.orientation[3] = location.pose.orientation.w;
+    return true;
+}
+
+void placeHud()
+{
+    g.hud = vr_controls::hudPose(g.hudOrigin, g.hudYaw, g.hudDistance, g.hudDown);
+}
+
+// The quad in front of where the head is and faces, at the set distance and
+// angle below the horizon.
+void recentreHud()
+{
+    vr_controls::Pose head;
+    if(!locate(g.viewSpace, head))
+        return;
+    memcpy(g.hudOrigin, head.position, sizeof(g.hudOrigin));
+    g.hudYaw = vr_controls::yawOf(head.orientation);
+    placeHud();
+}
+
+// MC2_XR_HUD=distance,degrees,width: the quad's distance (metres), angle
+// below the horizon (degrees) and width (metres); any can be left out
+void readHudSettings()
+{
+    g.hudDistance = g.useEyes ? kHudDistance : kScreenDistance;
+    g.hudDown = g.useEyes ? kHudDown : 0.0f;
+    g.hudWidth = g.useEyes ? kHudWidth : kScreenWidth;
+    const char* env = getenv("MC2_XR_HUD");
+    float distance = 0.0f, degrees = 0.0f, width = 0.0f;
+    const int count = env ? sscanf(env, "%f,%f,%f", &distance, &degrees, &width) : 0;
+    if(count >= 1 && distance > 0.0f)
+        g.hudDistance = distance;
+    if(count >= 2)
+        g.hudDown = degrees * 3.14159265f / 180.0f;
+    if(count >= 3 && width > 0.0f)
+        g.hudWidth = width;
+    placeHud();
+}
+
+// Holding A: the left stick moves the quad instead of the camera (the
+// right thumb is on A). Up/down: higher/lower; right/left: larger/smaller.
+// Its distance stays as set (MC2_XR_HUD): nearer or further mostly changes
+// how large it looks, which the size does too.
+void adjustHud(const float left[2])
+{
+    const float dt = g.frame.predictedDisplayPeriod > 0 ? (float)g.frame.predictedDisplayPeriod * 1e-9f : 1.0f / 72.0f;
+    const float deadZone = 0.2f;
+    auto rate = [deadZone](float v) { return std::fabs(v) < deadZone ? 0.0f : v; };
+    g.hudDown = std::min(1.2f, std::max(-0.3f, g.hudDown - 0.5f * rate(left[1]) * dt));
+    g.hudWidth = std::min(4.0f, std::max(0.5f, g.hudWidth + 0.5f * rate(left[0]) * dt));
+    if(rate(left[0]) != 0.0f || rate(left[1]) != 0.0f) {
+        g.hudAdjusted = true;
+        placeHud();
+    }
+}
+
+void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT])
+{
+    using namespace vr_controls;
+    input::setVirtualKey(SDL_SCANCODE_UP, (camera & PAN_UP) != 0);
+    input::setVirtualKey(SDL_SCANCODE_DOWN, (camera & PAN_DOWN) != 0);
+    input::setVirtualKey(SDL_SCANCODE_LEFT, (camera & (PAN_LEFT | ROTATE_LEFT)) != 0);
+    input::setVirtualKey(SDL_SCANCODE_RIGHT, (camera & (PAN_RIGHT | ROTATE_RIGHT)) != 0);
+    // the game turns the camera on shift + left / right
+    input::setVirtualKey(SDL_SCANCODE_LSHIFT, (camera & (ROTATE_LEFT | ROTATE_RIGHT)) != 0 || buttons[BUTTON_X]);
+    input::setVirtualKey(SDL_SCANCODE_KP_PLUS, (camera & ZOOM_IN) != 0);
+    input::setVirtualKey(SDL_SCANCODE_KP_MINUS, (camera & ZOOM_OUT) != 0);
+    input::setVirtualKey(SDL_SCANCODE_LCTRL, buttons[BUTTON_B]);
+    input::setVirtualKey(SDL_SCANCODE_LALT, buttons[BUTTON_Y]);
+    input::setVirtualKey(SDL_SCANCODE_ESCAPE, buttons[BUTTON_MENU]);
+}
+
+// The pointer has nothing to point at: the cursor stays where it last was
+// (at first the screen's centre), with no buttons. Never back to SDL's own
+// mouse, which on the Quest sits at 0, 0, where the game scrolls the map up
+// and left every frame (the camera flew to the map's corner).
+void parkPointer()
+{
+    if(g.pointerX <= 0.0f && g.pointerY <= 0.0f) {
+        g.pointerX = 0.5f * (float)Environment.drawableWidth;
+        g.pointerY = 0.5f * (float)Environment.drawableHeight;
+    }
+    input::setVirtualPointer(g.pointerX, g.pointerY, 0);
+}
+
+// Everything up: the session lost focus (system menu, Guardian) or ended.
+void releaseInput()
+{
+    const bool none[BUTTON_COUNT] = {};
+    setKeys(0, none);
+    parkPointer();
+    g.stickActions = 0;
+    g.pointerHeld = false;
+    g.heldButtons = g.ignoredButtons = 0;
+    g.pointerVisible = false;
+    g.target = g.pressTarget = TARGET_NONE;
+    for(int hand = 0; hand < 2; ++hand)
+        g.selectDown[hand] = g.contextDown[hand] = g.pulling[hand] = false;
+    g.clickHold = vr_controls::ClickHold();
+    memset(g.buttonDown, 0, sizeof(g.buttonDown));
+}
+
+// staticImage: filled once (fillImage) and shown on every frame after
+bool createImage(Image& image, int width, int height, bool withDepth, const char* name,
+                 bool staticImage = false)
 {
     uint32_t count = 0;
     xrEnumerateSwapchainFormats(g.session, 0, &count, nullptr);
@@ -200,6 +546,8 @@ bool createImage(Image& image, int width, int height, bool withDepth, const char
 
     XrSwapchainCreateInfo info = xrStruct<XrSwapchainCreateInfo>(XR_TYPE_SWAPCHAIN_CREATE_INFO);
     info.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
+    if(staticImage)
+        info.createFlags = XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT;
     info.format = format;
     info.sampleCount = 1;
     info.width = (uint32_t)width;
@@ -229,6 +577,58 @@ bool createImage(Image& image, int width, int height, bool withDepth, const char
     }
     printf("[XR] %s: %dx%d, %u images\n", name, width, height, count);
     return true;
+}
+
+// Uploads RGBA pixels into a static image's only texture.
+bool fillImage(Image& image, const std::vector<uint8_t>& rgba)
+{
+    uint32_t index = 0;
+    if(!ok(xrAcquireSwapchainImage(image.swapchain, nullptr, &index), "xrAcquireSwapchainImage"))
+        return false;
+    XrSwapchainImageWaitInfo wait = xrStruct<XrSwapchainImageWaitInfo>(XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO);
+    wait.timeout = XR_INFINITE_DURATION;
+    const bool waited = ok(xrWaitSwapchainImage(image.swapchain, &wait), "xrWaitSwapchainImage");
+    if(waited) {
+        glBindTexture(GL_TEXTURE_2D, image.images[index].image);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width, image.height, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    XrSwapchainImageReleaseInfo release = xrStruct<XrSwapchainImageReleaseInfo>(XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO);
+    return ok(xrReleaseSwapchainImage(image.swapchain, &release), "xrReleaseSwapchainImage") && waited;
+}
+
+// The pointer: a beam, soft at its edges, and a dot with a light centre
+// where the beam meets the quad.
+bool createPointerImages()
+{
+    const uint8_t colour[3] = {140, 210, 255};
+    const int beamWidth = 8, beamHeight = 4, dotSize = 32;
+    if(!createImage(g.beamImage, beamWidth, beamHeight, false, "pointer beam", true)
+            || !createImage(g.dotImage, dotSize, dotSize, false, "pointer dot", true))
+        return false;
+
+    std::vector<uint8_t> beam((size_t)beamWidth * beamHeight * 4);
+    for(int y = 0; y < beamHeight; ++y)
+        for(int x = 0; x < beamWidth; ++x) {
+            const float across = 1.0f - std::fabs((x + 0.5f) - 0.5f * beamWidth) / (0.5f * beamWidth);
+            uint8_t* p = &beam[((size_t)y * beamWidth + x) * 4];
+            p[0] = colour[0]; p[1] = colour[1]; p[2] = colour[2];
+            p[3] = (uint8_t)(200.0f * across);
+        }
+    std::vector<uint8_t> dot((size_t)dotSize * dotSize * 4);
+    for(int y = 0; y < dotSize; ++y)
+        for(int x = 0; x < dotSize; ++x) {
+            const float dx = (x + 0.5f) / (0.5f * dotSize) - 1.0f, dy = (y + 0.5f) / (0.5f * dotSize) - 1.0f;
+            const float r = std::sqrt(dx * dx + dy * dy);
+            const float centre = std::max(0.0f, std::min(1.0f, (0.5f - r) / 0.15f));
+            uint8_t* p = &dot[((size_t)y * dotSize + x) * 4];
+            for(int c = 0; c < 3; ++c)
+                p[c] = (uint8_t)(colour[c] + (255 - colour[c]) * centre);
+            p[3] = (uint8_t)(255.0f * std::max(0.0f, std::min(1.0f, (1.0f - r) / 0.2f)));
+        }
+    return fillImage(g.beamImage, beam) && fillImage(g.dotImage, dot);
 }
 
 bool createEyes()
@@ -352,18 +752,166 @@ void saveImage(GLuint fbo, int width, int height, const char* path)
 
 XrPosef quadPose()
 {
-    XrPosef pose = {};
-    if(g.useEyes) {
-        // turned about x to face the eyes
-        pose.orientation.x = -std::sin(0.5f * kHudDown);
-        pose.orientation.w = std::cos(0.5f * kHudDown);
-        pose.position.y = -kHudDistance * std::sin(kHudDown);
-        pose.position.z = -kHudDistance * std::cos(kHudDown);
-    } else {
-        pose.orientation.w = 1.0f;
-        pose.position.z = -kScreenDistance;
-    }
+    XrPosef pose;
+    pose.position = {g.hud.position[0], g.hud.position[1], g.hud.position[2]};
+    pose.orientation = {g.hud.orientation[0], g.hud.orientation[1], g.hud.orientation[2], g.hud.orientation[3]};
     return pose;
+}
+
+// the quad's height: the game's screen shape, stretched over the whole window
+float quadHeight()
+{
+    return g.hudWidth * (float)Environment.screenHeight / (float)Environment.screenWidth;
+}
+
+void setLayer(XrCompositionLayerQuad& layer, const Image& image, const vr_controls::Pose& pose,
+              float width, float height)
+{
+    layer = xrStruct<XrCompositionLayerQuad>(XR_TYPE_COMPOSITION_LAYER_QUAD);
+    layer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
+            | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
+    layer.space = g.space;
+    layer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+    layer.subImage.swapchain = image.swapchain;
+    layer.subImage.imageRect.extent = {image.width, image.height};
+    layer.pose.position = {pose.position[0], pose.position[1], pose.position[2]};
+    layer.pose.orientation = {pose.orientation[0], pose.orientation[1], pose.orientation[2], pose.orientation[3]};
+    layer.size = {width, height};
+}
+
+// The pointer at this frame's display time: the beam from the pointing hand
+// to the quad (the interface) or to the world pick (the ground or a unit),
+// with a dot there; kBeamLength and no dot when it meets nothing. Returns
+// how many of the two layers are filled.
+int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
+{
+    if(!g.pointerVisible || !g.pointerImagesReady)
+        return 0;
+    vr_controls::Pose aim, head;
+    if(!locate(g.aimSpaces[g.pointingHand], aim) || !locate(g.viewSpace, head))
+        return 0;
+    float end[3];
+    bool hit = false;
+    vr_controls::Pose at = g.hud;
+    float dotSize = kDotSize;
+    if(g.target == TARGET_HUD) {
+        float u = 0.0f, v = 0.0f, distance = 0.0f;
+        hit = g.clickHold.holding
+                || vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
+        if(g.clickHold.holding)     // the beam ends where the click goes
+            vr_controls::quadPoint(g.hud, g.hudWidth, quadHeight(), g.clickHold.u, g.clickHold.v, end);
+        else
+            vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
+    } else {
+        const bool held = g.target == TARGET_WORLD && g.clickHold.holding;
+        hit = held || (g.target == TARGET_WORLD && g.worldValid);
+        if(held)        // the beam ends where the click goes
+            memcpy(end, g.heldWorldPoint, sizeof(end));
+        else
+            vr_controls::rayPoint(aim, hit ? g.worldMetres : kBeamLength, end);
+        if(hit) {
+            // turned to the eye about the vertical, as large to the eye as on the quad
+            float length = 0.0f;
+            const float below[3] = {end[0], end[1] - 0.01f, end[2]};
+            const float above[3] = {end[0], end[1] + 0.01f, end[2]};
+            at = vr_controls::beamPose(below, above, head.position, length);
+            const float toEye[3] = {end[0] - head.position[0], end[1] - head.position[1], end[2] - head.position[2]};
+            const float metres = std::sqrt(toEye[0] * toEye[0] + toEye[1] * toEye[1] + toEye[2] * toEye[2]);
+            dotSize = kDotSize * metres / g.hudDistance;
+        }
+    }
+    float length = 0.0f;
+    setLayer(beam, g.beamImage, vr_controls::beamPose(aim.position, end, head.position, length), kBeamWidth, length);
+    if(!hit)
+        return 1;
+    memcpy(at.position, end, sizeof(at.position));
+    setLayer(dot, g.dotImage, at, dotSize, dotSize);
+    return 2;
+}
+
+// a GL error after one of the probe's calls, logged the first few times
+void probeError(const char* what)
+{
+    static int logged = 0;
+    const GLenum error = glGetError();
+    if(error != GL_NO_ERROR && logged < 8) {
+        ++logged;
+        printf("[XR] alpha probe: %s: GL error 0x%x\n", what, (unsigned)error);
+    }
+}
+
+// Reads back what earlier frames asked for, oldest first, as far as the GPU
+// has finished: the quad's alpha under the ray and at the world pick.
+void collectAlpha()
+{
+    probeError("before");
+    AlphaProbe& p = g.probe;
+    for(int k = 0; k < AlphaProbe::kSlots; ++k) {
+        const int slot = (p.next + k) % AlphaProbe::kSlots;
+        if(!p.fence[slot])
+            continue;
+        const GLenum state = glClientWaitSync(p.fence[slot], 0, 0);
+        if(state != GL_ALREADY_SIGNALED && state != GL_CONDITION_SATISFIED)
+            return;     // the newer ones are not done either
+        glDeleteSync(p.fence[slot]);
+        p.fence[slot] = 0;
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, p.pbo[slot]);
+        const uint8_t* pixels = (const uint8_t*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, 8, GL_MAP_READ_BIT);
+        probeError("glMapBufferRange");
+        if(pixels) {
+            if(p.wanted[slot][0])
+                g.hudAlpha = pixels[3] / 255.0f;
+            if(p.wanted[slot][1]) {
+                g.worldAlpha = pixels[7] / 255.0f;
+                g.worldAlphaX = p.worldAt[slot][0];
+                g.worldAlphaY = p.worldAt[slot][1];
+            }
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    }
+}
+
+// Asks for the window's alpha at the quad point under the ray and at the
+// world pick, if there are such points (the window's frame is bound).
+void requestAlpha(int width, int height)
+{
+    AlphaProbe& p = g.probe;
+    if(!p.pbo[0]) {
+        glGenBuffers(AlphaProbe::kSlots, p.pbo);
+        for(GLuint pbo : p.pbo) {
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+            glBufferData(GL_PIXEL_PACK_BUFFER, 8, nullptr, GL_STREAM_READ);
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        probeError("setup");
+    }
+    const int slot = p.next;
+    if(p.fence[slot]) {         // never finished: drop it
+        glDeleteSync(p.fence[slot]);
+        p.fence[slot] = 0;
+    }
+    p.wanted[slot][0] = g.onQuad;
+    p.wanted[slot][1] = g.worldValid;
+    p.worldAt[slot][0] = g.worldX;
+    p.worldAt[slot][1] = g.worldY;
+    if(!p.wanted[slot][0] && !p.wanted[slot][1])
+        return;
+    const float points[2][2] = {{g.hudU, g.hudV}, {g.worldX, g.worldY}};
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, p.pbo[slot]);
+    for(int i = 0; i < 2; ++i) {
+        if(!p.wanted[slot][i])
+            continue;
+        // GL's rows count from the bottom
+        const int x = std::min(width - 1, std::max(0, (int)(points[i][0] * width)));
+        const int y = std::min(height - 1, std::max(0, (int)((1.0f - points[i][1]) * height)));
+        glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, (void*)(intptr_t)(i * 4));
+        probeError("glReadPixels");
+    }
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    p.fence[slot] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    probeError("glFenceSync");
+    p.next = (slot + 1) % AlphaProbe::kSlots;
 }
 
 } // namespace
@@ -403,6 +951,19 @@ bool init()
     SDL_GL_GetDrawableSize(SDL_GL_GetCurrentWindow(), &width, &height);
     if(initLoader(vm, activityRef) && createInstance(vm, activityRef) && createSession()
             && createImage(g.quad, width, height, false, "screen") && (!g.useEyes || createEyes())) {
+        readHudSettings();
+        if(createActions()) {
+            g.pointerImagesReady = createPointerImages();
+            if(!g.pointerImagesReady)
+                printf("[XR] no pointer beam\n");
+            printf("[XR] controllers: trigger selects, grip is the right mouse button, "
+                   "left stick pans, right stick turns and zooms, A places the interface\n");
+        } else {
+            printf("[XR] no controllers\n");
+            if(g.actionSet != XR_NULL_HANDLE)
+                xrDestroyActionSet(g.actionSet);
+            g.actionSet = XR_NULL_HANDLE;
+        }
         // textures loaded from now on get mipmaps: distant units shimmer in
         // the headset without them
         setGenerateMipmaps(true);
@@ -528,11 +1089,18 @@ bool present(int width, int height)
     release(g.eyes[0]);
     release(g.eyes[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // the window's frame now holds this frame's interface: where it shows
+    // something decides whether the pointer is on the interface (pollInput)
+    if(g.actionSet != XR_NULL_HANDLE && g.useEyes) {
+        collectAlpha();
+        requestAlpha(width, height);
+    }
 
     XrCompositionLayerProjectionView projViews[2];
     XrCompositionLayerProjection projection = xrStruct<XrCompositionLayerProjection>(XR_TYPE_COMPOSITION_LAYER_PROJECTION);
     XrCompositionLayerQuad quad = xrStruct<XrCompositionLayerQuad>(XR_TYPE_COMPOSITION_LAYER_QUAD);
-    const XrCompositionLayerBaseHeader* layers[2];
+    XrCompositionLayerQuad pointer[2];
+    const XrCompositionLayerBaseHeader* layers[4];
     uint32_t layerCount = 0;
 
     if(g.frame.shouldRender && eyesDrawn && g.viewsValid) {
@@ -557,12 +1125,14 @@ bool present(int width, int height)
         if(g.useEyes)       // the interface over the eyes: blended by its alpha
             quad.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
                     | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
-        // the game's screen shape: it is stretched over the whole window
-        const float quadWidth = g.useEyes ? kHudWidth : kScreenWidth;
-        quad.size.width = quadWidth;
-        quad.size.height = quadWidth * (float)Environment.screenHeight / (float)Environment.screenWidth;
+        quad.size.width = g.hudWidth;
+        quad.size.height = quadHeight();
         layers[layerCount++] = (XrCompositionLayerBaseHeader*)&quad;
     }
+    // the pointer over everything: the hand is nearer than the quad
+    const int pointerCount = g.frame.shouldRender ? pointerLayers(pointer[0], pointer[1]) : 0;
+    for(int i = 0; i < pointerCount; ++i)
+        layers[layerCount++] = (XrCompositionLayerBaseHeader*)&pointer[i];
 
     XrFrameEndInfo endInfo = xrStruct<XrFrameEndInfo>(XR_TYPE_FRAME_END_INFO);
     endInfo.displayTime = g.frame.predictedDisplayTime;
@@ -591,10 +1161,177 @@ double logicStep()
     return hz > 0 ? 1.0 / hz : 0.0;
 }
 
+bool pointerActive()
+{
+    return g.actionSet != XR_NULL_HANDLE && g.pointerImagesReady;
+}
+
+void pollInput()
+{
+    if(g.actionSet == XR_NULL_HANDLE)
+        return;
+    if(!g.running) {
+        releaseInput();
+        return;
+    }
+    XrActiveActionSet active = {g.actionSet, XR_NULL_PATH};
+    XrActionsSyncInfo sync = xrStruct<XrActionsSyncInfo>(XR_TYPE_ACTIONS_SYNC_INFO);
+    sync.countActiveActionSets = 1;
+    sync.activeActionSets = &active;
+    // XR_SESSION_NOT_FOCUSED: the system menu or the Guardian has the
+    // controllers; let go of everything until the game has them back
+    if(xrSyncActions(g.session, &sync) != XR_SUCCESS) {
+        releaseInput();
+        return;
+    }
+
+    // the hand that last started to pull its trigger or grip points (from
+    // the start of the pull, so the click hold below covers the whole pull)
+    float pull[2];
+    for(int hand = 0; hand < 2; ++hand) {
+        const float select = floatInput(g.selectAction, g.hands[hand]);
+        const float context = floatInput(g.contextAction, g.hands[hand]);
+        g.selectDown[hand] = select > (g.selectDown[hand] ? 0.35f : 0.6f);
+        g.contextDown[hand] = context > (g.contextDown[hand] ? 0.35f : 0.6f);
+        pull[hand] = std::max(select, context);
+        const bool pulling = pull[hand] > (g.pulling[hand] ? 0.1f : 0.15f);
+        if(pulling && !g.pulling[hand] && hand != g.pointingHand) {
+            g.pointingHand = hand;
+            g.clickHold = vr_controls::ClickHold();
+        }
+        g.pulling[hand] = pulling;
+    }
+
+    bool buttons[BUTTON_COUNT];
+    for(int b = 0; b < BUTTON_COUNT; ++b)
+        buttons[b] = boolInput(g.buttonActions[b]);
+    float left[2], right[2];
+    stickInput(g.hands[0], left);
+    stickInput(g.hands[1], right);
+
+    // A: the quad goes in front of the head; held, the sticks move it
+    if(buttons[BUTTON_A] && !g.buttonDown[BUTTON_A]) {
+        recentreHud();
+        g.hudAdjusted = false;
+    }
+    if(buttons[BUTTON_A]) {
+        adjustHud(left);
+        g.stickActions = 0;
+    } else {
+        if(g.buttonDown[BUTTON_A] && g.hudAdjusted)
+            printf("[XR] interface placed: MC2_XR_HUD=%.2f,%.0f,%.2f\n", g.hudDistance,
+                    g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
+        g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
+    }
+    memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
+    setKeys(g.stickActions, buttons);
+    g.pointerVisible = true;
+
+    // the pointer: on the interface where the pointing hand's ray meets the
+    // quad over something drawn; else in the world, where the game's pick
+    // (gos_SetVRWorldPointer, answering pointerRay) puts it on its screen
+    const int hand = g.pointingHand;
+    const uint32_t held = (g.selectDown[hand] ? 1u : 0u) | (g.contextDown[hand] ? 4u : 0u);
+    if(g.worldAge++ > 2)
+        g.worldValid = false;       // the game stopped answering (no mission)
+    vr_controls::Pose aim;
+    float u = 0.0f, v = 0.0f;
+    const bool located = locate(g.aimSpaces[hand], aim);
+    g.onQuad = located && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v);
+    if(g.onQuad) {
+        g.hudU = u;
+        g.hudV = v;
+    }
+    // without eyes the quad is the whole game, the world included
+    PointerTarget target = !located ? TARGET_NONE
+            : (g.onQuad && (!g.useEyes || g.hudAlpha > kInterfaceAlpha)) ? TARGET_HUD : TARGET_WORLD;
+    // a press stays with what it started on until it is let go
+    if(g.heldButtons && g.pressTarget != TARGET_NONE)
+        target = g.pressTarget;
+    if(target != g.target)
+        g.clickHold = vr_controls::ClickHold();
+    g.target = target;
+    bool valid = target == TARGET_HUD && g.onQuad;
+    // the world pick, where the window's alpha read there says no interface
+    // covers it on the game's screen (the click would go to the panel). The
+    // alpha comes a frame or two late: until it is read near this point, the
+    // pick is not clickable
+    const bool alphaHere = std::fabs(g.worldX - g.worldAlphaX) < kAlphaNear
+            && std::fabs(g.worldY - g.worldAlphaY) < kAlphaNear;
+    if(target == TARGET_WORLD && g.worldValid && alphaHere && g.worldAlpha <= kInterfaceAlpha) {
+        u = g.worldX;
+        v = g.worldY;
+        valid = true;
+    }
+
+    // the pointer stays still through a click (pulling a trigger moves the
+    // hand, and the game takes a press that moves for a drag)
+    const bool wasHolding = g.clickHold.holding;
+    if(valid)
+        vr_controls::holdForClick(g.clickHold, pull[hand], u, v);
+    else if(!g.pointerHeld)
+        g.clickHold = vr_controls::ClickHold();
+    // in the world, where the hold started, for the beam and dot to show
+    if(g.clickHold.holding && !wasHolding && target == TARGET_WORLD)
+        vr_controls::rayPoint(aim, g.worldMetres, g.heldWorldPoint);
+    // a button pressed with nothing to click stays ignored until it is let
+    // go: else sweeping onto a target with the trigger held would click there
+    if(!valid && !g.pointerHeld)
+        g.ignoredButtons |= held & ~g.heldButtons;
+    g.ignoredButtons &= held;
+    if(held && !g.heldButtons) {
+        g.pressTarget = valid ? target : TARGET_NONE;
+        if(gos_VRPickLog())     // what each press went to
+            printf("[XR] press: target %d, valid %d (on quad %d, alpha %.2f; world %d at %.3f %.3f, alpha %.2f, %.1f m)\n",
+                    (int)target, (int)valid, (int)g.onQuad, g.hudAlpha, (int)g.worldValid, g.worldX, g.worldY,
+                    g.worldAlpha, g.worldMetres);
+    } else if(!held) {
+        g.pressTarget = TARGET_NONE;
+    }
+    g.heldButtons = held;
+    const uint32_t mouseButtons = held & ~g.ignoredButtons;
+    if(valid) {
+        const float w = (float)Environment.drawableWidth, h = (float)Environment.drawableHeight;
+        const float marginX = kPointerMargin * w / (float)Environment.screenWidth;
+        const float marginY = kPointerMargin * h / (float)Environment.screenHeight;
+        g.pointerX = std::min(w - marginX, std::max(marginX, u * w));
+        g.pointerY = std::min(h - marginY, std::max(marginY, v * h));
+        input::setVirtualPointer(g.pointerX, g.pointerY, mouseButtons);
+        g.pointerHeld = mouseButtons != 0;
+    } else if(g.pointerHeld && mouseButtons) {
+        // dragged off its target: the cursor stays where it was until the
+        // button is let go
+        input::setVirtualPointer(g.pointerX, g.pointerY, mouseButtons);
+    } else {
+        // nothing to point at (the sky, outside the game camera's view)
+        parkPointer();
+        g.pointerHeld = false;
+    }
+}
+
+bool pointerRay(float position[3], float orientation[4])
+{
+    vr_controls::Pose aim;
+    if(g.target != TARGET_WORLD || !locate(g.aimSpaces[g.pointingHand], aim))
+        return false;
+    memcpy(position, aim.position, sizeof(aim.position));
+    memcpy(orientation, aim.orientation, sizeof(aim.orientation));
+    return true;
+}
+
+void setWorldPointer(bool valid, float x, float y, float metres)
+{
+    g.worldValid = valid;
+    g.worldX = x;
+    g.worldY = y;
+    g.worldMetres = metres;
+    g.worldAge = 0;
+}
+
 
 void shutdown()
 {
-    Image* images[] = {&g.quad, &g.eyes[0], &g.eyes[1]};
+    Image* images[] = {&g.quad, &g.eyes[0], &g.eyes[1], &g.beamImage, &g.dotImage};
     for(Image* image : images) {
         if(image->fbo)
             glDeleteFramebuffers(1, &image->fbo);
@@ -603,6 +1340,18 @@ void shutdown()
         if(image->swapchain != XR_NULL_HANDLE)
             xrDestroySwapchain(image->swapchain);
     }
+    for(GLsync& fence : g.probe.fence)
+        if(fence)
+            glDeleteSync(fence);
+    if(g.probe.pbo[0])
+        glDeleteBuffers(AlphaProbe::kSlots, g.probe.pbo);
+    for(XrSpace space : g.aimSpaces)
+        if(space != XR_NULL_HANDLE)
+            xrDestroySpace(space);
+    if(g.actionSet != XR_NULL_HANDLE)
+        xrDestroyActionSet(g.actionSet);
+    if(g.viewSpace != XR_NULL_HANDLE)
+        xrDestroySpace(g.viewSpace);
     if(g.space != XR_NULL_HANDLE)
         xrDestroySpace(g.space);
     if(g.session != XR_NULL_HANDLE)
