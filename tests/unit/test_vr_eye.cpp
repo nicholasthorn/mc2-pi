@@ -199,6 +199,110 @@ TEST_CASE("the view direction is minus z: the engine camera looks that way")
 
 }
 
+TEST_CASE("following the head: the game camera looks where the eyes look, from where it was")
+{
+	// a head turned and tilted: yaw left, then up
+	float q[4];
+	CHECK(vr_eye::parseHeadPose("70,-25", q));
+
+	const vr_eye::Basis game = gameCamera(0.6f);
+	for(int keepPitch = 0; keepPitch < 2; ++keepPitch) {
+		const vr_eye::Basis follow = vr_eye::followHead(game, kWorldUp, q, keepPitch != 0);
+		float pos[3], quat[4];
+		vr_eye::fromXr(kNoMove, q, pos, quat);
+		const vr_eye::Basis eye = vr_eye::eyeBasis(game, kWorldUp, quat, pos, 1.0f, keepPitch != 0);
+		CHECK(near3(follow.x, eye.x[0], eye.x[1], eye.x[2]));
+		CHECK(near3(follow.y, eye.y[0], eye.y[1], eye.y[2]));
+		CHECK(near3(follow.z, eye.z[0], eye.z[1], eye.z[2]));
+		// the head's own movement stays out of it: the game camera stays put
+		CHECK(near3(follow.position, 10.0f, 20.0f, 30.0f));
+	}
+}
+
+TEST_CASE("following the head: a head at rest with the game's pitch kept is the game camera")
+{
+	const vr_eye::Basis game = gameCamera(0.6f);
+	const vr_eye::Basis follow = vr_eye::followHead(game, kWorldUp, kIdentity, true);
+	CHECK(near3(follow.x, game.x[0], game.x[1], game.x[2]));
+	CHECK(near3(follow.y, game.y[0], game.y[1], game.y[2]));
+	CHECK(near3(follow.z, game.z[0], game.z[1], game.z[2]));
+}
+
+TEST_CASE("a camera's axes in the game's world, as Camera::cameraFrame holds them")
+{
+	// Camera::calculateProjectionConstants at yaw 0 and pitch p (world z up,
+	// y ahead): i = (1, 0, 0), j = (0, cos p, -sin p), k = (0, sin p, cos p).
+	// The same camera as cameraOrigin's rows, read from a run of the game (the
+	// names x screen left, y screen down hold after the engine's -x, z, y):
+	const float p = 0.6f, c = std::cos(p), s = std::sin(p);
+	vr_eye::Basis camera;
+	camera.x[0] = -1.0f; camera.x[1] = 0.0f; camera.x[2] = 0.0f;
+	camera.y[0] = 0.0f; camera.y[1] = c; camera.y[2] = s;
+	camera.z[0] = 0.0f; camera.z[1] = s; camera.z[2] = -c;
+	camera.position[0] = camera.position[1] = camera.position[2] = 0.0f;
+
+	float i[3], j[3], k[3];
+	vr_eye::worldFrame(camera, i, j, k);
+	CHECK(near3(i, 1.0f, 0.0f, 0.0f));
+	CHECK(near3(j, 0.0f, c, -s));
+	CHECK(near3(k, 0.0f, s, c));
+}
+
+TEST_CASE("where a point on the game's screen meets the ground, for the minimap")
+{
+	const float deg45 = 0.25f * kPi;
+	const float c = std::cos(deg45);
+	// looking along world +y, pitched down 45 degrees, 100 above the ground
+	const float i[3] = {1.0f, 0.0f, 0.0f}, j[3] = {0.0f, c, -c}, k[3] = {0.0f, c, c};
+	const float origin[3] = {5.0f, 7.0f, 100.0f};
+	float point[3];
+
+	// the middle of the screen: 100 ahead
+	vr_eye::screenToGround(i, j, k, origin, 1.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1000.0f, point);
+	CHECK(near3(point, 5.0f, 107.0f, 0.0f));
+
+	// the right edge is to the right, the bottom edge nearer
+	vr_eye::screenToGround(i, j, k, origin, 1.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1000.0f, point);
+	CHECK(point[0] > 5.0f);
+	vr_eye::screenToGround(i, j, k, origin, 1.0f, 0.5f, 0.0f, 1.0f, 0.0f, 1000.0f, point);
+	CHECK(point[1] < 107.0f);
+	CHECK(point[1] > 7.0f);
+
+	// above the horizon: where it heads, as far as the limit, never behind
+	const float ahead[3] = {0.0f, 1.0f, 0.0f}, top[3] = {0.0f, 0.0f, 1.0f};
+	vr_eye::screenToGround(i, ahead, top, origin, 1.0f, 0.5f, 0.0f, -1.0f, 0.0f, 300.0f, point);
+	CHECK(near3(point, 5.0f, 307.0f, 0.0f));
+	// just below the horizon: the same limit, not a point miles away
+	vr_eye::screenToGround(i, ahead, top, origin, 1.0f, 0.5f, 0.0f, 0.01f, 0.0f, 300.0f, point);
+	CHECK(near3(point, 5.0f, 307.0f, 0.0f));
+	// straight up: the point under the camera, not NaN
+	const float up[3] = {0.0f, 0.0f, 1.0f}, back[3] = {0.0f, -1.0f, 0.0f};
+	vr_eye::screenToGround(i, up, back, origin, 1.0f, 0.5f, 0.0f, 0.0f, 0.0f, 300.0f, point);
+	CHECK(near3(point, 5.0f, 7.0f, 0.0f));
+}
+
+TEST_CASE("a head pose given as text: yaw left then pitch up, in degrees")
+{
+	float q[4];
+	REQUIRE(vr_eye::parseHeadPose("0,0", q));
+	CHECK(q[3] == doctest::Approx(1.0f));
+
+	// yaw 90 looks along the game camera's screen left (see "turning the head left")
+	REQUIRE(vr_eye::parseHeadPose("90,0", q));
+	const vr_eye::Basis left = eyeFor(gameCamera(0.0f), kNoMove, q, 1.0f);
+	CHECK(near3(left.z, 1.0f, 0.0f, 0.0f));
+
+	// pitch is about the turned head's own axis: still level, then up
+	REQUIRE(vr_eye::parseHeadPose("90,30", q));
+	const float deg30 = 30.0f * kPi / 180.0f;
+	const vr_eye::Basis up = eyeFor(gameCamera(0.0f), kNoMove, q, 1.0f);
+	CHECK(near3(up.z, std::cos(deg30), std::sin(deg30), 0.0f));
+
+	CHECK_FALSE(vr_eye::parseHeadPose("", q));
+	CHECK_FALSE(vr_eye::parseHeadPose("90", q));
+	CHECK_FALSE(vr_eye::parseHeadPose("left,up", q));
+}
+
 TEST_CASE("the game camera's field of view covers both eyes, at the window's aspect")
 {
 	const float deg = kPi / 180.0f;

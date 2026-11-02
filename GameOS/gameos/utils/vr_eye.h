@@ -37,9 +37,28 @@ void fromXr(const float xrPosition[3], const float xrOrientation[4], float posit
 Basis eyeBasis(const Basis& game, const float worldUp[3], const float headOrientation[4],
                const float headPosition[3], float unitsPerMetre, bool keepGamePitch);
 
+// The game camera following the head (OpenXR orientation, as fromXr keeps
+// it): it turns as the eyes do (eyeBasis) but stays where it is, as what it
+// counts as in view does not need the eyes' few centimetres.
+Basis followHead(const Basis& game, const float worldUp[3], const float headOrientation[4], bool keepGamePitch);
+
 // Where a basis made by eyeBasis looks, in world space: minus its z (see
 // above). For a controller's aim pose put through eyeBasis, the ray.
 void viewDirection(const Basis& eye, float direction[3]);
+
+// A camera's axes in the game's world (z up; the engine's world is -x, z, y)
+// as Camera::cameraFrame holds them: i screen right, j where it looks, k
+// screen up.
+void worldFrame(const Basis& camera, float i[3], float j[3], float k[3]);
+
+// Where a point on a camera's screen (x right, y down, -1 to 1) meets the ground
+// at groundHeight, in the game's world: i, j, k as worldFrame, tanX and tanY the
+// tangents of half its field of view. A point at or above the horizon, or
+// further than maxDistance, gives the point maxDistance along where it heads
+// (the minimap's wedge, which must not fly off when the head looks up).
+void screenToGround(const float i[3], const float j[3], const float k[3], const float origin[3],
+                    float tanX, float tanY, float x, float y, float groundHeight, float maxDistance,
+                    float point[3]);
 
 // An eye's frustum edges at distance near, as Camera::setOrthogonal names
 // them, from OpenXR's field of view (angleLeft, angleRight, angleUp,
@@ -76,6 +95,11 @@ const float kOverlayTextEyePixels = 0.825f;
 // 0.393 eye pixels to a game pixel (also judged in the Quest 2).
 const float kOverlayMarkerShareX = 0.393f / kOverlayTextEyePixels;
 void overlayTextScale(int windowWidth, int windowHeight, int eyeWidth, int eyeHeight, float& scaleX, float& scaleY);
+
+// A fixed head rotation given as text (MC2_XR_POSE=yaw,pitch in degrees: yaw
+// about +y, left, then pitch about +x, up, in OpenXR's axes) as a quaternion
+// (x, y, z, w). False when the text is not two numbers.
+bool parseHeadPose(const char* text, float orientation[4]);
 
 }
 

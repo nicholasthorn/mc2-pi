@@ -240,12 +240,6 @@ void MC_TextureManager::start (void)
 	masterTextureNodes[0].lastUsed = -1;
 	masterTextureNodes[0].textureData = NULL;
 
-    lightDataStructuresCapacity = MAX_HW_LIGHT_ENTRIES;
-    lightDataStructuresCount = 0;
-    lightData_ = new TG_HWLightsData[lightDataStructuresCapacity];
-	lightDataBuffer_ = gos_CreateBuffer(gosBUFFER_TYPE::UNIFORM, gosBUFFER_USAGE::STATIC_DRAW, sizeof(TG_HWLightsData) * lightDataStructuresCapacity, 1, NULL);
-	gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
-
     sceneData_ = new TG_HWSceneData;
 	sceneDataBuffer_ = gos_CreateBuffer(gosBUFFER_TYPE::UNIFORM, gosBUFFER_USAGE::STATIC_DRAW, sizeof(TG_HWSceneData), 1, NULL);
 	gos_BindBufferBase(sceneDataBuffer_, SCENE_DATA_ATTACHMENT_SLOT);
@@ -305,13 +299,6 @@ void MC_TextureManager::destroy (void)
 
 	delete textureStringHeap;
 	textureStringHeap = NULL;
-
-	if(lightDataBuffer_)
-		gos_DestroyBuffer(lightDataBuffer_);
-	lightDataBuffer_ = nullptr;
-
-    delete[] lightData_;
-    lightData_ = nullptr;
 
 	if(sceneDataBuffer_)
 		gos_DestroyBuffer(sceneDataBuffer_);
@@ -805,59 +792,6 @@ void MC_TextureManager::addRenderShape(DWORD nodeId, TG_RenderShape* render_shap
 	}
 }
 
-uint32_t MC_TextureManager::addLightDataStructure(TG_HWLightsData* light_data)
-{
-    for(uint32_t i = 0; i < lightDataStructuresCount; ++i)
-    {
-        if(0 == memcmp(lightData_ + i, light_data, sizeof(TG_HWLightsData)))
-        {
-            return i;
-        }
-    }
-
-    // unique data passed, so add it
-
-    // the shader's block is full: the entry nearest in colour, as an index past
-    // the block would read anything
-    if(lightDataStructuresCount >= lightDataStructuresCapacity)
-    {
-        static bool warned = false;
-        if(!warned)
-        {
-            warned = true;
-            printf("[LIGHTS] more than %u light entries: sharing the nearest\n", (unsigned)lightDataStructuresCapacity);
-        }
-        uint32_t nearest = 0;
-        float nearestDistance = -1.0f;
-        for(uint32_t i = 0; i < lightDataStructuresCount; ++i)
-        {
-            float distance = 0.0f;
-            for(int l = 0; l < MAX_HW_LIGHTS_IN_WORLD; ++l)
-                for(int c = 0; c < 3; ++c)
-                {
-                    const float d = lightData_[i].lightColor[l][c] - light_data->lightColor[l][c];
-                    distance += d * d;
-                }
-            if((nearestDistance < 0.0f) || (distance < nearestDistance))
-            {
-                nearestDistance = distance;
-                nearest = i;
-            }
-        }
-        return nearest;
-    }
-
-    lightData_[lightDataStructuresCount] = *light_data;
-	uint32_t rv = lightDataStructuresCount;
-	lightDataStructuresCount++;
-    return rv;
-}
-
-void MC_TextureManager::resetLightData()
-{
-    lightDataStructuresCount = 0;
-}
-
 mat4 gos2my(Stuff::Matrix4D& m)
 {
 	mat4 m2(
@@ -882,63 +816,67 @@ mat4 gos2my(Stuff::LinearMatrix4D& m)
 ////////////////////////////////////////////////////////////////////////////////
 class ShapeRenderer {
 
-	mat4* world_;
-	mat4* view_;
-	mat4* wvp_;
-	float* viewport_;
-	HGOSBUFFER lights_data_;
+	HGOSRENDERMATERIAL mat_;
+	DWORD texture_id_;
+	// looked up once per node: about 1500 draws per eye in VR
+	HGOSMATERIALPARAM world_, wvp_, projection_, vp_, mesh_params_, sun_color_, sun_dir_, ambient_;
 
 public:
 
-	void setup(mat4* world, mat4* view, mat4* wvp, float* viewport)
+	// the alpha test state must be set: it picks the material's variant
+	void setMaterial(DWORD texture_id)
 	{
-		gosASSERT(world && view && wvp && viewport);
-		world_ = world;
-		view_ = view;
-		wvp_ = wvp;
-		viewport_ = viewport;
-	}
+		texture_id_ = texture_id;
+		mat_ = texture_id == 0 ? gos_getRenderMaterial("gos_vertex_lighted") : gos_getRenderMaterial("gos_tex_vertex_lighted");
 
-	void set_lights_data(const HGOSBUFFER lights_data)
-	{
-		lights_data_ = lights_data;
-	}
+		world_ = gos_GetRenderMaterialParameter(mat_, "world_");
+		wvp_ = gos_GetRenderMaterialParameter(mat_, "wvp_");
+		projection_ = gos_GetRenderMaterialParameter(mat_, "projection_");
+		vp_ = gos_GetRenderMaterialParameter(mat_, "vp");
+		// the untextured shader has no such uniforms: the setter skips them
+		mesh_params_ = gos_GetRenderMaterialParameter(mat_, "mesh_params_");
+		sun_color_ = gos_GetRenderMaterialParameter(mat_, "light_sun_color_");
+		sun_dir_ = gos_GetRenderMaterialParameter(mat_, "light_sun_dir_");
+		ambient_ = gos_GetRenderMaterialParameter(mat_, "light_ambient_");
 
-	void render(HGOSBUFFER vb, HGOSBUFFER ib, HGOSVERTEXDECLARATION vdecl, DWORD texture_id, int light_index, float alpha, float hud_element)
-	{
-		gos_SetRenderState(gos_State_Texture, texture_id);
-		gos_SetRenderViewport(viewport_[2], viewport_[3], viewport_[0], viewport_[1]);
+		gos_SetRenderMaterialUniformBlockBindingPoint(mat_, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);
 
-		HGOSRENDERMATERIAL mat = texture_id == 0 ? gos_getRenderMaterial("gos_vertex_lighted") : gos_getRenderMaterial("gos_tex_vertex_lighted");
-
-		gos_SetRenderMaterialParameterMat4(mat, "world_", (const float*)*world_);
-		//gos_SetRenderMaterialParameterMat4(mat, "view_", (const float*)*view_);
-		gos_SetRenderMaterialParameterMat4(mat, "wvp_", (const float*)*wvp_);
-
-        float ld[4] = { (float)light_index, 0.0f, 0.0f, 0.0f};
-		gos_SetRenderMaterialParameterFloat4(mat, "light_offset_", ld);
-		if (texture_id != 0)	// the untextured shader has no such uniform
+		// the sign of stale shaders, now the by-name setters no longer run
+		static bool warned = false;
+		if (texture_id != 0 && !warned && !(world_ && wvp_ && projection_ && vp_ && mesh_params_ && sun_color_ && sun_dir_ && ambient_))
 		{
-			const float mesh_params[4] = { alpha, hud_element, 0.0f, 0.0f };
-			gos_SetRenderMaterialParameterFloat4(mat, "mesh_params_", mesh_params);
+			warned = true;
+			printf("[MESH] gos_tex_vertex_lighted lacks a uniform this build sets: shaders/ out of date?\n");
 		}
 
-		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "LightsData", LIGHT_DATA_ATTACHMENT_SLOT);
-		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);
+		// the sampler units; each draw then needs only its parameters
+		gos_ApplyRenderMaterial(mat_);
+	}
 
-        const mat4& projection = gos_GetProjection();
-        const vec4& vp = gos_GetRenderViewport();
+	void render(const TG_RenderShape& rs, const mat4& world, const mat4& wvp, float hud_element)
+	{
+		gos_SetRenderState(gos_State_Texture, texture_id_);
+		gos_SetRenderViewport(rs.viewport_[2], rs.viewport_[3], rs.viewport_[0], rs.viewport_[1]);
 
-        gos_SetRenderMaterialParameterMat4(mat, "projection_", projection);
-        gos_SetRenderMaterialParameterFloat4(mat, "vp", vp);
+		gos_SetRenderMaterialParameterMat4(world_, (const float*)world);
+		gos_SetRenderMaterialParameterMat4(wvp_, (const float*)wvp);
 
-		gos_ApplyRenderMaterial(mat);
+		const float mesh_params[4] = { rs.alpha_, hud_element, 0.0f, 0.0f };
+		gos_SetRenderMaterialParameterFloat4(mesh_params_, mesh_params);
+
+		gos_SetRenderMaterialParameterFloat4(sun_color_, rs.lights_.lightColor[HW_LIGHT_SUN]);
+		gos_SetRenderMaterialParameterFloat4(sun_dir_, rs.lights_.sunDir);
+		gos_SetRenderMaterialParameterFloat4(ambient_, rs.lights_.lightColor[HW_LIGHT_AMBIENT]);
+
+		gos_SetRenderMaterialParameterMat4(projection_, (const float*)gos_GetProjection());
+		gos_SetRenderMaterialParameterFloat4(vp_, (const float*)gos_GetRenderViewport());
+
+		gos_ApplyRenderMaterialParameters(mat_);
 
 		// TODO: either use this or setMat4("wvp_", ...);
 		//mat->setTransform(*wvp_);
 
-		gos_RenderIndexedArray(ib, vb, vdecl);
-
+		gos_RenderIndexedArray(rs.ib_, rs.vb_, rs.vdecl_);
 	}
 
 };
@@ -990,19 +928,14 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 			if ((slot < 0) || (lights->lightColor[slot][3] != 0.0f))
 				continue;
 
-			Stuff::LinearMatrix4D light2world;
-			if (TG_LIGHT_AMBIENT != type)
-				light2world = listOfLights[iLight]->lightToWorld;
-			else
-				light2world = Stuff::LinearMatrix4D::Identity;
-
-			Stuff::UnitVector3D uVec;
-			light2world.GetLocalForwardInWorld(&uVec);
-			lights->lightDir[slot][0] = uVec.x;
-			lights->lightDir[slot][1] = uVec.y;
-			lights->lightDir[slot][2] = uVec.z;
-
-			lights->lightDir[slot][3] = (float)type;
+			if (slot == HW_LIGHT_SUN)
+			{
+				Stuff::UnitVector3D uVec;
+				listOfLights[iLight]->lightToWorld.GetLocalForwardInWorld(&uVec);
+				lights->sunDir[0] = uVec.x;
+				lights->sunDir[1] = uVec.y;
+				lights->sunDir[2] = uVec.z;
+			}
 
 			DWORD startLight = listOfLights[iLight]->GetaRGB();
 
@@ -1013,7 +946,7 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 		}
 	}
 
-	lights->numLights_ = num_lights;
+	lights->sunDir[3] = (float)num_lights;
 }
 
 
@@ -1024,6 +957,7 @@ void GatherLightsParameters(TG_HWLightsData* lights)
 void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 {
 	static bool bSkip = true;
+	ShapeRenderer shape_renderer;
 
 	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
 
@@ -1074,17 +1008,11 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 				}
 				else
 				{
-					DWORD texture = masterTextureNodes[textureIndex].get_gosTextureHandle();
+					if (sh == 0)	// one texture and one alpha test per node
+						shape_renderer.setMaterial(masterTextureNodes[textureIndex].get_gosTextureHandle());
+
 					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
-
-					
-					mat4 view_mat = gos2my(TG_Shape::s_worldToCamera);
-					mat4 world_mat = gos2my(rs->mw_);
-					mat4 wvp_mat = gos2my(rs->mvp_);
-
-					ShapeRenderer shape_renderer;
-					shape_renderer.setup(&world_mat, &view_mat, &wvp_mat, rs->viewport_);
-					shape_renderer.render(rs->vb_, rs->ib_, rs->vdecl_, texture, rs->light_data_buffer_index_, rs->alpha_, hudElement);
+					shape_renderer.render(*rs, gos2my(rs->mw_), gos2my(rs->mvp_), hudElement);
 				}
 
 			}
@@ -1156,15 +1084,6 @@ void MC_TextureManager::renderLists (void)
 		gos_SetRenderState( gos_State_Fog, 0);
 	}
 
-    // copy global list of light data into GPU buffer
-    
-	// the whole block: gos_UpdateBuffer sizes the buffer to what it is given, and
-	// one smaller than the shader's block reads undefined data (no lights: full
-	// white). No entries, as in the flat game: nothing reads it.
-	const uint32_t cpu_buf_size = lightDataStructuresCount ? lightDataStructuresCapacity*sizeof(TG_HWLightsData) : 0;
-	gos_UpdateBuffer(lightDataBuffer_, lightData_, 0, cpu_buf_size);
-	gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
-
     // update scene data uniform buffer
     sceneData_->fog_start = eye->fogStart;
     sceneData_->fog_end = eye->fogFull;
@@ -1182,7 +1101,6 @@ void MC_TextureManager::renderLists (void)
     sceneData_->fog_color[3] = fc.w;
     sceneData_->baseVertexColor = uint32_to_vec4(BaseVertexColor).zyxw();
     gos_UpdateBuffer(sceneDataBuffer_, sceneData_, 0, sizeof(TG_HWSceneData));
-    //gos_BindBufferBase(lightDataBuffer_, LIGHT_DATA_ATTACHMENT_SLOT);
     
     
 

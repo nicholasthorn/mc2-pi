@@ -350,9 +350,14 @@ class gosRenderMaterial {
 
         bool setUniformBlock(const std::string& uniform_block_name, uint32_t unit) {
             gosASSERT(!uniform_block_name.empty());
-            if(program_->uniform_blocks_.count(uniform_block_name)) {
+            auto it = program_->uniform_blocks_.find(uniform_block_name);
+            if(it != program_->uniform_blocks_.end()) {
 				//glBindBufferBase(GL_UNIFORM_BUFFER, , unit);
-				glUniformBlockBinding(program_->shp_, program_->uniform_blocks_[uniform_block_name]->index_, unit);
+				// the program keeps it, so skip repeats (this runs per draw on the mesh path)
+				if(it->second->binding_ != (GLint)unit) {
+					glUniformBlockBinding(program_->shp_, it->second->index_, unit);
+					it->second->binding_ = (GLint)unit;
+				}
                 return true;
             }
             return false;
@@ -3039,6 +3044,33 @@ float __stdcall gos_GetVRFieldOfView()
     return fov;
 }
 
+bool __stdcall gos_GetVRHead(float orientation[4])
+{
+    static const bool follows = !(getenv("MC2_XR_FOLLOW") && getenv("MC2_XR_FOLLOW")[0] == '0');
+    if(!follows || !gos_IsVR())
+        return false;
+
+    // kept when there are no eyes (the system menu) and through a click or a
+    // drag: the pointer holds still on the game's screen then, and the game
+    // would take a screen that turned under it for a move, so for a drag
+    static bool haveHead = false;
+    static float head[4];
+    gosVREyeView views[2];
+    if(!gos_xr::pointerPulled() && gos_GetVREyeViews(views) == 2) {
+        memcpy(head, views[0].orientation, sizeof(head));
+        haveHead = true;
+    } else if(!haveHead) {
+        // MC2_VR_PATHS=1 has no head: only a fixed pose turns the camera, the
+        // desktop test of all this
+        const char* pose = getenv("MC2_XR_POSE");
+        if(!pose || !vr_eye::parseHeadPose(pose, head))
+            return false;
+        haveHead = true;
+    }
+    memcpy(orientation, head, sizeof(head));
+    return true;
+}
+
 bool __stdcall gos_GetVRKeepGamePitch()
 {
     static const bool keep = getenv("MC2_VR_GAME_PITCH") && getenv("MC2_VR_GAME_PITCH")[0] == '1';
@@ -3403,7 +3435,6 @@ void __stdcall gos_ApplyRenderMaterial(HGOSRENDERMATERIAL material)
 	material->setSamplerUnit(gosMesh::s_tex1, 0);
 	material->setSamplerUnit(gosMesh::s_tex2, 1);
 	material->setSamplerUnit(gosMesh::s_tex3, 2);
-	material->setUniformBlock("lights_data", 0);
 }
 
 void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSRENDERMATERIAL material, const char* name, const float* v)
@@ -3418,6 +3449,30 @@ void __stdcall gos_SetRenderMaterialParameterMat4(HGOSRENDERMATERIAL material, c
 	gosASSERT(material);
 	gosASSERT(m);
 	material->getShader()->setMat4(name, m);
+}
+
+HGOSMATERIALPARAM __stdcall gos_GetRenderMaterialParameter(HGOSRENDERMATERIAL material, const char* name)
+{
+	gosASSERT(material && name);
+	return material->getShader()->findUniform(name);
+}
+
+void __stdcall gos_SetRenderMaterialParameterFloat4(HGOSMATERIALPARAM param, const float* v)
+{
+	gosASSERT(v);
+	glsl_program::setUniformFloat4(param, v);
+}
+
+void __stdcall gos_SetRenderMaterialParameterMat4(HGOSMATERIALPARAM param, const float* m)
+{
+	gosASSERT(m);
+	glsl_program::setUniformMat4(param, m);
+}
+
+void __stdcall gos_ApplyRenderMaterialParameters(HGOSRENDERMATERIAL material)
+{
+	gosASSERT(material);
+	material->apply();
 }
 
 void __stdcall gos_SetRenderMaterialUniformBlockBindingPoint(HGOSRENDERMATERIAL material, const char* name, uint32_t slot)

@@ -15,8 +15,6 @@ layout (binding = 1, std140) uniform mesh_data
   vec4 diffuse;
 };
 
-uniform vec4 light_offset_;
-
 uniform mat4 mvp_; // TODO: remove, use wvp_ instead
 
 uniform mat4 world_;
@@ -73,8 +71,7 @@ void main(void)
             vec3(0.0), vec3(0.0), vec3(0.0));
 
 #if ENABLE_VERTEX_LIGHTING
-    int lights_index = int(light_offset_.x);
-    VertexLight = calc_light(lights_index, Normal, base_light);
+    VertexLight = calc_light(Normal, base_light);
 #else
     VertexLight = base_light;
 #endif

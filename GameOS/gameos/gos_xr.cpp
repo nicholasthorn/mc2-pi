@@ -20,6 +20,7 @@
 #include "utils/gl_utils.h"
 #include "utils/tga_writer.h"
 #include "utils/vr_controls.h"
+#include "utils/vr_eye.h"
 
 #include <EGL/egl.h>
 #include <SDL2/SDL.h>
@@ -846,16 +847,14 @@ bool copyFrame(int width, int height)
 void readDebugSettings()
 {
     const char* pose = getenv("MC2_XR_POSE");
-    float yaw = 0.0f, pitch = 0.0f;
-    if(pose && sscanf(pose, "%f,%f", &yaw, &pitch) == 2) {
-        const float y = yaw * 3.14159265f / 360.0f, p = pitch * 3.14159265f / 360.0f;
-        // yaw about +y (left), then pitch about +x (up), in OpenXR's axes
-        g.fixedOrientation.x = std::cos(y) * std::sin(p);
-        g.fixedOrientation.y = std::sin(y) * std::cos(p);
-        g.fixedOrientation.z = -std::sin(y) * std::sin(p);
-        g.fixedOrientation.w = std::cos(y) * std::cos(p);
+    float fixed[4];
+    if(pose && vr_eye::parseHeadPose(pose, fixed)) {
+        g.fixedOrientation.x = fixed[0];
+        g.fixedOrientation.y = fixed[1];
+        g.fixedOrientation.z = fixed[2];
+        g.fixedOrientation.w = fixed[3];
         g.fixedPose = true;
-        printf("[XR] fixed head pose: yaw %.0f, pitch %.0f degrees (MC2_XR_POSE)\n", yaw, pitch);
+        printf("[XR] fixed head pose: %s degrees yaw, pitch (MC2_XR_POSE)\n", pose);
     }
     // MC2_XR_SHOT=n: the left eye's image and the window frame as TGAs on
     // the n-th frame with eyes drawn
@@ -1439,6 +1438,11 @@ void pollInput()
         parkPointer();
         g.pointerHeld = false;
     }
+}
+
+bool pointerPulled()
+{
+    return g.pulling[g.pointingHand] || g.heldButtons != 0;
 }
 
 bool pointerRay(float position[3], float orientation[4])
