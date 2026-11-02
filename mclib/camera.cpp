@@ -901,7 +901,12 @@ unsigned long Camera::inverseProject (Stuff::Vector2DOf<long> &screenPos, Stuff:
 	}
 	else
 	{
-	
+		//VR: the point stays the last one found. Below would project the whole
+		//map every game step while the pointer rests off the terrain window, and
+		//could settle on a point behind the camera, mirrored onto the screen
+		if (gos_IsVR())
+			return 0;
+
 		// not in any tile, must be off map.  We're going to return the coord of the
 		// closest vertex
 		float dis = 999999999.f;

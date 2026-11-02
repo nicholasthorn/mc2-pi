@@ -279,6 +279,24 @@ being no eyes to ask):
   default is still to do.
 - Step 5 (the arm cone tests) left out: nothing shows the gap yet.
 
+## Found in review (2026-11-02)
+
+- **Picks beyond the terrain window.** With the window's edge on the game's
+  screen the ray could meet ground nothing draws, and `inverseProject`, finding
+  no tile, projected the whole map every step and could settle on a mirrored
+  point behind the camera. The ray now stops at the window
+  (`Terrain::isInWindow`), and in VR that search is skipped: the point stays the
+  last one found.
+- **A mirror image of the view behind the camera.** `Terrain::geometry`'s test
+  takes `fabs(1 / y)`, so it passes vertices behind the camera. At 40 degrees
+  that is a sliver; at 115.6 most of the window, so what was behind the player
+  ran full game logic. In VR those vertices no longer count as in the game's
+  view (`Camera::isInFront`). So turning the head right round shows objects
+  appearance only, as at 40 degrees; a game camera following the head's yaw
+  (below) is the answer if that shows.
+- Still open: ground under the game's 2D panel cannot be clicked, about 32 to 50
+  degrees below where the game camera looks (`gos_xr`'s alpha test).
+
 ## Alternatives considered
 
 - **Pick in world space, skip the screen.** `vrPickWorld` already has the
