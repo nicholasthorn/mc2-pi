@@ -20,6 +20,8 @@
 #ifndef TXMMGR_H
 #define TXMMGR_H
 
+#include <stdio.h>
+
 #ifndef DSTD_H
 #include"dstd.h"
 #endif
@@ -155,6 +157,7 @@ struct MC_TextureNode
 		MC_HardwareVertexArrayNode	*hardwareVertexData;
 		MC_HardwareVertexArrayNode	*hardwareVertexData2;
 		MC_HardwareVertexArrayNode	*hardwareVertexData3;
+		MC_HardwareVertexArrayNode	*hardwareVertexData4;	//solid or fading, clamped or not
 
 	void init (void)
 	{
@@ -176,6 +179,7 @@ struct MC_TextureNode
 		hardwareVertexData = NULL;
 		hardwareVertexData2 = NULL;
 		hardwareVertexData3 = NULL;
+		hardwareVertexData4 = NULL;
 	}
 
 	DWORD findFirstAvailableBlock (void);
@@ -542,6 +546,23 @@ class MC_TextureManager
 					masterTextureNodes[nodeId].hardwareVertexData3->textureIndex = nodeId;
 				}
 
+				else if (masterTextureNodes[nodeId].hardwareVertexData &&
+					(masterTextureNodes[nodeId].hardwareVertexData->flags != flags) &&
+					masterTextureNodes[nodeId].hardwareVertexData2 &&
+					(masterTextureNodes[nodeId].hardwareVertexData2->flags != flags) &&
+					masterTextureNodes[nodeId].hardwareVertexData3 &&
+					(masterTextureNodes[nodeId].hardwareVertexData3->flags != flags) &&
+					!masterTextureNodes[nodeId].hardwareVertexData4)
+				{
+					masterTextureNodes[nodeId].hardwareVertexData4 = &(masterHardwareVertexNodes[nextAvailableHardwareVertexNode]);
+					gosASSERT(masterTextureNodes[nodeId].hardwareVertexData4->numShapes == 0);
+					gosASSERT(masterTextureNodes[nodeId].hardwareVertexData4->shapes == NULL);
+
+					nextAvailableHardwareVertexNode++;
+					masterTextureNodes[nodeId].hardwareVertexData4->flags = flags;
+					masterTextureNodes[nodeId].hardwareVertexData4->textureIndex = nodeId;
+				}
+
 				if (masterTextureNodes[nodeId].hardwareVertexData->flags == flags)
 					masterTextureNodes[nodeId].hardwareVertexData->numShapes += 1;
 				else if (masterTextureNodes[nodeId].hardwareVertexData2 &&
@@ -550,9 +571,23 @@ class MC_TextureManager
 				else if (masterTextureNodes[nodeId].hardwareVertexData3 &&
 					masterTextureNodes[nodeId].hardwareVertexData3->flags == flags)
 					masterTextureNodes[nodeId].hardwareVertexData3->numShapes += 1;
+				else if (masterTextureNodes[nodeId].hardwareVertexData4 &&
+					masterTextureNodes[nodeId].hardwareVertexData4->flags == flags)
+					masterTextureNodes[nodeId].hardwareVertexData4->numShapes += 1;
 #ifdef _DEBUG
 				else
 					STOP(("Could not AddTriangles.  No flags match vertex data"));
+#else
+				else
+				{
+					// the shape will not be drawn: say so, once
+					static bool warned = false;
+					if (!warned)
+					{
+						warned = true;
+						printf("[TXM] no hardware node left for texture %d, flags %d\n", (int)nodeId, (int)flags);
+					}
+				}
 #endif
 			}
 			else if (nextAvailableHardwareVertexNode < MC_MAXTEXTURES)
@@ -1048,6 +1083,7 @@ class MC_TextureManager
 				masterTextureNodes[i].hardwareVertexData = NULL;
 				masterTextureNodes[i].hardwareVertexData2 = NULL;
 				masterTextureNodes[i].hardwareVertexData3 = NULL;
+				masterTextureNodes[i].hardwareVertexData4 = NULL;
 			}
 
 			vertexData = vertexData2 = vertexData3 = vertexData4 = vertexData5 = NULL;

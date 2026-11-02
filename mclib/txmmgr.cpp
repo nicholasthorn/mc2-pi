@@ -665,6 +665,33 @@ void MC_TextureManager::addRenderShape(DWORD nodeId, TG_RenderShape* render_shap
 
 			masterTextureNodes[nodeId].hardwareVertexData3->currentShape = shapes;
 		}
+		else if (masterTextureNodes[nodeId].hardwareVertexData4 &&
+			masterTextureNodes[nodeId].hardwareVertexData4->flags == flags)
+		{
+			TG_RenderShape * shapes = masterTextureNodes[nodeId].hardwareVertexData4->currentShape;
+
+#if defined(_DEBUG) || defined(_ARMOR)
+			TG_RenderShape * oldShapes = shapes;
+			TG_RenderShape * oldStart = (masterTextureNodes[nodeId].hardwareVertexData4->shapes + masterTextureNodes[nodeId].hardwareVertexData4->numShapes);
+#endif
+			gosASSERT(oldShapes < oldStart);
+
+			if (!shapes && !masterTextureNodes[nodeId].hardwareVertexData4->shapes)
+			{
+				masterTextureNodes[nodeId].hardwareVertexData4->currentShape =
+					shapes =
+					masterTextureNodes[nodeId].hardwareVertexData4->shapes =
+					rsManager->getBlock(masterTextureNodes[nodeId].hardwareVertexData4->numShapes);
+			}
+
+			if (shapes && (shapes < (masterTextureNodes[nodeId].hardwareVertexData4->shapes + masterTextureNodes[nodeId].hardwareVertexData4->numShapes)))
+			{
+				*shapes = *render_shape;
+				shapes++;
+			}
+
+			masterTextureNodes[nodeId].hardwareVertexData4->currentShape = shapes;
+		}
 		else	//If we got here, something is really wrong
 		{
 #ifdef _DEBUG
@@ -888,8 +915,13 @@ public:
 		//gos_SetRenderMaterialParameterMat4(mat, "view_", (const float*)*view_);
 		gos_SetRenderMaterialParameterMat4(mat, "wvp_", (const float*)*wvp_);
 
-        float ld[4] = { (float)light_index, alpha, hud_element, 0.0f};
+        float ld[4] = { (float)light_index, 0.0f, 0.0f, 0.0f};
 		gos_SetRenderMaterialParameterFloat4(mat, "light_offset_", ld);
+		if (texture_id != 0)	// the untextured shader has no such uniform
+		{
+			const float mesh_params[4] = { alpha, hud_element, 0.0f, 0.0f };
+			gos_SetRenderMaterialParameterFloat4(mat, "mesh_params_", mesh_params);
+		}
 
 		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "LightsData", LIGHT_DATA_ATTACHMENT_SLOT);
 		gos_SetRenderMaterialUniformBlockBindingPoint(mat, "SceneData", SCENE_DATA_ATTACHMENT_SLOT);

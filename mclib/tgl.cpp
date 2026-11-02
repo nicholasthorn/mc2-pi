@@ -87,6 +87,8 @@ bool useLocalShadows = false;
 
 bool renderTGLShapes = true;
 
+#include "render_heuristics.h"
+
 bool silentMode = false;		//Used for automated builds to keep errors from popping up.
 
 //sebi: uncomment this to also enable path of rendering shapes using lighting in shaders
@@ -559,11 +561,10 @@ void TG_TypeShape::LoadBinaryCopy (File &binFile)
 DWORD TG_TypeShape::GPUTextureFlags (DWORD t, DWORD addFlags, BYTE alphaValue)
 {
 	const bool vrAlpha = gos_IsVR() && listOfTextures[t].textureAlpha;
-	// blended where the CPU path sorts these too: a fading shape and the
-	// translucent compass. Other alpha textures are cut-outs (trees, netting):
-	// drawn with the solids, softened by alpha to coverage (renderHardwareNodes)
+	// cut-outs are drawn with the solids, softened by alpha to coverage
+	// (renderHardwareNodes)
 	DWORD flags = addFlags;
-	if ((alphaValue != 0xff) || (vrAlpha && (addFlags & MC2_ISCOMPASS)))
+	if (GPUMeshBlended(alphaValue, vrAlpha, (addFlags & MC2_ISCOMPASS) != 0))
 		flags |= MC2_DRAWALPHA;
 	else
 		flags |= MC2_DRAWSOLID;
@@ -2581,7 +2582,8 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-		if (theShape->ib_ && theShape->vb_) {
+		// faded right out: nothing to see, so no draw in either eye
+		if (theShape->ib_ && theShape->vb_ && alphaValue) {
 
             GatherLightsParameters(&lightData_);
 
@@ -2812,7 +2814,8 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			addFlags |= MC2_ISTERRAIN;
 		}
 
-		if (theShape->ib_ && theShape->vb_) {
+		// faded right out: nothing to see, so no draw in either eye
+		if (theShape->ib_ && theShape->vb_ && alphaValue) {
 
 			Stuff::Matrix4D mvp;
 			if ((forceZ >= 0.0f) && (forceZ < 1.0f))

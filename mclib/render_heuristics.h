@@ -37,6 +37,16 @@ inline float PointBoxDistanceSquared (const float p[3], const float boxMin[3], c
 }
 
 //---------------------------------------------------------------------------
+// Whether a shape's texture is drawn blended on the GPU mesh path: a fading
+// shape, and in VR the translucent compass, as the CPU path sorts them. Other
+// alpha textures are cut-outs, drawn with the solids. vrAlphaTexture: in VR,
+// and this texture has alpha.
+inline bool GPUMeshBlended (uint8_t alphaValue, bool vrAlphaTexture, bool isCompass)
+{
+	return (alphaValue != 0xff) || (vrAlphaTexture && isCompass);
+}
+
+//---------------------------------------------------------------------------
 // Measures how many turns (frames) pass per second, so code that counts
 // time in turns can convert a time into turns at the current frame rate.
 // The texture cache's turn counts were tuned for about 30 fps; at 180 fps
