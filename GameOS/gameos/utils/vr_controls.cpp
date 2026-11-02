@@ -1,29 +1,15 @@
 #include "vr_controls.h"
+#include "vr_math.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace vr_controls {
 
+using vr_math::rotate;
+using vr_math::rotateInverse;
+
 namespace {
-
-// v rotated by the unit quaternion q
-void rotate(const float q[4], const float v[3], float out[3])
-{
-    // t = 2 * cross(q.xyz, v); out = v + w * t + cross(q.xyz, t)
-    const float t[3] = {2.0f * (q[1] * v[2] - q[2] * v[1]),
-                        2.0f * (q[2] * v[0] - q[0] * v[2]),
-                        2.0f * (q[0] * v[1] - q[1] * v[0])};
-    out[0] = v[0] + q[3] * t[0] + (q[1] * t[2] - q[2] * t[1]);
-    out[1] = v[1] + q[3] * t[1] + (q[2] * t[0] - q[0] * t[2]);
-    out[2] = v[2] + q[3] * t[2] + (q[0] * t[1] - q[1] * t[0]);
-}
-
-void rotateInverse(const float q[4], const float v[3], float out[3])
-{
-    const float conjugate[4] = {-q[0], -q[1], -q[2], q[3]};
-    rotate(conjugate, v, out);
-}
 
 // one stick axis: +1, -1 or 0, with hysteresis on whether it was on before
 int axisDirection(float value, bool wasPositive, bool wasNegative)
@@ -112,34 +98,7 @@ Pose beamPose(const float from[3], const float to[3], const float eye[3], float&
         c /= n;
     const float x[3] = {y[1] * z[2] - y[2] * z[1], y[2] * z[0] - y[0] * z[2], y[0] * z[1] - y[1] * z[0]};
 
-    // the rotation whose columns are x, y, z, as a quaternion
-    const float trace = x[0] + y[1] + z[2];
-    float* q = pose.orientation;
-    if(trace > 0.0f) {
-        const float s = 2.0f * std::sqrt(1.0f + trace);
-        q[3] = 0.25f * s;
-        q[0] = (y[2] - z[1]) / s;
-        q[1] = (z[0] - x[2]) / s;
-        q[2] = (x[1] - y[0]) / s;
-    } else if(x[0] > y[1] && x[0] > z[2]) {
-        const float s = 2.0f * std::sqrt(1.0f + x[0] - y[1] - z[2]);
-        q[3] = (y[2] - z[1]) / s;
-        q[0] = 0.25f * s;
-        q[1] = (y[0] + x[1]) / s;
-        q[2] = (z[0] + x[2]) / s;
-    } else if(y[1] > z[2]) {
-        const float s = 2.0f * std::sqrt(1.0f + y[1] - x[0] - z[2]);
-        q[3] = (z[0] - x[2]) / s;
-        q[0] = (y[0] + x[1]) / s;
-        q[1] = 0.25f * s;
-        q[2] = (z[1] + y[2]) / s;
-    } else {
-        const float s = 2.0f * std::sqrt(1.0f + z[2] - x[0] - y[1]);
-        q[3] = (x[1] - y[0]) / s;
-        q[0] = (z[0] + x[2]) / s;
-        q[1] = (z[1] + y[2]) / s;
-        q[2] = 0.25f * s;
-    }
+    vr_math::fromAxes(x, y, z, pose.orientation);
     return pose;
 }
 
