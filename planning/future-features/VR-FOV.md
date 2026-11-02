@@ -1,7 +1,8 @@
 # VR: widen the game camera's field of view
 
-Status: built on branch `vr-fov`, not yet run in the headset (planned and
-built 2026-11-02, from `pi-port` with #77, #79 and #83). Resolves the to-do "the game camera's field of view in VR" in
+Status: built on branch `vr-fov`, PR #86, run on a Quest 2 (planned and built
+2026-11-02, from `pi-port` with #77, #79 and #83). Results and what is still
+open are below. Resolves the to-do "the game camera's field of view in VR" in
 `VR-TABLETOP.md` (Phase 3 progress). Line numbers are not recorded on
 purpose: grep the symbol.
 
@@ -293,9 +294,9 @@ being no eyes to ask):
 - **Picks beyond the terrain window.** With the window's edge on the game's
   screen the ray could meet ground nothing draws, and `inverseProject`, finding
   no tile, projected the whole map every step and could settle on a mirrored
-  point behind the camera. The ray now stops at the window
+  point behind the camera. The ground now stops at the window
   (`Terrain::isInWindow`), and in VR that search is skipped: the point stays the
-  last one found.
+  last one found. Units past the window are drawn, so they can still be picked.
 - **A mirror image of the view behind the camera.** `Terrain::geometry`'s test
   takes `fabs(1 / y)`, so it passes vertices behind the camera. At 40 degrees
   that is a sliver; at 115.6 most of the window, so what was behind the player
@@ -303,8 +304,24 @@ being no eyes to ask):
   view (`Camera::isInFront`). So turning the head right round shows objects
   appearance only, as at 40 degrees; a game camera following the head's yaw
   (below) is the answer if that shows.
-- Still open: ground under the game's 2D panel cannot be clicked, about 32 to 50
-  degrees below where the game camera looks (`gos_xr`'s alpha test).
+- `MC2_XR_FOV=0` keeps the game's 40 degrees, but not quite the game's own view:
+  the in-front test applies in VR at any field of view, so the sliver behind the
+  camera is dropped there too, and the 40-degree bench runs above had that fix.
+- Still open:
+  - Ground under the game's 2D panel cannot be clicked, about 32 to 50 degrees
+    below where the game camera looks (`gos_xr`'s alpha test).
+  - The sum assumes the eyes look where the game camera looks, but they keep a
+    level horizon while it is pitched down: at a tilt of about 65 degrees, far
+    ground straight ahead is off the game's screen. Tilts of 35 to 50 are fine.
+    A game camera following the head (below) is the likely answer.
+  - In VR a click can use the last point found if the pick leaves the window
+    before the game step reads it (the map scrolling); it should be rare.
+  - The minimap's wedge may be wrong at this field of view: not checked at 115.6.
+  - A script's field of view lasts until the next game step.
+  - A ray entering the window from outside can report a hit at its edge (the
+    camera outside the window at full zoom-out, the ray low); it should be rare.
+  - No unit test for `Terrain::isInWindow` or for keeping the first eyes in
+    `gos_GetVRFieldOfView`.
 
 ## Alternatives considered
 

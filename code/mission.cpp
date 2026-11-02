@@ -807,9 +807,10 @@ long Mission::getStatus (void) {
 // meets a unit (a sphere about each mover, so pointing at a mech's body picks
 // it) or else the ground; that point, projected through the game camera, is
 // where the mouse goes, so the game's own picking and orders work as they
-// are. Points the game camera does not see cannot be picked, nor can what is
+// are. Points the game camera does not see cannot be picked, nor can ground
 // outside the terrain window: nothing is drawn there, and the game only knows
-// the window's tiles (Camera::inverseProject).
+// the window's tiles (Camera::inverseProject). Units out there are drawn, and
+// picking one goes by its screen bounds, so they can.
 static float vrGroundHeight (void*, float x, float y)
 {
 	// off the map there is no ground: getTerrainElevation would say 0 there,
@@ -841,7 +842,7 @@ static void vrPickWorld (void)
 	for (long i=0;i<ObjectManager->getNumMovers();i++)
 	{
 		MoverPtr mover = ObjectManager->getMover(i);
-		if (!mover || !mover->getExists() || mover->isDestroyed() || !land->isInWindow(mover->getPosition()))
+		if (!mover || !mover->getExists() || mover->isDestroyed())
 			continue;
 		// a mech is 10 to 12 m tall, a vehicle about 4 m (0.2 m a world unit)
 		const float halfHeight = mover->isMech() ? 30.0f : 12.0f;
