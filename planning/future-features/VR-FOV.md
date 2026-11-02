@@ -263,8 +263,15 @@ being no eyes to ask):
 - With a wide view on a flat window the terrain window's edge and the cloud
   layer show, the open to-do in `VR-TABLETOP.md`; not caused by this change,
   and the headset already shows it.
-- Not run: the headset, so the real eye angles, picking at the edge of the
-  view and the step's cost on the Quest are all still to see.
+- Quest 2, first run ("much much better", more testing wanted): eyes -49 to
+  49 by 48 to -50 degrees, so 115.6 for the game camera; of 55 sampled pointer
+  hits 53 were on the game screen, the other two during the mission's opening
+  camera move. Turrets, overlay sizes and the frame rate are not yet checked.
+- That run also logged `XR_ERROR_POSE_INVALID` 18 times, each a dropped frame,
+  never seen before: picks now reach far enough for a beam hundreds of metres
+  long, and `vr_controls::beamPose` lost precision working from its middle
+  (0.86% off unit in a test). Fixed and pinned by a unit test; the headset has
+  to confirm that this was the cause.
 - Step 5 (the arm cone tests) left out: nothing shows the gap yet.
 
 ## Alternatives considered

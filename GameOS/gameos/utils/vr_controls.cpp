@@ -80,8 +80,11 @@ Pose beamPose(const float from[3], const float to[3], const float eye[3], float&
     }
     for(float& c : y)
         c /= length;
-    // the face: towards the eye, with the part along the beam taken out
-    float z[3] = {eye[0] - pose.position[0], eye[1] - pose.position[1], eye[2] - pose.position[2]};
+    // the face: towards the eye, with the part along the beam taken out. From
+    // the near end, which gives the same answer: from the middle of a beam a
+    // kilometre long, floats lose the eye's few centimetres off the line, the
+    // quaternion stops being unit and OpenXR refuses the frame
+    float z[3] = {eye[0] - from[0], eye[1] - from[1], eye[2] - from[2]};
     float along = z[0] * y[0] + z[1] * y[1] + z[2] * y[2];
     for(int i = 0; i < 3; ++i)
         z[i] -= along * y[i];
