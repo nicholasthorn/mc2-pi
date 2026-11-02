@@ -64,9 +64,30 @@ bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(vo
 bool rayHitsSphere(const float origin[3], const float dir[3], const float centre[3], float radius,
                    float& distance);
 
+// Where a ray (unit dir) first meets an axis-aligned box in front of its
+// origin, and, when asked, where it leaves. False from inside the box, as for
+// a sphere.
+bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3], const float boxMax[3],
+                float& distance, float* leaving = nullptr);
+
 // The heading of an orientation: the angle about +y of its -z axis, seen
 // from above. Looking up or down and tilting the head do not change it.
 float yawOf(const float orientation[4]);
+
+// The same position and heading, upright: what "straight ahead" means for a
+// head pose, whatever it is looking up at or tilted by.
+Pose levelPose(const Pose& head);
+
+// Waiting for a head to settle. The headset says it is on as it nears the
+// face, while it is still being pulled on and pointing anywhere: true once
+// the head has stayed within 2 degrees of heading and 5 cm for 'hold' seconds.
+struct HeadSettle {
+    bool started = false;
+    float yaw = 0.0f;
+    float position[3] = {0.0f, 0.0f, 0.0f};
+    double since = 0.0;
+};
+bool headSettled(HeadSettle& settle, const Pose& head, double seconds, double hold = 0.75);
 
 // The camera moves the thumbsticks ask for. The left stick pans, the right
 // stick turns (x) and zooms (y, up is in). A direction starts at a

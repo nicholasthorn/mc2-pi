@@ -89,13 +89,15 @@ void Appearance::drawTextHelp (char *text, unsigned long color)
 	Stuff::Vector4D moveHere;
 	moveHere = screenPos;
 	float textY = lowerRight.y;
+	float scaleX, scaleY;
+	gos_GetEyeMarkerScale(&scaleX, &scaleY);
 	if (!toEye(moveHere.x, textY))
 		return;
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
 	gos_TextStringLength(&width,&height,text);
 
-	moveHere.y = textY + 10.0f;
+	moveHere.y = textY + 10.0f * scaleY;
 	moveHere.x -= width / 2;
 	moveHere.z = width;
 	moveHere.w = height;
@@ -113,13 +115,15 @@ void Appearance::drawPilotName(char *text, unsigned long color )
 	Stuff::Vector4D moveHere;
 	moveHere = screenPos;
 	float textY = lowerRight.y;
+	float scaleX, scaleY;
+	gos_GetEyeMarkerScale(&scaleX, &scaleY);
 	if (!toEye(moveHere.x, textY))
 		return;
 
 	gos_TextSetAttributes (gosFontHandle, 0, gosFontScale, false, true, false, false);
 	gos_TextStringLength(&width,&height,text);
 
-	moveHere.y = textY + 10.0f + height;
+	moveHere.y = textY + 10.0f * scaleY + height;
 	moveHere.x -= width / 2;
 	moveHere.z = width;
 	moveHere.w = height;
@@ -131,7 +135,6 @@ void Appearance::drawPilotName(char *text, unsigned long color )
 void Appearance::drawSelectBox (DWORD color)
 {
 	Stuff::Vector4D				ul, br, pos1, pos2;
-	float						offsets;
 
 	AppearanceType *appearType = getAppearanceType();
 	if (appearType && appearType->typeBoundExists())
@@ -161,13 +164,16 @@ void Appearance::drawSelectBox (DWORD color)
 
 	//-----------------------------------------------------
 	// Must scale the magic numbers for select bracket
-	offsets = 5.0f * eye->getScaleFactor();
+	float scaleX, scaleY;
+	gos_GetEyeMarkerScale(&scaleX, &scaleY);
+	float offsetsX = 5.0f * eye->getScaleFactor() * scaleX;
+	float offsetsY = 5.0f * eye->getScaleFactor() * scaleY;
 
-	pos1.x = float(ul.x-offsets);
-	pos1.y = float(ul.y-offsets);
+	pos1.x = float(ul.x-offsetsX);
+	pos1.y = float(ul.y-offsetsY);
 	pos1.z = ul.z;
 
-	pos2.x = float(ul.x-offsets);
+	pos2.x = float(ul.x-offsetsX);
 	pos2.y = float(ul.y);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -177,12 +183,12 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(ul.x-offsets);
-	pos1.y = float(ul.y-offsets);
+	pos1.x = float(ul.x-offsetsX);
+	pos1.y = float(ul.y-offsetsY);
 	pos1.z = ul.z;
 
 	pos2.x = float(ul.x);
-	pos2.y = float(ul.y-offsets);
+	pos2.y = float(ul.y-offsetsY);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -191,11 +197,11 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(br.x+offsets);
-	pos1.y = float(ul.y-offsets);
+	pos1.x = float(br.x+offsetsX);
+	pos1.y = float(ul.y-offsetsY);
 	pos1.z = ul.z;
 
-	pos2.x = float(br.x+offsets);
+	pos2.x = float(br.x+offsetsX);
 	pos2.y = float(ul.y);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -205,12 +211,12 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(br.x+offsets);
-	pos1.y = float(ul.y-offsets);
+	pos1.x = float(br.x+offsetsX);
+	pos1.y = float(ul.y-offsetsY);
 	pos1.z = ul.z;
 
 	pos2.x = float(br.x);
-	pos2.y = float(ul.y-offsets);
+	pos2.y = float(ul.y-offsetsY);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -219,11 +225,11 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(br.x+offsets);
-	pos1.y = float(br.y+offsets);
+	pos1.x = float(br.x+offsetsX);
+	pos1.y = float(br.y+offsetsY);
 	pos1.z = ul.z;
 
-	pos2.x = float(br.x+offsets);
+	pos2.x = float(br.x+offsetsX);
 	pos2.y = float(br.y);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -233,12 +239,12 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(br.x+offsets);
-	pos1.y = float(br.y+offsets);
+	pos1.x = float(br.x+offsetsX);
+	pos1.y = float(br.y+offsetsY);
 	pos1.z = ul.z;
 
 	pos2.x = float(br.x);
-	pos2.y = float(br.y+offsets);
+	pos2.y = float(br.y+offsetsY);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -247,11 +253,11 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(ul.x-offsets);
-	pos1.y = float(br.y+offsets);
+	pos1.x = float(ul.x-offsetsX);
+	pos1.y = float(br.y+offsetsY);
 	pos1.z = ul.z;
 
-	pos2.x = float(ul.x-offsets);
+	pos2.x = float(ul.x-offsetsX);
 	pos2.y = float(br.y);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -261,12 +267,12 @@ void Appearance::drawSelectBox (DWORD color)
 		newElement.draw();
 	}
 	
-	pos1.x = float(ul.x-offsets);
-	pos1.y = float(br.y+offsets);
+	pos1.x = float(ul.x-offsetsX);
+	pos1.y = float(br.y+offsetsY);
 	pos1.z = ul.z;
 
 	pos2.x = float(ul.x);
-	pos2.y = float(br.y+offsets);
+	pos2.y = float(br.y+offsetsY);
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -279,7 +285,10 @@ void Appearance::drawSelectBox (DWORD color)
 //---------------------------------------------------------------------------
 void Appearance::drawSelectBrackets (DWORD color)
 {
-	float					offsets = 5.0 * eye->getScaleFactor();
+	float					scaleX, scaleY;
+	gos_GetEyeMarkerScale(&scaleX, &scaleY);
+	float					offsetsX = 5.0 * eye->getScaleFactor() * scaleX;
+	float					offsetsY = 5.0 * eye->getScaleFactor() * scaleY;
 	Stuff::Vector4D			pos1;
 	Stuff::Vector4D			pos2;
 	Stuff::Vector4D			ul, br;
@@ -298,7 +307,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.y = ul.y;
 	pos1.z = ul.z;
 
-	pos2.x = ul.x+offsets;
+	pos2.x = ul.x+offsetsX;
 	pos2.y = ul.y;
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -313,7 +322,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.z = ul.z;
 
 	pos2.x = ul.x;
-	pos2.y = ul.y+offsets;
+	pos2.y = ul.y+offsetsY;
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -327,7 +336,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.z = ul.z;
 
 	pos2.x = br.x;
-	pos2.y = ul.y+offsets;
+	pos2.y = ul.y+offsetsY;
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -340,7 +349,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.y = ul.y;
 	pos1.z = ul.z;
 
-	pos2.x = br.x-offsets;
+	pos2.x = br.x-offsetsX;
 	pos2.y = ul.y;
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -355,7 +364,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.z = br.z;
 
 	pos2.x = ul.x;
-	pos2.y = br.y-offsets;
+	pos2.y = br.y-offsetsY;
 	pos2.z = br.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -368,7 +377,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.y = br.y;
 	pos1.z = br.z;
 
-	pos2.x = ul.x+offsets;
+	pos2.x = ul.x+offsetsX;
 	pos2.y = br.y;
 	pos2.z = br.z;
 	pos2.w = pos1.w = 1.0f;
@@ -384,7 +393,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.z = br.z;
 
 	pos2.x = br.x;
-	pos2.y = br.y-offsets;
+	pos2.y = br.y-offsetsY;
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
 	
@@ -397,7 +406,7 @@ void Appearance::drawSelectBrackets (DWORD color)
 	pos1.y = br.y;
 	pos1.z = br.z;
 
-	pos2.x = br.x-offsets;
+	pos2.x = br.x-offsetsX;
 	pos2.y = br.y;
 	pos2.z = ul.z;
 	pos2.w = pos1.w = 1.0f;
@@ -473,10 +482,14 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 		return;
 
 	// ignoring where for now
-	float			offset = 8.0 * eye->getScaleFactor();
-	float			trueHeight = HEIGHT * eye->getScaleFactor();
-	float			Y = anchorY - offset - trueHeight -  2 * bmpHeight;
-	float			X = anchorX - bmpWidth/2.f;
+	float			scaleX, scaleY;
+	gos_GetEyeMarkerScale(&scaleX, &scaleY);
+	float			offset = 8.0 * eye->getScaleFactor() * scaleY;
+	float			trueHeight = HEIGHT * eye->getScaleFactor() * scaleY;
+	float			iconWidth = bmpWidth * scaleX;
+	float			iconHeight = bmpHeight * scaleY;
+	float			Y = anchorY - offset - trueHeight -  2 * iconHeight;
+	float			X = anchorX - iconWidth/2.f;
 
 	gos_VERTEX v[4]; 
 
@@ -492,8 +505,8 @@ void Appearance::drawIcon( unsigned long bmpHandle, unsigned long bmpWidth,
 		v[i].v = 0.f;
 	}
 
-	v[2].x = v[3].x = X + bmpWidth;
-	v[1].y = v[2].y = Y + bmpHeight;
+	v[2].x = v[3].x = X + iconWidth;
+	v[1].y = v[2].y = Y + iconHeight;
 	v[2].u = v[3].u = 9.f/16.f;
 	v[1].v = v[2].v = 5.f/16.f;
 
@@ -516,11 +529,16 @@ void Appearance::drawBars (void)
 
 	//-----------------------------------------
 	// Change to GOS DrawQuad code for HWare!!
-	float			offset = 8.0 * eye->getScaleFactor();		//Remember, EVEN numbers!!!
-	float			trueWidth = WIDTH * eye->getScaleFactor() * 2;
-	float			trueHeight = HEIGHT * eye->getScaleFactor();
+	float			scaleX, scaleY;
+	gos_GetEyeMarkerScale(&scaleX, &scaleY);
+	float			offset = 8.0 * eye->getScaleFactor() * scaleY;		//Remember, EVEN numbers!!!
+	float			trueWidth = WIDTH * eye->getScaleFactor() * 2 * scaleX;
+	float			trueHeight = HEIGHT * eye->getScaleFactor() * scaleY;
 	float			topY = anchorY - offset - trueHeight;
-	float			leftX = floor(anchorX - trueWidth / 2);
+	float			leftX = anchorX - trueWidth / 2;
+	//VR: no whole pixels, the bar moves smoothly under the eye (see toEye)
+	if (!eye->hidesOverlays())
+		leftX = floor(leftX);
 	
 	DWORD					color;
 	
@@ -545,8 +563,8 @@ void Appearance::drawBars (void)
 
 	gos_VERTEX vertices[4];
 	
-	vertices[0].x 		= leftX - 1.0;
-	vertices[0].y 		= topY - 1.0;
+	vertices[0].x 		= leftX - scaleX;
+	vertices[0].y 		= topY - scaleY;
 	vertices[0].z		= HUD_DEPTH;
 	vertices[0].rhw		= 0.5;
 	vertices[0].u		= 0.0;
@@ -554,8 +572,8 @@ void Appearance::drawBars (void)
 	vertices[0].argb	= color | 0xff000000;	  //Factor out the alpha color!!
 	vertices[0].frgb	= 0x00000000; 
 	
-	vertices[1].x 		= leftX + barLength + 1.0;
-	vertices[1].y 		= topY - 1.0;
+	vertices[1].x 		= leftX + barLength + scaleX;
+	vertices[1].y 		= topY - scaleY;
 	vertices[1].z		= HUD_DEPTH;
 	vertices[1].rhw		= 0.5;
 	vertices[1].u		= 0.0;
@@ -563,8 +581,8 @@ void Appearance::drawBars (void)
 	vertices[1].argb	= color | 0xff000000;     //Factor out the alpha color!! 
 	vertices[1].frgb	= 0x00000000; 
 	
-	vertices[2].x 		= leftX + barLength + 1.0;
-	vertices[2].y 		= topY + trueHeight + 1.0;
+	vertices[2].x 		= leftX + barLength + scaleX;
+	vertices[2].y 		= topY + trueHeight + scaleY;
 	vertices[2].z		= HUD_DEPTH;
 	vertices[2].rhw		= 0.5;
 	vertices[2].u		= 0.0;
@@ -572,8 +590,8 @@ void Appearance::drawBars (void)
 	vertices[2].argb	= color | 0xff000000;     //Factor out the alpha color!! 
 	vertices[2].frgb	= 0x00000000; 
 	
-	vertices[3].x 		= leftX - 1.0;
-	vertices[3].y 		= topY + trueHeight + 1.0;
+	vertices[3].x 		= leftX - scaleX;
+	vertices[3].y 		= topY + trueHeight + scaleY;
 	vertices[3].z		= HUD_DEPTH;
 	vertices[3].rhw		= 0.5;
 	vertices[3].u		= 0.0;
@@ -588,7 +606,7 @@ void Appearance::drawBars (void)
 
 	newElement.draw();
 	
-	DrawBox(vertices[0].x,vertices[0].y,(leftX + trueWidth + 1.0),vertices[2].y);
+	DrawBox(vertices[0].x,vertices[0].y,(leftX + trueWidth + scaleX),vertices[2].y);
 
 	DWORD fogColor = eye->fogColor;
 

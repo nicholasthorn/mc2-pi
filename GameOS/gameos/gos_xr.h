@@ -10,6 +10,9 @@
 // window's frame, which then holds only the interface, as a see-through quad
 // below the horizon. With MC2_XR_EYES=0 the whole game frame is shown on a
 // big screen ahead instead.
+// Straight ahead is where the head faces once the headset is on and the head
+// holds still, not LOCAL's own forward, which stays wherever the headset was
+// last recentred; the system's recentre sets it again.
 // Debugging: MC2_XR_POSE=yaw,pitch fixes the head rotation, MC2_XR_SHOT=n
 // saves the left eye and the window frame as TGAs on the n-th eye frame,
 // MC2_XR_MSAA sets the eyes' samples (default 4). MC2_XR_FOV sets the game
@@ -42,6 +45,8 @@ bool init();
 void beginFrame();
 // The eyes to draw this frame (see gos_GetVREyeViews), 0 or 2.
 int eyeViews(gosVREyeView views[2]);
+// The size of an eye's image in pixels.
+void eyeImageSize(int eye, int& width, int& height);
 // Makes eye 0 or 1's image the render target, cleared, with its viewport;
 // -1 goes back to the window. False when not in VR (the caller then sets
 // the window's viewport itself).
@@ -74,6 +79,7 @@ void shutdown();
 inline bool init() { return false; }
 inline void beginFrame() {}
 inline int eyeViews(gosVREyeView*) { return 0; }
+inline void eyeImageSize(int, int& width, int& height) { width = height = 0; }
 inline bool bindEye(int) { return false; }
 inline bool present(int, int) { return false; }
 inline bool exitRequested() { return false; }

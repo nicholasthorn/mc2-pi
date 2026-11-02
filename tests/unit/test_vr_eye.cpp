@@ -340,6 +340,34 @@ TEST_CASE("the game camera's field of view stays in the range the view cone can 
 	CHECK(vr_eye::gameFieldOfView(wide, wide, 0.0f) == doctest::Approx(100.0f).epsilon(0.001));
 }
 
+TEST_CASE("overlay text in an eye: the same size whatever the game's resolution")
+{
+	float x = 0.0f, y = 0.0f;
+	// 800 x 600 over a Quest 2 eye: a window unit is 1.8 by 2.64 eye pixels
+	vr_eye::overlayTextScale(800, 600, 1440, 1584, x, y);
+	CHECK(x * 1440.0f / 800.0f == doctest::Approx(vr_eye::kOverlayTextEyePixels));
+	CHECK(y * 1584.0f / 600.0f == doctest::Approx(vr_eye::kOverlayTextEyePixels));
+	// 3664 x 1920: 0.39 by 0.825, the size the text was judged right at
+	vr_eye::overlayTextScale(3664, 1920, 1440, 1584, x, y);
+	CHECK(x == doctest::Approx(2.099f).epsilon(0.001));
+	CHECK(y == doctest::Approx(1.0f));
+	// a size not known yet
+	vr_eye::overlayTextScale(0, 1920, 1440, 1584, x, y);
+	CHECK(x == 1.0f);
+	CHECK(y == 1.0f);
+	vr_eye::overlayTextScale(3664, 1920, 1440, 0, x, y);
+	CHECK(x == 1.0f);
+	CHECK(y == 1.0f);
+}
+
+TEST_CASE("overlay markers in an eye: narrower than text by a fixed share")
+{
+	float x = 0.0f, y = 0.0f;
+	vr_eye::overlayTextScale(800, 600, 1440, 1584, x, y);
+	// a game pixel of a bar across a Quest 2 eye at 800 x 600
+	CHECK(x * vr_eye::kOverlayMarkerShareX * 1440.0f / 800.0f == doctest::Approx(0.393f));
+}
+
 TEST_CASE("a field of view given as text: in the range, or 0 to turn it off")
 {
 	CHECK(vr_eye::parseGameFov("20") == doctest::Approx(20.0f));

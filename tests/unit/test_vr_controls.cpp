@@ -231,6 +231,70 @@ TEST_CASE("yawOf reads the heading and ignores looking up or down and tilting") 
 	CHECK(vr_controls::yawOf(yq) == doctest::Approx(-2.5f));
 }
 
+TEST_CASE("levelPose keeps the head's position and heading, and stays upright") {
+	float yq[4], pq[4], rq[4], q[4], q2[4];
+	axisQuat(1, 2.1f, yq);
+	axisQuat(0, -0.5f, pq);
+	compose(yq, pq, q);
+	axisQuat(2, 0.3f, rq);
+	compose(q, rq, q2);
+	vr_controls::Pose head;
+	head.position[0] = 1.5f; head.position[1] = 0.25f; head.position[2] = -3.0f;
+	for(int i = 0; i < 4; ++i)
+		head.orientation[i] = q2[i];
+
+	const vr_controls::Pose level = vr_controls::levelPose(head);
+	CHECK(level.position[0] == doctest::Approx(1.5f));
+	CHECK(level.position[1] == doctest::Approx(0.25f));
+	CHECK(level.position[2] == doctest::Approx(-3.0f));
+	CHECK(vr_controls::yawOf(level.orientation) == doctest::Approx(vr_controls::yawOf(q2)));
+	// about +y only: looking down and tilting are not part of "forward"
+	CHECK(level.orientation[0] == doctest::Approx(0.0f));
+	CHECK(level.orientation[2] == doctest::Approx(0.0f));
+	const float length = level.orientation[1] * level.orientation[1] + level.orientation[3] * level.orientation[3];
+	CHECK(length == doctest::Approx(1.0f));
+}
+
+static vr_controls::Pose headAt(float yaw, float x)
+{
+	vr_controls::Pose head;
+	head.position[0] = x; head.position[1] = 0.0f; head.position[2] = 0.0f;
+	axisQuat(1, yaw, head.orientation);
+	return head;
+}
+
+TEST_CASE("headSettled waits for the head to hold still") {
+	vr_controls::HeadSettle settle;
+	// the first sight of it only starts the wait
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.0f, 0.0f), 10.0));
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.0f, 0.0f), 10.5));
+	CHECK(vr_controls::headSettled(settle, headAt(0.0f, 0.0f), 10.8));
+	// a breath and a small tremor do not restart it
+	vr_controls::HeadSettle tremor;
+	CHECK_FALSE(vr_controls::headSettled(tremor, headAt(0.0f, 0.0f), 0.0));
+	CHECK_FALSE(vr_controls::headSettled(tremor, headAt(0.02f, 0.02f), 0.4));
+	CHECK(vr_controls::headSettled(tremor, headAt(-0.02f, -0.02f), 0.8));
+}
+
+TEST_CASE("headSettled starts again while the headset is being pulled on") {
+	vr_controls::HeadSettle settle;
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.0f, 0.0f), 0.0));
+	// turning: never long enough at one heading
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.3f, 0.0f), 0.5));
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.6f, 0.0f), 1.0));
+	// moving without turning counts too
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.6f, 0.3f), 1.5));
+	// still from here: the wait runs from the last move
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(0.6f, 0.3f), 2.0));
+	CHECK(vr_controls::headSettled(settle, headAt(0.6f, 0.3f), 2.3));
+}
+
+TEST_CASE("headSettled is not fooled by a heading either side of straight behind") {
+	vr_controls::HeadSettle settle;
+	CHECK_FALSE(vr_controls::headSettled(settle, headAt(3.13f, 0.0f), 0.0));
+	CHECK(vr_controls::headSettled(settle, headAt(-3.13f, 0.0f), 0.8));
+}
+
 TEST_CASE("click hold: the pointer stays put while the trigger is pulled") {
 	vr_controls::ClickHold hold;
 	float u = 0.40f, v = 0.50f;
@@ -320,6 +384,50 @@ TEST_CASE("world pick: spheres are hit on their near side, missed beside, ignore
 	CHECK_FALSE(vr_controls::rayHitsSphere(origin, dir, beside, 20.0f, distance));
 	const float behind[3] = {-100.0f, 0.0f, 0.0f};
 	CHECK_FALSE(vr_controls::rayHitsSphere(origin, dir, behind, 20.0f, distance));
+}
+
+TEST_CASE("rayHitsBox: where a ray first meets a box") {
+	const float boxMin[3] = {90.0f, -10.0f, -20.0f};
+	const float boxMax[3] = {110.0f, 10.0f, 20.0f};
+	const float origin[3] = {0.0f, 0.0f, 0.0f};
+	const float along[3] = {1.0f, 0.0f, 0.0f};
+	float distance = 0.0f;
+	REQUIRE(vr_controls::rayHitsBox(origin, along, boxMin, boxMax, distance));
+	CHECK(distance == doctest::Approx(90.0f));
+
+	// beside it, and pointing away from it
+	const float beside[3] = {0.0f, 11.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(beside, along, boxMin, boxMax, distance));
+	const float away[3] = {-1.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(origin, away, boxMin, boxMax, distance));
+
+	// at an angle: enters through the top
+	const float above[3] = {100.0f, 50.0f, 0.0f};
+	const float down[3] = {0.0f, -1.0f, 0.0f};
+	REQUIRE(vr_controls::rayHitsBox(above, down, boxMin, boxMax, distance));
+	CHECK(distance == doctest::Approx(40.0f));
+
+	// a slanted ray that passes over the corner misses
+	const float s = 0.7071068f;
+	const float slanted[3] = {s, s, 0.0f};
+	const float low[3] = {0.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(low, slanted, boxMin, boxMax, distance));
+
+	// where it leaves, when asked: straight through the 20-long box
+	float leaving = 0.0f;
+	REQUIRE(vr_controls::rayHitsBox(origin, along, boxMin, boxMax, distance, &leaving));
+	CHECK(distance == doctest::Approx(90.0f));
+	CHECK(leaving == doctest::Approx(110.0f));
+	// through a corner region: leaves by a side face, sooner than the far end
+	const float tilt[3] = {0.8944272f, 0.4472136f, 0.0f};
+	const float start[3] = {80.0f, 0.0f, 0.0f};
+	REQUIRE(vr_controls::rayHitsBox(start, tilt, boxMin, boxMax, distance, &leaving));
+	CHECK(distance == doctest::Approx(11.18034f));
+	CHECK(leaving == doctest::Approx(22.36068f));
+
+	// from inside: not a hit, as rayHitsSphere
+	const float inside[3] = {100.0f, 0.0f, 0.0f};
+	CHECK_FALSE(vr_controls::rayHitsBox(inside, along, boxMin, boxMax, distance));
 }
 
 TEST_CASE("sticks: small deflections do nothing, full ones give their direction") {

@@ -862,6 +862,28 @@ static void vrPickWorld (void)
 			target = centre;
 		}
 	}
+	// buildings: a ray meeting a wall must stop there, or the point it picks is
+	// the ground behind, off the building on the game camera's screen. What the
+	// game's picking skips (trees, rock clumps) does not stop it either.
+	const Stuff::Vector3D rayOrigin(o[0],o[1],o[2]), rayDirection(d[0],d[1],d[2]);
+	const long maxObjects = ObjectManager->getMaxObjects();
+	for (long handle=1;handle<=maxObjects;handle++)
+	{
+		GameObjectPtr obj = ObjectManager->get(handle);
+		if (!obj || !obj->getExists() || obj->isMover() || obj->isDestroyed() ||
+			(obj->getObjectClass() == TREE) || (obj->getDamageLevel() == 36000000))
+			continue;
+		AppearancePtr appearance = obj->getAppearance();
+		float distance = 0.0f;
+		Stuff::Vector3D aimAt;
+		if (appearance && appearance->canBeSeen() && appearance->worldRayHit(rayOrigin,rayDirection,distance,aimAt) &&
+			(!hit || (distance < best)))
+		{
+			hit = true;
+			best = distance;
+			target = aimAt;
+		}
+	}
 
 	Stuff::Vector4D screen(0.0f,0.0f,0.0f,0.0f);
 	// in front: a hand pointing away from where the head looks would mirror
