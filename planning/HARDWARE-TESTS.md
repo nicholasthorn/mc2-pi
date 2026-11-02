@@ -81,9 +81,22 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Game camera's field of view** (PR #86, `future-features/VR-FOV.md`).
       Done on a Quest 2: the log line, world clicks near the horizon and past
       the terrain's edge, the frame rate against `MC2_XR_FOV=0`. Still to see:
-      a turret at the side of the view tracks and fires (mc2_01 has none; try
-      mc2_03); brackets and health bars sit on their units at their usual size;
+      brackets and health bars sit on their units at their usual size;
       a unit drawn past the terrain's edge can be clicked.
+- [ ] **Game camera follows the head** (branch `vr-head-camera`,
+      `future-features/VR-HEAD-CAMERA.md`). `MC2_XR_PICK_LOG=1` in `mc2args.txt`;
+      `MC2_XR_FOLLOW=0` to compare. World clicks at a tilt of about 65 degrees on
+      far ground (the log says "screen on", where #86 said off); click behind the
+      camera's start after turning round; a click with the head moving is still
+      one click, not a drag box, and lands where the beam was; a drag select while
+      turning the head; pointing well away from the gaze clicks nothing, and never
+      a mirrored spot; with the head still, a pointer on the world is clickable at
+      once. Sticks pan and turn as before whichever way the head looks. Brackets
+      and health bars stay on their units through a fast head turn. The minimap's
+      wedge turns with the head and stays sane looking up at the sky. Buildings
+      behind the start point change state when shot at while you look at them.
+      `mc2.log`'s frame rate and `logic_ms` against `MC2_XR_FOLLOW=0` in the mc2_19
+      bench. The system menu changes nothing.
 - [ ] **Controllers** (branch `vr-controllers`, Phase 3 progress): in the
       main menu and in a mission, either hand shows a beam, with a dot
       where it meets the interface and no mouse cursor; trigger clicks

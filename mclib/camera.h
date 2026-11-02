@@ -241,6 +241,9 @@ class Camera
 		Stuff::Matrix4D			gameClipToWorld;		//VR: the game camera's clipToWorld, kept for the eyes (overlayToEye)
 		Stuff::Matrix4D			gameToEyeClip;			//VR: game camera clip space to the eye's (overlayToEye)
 		float					gameClipX, gameClipY;	//VR: the game camera's cameraToClip scale on x and y (overlayToEye)
+		bool					vrFollowsHead;			//VR: the game camera looks where the head does (setVRHead)
+		float					vrHead[4];				//VR: the head's orientation it follows, one game step's worth
+		Stuff::LinearMatrix4D	vrGameOrigin;			//VR: cameraOrigin before following the head, what the eyes and rays start from
 
 		float					fogStart;				//Altitude at which fog starts
 		float					fogFull;				//Altitude at which fog is Full;
@@ -314,6 +317,9 @@ class Camera
 			eyeOffset = eyeParallax = 0.0f;
 			vrEye = NULL;
 			gameClipX = gameClipY = 1.0f;
+			vrFollowsHead = false;
+			vrHead[0] = vrHead[1] = vrHead[2] = 0.0f;
+			vrHead[3] = 1.0f;
 	
 			lightDirection.Zero();
 			
@@ -472,6 +478,12 @@ class Camera
 
 		bool vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
 			Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre);
+
+		//VR: the orientation the game camera follows from its next update on
+		//(gos_GetVRHead), or NULL for the game's own view. It holds for the
+		//whole game step and the frames up to the next one, so that a pick
+		//projected in a frame and read in the step used the same screen.
+		void setVRHead (const float orientation[4]);
 
 		void projectCamera (Stuff::Vector3D &point);
 

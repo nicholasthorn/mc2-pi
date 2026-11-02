@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 
 namespace vr_eye {
@@ -103,11 +104,51 @@ Basis eyeBasis(const Basis& game, const float worldUp[3], const float headOrient
     return eye;
 }
 
+Basis followHead(const Basis& game, const float worldUp[3], const float headOrientation[4], bool keepGamePitch)
+{
+    const float xrNoMove[3] = {0.0f, 0.0f, 0.0f};
+    float position[3], orientation[4];
+    fromXr(xrNoMove, headOrientation, position, orientation);
+    return eyeBasis(game, worldUp, orientation, position, 0.0f, keepGamePitch);
+}
+
 void viewDirection(const Basis& eye, float direction[3])
 {
     direction[0] = -eye.z[0];
     direction[1] = -eye.z[1];
     direction[2] = -eye.z[2];
+}
+
+void worldFrame(const Basis& camera, float i[3], float j[3], float k[3])
+{
+    // the engine's world is the game's as (-x, z, y), and the view is minus z
+    const float* rows[3] = {camera.x, camera.z, camera.y};
+    const float signs[3] = {1.0f, -1.0f, 1.0f};
+    float* axes[3] = {i, j, k};
+    for(int a = 0; a < 3; ++a) {
+        axes[a][0] = -signs[a] * rows[a][0];
+        axes[a][1] = signs[a] * rows[a][2];
+        axes[a][2] = signs[a] * rows[a][1];
+    }
+}
+
+void screenToGround(const float i[3], const float j[3], const float k[3], const float origin[3],
+                    float tanX, float tanY, float x, float y, float groundHeight, float maxDistance,
+                    float point[3])
+{
+    float ray[3];
+    for(int c = 0; c < 3; ++c)
+        ray[c] = j[c] + x * tanX * i[c] - y * tanY * k[c];
+    const float along = std::sqrt(ray[0] * ray[0] + ray[1] * ray[1]);
+    const float height = origin[2] - groundHeight;
+    // how far along the ground: only a ray going down meets it
+    float distance = maxDistance;
+    if(ray[2] < 0.0f && height > 0.0f)
+        distance = std::min(maxDistance, height * along / -ray[2]);
+    const float scale = along > 1e-6f ? distance / along : 0.0f;
+    point[0] = origin[0] + ray[0] * scale;
+    point[1] = origin[1] + ray[1] * scale;
+    point[2] = groundHeight;
 }
 
 void clipEdges(const float fov[4], float near, float& leftClip, float& rightClip,
@@ -147,6 +188,19 @@ float parseGameFov(const char* text)
     if(value == 0.0f || (value >= kMinGameFov && value <= kMaxGameFov))
         return value;
     return -1.0f;
+}
+
+bool parseHeadPose(const char* text, float orientation[4])
+{
+    float yaw = 0.0f, pitch = 0.0f;
+    if(std::sscanf(text, "%f,%f", &yaw, &pitch) != 2)
+        return false;
+    const float y = yaw * 3.14159265f / 360.0f, p = pitch * 3.14159265f / 360.0f;
+    orientation[0] = std::cos(y) * std::sin(p);
+    orientation[1] = std::sin(y) * std::cos(p);
+    orientation[2] = -std::sin(y) * std::sin(p);
+    orientation[3] = std::cos(y) * std::cos(p);
+    return true;
 }
 
 }

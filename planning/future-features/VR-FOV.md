@@ -28,10 +28,12 @@ a picture; it shows as what the game does with the view:
   `objVertexActive`. `GameObjectManager::update` walks active blocks only
   (special buildings and gates always update). Outside, #79's
   `updateDrawnAppearances` refreshes the appearance only
-  (`refreshAppearanceOnly`): turrets do not track or fire, buildings do not
-  change state, nothing there advances as a game object. This is the
-  "animation" gap at the sides, and it is the original game's off-screen
-  behaviour made visible.
+  (`refreshAppearanceOnly`): buildings do not change state, nothing there
+  advances as a game object. This is the "animation" gap at the sides, and it
+  is the original game's off-screen behaviour made visible. (Corrected in
+  `VR-HEAD-CAMERA.md`: turrets are not among these, `GameObjectManager::update`
+  runs them every step, so checks below that look for a turret stopping find
+  nothing.)
 - **Movers already pass.** Since #79 `recalcBounds` in VR culls by distance
   only (`Camera::drawsAll`): the view-cone test is
   `(cosine > eye->cosHalfFOV) || eye->drawsAll()` and the screen-rect test
@@ -309,14 +311,16 @@ being no eyes to ask):
   camera is dropped there too, and the 40-degree bench runs above had that fix.
 - Still open:
   - Ground under the game's 2D panel cannot be clicked, about 32 to 50 degrees
-    below where the game camera looks (`gos_xr`'s alpha test).
+    below where the game camera looks (`gos_xr`'s alpha test). Now below where
+    the head looks: look at it to click it (`VR-HEAD-CAMERA.md`).
   - The sum assumes the eyes look where the game camera looks, but they keep a
     level horizon while it is pitched down: at a tilt of about 65 degrees, far
     ground straight ahead is off the game's screen. Tilts of 35 to 50 are fine.
-    A game camera following the head (below) is the likely answer.
+    Closed by the game camera following the head (`VR-HEAD-CAMERA.md`).
   - In VR a click can use the last point found if the pick leaves the window
     before the game step reads it (the map scrolling); it should be rare.
-  - The minimap's wedge may be wrong at this field of view: not checked at 115.6.
+  - The minimap's wedge was wrong at this field of view; fixed in
+    `VR-HEAD-CAMERA.md`.
   - A script's field of view lasts until the next game step.
   - A ray entering the window from outside can report a hit at its edge (the
     camera outside the window at full zoom-out, the ray low); it should be rare.
@@ -330,8 +334,8 @@ being no eyes to ask):
   through `MissionInterfaceManager`, and fixes picking only.
 - **Let the logic eye follow the head's yaw.** Keeps a 40 degree cone where
   the player looks; cheaper per step, but turning the head would change which
-  turrets are alive. Noted as a later option in `VR-TABLETOP.md`; orthogonal
-  to this change and can be added on top.
+  terrain objects are alive. Added on top of this change, at the headset's
+  field of view and following pitch too: `VR-HEAD-CAMERA.md`.
 - **A second, draw-only active-block set for logic.** Already exists for
   drawing (`objBlockInfo[].drawn`); using it for logic is the same gameplay
   change as widening the FOV with more code.
