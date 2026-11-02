@@ -236,6 +236,20 @@ TEST_CASE("the game camera's field of view stays in the range the view cone can 
 	CHECK(vr_eye::gameFieldOfView(wide, wide, 0.0f) == doctest::Approx(100.0f).epsilon(0.001));
 }
 
+TEST_CASE("overlay text in an eye: glyphs as wide as they are tall")
+{
+	// the Quest 2: a 3664 x 1920 window drawn across a 1440 x 1584 eye shrinks
+	// x to 0.393 and y to 0.825, so text is widened by their ratio
+	CHECK(vr_eye::overlayTextScaleX(3664, 1920, 1440, 1584) == doctest::Approx(2.099f).epsilon(0.001));
+	// the same shape: nothing to correct
+	CHECK(vr_eye::overlayTextScaleX(1000, 500, 2000, 1000) == doctest::Approx(1.0f));
+	// a size not known yet
+	CHECK(vr_eye::overlayTextScaleX(0, 1920, 1440, 1584) == 1.0f);
+	CHECK(vr_eye::overlayTextScaleX(3664, 1920, 0, 1584) == 1.0f);
+	CHECK(vr_eye::overlayTextScaleX(3664, 0, 1440, 1584) == 1.0f);
+	CHECK(vr_eye::overlayTextScaleX(3664, 1920, 1440, 0) == 1.0f);
+}
+
 TEST_CASE("a field of view given as text: in the range, or 0 to turn it off")
 {
 	CHECK(vr_eye::parseGameFov("20") == doctest::Approx(20.0f));

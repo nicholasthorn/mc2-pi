@@ -520,7 +520,10 @@ void Appearance::drawBars (void)
 	float			trueWidth = WIDTH * eye->getScaleFactor() * 2;
 	float			trueHeight = HEIGHT * eye->getScaleFactor();
 	float			topY = anchorY - offset - trueHeight;
-	float			leftX = floor(anchorX - trueWidth / 2);
+	float			leftX = anchorX - trueWidth / 2;
+	//VR: no whole pixels, the bar moves smoothly under the eye (see toEye)
+	if (!eye->hidesOverlays())
+		leftX = floor(leftX);
 	
 	DWORD					color;
 	

@@ -990,6 +990,11 @@ void __stdcall gos_TextSetAttributes( HGOSFONT3D FontHandle, DWORD Foreground, f
 //
 void __stdcall gos_TextSetPosition( int XPosition, int YPosition );
 //
+// The same for text anchored to the world: whole pixels (truncated, as a cast
+// to int does), but in a head-tracked eye (VR) the fraction is kept.
+//
+void __stdcall gos_TextSetPositionFloat( float XPosition, float YPosition );
+//
 // Returns the current print position
 //
 void __stdcall gos_TextGetPrintPosition( int* XPosition, int* YPosition );

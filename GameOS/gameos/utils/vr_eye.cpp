@@ -138,6 +138,13 @@ float gameFieldOfView(const float leftFov[4], const float rightFov[4], float hei
     return std::min(degrees, kMaxGameFov);
 }
 
+float overlayTextScaleX(int windowWidth, int windowHeight, int eyeWidth, int eyeHeight)
+{
+    if(windowWidth <= 0 || windowHeight <= 0 || eyeWidth <= 0 || eyeHeight <= 0)
+        return 1.0f;
+    return ((float)windowWidth * (float)eyeHeight) / ((float)windowHeight * (float)eyeWidth);
+}
+
 float parseGameFov(const char* text)
 {
     char* end = nullptr;

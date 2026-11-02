@@ -66,6 +66,12 @@ float gameFieldOfView(const float leftFov[4], const float rightFov[4], float hei
 // above, 0 for "0" (keep the game's own), -1 for anything else.
 float parseGameFov(const char* text);
 
+// Overlays are in window coordinates, stretched over the eye's image. When
+// the window and the image differ in shape (3664 x 1920 over 1440 x 1584 on
+// the Quest 2), this much wider must text be drawn to keep its shape. 1 when
+// a size is not known.
+float overlayTextScaleX(int windowWidth, int windowHeight, int eyeWidth, int eyeHeight);
+
 }
 
 #endif // VR_EYE_H
