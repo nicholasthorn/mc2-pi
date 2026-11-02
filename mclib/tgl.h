@@ -278,33 +278,25 @@ typedef struct _TG_Light
 
 typedef  TG_Light *TG_LightPtr;
 
-// The lights of one shape on the GPU mesh path, as the shader reads them
-// (ObjectLights in shaders/include/lighting.hglsl, std140: keep in sync). The
-// slots are fixed: calc_light takes the sun from one and ambient from the
-// other, and a tree has its sun turned off while it transforms.
+// The lights of one shape on the GPU mesh path, sent as uniforms with its draw
+// (light_* in shaders/include/lighting.hglsl). The slots are fixed: calc_light
+// takes the sun from one and ambient from the other, and a tree has its sun
+// turned off while it transforms.
 #define HW_LIGHT_SUN			0
 #define HW_LIGHT_AMBIENT		1
 #define MAX_HW_LIGHTS_IN_WORLD	2
-// Entries in the shader's block (MAX_LIGHT_ENTRIES): 16000 bytes, within the
-// 16 KB block every GLES 3 driver must allow
-#define MAX_HW_LIGHT_ENTRIES	200
 
 struct TG_HWLightsData {
-	// colours first: entries differ there (a tree's ambient), and they are
-	// found by memcmp (addLightDataStructure)
 	float lightColor[MAX_HW_LIGHTS_IN_WORLD][4];
 	float lightDir[MAX_HW_LIGHTS_IN_WORLD][4];
     int numLights_;
-    int pad[3];
 
     TG_HWLightsData():numLights_(0)
     {
 		memset(lightDir, 0, sizeof(lightDir));
 		memset(lightColor, 0, sizeof(lightColor));
-        pad[0] = pad[1] = pad[2] = 13;
     }
 };
-static_assert(sizeof(TG_HWLightsData) == 80, "must match ObjectLights in shaders/include/lighting.hglsl");
 
 typedef TG_HWLightsData* TG_HWLightsDataPtr;
 
@@ -931,7 +923,7 @@ public:
 	Stuff::Matrix4D mvp_; // model -> projection
 	Stuff::Matrix4D mw_; // model -> world
 	float viewport_[4];
-    uint32_t light_data_buffer_index_;
+    TG_HWLightsData lights_;
     float alpha_; // the shape's alpha, 0..1: it fades in and out
 };
 ////////////////////////////////////////////////////////////////////////////////

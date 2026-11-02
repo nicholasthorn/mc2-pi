@@ -2787,7 +2787,6 @@ void __stdcall gos_DestroyVertexDeclaration(HGOSVERTEXDECLARATION buffer);
 //
 // Uniform buffers attachment slots (indices)
 // 
-#define LIGHT_DATA_ATTACHMENT_SLOT	0
 #define SCENE_DATA_ATTACHMENT_SLOT	1
 
 
