@@ -4967,7 +4967,9 @@ inline int MoveMap::calcHPrime (int r, int c) {
 	return(sum);
 }
 
-#define MAX_MAPWIDTH		1000
+// Open-list ids in the jump and escape searches are the cell's map index
+// (row * maxWidth + col), as in calcPath: unique per cell, and dense, so
+// PriorityQueue's find() index stays small (it was row * 1000 + col).
 
 //---------------------------------------------------------------------------
 
@@ -5059,10 +5061,10 @@ inline void MoveMap::propogateCostJUMP (long r, long c, long cost, long g) {
 		curMapNode->g = g + cost;
 		curMapNode->fPrime = curMapNode->g + curMapNode->hPrime;
 		if (curMapNode->flags & MOVEFLAG_OPEN) {
-			long openIndex = openList->find(r * MAX_MAPWIDTH + c);
+			long openIndex = openList->find(r * maxWidth + c);
 			if (!openIndex) {
 				char s[128];
-				sprintf(s, "MoveMap.propogateCost: Cannot find movemap node [%ld, %ld, %ld] for change\n", r, c, r * MAX_MAPWIDTH + c);
+				sprintf(s, "MoveMap.propogateCost: Cannot find movemap node [%ld, %ld, %ld] for change\n", r, c, r * maxWidth + c);
 				gosASSERT(openIndex != 0);
 				}
 			else
@@ -5659,7 +5661,7 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 	// Put the START vertex on the empty OPEN list...
 	PQNode initialVertex;
 	initialVertex.key = curMapNode->fPrime;
-	initialVertex.id = curRow * MAX_MAPWIDTH + curCol;
+	initialVertex.id = curRow * maxWidth + curCol;
 	initialVertex.row = curRow;
 	initialVertex.col = curCol;
 	openList->clear();
@@ -5798,10 +5800,10 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 								succMapNode->parent = dirToParent;
 								succMapNode->g = succNodeG;
 								succMapNode->fPrime = succNodeG + succMapNode->hPrime;
-								int openIndex = openList->find(succRow * MAX_MAPWIDTH + succCol);
+								int openIndex = openList->find(succRow * maxWidth + succCol);
 								if (!openIndex) {
 									char s[128];
-									sprintf(s, "MoveMap.calcPath: Cannot find movemap node [%d, %d, %d, %d] for change\n", succRow, succCol, succRow * MAX_MAPWIDTH + succCol, dir);
+									sprintf(s, "MoveMap.calcPath: Cannot find movemap node [%d, %d, %d, %d] for change\n", succRow, succCol, succRow * maxWidth + succCol, dir);
 #ifdef USE_OBJECTS
 									DebugOpenList(s);
 #endif
@@ -5834,7 +5836,7 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 							succMapNode->fPrime = succNodeG + succMapNode->hPrime;
 							PQNode succPQNode;
 							succPQNode.key = succMapNode->fPrime;
-							succPQNode.id = succRow * MAX_MAPWIDTH + succCol;
+							succPQNode.id = succRow * maxWidth + succCol;
 							succPQNode.row = succRow;
 							succPQNode.col = succCol;
 #ifdef _DEBUG
@@ -6133,7 +6135,7 @@ long MoveMap::calcEscapePath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, l
 	// Put the START vertex on the empty OPEN list...
 	PQNode initialVertex;
 	initialVertex.key = curMapNode->fPrime;
-	initialVertex.id = curRow * MAX_MAPWIDTH + curCol;
+	initialVertex.id = curRow * maxWidth + curCol;
 	initialVertex.row = curRow;
 	initialVertex.col = curCol;
 	openList->clear();
@@ -6263,10 +6265,10 @@ long MoveMap::calcEscapePath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, l
 								succMapNode->parent = dirToParent;
 								succMapNode->g = succNodeG;
 								succMapNode->fPrime = succNodeG + succMapNode->hPrime;
-								long openIndex = openList->find(succRow * MAX_MAPWIDTH + succCol);
+								long openIndex = openList->find(succRow * maxWidth + succCol);
 								if (!openIndex) {
 									char s[128];
-									sprintf(s, "MoveMap.calcEscapePath: Cannot find movemap node [%ld, %ld, %ld, %ld] for change\n", succRow, succCol, succRow * MAX_MAPWIDTH + succCol, dir);
+									sprintf(s, "MoveMap.calcEscapePath: Cannot find movemap node [%ld, %ld, %ld, %ld] for change\n", succRow, succCol, succRow * maxWidth + succCol, dir);
 #ifdef USE_OBJECTS
 									DebugOpenList(s);
 #endif
@@ -6299,7 +6301,7 @@ long MoveMap::calcEscapePath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, l
 							succMapNode->fPrime = succNodeG + succMapNode->hPrime;
 							PQNode succPQNode;
 							succPQNode.key = succMapNode->fPrime;
-							succPQNode.id = succRow * MAX_MAPWIDTH + succCol;
+							succPQNode.id = succRow * maxWidth + succCol;
 							succPQNode.row = succRow;
 							succPQNode.col = succCol;
 #ifdef _DEBUG
