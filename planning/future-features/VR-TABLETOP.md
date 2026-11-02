@@ -696,11 +696,20 @@ Known gaps:
   work, so probably a lower CPU clock when less is asked of it (not checked).
   **Fewer driver calls per draw (branch `perf/vr-mesh-driver-calls`):** a mesh
   node applies its states and material once, and its draws leave the program,
-  buffers and attributes bound for the next, down from 36 calls for a tree
-  (counted from the code) to 6 with the last draw's buffers, 12 with new ones.
-  Same pixels. Quest 2, three alternating pairs of mc2_19: `world_render` 5.74
-  to 5.82 ms down to 5.47 to 5.54, p95 16.28 to 16.53 down to 15.93 to 16.18;
-  fps 69.8 to 70.1 either way, p99 about 28 ms and double frames unchanged.
+  buffers and attributes bound for the next. A tree draw goes from 36 calls
+  (counted from the code) to 20 for the usual draw of another shape, as about 9
+  mesh draws in 10 change buffers and declaration (`MC2_VR_PATHS=1` on the
+  desktop), and to 6 when the shape repeats. Same pixels. Quest 2, mc2_19:
+  `world_render` 5.74 to 5.82 ms down to 5.47 to 5.54 against `f2586adc`, and
+  5.63 to 5.75 down to 5.34 to 5.45 against `91b17870`; p95 about 0.2 to 0.3 ms
+  lower; fps, p99 and double frames unchanged.
+  **Tried on top, no gain on the Quest:** keeping attributes enabled across
+  shape types (12 calls, not 20: 5.38 ms against 5.41) and skipping repeated
+  texture binds in `applyRenderStates`, which also covers the non-mesh draws,
+  about 2 in 3 on the desktop's VR paths (5.40 ms). Three rounds of each,
+  ranges overlapping. So call count alone no longer predicts time here: do not
+  retry these without a profile from the headset. Walking the uniform map is
+  about 0.4 % of the main thread on the desktop, too little to measure.
 - **To do: chain-link fences are solid bands at a distance.** At full size the
   mesh has clean gaps, but `glGenerateMipmap` averages alpha and colour
   separately, so a mipped fence is uniform grey with dark colour bled in;
