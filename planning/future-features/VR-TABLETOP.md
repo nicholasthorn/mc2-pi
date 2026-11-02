@@ -757,8 +757,18 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   the panning, which would otherwise turn too, and the zoom, whose keys do
   nothing with shift down) and zooms (keypad + / -),
   with hysteresis (on at 0.5, off below 0.3).
-- **Buttons:** B holds Ctrl (force fire), X Shift, Y Alt, the left menu
-  button is Escape (pause menu).
+- **Buttons** (remapped 2026-11-02, for what is used mid-fight; pointing at
+  small HUD buttons is the slow part in a headset): held while the other hand
+  clicks, B waypoints (Ctrl), X run (Space), Y jump (J), left stick click force
+  fire (F). Right stick click selects the visible units (E); the left menu
+  button is Escape (pause menu). This gives up Shift (add to a selection) and
+  Alt (the mouse moving the camera); turning still sends Shift by itself, and
+  the game matches modifiers exactly, so a command held while turning waits for
+  the turn to end. The stick pans with B held: Ctrl + arrow rotates the light in
+  the flat game (a debug command) and scrolls in VR. X, Y and the stick clicks
+  send their keys only while a mission takes orders
+  (`gos_VRMissionTakesOrders`), as they would type in a text box or skip a movie
+  elsewhere.
 - **Straight ahead is where the head faces.** LOCAL stays wherever the headset
   was last recentred (136 degrees off and 0.72 m away on one launch), so the
   HUD could be behind the player and the fly-in played off to one side. The

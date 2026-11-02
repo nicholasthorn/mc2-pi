@@ -2641,8 +2641,12 @@ int MissionInterfaceManager::centerCamera()
 {
 	return 0;
 }
+// VR: the stick pans while B holds Ctrl, the waypoint key, and Ctrl + arrow is
+// here rather than in scrollLeft and the others (commands match modifiers exactly)
 int MissionInterfaceManager::rotateLightLeft()
 {
+	if (gos_IsVR())
+		return scrollLeft();
 	#ifndef FINAL
 	eye->rotateLightLeft(rotationInc);
 	#endif
@@ -2650,6 +2654,8 @@ int MissionInterfaceManager::rotateLightLeft()
 }
 int MissionInterfaceManager::rotateLightRight()
 {
+	if (gos_IsVR())
+		return scrollRight();
 	#ifndef FINAL
 	eye->rotateLightRight(rotationInc);
 	#endif
@@ -2657,6 +2663,8 @@ int MissionInterfaceManager::rotateLightRight()
 }
 int MissionInterfaceManager::rotateLightUp()
 {
+	if (gos_IsVR())
+		return scrollUp();
 	#ifndef FINAL
 	eye->rotateLightUp(rotationInc);
 	#endif
@@ -2664,6 +2672,8 @@ int MissionInterfaceManager::rotateLightUp()
 }
 int MissionInterfaceManager::rotateLightDown()
 {
+	if (gos_IsVR())
+		return scrollDown();
 	#ifndef FINAL
 	eye->rotateLightDown(rotationInc);
 	#endif

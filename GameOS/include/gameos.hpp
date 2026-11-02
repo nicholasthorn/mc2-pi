@@ -2063,6 +2063,12 @@ bool __stdcall gos_GetVRPointerRay( float position[3], float orientation[4] );
 void __stdcall gos_SetVRWorldPointer( bool valid, float x, float y, float metres );
 // MC2_XR_PICK_LOG=1: log the world picks and what each press went to.
 bool __stdcall gos_VRPickLog();
+//
+// Called each game step while a mission takes orders: the VR controllers'
+// command buttons (run, jump, force fire, select visible) send their keys only
+// then, as those keys would type in a text box or skip a movie elsewhere.
+//
+void __stdcall gos_VRMissionTakesOrders();
 
 
 

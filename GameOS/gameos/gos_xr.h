@@ -22,8 +22,10 @@
 // Controllers (VR plan, Phase 3): the ray from the hand that last pulled
 // its trigger or grip is the mouse where it meets the quad; the trigger is
 // the left button, the grip the right. Left stick: pan (arrow keys); right
-// stick: turn (shift + left / right) and zoom (keypad + / -). B holds Ctrl,
-// X Shift, Y Alt; the left menu button is Escape. A puts the quad in front
+// stick: turn (shift + left / right) and zoom (keypad + / -). Held while
+// clicking: B waypoints (Ctrl), X run (Space), Y jump (J), left stick click
+// force fire (F). Right stick click selects the visible units (E); the left
+// menu button is Escape. A puts the quad in front
 // of the head; holding A, the left stick raises it (up) or lowers it (down)
 // and makes it larger (right) or smaller (left), and letting go logs the
 // MC2_XR_HUD value to keep. MC2_XR_HUD=distance,
@@ -69,6 +71,8 @@ bool pointerActive();
 // hand's aim pose when the pointer is on the world, and the game's answer.
 bool pointerRay(float position[3], float orientation[4]);
 void setWorldPointer(bool valid, float x, float y, float metres);
+// A game step of a mission taking orders (gos_VRMissionTakesOrders).
+void missionTakesOrders();
 // A trigger on the pointing hand is being pulled, or a button of the virtual
 // mouse is held: a click or a drag is under way (gos_GetVRHead).
 bool pointerPulled();
@@ -85,6 +89,7 @@ inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
 inline void pollInput() {}
 inline bool pointerActive() { return false; }
+inline void missionTakesOrders() {}
 inline bool pointerRay(float*, float*) { return false; }
 inline void setWorldPointer(bool, float, float, float) {}
 inline bool pointerPulled() { return false; }

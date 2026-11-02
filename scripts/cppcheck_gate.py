@@ -20,6 +20,7 @@ Exit status: 0 nothing new, 1 new findings, 2 cppcheck itself failed.
 import argparse
 import collections
 import linecache
+import json
 import os
 import re
 import subprocess
@@ -91,7 +92,27 @@ def ignored(path, line, check, message):
 LOCATIONS = collections.defaultdict(list)
 
 
+def in_project(build_dir, files):
+    """The files this build compiles. Others cannot be checked: cppcheck stops
+    with an error if a filter matches nothing, as when the only .cpp a change
+    touches is GameOS/gameos/gos_xr.cpp, which only the Quest build compiles."""
+    with open(os.path.join(build_dir, "compile_commands.json"), encoding="utf-8") as f:
+        compiled = [e["file"].replace("\\", "/") for e in json.load(f)]
+    kept = []
+    for name in files:
+        wanted = "/" + name.replace("\\", "/").lstrip("./")
+        if any(c.endswith(wanted) for c in compiled):
+            kept.append(name)
+        else:
+            print("not checked, not compiled by this build: " + name)
+    return kept
+
+
 def run_cppcheck(build_dir, files, jobs):
+    if files:
+        files = in_project(build_dir, files)
+        if not files:
+            return collections.Counter()
     cmd = ["cppcheck", "--project=" + os.path.join(build_dir, "compile_commands.json"),
            "--enable=warning,portability", "--inline-suppr", "--quiet",
            "-j", str(jobs), "--template=" + TEMPLATE]

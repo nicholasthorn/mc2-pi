@@ -63,8 +63,12 @@ const float kBeamWidth = 0.006f;
 const float kBeamLength = 1.5f;
 const float kDotSize = 0.025f;
 
+// How long after a mission's last game step its command keys still go through:
+// long enough for the 30 Hz step and a slow frame, at 72 frames a second.
+const int kOrdersFrames = 20;
+
 // the controllers' buttons that are not per hand
-enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_COUNT };
+enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_LEFT_STICK, BUTTON_RIGHT_STICK, BUTTON_COUNT };
 
 // What the pointer is on: the interface on the quad (where its alpha shows
 // something drawn), the world (through the quad's see-through parts, or
@@ -174,6 +178,7 @@ struct State {
     bool worldValid = false;
     float worldX = 0.0f, worldY = 0.0f, worldMetres = 0.0f;
     int worldAge = 0;
+    int ordersAge = kOrdersFrames;  // headset frames since a mission took orders
     // the window's alpha at the quad point and at the world pick
     AlphaProbe probe;
     float hudAlpha = 1.0f;
@@ -350,10 +355,12 @@ bool createActions()
     g.contextAction = createAction(XR_ACTION_TYPE_FLOAT_INPUT, "context", "Context (right mouse)", true);
     g.stickAction = createAction(XR_ACTION_TYPE_VECTOR2F_INPUT, "camera", "Camera", true);
     g.buttonActions[BUTTON_A] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "place_hud", "Place the interface", false);
-    g.buttonActions[BUTTON_B] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "ctrl", "Ctrl", false);
-    g.buttonActions[BUTTON_X] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "shift", "Shift", false);
-    g.buttonActions[BUTTON_Y] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "alt", "Alt", false);
+    g.buttonActions[BUTTON_B] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "waypoints", "Waypoints", false);
+    g.buttonActions[BUTTON_X] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "run", "Run", false);
+    g.buttonActions[BUTTON_Y] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "jump", "Jump", false);
     g.buttonActions[BUTTON_MENU] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "escape", "Escape", false);
+    g.buttonActions[BUTTON_LEFT_STICK] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "force_fire", "Force fire", false);
+    g.buttonActions[BUTTON_RIGHT_STICK] = createAction(XR_ACTION_TYPE_BOOLEAN_INPUT, "select_visible", "Select visible units", false);
     if(!g.aimAction || !g.selectAction || !g.contextAction || !g.stickAction)
         return false;
     for(XrAction action : g.buttonActions)
@@ -374,6 +381,8 @@ bool createActions()
         {g.buttonActions[BUTTON_X], "/user/hand/left/input/x/click"},
         {g.buttonActions[BUTTON_Y], "/user/hand/left/input/y/click"},
         {g.buttonActions[BUTTON_MENU], "/user/hand/left/input/menu/click"},
+        {g.buttonActions[BUTTON_LEFT_STICK], "/user/hand/left/input/thumbstick/click"},
+        {g.buttonActions[BUTTON_RIGHT_STICK], "/user/hand/right/input/thumbstick/click"},
     };
     std::vector<XrActionSuggestedBinding> suggested;
     for(const auto& b : bindings)
@@ -583,11 +592,16 @@ void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT])
     input::setVirtualKey(SDL_SCANCODE_LEFT, (camera & (PAN_LEFT | ROTATE_LEFT)) != 0);
     input::setVirtualKey(SDL_SCANCODE_RIGHT, (camera & (PAN_RIGHT | ROTATE_RIGHT)) != 0);
     // the game turns the camera on shift + left / right
-    input::setVirtualKey(SDL_SCANCODE_LSHIFT, (camera & (ROTATE_LEFT | ROTATE_RIGHT)) != 0 || buttons[BUTTON_X]);
+    input::setVirtualKey(SDL_SCANCODE_LSHIFT, (camera & (ROTATE_LEFT | ROTATE_RIGHT)) != 0);
     input::setVirtualKey(SDL_SCANCODE_KP_PLUS, (camera & ZOOM_IN) != 0);
     input::setVirtualKey(SDL_SCANCODE_KP_MINUS, (camera & ZOOM_OUT) != 0);
-    input::setVirtualKey(SDL_SCANCODE_LCTRL, buttons[BUTTON_B]);
-    input::setVirtualKey(SDL_SCANCODE_LALT, buttons[BUTTON_Y]);
+    input::setVirtualKey(SDL_SCANCODE_LCTRL, buttons[BUTTON_B]);    // the game's waypoint key
+    // these would type in a text box or skip a movie outside a mission
+    const bool orders = g.ordersAge < kOrdersFrames;
+    input::setVirtualKey(SDL_SCANCODE_SPACE, orders && buttons[BUTTON_X]);
+    input::setVirtualKey(SDL_SCANCODE_J, orders && buttons[BUTTON_Y]);
+    input::setVirtualKey(SDL_SCANCODE_F, orders && buttons[BUTTON_LEFT_STICK]);
+    input::setVirtualKey(SDL_SCANCODE_E, orders && buttons[BUTTON_RIGHT_STICK]);
     input::setVirtualKey(SDL_SCANCODE_ESCAPE, buttons[BUTTON_MENU]);
 }
 
@@ -1357,6 +1371,8 @@ void pollInput()
         g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
+    if(g.ordersAge < kOrdersFrames)
+        ++g.ordersAge;
     setKeys(g.stickActions, buttons);
     g.pointerVisible = true;
 
@@ -1455,6 +1471,11 @@ bool pointerRay(float position[3], float orientation[4])
     memcpy(position, aim.position, sizeof(aim.position));
     memcpy(orientation, aim.orientation, sizeof(aim.orientation));
     return true;
+}
+
+void missionTakesOrders()
+{
+    g.ordersAge = 0;
 }
 
 void setWorldPointer(bool valid, float x, float y, float metres)
