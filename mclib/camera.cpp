@@ -984,6 +984,14 @@ void Camera::updateGoalVelocity (void)
 }
 
 //---------------------------------------------------------------------------
+void Camera::setFixedFieldOfView (float fov)
+{
+	setFieldOfView(fov);
+	setFieldOfViewGoal(fov, 0.0f);
+	cosHalfFOV = cos(fov * 0.7071f * DEGREES_TO_RADS);
+}
+
+//---------------------------------------------------------------------------
 void Camera::updateGoalFOV (void)
 {
 	if (goalFOVTime > 0.0)

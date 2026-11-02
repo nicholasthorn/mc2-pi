@@ -48,6 +48,14 @@ void viewDirection(const Basis& eye, float direction[3]);
 void clipEdges(const float fov[4], float near, float& leftClip, float& rightClip,
                float& topClip, float& bottomClip);
 
+// The field of view, in degrees, that the game camera needs to cover what the
+// two eyes see (fov as in clipEdges). Camera::camera_fov is horizontal and
+// symmetric, and its window is usually wider than the eyes are, so a tall view
+// decides through heightOverWidth (0 when there is no window yet: the eyes'
+// width alone). In [20, maxDegrees], and 20 for a field of view that is no use.
+float gameFieldOfView(const float leftFov[4], const float rightFov[4], float heightOverWidth,
+                      float maxDegrees);
+
 }
 
 #endif // VR_EYE_H

@@ -780,8 +780,10 @@ pointer stays where it last was (the screen's centre at first). Then
 points outside the game camera's view (one projected to 1733, 1257 on the
 800x600 screen). Next: picking beyond the game camera's view.
 
-**To do: the game camera's field of view in VR** (decided 2026-11-02,
-after the seventh run; not started). The logic eye stays at the game's
+**The game camera's field of view in VR** (decided 2026-11-02, after the
+seventh run; built on branch `vr-fov`, see `VR-FOV.md`, which corrects two
+points below: movers already animate since #79, the gap is terrain objects
+such as turrets). The logic eye stays at the game's
 40 degrees so that VR gameplay matches the flat game (the "Phase 1 audit"
 answer above), but the player sees about 100: units between the two do not
 animate, cannot be picked (both `vrPickWorld` and the game's own picking go

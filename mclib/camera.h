@@ -872,6 +872,10 @@ class Camera
 			forceMovieEnd = true;
 		}
 		
+		//The field of view forced for good: scripted goals are cancelled, and
+		//the view cone follows, which setFieldOfView leaves as it was.
+		void setFixedFieldOfView (float fov);
+
 		void setFieldOfView (float fov)
 		{
 			camera_fov = fov;

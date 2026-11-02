@@ -12,7 +12,8 @@
 // big screen ahead instead.
 // Debugging: MC2_XR_POSE=yaw,pitch fixes the head rotation, MC2_XR_SHOT=n
 // saves the left eye and the window frame as TGAs on the n-th eye frame,
-// MC2_XR_MSAA sets the eyes' samples (default 4).
+// MC2_XR_MSAA sets the eyes' samples (default 4). MC2_XR_FOV sets the game
+// camera's field of view (gos_GetVRFieldOfView).
 //
 // Controllers (VR plan, Phase 3): the ray from the hand that last pulled
 // its trigger or grip is the mouse where it meets the quad; the trigger is
