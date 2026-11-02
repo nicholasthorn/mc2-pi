@@ -894,6 +894,14 @@ long TG_TypeMultiShape::LoadTGMultiShapeFromASE (const char *fileName, bool forc
 	
 		free(aseContents);
 		aseContents = NULL;
+
+		//LoadBinaryCopy makes these; a shape parsed from its ASE file needs
+		//them too, or the shader draw path (VR) draws nothing for it
+		for (long i=0;i<numTG_TypeShapes;i++)
+		{
+			if (listOfTypeShapes[i])
+				listOfTypeShapes[i]->CreateGPUBuffers();
+		}
 	
 		SaveBinaryCopy(binaryFileName);
 	}
