@@ -17,6 +17,7 @@
 #endif
 
 #include"globalmapio.h"
+#include <stdio.h>		// [PATHS] tally in MOVE_cleanup
 
 #define	MOVELOG
 
@@ -71,6 +72,16 @@ long RamObjectWID = 0;
 
 PriorityQueuePtr openList = NULL;
 bool JumpOnBlocked = false;
+
+// Cell-level path searches (calcPath, calcPathJUMP) over the run, printed at
+// exit as [PATHS]: a search that finds nothing takes every reachable cell off
+// the open list first, so many failures mean movers asking for impossible
+// paths every frame (that was 84% of searches in the mc2_19 battle).
+static struct {
+	long searches;
+	long found;
+	long long nodes;		// taken off the open list
+} PathStats = {0, 0, 0};
 bool FindingEscapePath = false;
 bool BlockWallTiles = true;
 MissionMapPtr GameMap = NULL;
@@ -787,6 +798,14 @@ long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 //---------------------------------------------------------------------------
 
 void MOVE_cleanup (void) {
+
+	if (PathStats.searches) {
+		printf("[PATHS] %ld searches, %ld found, %ld not found, %lld open-list nodes\n",
+			PathStats.searches, PathStats.found, PathStats.searches - PathStats.found, PathStats.nodes);
+		fflush(stdout);
+		PathStats.searches = PathStats.found = 0;		// MOVE_cleanup runs again at exit
+		PathStats.nodes = 0;
+	}
 
 	if (GameMap) {
 		delete GameMap;
@@ -5152,6 +5171,7 @@ long MoveMap::calcPath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int* go
 
 	//------------------------------------------------------------------
 	// Let's use their hPrime as a barrier for cutting off the search...
+	PathStats.searches++;
 	MaxHPrime = calcHPrime(startR, startC) * 2.5;
 	if (MaxHPrime < 500)
 		MaxHPrime = 500;
@@ -5219,6 +5239,7 @@ long MoveMap::calcPath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int* go
 		// Grab the best node...
 		PQNode bestPQNode;
 		openList->remove(bestPQNode);
+		PathStats.nodes++;
 		bestRow = bestPQNode.row;
 		bestCol = bestPQNode.col;
 		MoveMapNodePtr bestMapNode = &map[bestPQNode.id];
@@ -5234,6 +5255,7 @@ long MoveMap::calcPath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int* go
 		// Have we found the goal...
 		if (bestMapNode->flags & MOVEFLAG_GOAL) {
 			goalFound = true;
+			PathStats.found++;
 			break;
 		}
 		
@@ -5636,6 +5658,7 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 
 	//------------------------------------------------------------------
 	// Let's use their hPrime as a barrier for cutting off the search...
+	PathStats.searches++;
 	MaxHPrime = calcHPrime(startR, startC) * 2.5;
 	if (MaxHPrime < 500)
 		MaxHPrime = 500;
@@ -5710,6 +5733,7 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 		// Grab the best node...
 		PQNode bestPQNode;
 		openList->remove(bestPQNode);
+		PathStats.nodes++;
 		bestRow = bestPQNode.row;
 		bestCol = bestPQNode.col;
 		MoveMapNodePtr bestMapNode = &map[bestRow * maxWidth + bestCol];
@@ -5725,6 +5749,7 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 		// Have we found the goal...
 		if (bestMapNode->flags & MOVEFLAG_GOAL) {
 			goalFound = true;
+			PathStats.found++;
 			break;
 		}
 		
@@ -5749,7 +5774,12 @@ long MoveMap::calcPathJUMP (MovePathPtr path, Stuff::Vector3D* goalWorldPos, int
 			int succCol = bestCol + cellShift[cellOffsetIndex++];
 			//--------------------------------
 			// If it's on the map, check it...
-			if (succRow > 0 && succRow < height_loc && succCol > 0 && succCol < width_loc) {
+			// Row 0 and column 0 are on the map (the sector search's inBounds
+			// takes them, and setGoal puts a door's cells there): this read
+			// "> 0", so a jumping mover could never reach a door on the top
+			// or left edge of its map, failed after taking every cell off the
+			// open list, and asked again next frame.
+			if (succRow >= 0 && succRow < height_loc && succCol >= 0 && succCol < width_loc) {
 			//if (inMapBounds(succRow, succCol, height, width)) {
 
 				MoveMapNodePtr succMapNode = &map[succRow * max_width_loc + succCol];
@@ -6216,7 +6246,7 @@ long MoveMap::calcEscapePath (MovePathPtr path, Stuff::Vector3D* goalWorldPos, l
 			//--------------------------------
 			// If it's on the map, check it...
 			//if (inMapBounds(succRow, succCol, height, width)) {
-			if (succRow > 0 && succRow < height && succCol > 0 && succCol < width) {
+			if (succRow >= 0 && succRow < height && succCol >= 0 && succCol < width) {		// as calcPathJUMP: row and column 0 are on the map
 
 				MoveMapNodePtr succMapNode = &map[succRow * maxWidth + succCol];
 				if (succMapNode->cost < COST_BLOCKED) {
