@@ -1133,7 +1133,7 @@ class gosRenderer {
             curTextAttribs_ = gosTextAttribs();
             curTextPosX_ = curTextPosY_ = 0;
             curTextFracX_ = curTextFracY_ = 0.0f;
-            eyeTextScaleX_ = 0.0f;
+            eyeTextScaleX_ = eyeTextScaleY_ = 0.0f;
             curTextLeft_ = curTextTop_ = curTextRight_ = curTextBottom_ = 0;
             clearDepth_ = clearColor_ = clearStencil_ = false;
             clearDepthValue_ = 0.0f;
@@ -1272,11 +1272,12 @@ class gosRenderer {
         void setTextPos(int x, int y) { curTextPosX_ = x; curTextPosY_ = y; curTextFracX_ = curTextFracY_ = 0.0f; }
         void getTextPos(int& x, int& y) { x = curTextPosX_; y = curTextPosY_; }
         // Text drawn in a head-tracked eye (gos_SetStereoEye; 0 otherwise),
-        // widened by this. A position then keeps its fraction: the eye moves
+        // scaled by these. A position then keeps its fraction: the eye moves
         // smoothly under text that is world-anchored, and whole window pixels
         // would make it step, differently in each eye.
-        void setEyeTextScale(float scale_x) { eyeTextScaleX_ = scale_x; }
-        float getEyeTextScale() const { return eyeTextScaleX_; }
+        void setEyeTextScale(float scale_x, float scale_y) { eyeTextScaleX_ = scale_x; eyeTextScaleY_ = scale_y; }
+        float getEyeTextScaleX() const { return eyeTextScaleX_; }
+        float getEyeTextScaleY() const { return eyeTextScaleY_; }
         void setTextPosFloat(float x, float y) {
             curTextPosX_ = (int)x;
             curTextPosY_ = (int)y;
@@ -1435,6 +1436,7 @@ class gosRenderer {
         float curTextFracX_;
         float curTextFracY_;
         float eyeTextScaleX_;
+        float eyeTextScaleY_;
 
         int curTextLeft_;
         int curTextTop_;
@@ -2296,6 +2298,7 @@ void gosRenderer::drawText(const char* text) {
     const float start_x = x;
     // 1 outside an eye: the same quads as ever
     const float scale_x = eyeTextScaleX_ > 0.0f ? eyeTextScaleX_ : 1.0f;
+    const float scale_y = eyeTextScaleX_ > 0.0f ? eyeTextScaleY_ : 1.0f;
 
     const gosTextAttribs& ta = g_gos_renderer->getTextAttributes();
     const gosFont* font = ta.FontHandle;
@@ -2357,11 +2360,11 @@ void gosRenderer::drawText(const char* text) {
             float u1 = (float)iu1 * oo_tex_width;
             float v1 = (float)iv1 * oo_tex_height;
 
-            addCharacter(text_, u0, v0, u1, v1, (float)(x + char_off_x * scale_x), (float)(y + char_off_y), (float)(x + (char_off_x + char_w) * scale_x), (float)(y + char_off_y + char_h));
+            addCharacter(text_, u0, v0, u1, v1, (float)(x + char_off_x * scale_x), (float)(y + char_off_y * scale_y), (float)(x + (char_off_x + char_w) * scale_x), (float)(y + (char_off_y + char_h) * scale_y));
 
             x += font->getCharAdvance(c) * scale_x;
         }
-        y += font_height;
+        y += font_height * scale_y;
         pos += num_chars;
     }
     // FIXME: save states before messing with it, because user code can set its ow and does not know that something was changed by us
@@ -2965,11 +2968,13 @@ void __stdcall gos_SetStereoEye(int eye)
     // VR: the eye's own image (its size, its viewport)
     if(gos_xr::bindEye(eye)) {
         int width, height;
+        float scale_x, scale_y;
         gos_xr::eyeImageSize(eye, width, height);
-        g_gos_renderer->setEyeTextScale(vr_eye::overlayTextScaleX(Environment.screenWidth, Environment.screenHeight, width, height));
+        vr_eye::overlayTextScale(Environment.screenWidth, Environment.screenHeight, width, height, scale_x, scale_y);
+        g_gos_renderer->setEyeTextScale(scale_x, scale_y);
         return;
     }
-    g_gos_renderer->setEyeTextScale(0.0f);
+    g_gos_renderer->setEyeTextScale(0.0f, 0.0f);
     int vp[4];
     stereo::eyeViewport(eye, Environment.drawableWidth, Environment.drawableHeight, vp);
     glViewport(vp[0], vp[1], vp[2], vp[3]);
@@ -3160,6 +3165,14 @@ void __stdcall gos_TextSetPositionFloat( float XPosition, float YPosition )
     g_gos_renderer->setTextPosFloat(XPosition, YPosition);
 }
 
+void __stdcall gos_GetEyeMarkerScale( float* x, float* y )
+{
+    gosASSERT(g_gos_renderer);
+    const float scale_x = g_gos_renderer->getEyeTextScaleX();
+    *x = scale_x > 0.0f ? scale_x * vr_eye::kOverlayMarkerShareX : 1.0f;
+    *y = scale_x > 0.0f ? g_gos_renderer->getEyeTextScaleY() : 1.0f;
+}
+
 void __stdcall gos_TextSetRegion( int Left, int Top, int Right, int Bottom )
 {
     gosASSERT(g_gos_renderer);
@@ -3211,9 +3224,11 @@ void __stdcall gos_TextStringLength( DWORD* Width, DWORD* Height, const char *fm
     max_width = max_width > cur_width ? max_width : cur_width;
 
     // in an eye, as drawText will draw it (callers centre text with this)
-    const float eye_scale = g_gos_renderer->getEyeTextScale();
-    *Width = eye_scale > 0.0f ? (DWORD)((float)max_width * eye_scale) : max_width;
-    *Height = (num_newlines + 1) * font->getMaxCharHeight();
+    const float eye_scale_x = g_gos_renderer->getEyeTextScaleX();
+    const float eye_scale_y = g_gos_renderer->getEyeTextScaleY();
+    const int full_height = (num_newlines + 1) * font->getMaxCharHeight();
+    *Width = eye_scale_x > 0.0f ? (DWORD)((float)max_width * eye_scale_x) : max_width;
+    *Height = eye_scale_x > 0.0f ? (DWORD)((float)full_height * eye_scale_y) : full_height;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

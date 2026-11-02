@@ -124,6 +124,8 @@ struct State {
     bool userPresent = true;    // false only when the runtime says so
     bool alignWhenSettled = false;  // just put on: see alignToHead
     bool sessionFocused = false;
+    bool sessionVisible = false;
+    bool alignedWithoutFocus = false;
     vr_controls::HeadSettle settle;
     XrView views[2] = {};
     bool viewsValid = false;
@@ -475,9 +477,12 @@ void placeHud()
 // over adb, the session has focus on the desk, and a panel placed from there
 // is below and far from the head that then picks the headset up. And after
 // it is put on, not until the head holds still: the runtime says so as the
-// headset nears the face, still pointing anywhere. That wait counts only with
-// focus and live tracking: while the headset wakes, its pose can be a stale
-// one that looks perfectly still and then jumps.
+// headset nears the face, still pointing anywhere. That wait counts only while
+// the session is visible with live tracking: while the headset wakes, its pose
+// can be a stale one that looks perfectly still and then jumps. Visible, not
+// focused: the system menu can hold the focus for as long as it likes, and the
+// player sees the game behind it. So it aligns once more when focus comes, as
+// the player may have turned to deal with the menu.
 void alignToHead()
 {
     if(!g.alignPending || !g.userPresent || g.frame.predictedDisplayTime < g.alignAfter)
@@ -488,7 +493,7 @@ void alignToHead()
         return;     // not tracked yet: next frame
     }
     if(g.alignWhenSettled) {
-        if(!g.sessionFocused) {
+        if(!g.sessionVisible) {
             g.settle = vr_controls::HeadSettle();
             return;
         }
@@ -508,6 +513,7 @@ void alignToHead()
     g.space = aligned;
     g.alignPending = false;
     g.alignWhenSettled = false;
+    g.alignedWithoutFocus = !g.sessionFocused;
 
     // in front of the head again, keeping the height and size the player set
     g.hudOrigin[0] = g.hudOrigin[1] = g.hudOrigin[2] = 0.0f;
@@ -741,6 +747,13 @@ void pollEvents()
             const XrEventDataSessionStateChanged& changed = *(XrEventDataSessionStateChanged*)&event;
             printf("[XR] session state %d\n", (int)changed.state);
             g.sessionFocused = changed.state == XR_SESSION_STATE_FOCUSED;
+            g.sessionVisible = g.sessionFocused || changed.state == XR_SESSION_STATE_VISIBLE;
+            if(g.sessionFocused && g.alignedWithoutFocus && g.userPresent) {
+                g.alignedWithoutFocus = false;
+                g.alignPending = true;
+                g.alignWhenSettled = true;
+                g.settle = vr_controls::HeadSettle();
+            }
             if(changed.state == XR_SESSION_STATE_READY) {
                 XrSessionBeginInfo begin = xrStruct<XrSessionBeginInfo>(XR_TYPE_SESSION_BEGIN_INFO);
                 begin.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
