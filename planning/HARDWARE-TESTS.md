@@ -154,7 +154,9 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
       and the mech view fully covering the map and the pilot's panel when a slot
       with no pilot is clicked; click a pilot and the map is back.
 - [ ] **A mission still looks right** after the menus: mechs textured and head
-      tracked, as the world's meshes stay on the GPU path.
+      tracked, as the world's meshes stay on the GPU path. In a mission, the
+      gameplay options' mech preview is textured and in its frame too, and the
+      world is unharmed on going back: no walk opens that tab in a mission.
 
 ## Releases (`RELEASES.md`)
 

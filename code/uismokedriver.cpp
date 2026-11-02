@@ -364,6 +364,8 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, PR_MSG_ADD);
 	case UiAction::ShowMech: {
 		// what clicking a force slot with no pilot does; the pilot list stays
+		if (!screen)
+			return "screen is gone";
 		EList<LogisticsMech*, LogisticsMech*> mechs;
 		LogisticsData::instance->getInventory(mechs);
 		for (EList<LogisticsMech*, LogisticsMech*>::EIterator it = mechs.Begin(); !it.IsDone(); it++) {

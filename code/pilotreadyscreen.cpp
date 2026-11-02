@@ -891,6 +891,8 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 	{
 		for ( int i = 4; i < 13; i++ )
 			textObjects[i].setText( "" );
+		if ( !stockLayout && textCount > 16 )
+			textObjects[16].setText( "" );
 
 		statics[pilotPicture].setColor( 0 );
 
