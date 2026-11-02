@@ -68,7 +68,11 @@ void PriorityQueue::upHeap (int curIndex) {
 
 int PriorityQueue::insert (PQNode& item) {
 
-	if (numItems == maxItems)
+	//------------------------------------------------------------------
+	// pqList holds maxItems nodes, slots 0 to maxItems - 1 (0 is the
+	// sentinel): it is full at maxItems - 1 items, not maxItems, or the
+	// next insert writes one past the end.
+	if (numItems >= maxItems - 1)
 		return(1);
 
 	if (!linearFind) {

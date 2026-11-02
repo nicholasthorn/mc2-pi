@@ -143,3 +143,20 @@ TEST_CASE("pqueue: ids past the index limit are still found")
 	CHECK(q.find(42) == linearFind(q, 42));
 	CHECK(q.find(43) == 0);
 }
+
+TEST_CASE("pqueue: a full queue refuses the next insert instead of writing past the end")
+{
+	// init(n) allocates n + 2 nodes, slot 0 the sentinel: n + 1 items fit.
+	PriorityQueue q;
+	q.init(4);
+	for (uint32_t i = 0; i < 5; ++i) {
+		PQNode n = node((int32_t)(10 - i), 100 + i);
+		CHECK(q.insert(n) == 0);
+	}
+	PQNode extra = node(1, 200);
+	CHECK(q.insert(extra) == 1);
+	CHECK(q.getNumItems() == 5);
+	CHECK(q.find(200) == 0);
+	for (uint32_t i = 0; i < 5; ++i)
+		CHECK(q.find(100 + i) == linearFind(q, 100 + i));
+}
