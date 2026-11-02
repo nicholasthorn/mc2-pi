@@ -78,6 +78,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## On the Quest (VR, `future-features/VR-TABLETOP.md`)
 
+- [ ] **Game camera's field of view** (PR #86, `future-features/VR-FOV.md`).
+      Done on a Quest 2: the log line, world clicks near the horizon and past
+      the terrain's edge, the frame rate against `MC2_XR_FOV=0`. Still to see:
+      a turret at the side of the view tracks and fires (mc2_01 has none; try
+      mc2_03); brackets and health bars sit on their units at their usual size;
+      a unit drawn past the terrain's edge can be clicked.
 - [ ] **Controllers** (branch `vr-controllers`, Phase 3 progress): in the
       main menu and in a mission, either hand shows a beam, with a dot
       where it meets the interface and no mouse cursor; trigger clicks

@@ -934,6 +934,17 @@ float mostZ = -1.0f, mostW = -1.0;
 float leastWY = 0.0f, mostWY = 0.0f;
 extern bool InEditor;
 //---------------------------------------------------------------------------
+bool Terrain::isInWindow (const Stuff::Vector3D& pos)
+{
+	const float column = (pos.x - mapTopLeft3d.x) * oneOverWorldUnitsPerVertex;
+	const float row = (mapTopLeft3d.y - pos.y) * oneOverWorldUnitsPerVertex;
+	const Stuff::Vector2DOf<float> topLeft = mapData->getTopLeftVertex();
+	const float lastVertex = (float)(visibleVerticesPerSide - 1);
+	return (column >= topLeft.x) && (column <= topLeft.x + lastVertex) &&
+		(row >= topLeft.y) && (row <= topLeft.y + lastVertex);
+}
+
+//---------------------------------------------------------------------------
 void Terrain::geometry (void)
 {
 	//---------------------------------------------------------------------
@@ -1022,10 +1033,15 @@ void Terrain::geometry (void)
 			//VR: the head-tracked eyes look anywhere, so every vertex in the
 			//window is projected and drawn (each eye re-projects it,
 			//projectForEye); the gameplay decision below, which object blocks
-			//are active, keeps the game camera's view
+			//are active, keeps the game camera's view. The tests above also pass
+			//a mirror image of the view behind the camera, a sliver at the flat
+			//game's 40 degrees, most of the window at the headset's (VR-FOV.md)
 			gameOnScreen = onScreen;
 			if (gos_IsVR())
+			{
+				gameOnScreen = onScreen && eye->isInFront(vPosition);
 				onScreen = true;
+			}
 
 			if (onScreen)
 			{

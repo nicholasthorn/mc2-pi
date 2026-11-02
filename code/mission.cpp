@@ -505,14 +505,12 @@ long Mission::update (void)
 		// -benchscenario: scripted battle and camera; after the interface
 		// (input) and before the camera update, so its camera wins
 		BenchDirector::update(missionFileName);
-		// -benchfov: a headset-wide view for VR cost estimates. Cancel any
-		// scripted FOV goal too, or eye->update() would move off it.
-		if (gos_GetBenchFOV() > 0.0f)
-		{
-			eye->setFieldOfView(gos_GetBenchFOV());
-			eye->setFieldOfViewGoal(gos_GetBenchFOV(), 0.0f);
-			eye->cosHalfFOV = cos(gos_GetBenchFOV() * 0.7071f * DEGREES_TO_RADS);
-		}
+		// -benchfov: a headset-wide view for VR cost estimates. VR: what counts
+		// as in view is what the player sees (planning/future-features/VR-FOV.md).
+		// Every step: Camera::init and the mission scripts set their own.
+		const float forcedFOV = (gos_GetBenchFOV() > 0.0f) ? gos_GetBenchFOV() : gos_GetVRFieldOfView();
+		if (forcedFOV > 0.0f)
+			eye->setFixedFieldOfView(forcedFOV);
 
 		BenchStage("camera",ProfileTime(MCTimeCameraUpdate,eye->update()));
 		
@@ -809,13 +807,16 @@ long Mission::getStatus (void) {
 // meets a unit (a sphere about each mover, so pointing at a mech's body picks
 // it) or else the ground; that point, projected through the game camera, is
 // where the mouse goes, so the game's own picking and orders work as they
-// are. Points the game camera does not see cannot be picked.
+// are. Points the game camera does not see cannot be picked, nor can ground
+// outside the terrain window: nothing is drawn there, and the game only knows
+// the window's tiles (Camera::inverseProject). Units out there are drawn, and
+// picking one goes by its screen bounds, so they can.
 static float vrGroundHeight (void*, float x, float y)
 {
 	// off the map there is no ground: getTerrainElevation would say 0 there,
 	// and the ray would meet a flat plane beyond the edge
 	const Stuff::Vector3D position(x,y,0.0f);
-	if (!Terrain::IsValidTerrainPosition(position))
+	if (!Terrain::IsValidTerrainPosition(position) || !land->isInWindow(position))
 		return -1.0e6f;
 	return land->getTerrainElevation(position);
 }

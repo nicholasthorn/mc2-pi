@@ -24,6 +24,7 @@
 #include "utils/timing.h"
 #include "gos_render.h"
 #include "gos_xr.h"
+#include "utils/vr_eye.h"
 
 graphics::RenderWindowHandle g_win_h;
 
@@ -2958,6 +2959,51 @@ bool __stdcall gos_IsVR()
     // the flat paths on a desktop; not for playing
     static const bool forced = getenv("MC2_VR_PATHS") && getenv("MC2_VR_PATHS")[0] == '1';
     return forced || gos_xr::active();
+}
+
+float __stdcall gos_GetVRFieldOfView()
+{
+    if(!gos_IsVR())
+        return 0.0f;
+
+    static const float forced = []() {
+        const char* env = getenv("MC2_XR_FOV");
+        if(!env)
+            return -1.0f;
+        const float value = vr_eye::parseGameFov(env);
+        if(value < 0.0f)
+            printf("[VR] MC2_XR_FOV=%s ignored: 0 or %g to %g\n", env, vr_eye::kMinGameFov, vr_eye::kMaxGameFov);
+        return value;
+    }();
+    if(forced >= 0.0f)
+        return forced;
+
+    // The first eyes the headset gives, kept: there are none while the system
+    // menu is up, and falling back would change what is in view every time.
+    static bool haveEyes = false;
+    static float leftFov[4], rightFov[4];
+    if(!haveEyes) {
+        gosVREyeView views[2];
+        if(gos_GetVREyeViews(views) != 2)
+            return 100.0f;      // MC2_VR_PATHS=1 has no eyes to ask
+        memcpy(leftFov, views[0].fov, sizeof(leftFov));
+        memcpy(rightFov, views[1].fov, sizeof(rightFov));
+        haveEyes = true;
+    }
+    // the window can change size during a mission
+    const float heightOverWidth = Environment.screenWidth > 0 ?
+        (float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
+    const float fov = vr_eye::gameFieldOfView(leftFov, rightFov, heightOverWidth);
+    static float logged = 0.0f;
+    if(fov != logged) {
+        const float toDegrees = 180.0f / 3.14159265f;
+        printf("[VR] eyes: left %.1f %.1f %.1f %.1f, right %.1f %.1f %.1f %.1f degrees; game camera %.1f degrees\n",
+                leftFov[0] * toDegrees, leftFov[1] * toDegrees, leftFov[2] * toDegrees, leftFov[3] * toDegrees,
+                rightFov[0] * toDegrees, rightFov[1] * toDegrees, rightFov[2] * toDegrees, rightFov[3] * toDegrees,
+                fov);
+        logged = fov;
+    }
+    return fov;
 }
 
 bool __stdcall gos_GetVRKeepGamePitch()

@@ -1,7 +1,9 @@
 #include "utils/vr_eye.h"
 #include "utils/vr_math.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace vr_eye {
 
@@ -115,6 +117,36 @@ void clipEdges(const float fov[4], float near, float& leftClip, float& rightClip
     rightClip = -near * std::tan(fov[0]);
     topClip = -near * std::tan(fov[3]);      // the bottom edge, on y (screen down)
     bottomClip = -near * std::tan(fov[2]);
+}
+
+float gameFieldOfView(const float leftFov[4], const float rightFov[4], float heightOverWidth)
+{
+    const float toDegrees = 180.0f / 3.14159265f;
+    float halfWidth = 0.0f;
+    float halfHeight = 0.0f;
+    for(int i = 0; i < 4; ++i) {
+        const float angle = std::max(std::fabs(leftFov[i]), std::fabs(rightFov[i]));
+        float& half = (i < 2) ? halfWidth : halfHeight;
+        half = std::max(half, angle);
+    }
+    if(heightOverWidth > 0.0f)
+        halfWidth = std::max(halfWidth, std::atan(std::tan(halfHeight) / heightOverWidth));
+    const float degrees = 2.0f * halfWidth * toDegrees;
+    // written so that a NaN takes the minimum
+    if(!(degrees >= kMinGameFov))
+        return kMinGameFov;
+    return std::min(degrees, kMaxGameFov);
+}
+
+float parseGameFov(const char* text)
+{
+    char* end = nullptr;
+    const float value = std::strtof(text, &end);
+    if(end == text || *end != '\0')
+        return -1.0f;
+    if(value == 0.0f || (value >= kMinGameFov && value <= kMaxGameFov))
+        return value;
+    return -1.0f;
 }
 
 }

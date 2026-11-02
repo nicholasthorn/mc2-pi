@@ -2018,6 +2018,13 @@ float __stdcall gos_GetVRWorldScale();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
 //
+// The field of view, in degrees, for the game camera in VR: enough to cover
+// the eyes at the window's aspect, so that what the game counts as in view is
+// what the player sees. 0 when not in VR. MC2_XR_FOV=n sets it (20 to 120, or
+// 0 to keep the game's own).
+//
+float __stdcall gos_GetVRFieldOfView();
+//
 // True when VR controllers point instead of the mouse and draw their own
 // pointer (a beam and a dot): the game then draws no mouse cursor.
 //

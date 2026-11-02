@@ -230,6 +230,7 @@ class Terrain
 		void drawTopView (void);
 
 		static bool IsValidTerrainPosition (const Stuff::Vector3D pos);
+		bool isInWindow (const Stuff::Vector3D& pos);		//In the part of the map being drawn this frame
 		static bool IsEditorSelectTerrainPosition (const Stuff::Vector3D pos);
 		static bool IsGameSelectTerrainPosition (const Stuff::Vector3D pos);
 

@@ -362,3 +362,35 @@ TEST_CASE("sticks: turning wins over panning and zoom (turning holds shift, whic
 }
 
 }
+
+TEST_CASE("a beam to a far pick still has a valid orientation")
+{
+	// OpenXR refuses a whole frame over a layer whose quaternion is not unit
+	// (XR_ERROR_POSE_INVALID, Quest): a world pick can be a kilometre or more
+	// away, and the eye only centimetres from the beam's line
+	int worst = 0;
+	float worstError = 0.0f;
+	for (int i = 0; i < 2000; ++i)
+	{
+		const float a = 0.0031f * (float)i;
+		const float from[3] = {0.2f + 0.1f * std::sin(a), -0.3f, -0.2f + 0.1f * std::cos(a * 3.0f)};
+		const float dir[3] = {std::sin(a * 7.0f), -0.3f - 0.2f * std::cos(a), -std::cos(a * 7.0f)};
+		const float metres = 50.0f + 1.0f * (float)i;
+		const float to[3] = {from[0] + dir[0] * metres, from[1] + dir[1] * metres, from[2] + dir[2] * metres};
+		// the eye just off the line, as when sighting along the controller
+		const float off = 0.002f + 0.00002f * (float)(i % 500);
+		const float eye[3] = {from[0] + off, from[1] + off, from[2] - off};
+		float length = 0.0f;
+		const vr_controls::Pose pose = vr_controls::beamPose(from, to, eye, length);
+		const float* q = pose.orientation;
+		const float norm = std::sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+		const float error = std::fabs(norm - 1.0f);
+		if (!(error <= worstError))
+		{
+			worstError = error;
+			worst = i;
+		}
+	}
+	INFO("worst at step ", worst);
+	CHECK(worstError < 0.001f);
+}

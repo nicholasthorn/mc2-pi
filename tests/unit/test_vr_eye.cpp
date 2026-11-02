@@ -198,3 +198,56 @@ TEST_CASE("the view direction is minus z: the engine camera looks that way")
 }
 
 }
+
+TEST_CASE("the game camera's field of view covers both eyes, at the window's aspect")
+{
+	const float deg = kPi / 180.0f;
+	// a wide window, so the eyes' width decides: the widest half, doubled
+	const float left[4] = {-50.0f * deg, 40.0f * deg, 30.0f * deg, -30.0f * deg};
+	const float right[4] = {-40.0f * deg, 50.0f * deg, 30.0f * deg, -30.0f * deg};
+	CHECK(vr_eye::gameFieldOfView(left, right, 0.75f) == doctest::Approx(100.0f).epsilon(0.001));
+
+	// the camera is symmetric: one eye reaching further out sets both sides
+	const float lopsided[4] = {-55.0f * deg, 40.0f * deg, 30.0f * deg, -30.0f * deg};
+	CHECK(vr_eye::gameFieldOfView(lopsided, right, 0.75f) == doctest::Approx(110.0f).epsilon(0.001));
+
+	// camera_fov is horizontal: a tall view needs more of it at 4:3, by
+	// tan(h / 2) = tan(v / 2) / (height / width)
+	const float tall[4] = {-30.0f * deg, 30.0f * deg, 45.0f * deg, -40.0f * deg};
+	const float expected = 2.0f * std::atan(1.0f / 0.75f) / deg;
+	CHECK(vr_eye::gameFieldOfView(tall, tall, 0.75f) == doctest::Approx(expected).epsilon(0.001));
+}
+
+TEST_CASE("the game camera's field of view stays in the range the view cone can use")
+{
+	const float deg = kPi / 180.0f;
+	const float huge[4] = {-85.0f * deg, 85.0f * deg, 85.0f * deg, -85.0f * deg};
+	CHECK(vr_eye::gameFieldOfView(huge, huge, 0.75f) == doctest::Approx(120.0f));
+
+	// nothing usable: the game's own minimum, not 0 or NaN
+	const float none[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+	CHECK(vr_eye::gameFieldOfView(none, none, 0.75f) == doctest::Approx(20.0f));
+	const float notNumber = std::nanf("");
+	const float bad[4] = {notNumber, notNumber, notNumber, notNumber};
+	CHECK(vr_eye::gameFieldOfView(bad, bad, 0.75f) == doctest::Approx(20.0f));
+
+	// no window yet: the eyes' width alone
+	const float wide[4] = {-50.0f * deg, 50.0f * deg, 45.0f * deg, -45.0f * deg};
+	CHECK(vr_eye::gameFieldOfView(wide, wide, 0.0f) == doctest::Approx(100.0f).epsilon(0.001));
+}
+
+TEST_CASE("a field of view given as text: in the range, or 0 to turn it off")
+{
+	CHECK(vr_eye::parseGameFov("20") == doctest::Approx(20.0f));
+	CHECK(vr_eye::parseGameFov("90.5") == doctest::Approx(90.5f));
+	CHECK(vr_eye::parseGameFov("120") == doctest::Approx(120.0f));
+	CHECK(vr_eye::parseGameFov("0") == 0.0f);
+
+	// a typo must not read as 0, which silently keeps the game's 40 degrees
+	CHECK(vr_eye::parseGameFov("wide") == -1.0f);
+	CHECK(vr_eye::parseGameFov("") == -1.0f);
+	CHECK(vr_eye::parseGameFov("90deg") == -1.0f);
+	CHECK(vr_eye::parseGameFov("19.9") == -1.0f);
+	CHECK(vr_eye::parseGameFov("500") == -1.0f);
+	CHECK(vr_eye::parseGameFov("-60") == -1.0f);
+}
