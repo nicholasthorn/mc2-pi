@@ -63,6 +63,10 @@ const float kBeamWidth = 0.006f;
 const float kBeamLength = 1.5f;
 const float kDotSize = 0.025f;
 
+// How long after a mission's last game step its command keys still go through:
+// long enough for the 30 Hz step and a slow frame, at 72 frames a second.
+const int kOrdersFrames = 20;
+
 // the controllers' buttons that are not per hand
 enum Button { BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_MENU, BUTTON_LEFT_STICK, BUTTON_RIGHT_STICK, BUTTON_COUNT };
 
@@ -174,6 +178,7 @@ struct State {
     bool worldValid = false;
     float worldX = 0.0f, worldY = 0.0f, worldMetres = 0.0f;
     int worldAge = 0;
+    int ordersAge = kOrdersFrames;  // headset frames since a mission took orders
     // the window's alpha at the quad point and at the world pick
     AlphaProbe probe;
     float hudAlpha = 1.0f;
@@ -591,10 +596,12 @@ void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT])
     input::setVirtualKey(SDL_SCANCODE_KP_PLUS, (camera & ZOOM_IN) != 0);
     input::setVirtualKey(SDL_SCANCODE_KP_MINUS, (camera & ZOOM_OUT) != 0);
     input::setVirtualKey(SDL_SCANCODE_LCTRL, buttons[BUTTON_B]);    // the game's waypoint key
-    input::setVirtualKey(SDL_SCANCODE_SPACE, buttons[BUTTON_X]);
-    input::setVirtualKey(SDL_SCANCODE_J, buttons[BUTTON_Y]);
-    input::setVirtualKey(SDL_SCANCODE_F, buttons[BUTTON_LEFT_STICK]);
-    input::setVirtualKey(SDL_SCANCODE_E, buttons[BUTTON_RIGHT_STICK]);
+    // these would type in a text box or skip a movie outside a mission
+    const bool orders = g.ordersAge < kOrdersFrames;
+    input::setVirtualKey(SDL_SCANCODE_SPACE, orders && buttons[BUTTON_X]);
+    input::setVirtualKey(SDL_SCANCODE_J, orders && buttons[BUTTON_Y]);
+    input::setVirtualKey(SDL_SCANCODE_F, orders && buttons[BUTTON_LEFT_STICK]);
+    input::setVirtualKey(SDL_SCANCODE_E, orders && buttons[BUTTON_RIGHT_STICK]);
     input::setVirtualKey(SDL_SCANCODE_ESCAPE, buttons[BUTTON_MENU]);
 }
 
@@ -1364,6 +1371,8 @@ void pollInput()
         g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
+    if(g.ordersAge < kOrdersFrames)
+        ++g.ordersAge;
     setKeys(g.stickActions, buttons);
     g.pointerVisible = true;
 
@@ -1462,6 +1471,11 @@ bool pointerRay(float position[3], float orientation[4])
     memcpy(position, aim.position, sizeof(aim.position));
     memcpy(orientation, aim.orientation, sizeof(aim.orientation));
     return true;
+}
+
+void missionTakesOrders()
+{
+    g.ordersAge = 0;
 }
 
 void setWorldPointer(bool valid, float x, float y, float metres)

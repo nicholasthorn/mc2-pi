@@ -71,6 +71,8 @@ bool pointerActive();
 // hand's aim pose when the pointer is on the world, and the game's answer.
 bool pointerRay(float position[3], float orientation[4]);
 void setWorldPointer(bool valid, float x, float y, float metres);
+// A game step of a mission taking orders (gos_VRMissionTakesOrders).
+void missionTakesOrders();
 // A trigger on the pointing hand is being pulled, or a button of the virtual
 // mouse is held: a click or a drag is under way (gos_GetVRHead).
 bool pointerPulled();
@@ -87,6 +89,7 @@ inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
 inline void pollInput() {}
 inline bool pointerActive() { return false; }
+inline void missionTakesOrders() {}
 inline bool pointerRay(float*, float*) { return false; }
 inline void setWorldPointer(bool, float, float, float) {}
 inline bool pointerPulled() { return false; }

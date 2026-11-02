@@ -3092,6 +3092,11 @@ void __stdcall gos_SetVRWorldPointer(bool valid, float x, float y, float metres)
     gos_xr::setWorldPointer(valid, x, y, metres);
 }
 
+void __stdcall gos_VRMissionTakesOrders()
+{
+    gos_xr::missionTakesOrders();
+}
+
 bool __stdcall gos_VRPickLog()
 {
     static const bool log = getenv("MC2_XR_PICK_LOG") && getenv("MC2_XR_PICK_LOG")[0] == '1';

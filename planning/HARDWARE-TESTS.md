@@ -119,6 +119,9 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       several points, then let go: waypoints run in order. Right stick click
       selects the units in view. Pushing a stick to pan or turn does not click
       it by accident (a stray right stick click changes the selection).
+      Added after that run, still to see: holding B, the left stick pans and the
+      lighting stays put; in a text box (a save's name) X, Y and the stick clicks
+      type nothing; X does not skip a movie.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.

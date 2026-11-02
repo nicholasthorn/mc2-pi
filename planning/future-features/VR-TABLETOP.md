@@ -750,7 +750,11 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   button is Escape (pause menu). This gives up Shift (add to a selection) and
   Alt (the mouse moving the camera); turning still sends Shift by itself, and
   the game matches modifiers exactly, so a command held while turning waits for
-  the turn to end.
+  the turn to end. The stick pans with B held: Ctrl + arrow rotates the light in
+  the flat game (a debug command) and scrolls in VR. X, Y and the stick clicks
+  send their keys only while a mission takes orders
+  (`gos_VRMissionTakesOrders`), as they would type in a text box or skip a movie
+  elsewhere.
 - **Straight ahead is where the head faces.** LOCAL stays wherever the headset
   was last recentred (136 degrees off and 0.72 m away on one launch), so the
   HUD could be behind the player and the fly-in played off to one side. The
