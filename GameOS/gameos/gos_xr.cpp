@@ -1225,8 +1225,7 @@ bool present(int width, int height)
     // comes back (headset off and on). The game keeps drawing at the old size, in
     // the corner of the new one, and this frame copies all of it to the HUD.
     if(width != Environment.drawableWidth || height != Environment.drawableHeight) {
-        printf("[XR] the window's frame is now %dx%d (was %dx%d)
-", width, height,
+        printf("[XR] the window's frame is now %dx%d (was %dx%d)\n", width, height,
                 Environment.drawableWidth, Environment.drawableHeight);
         Environment.drawableWidth = width;
         Environment.drawableHeight = height;
