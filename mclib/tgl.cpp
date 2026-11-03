@@ -100,6 +100,12 @@ bool bShadersDrawPathEnabled = false;
 // (GPUTextureFlags): it transforms when drawn, so every head-tracked eye sees
 // them from its own pose, where the CPU path projects them once, during the
 // update, for the game camera
+// Not an interface camera's object (the mech view of the menus): that goes to the
+// window with the interface, through its own projection, as on a flat screen
+static inline bool vrMeshPath (void)
+{
+	return gos_IsVR() && !(eye && eye->drawsToInterface());
+}
 
 //-------------------------------------------------------------------------------
 // Parse Functions
@@ -1779,8 +1785,8 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 
 	lastTurnTransformed = turn;
 
-	bool bDrawnByShader = (bShadersDrawPathEnabled || gos_IsVR()) && !isSpotlight && !isWindow && 
-        (gos_IsVR() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
+	bool bDrawnByShader = (bShadersDrawPathEnabled || vrMeshPath()) && !isSpotlight && !isWindow && 
+        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
 
 	for (long j=0;j<numVertices;j++)
 	{
@@ -2647,8 +2653,8 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
 
-	bool bDrawnByShader = (bShadersDrawPathEnabled || gos_IsVR()) && !isSpotlight && !isWindow && 
-        (gos_IsVR() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
+	bool bDrawnByShader = (bShadersDrawPathEnabled || vrMeshPath()) && !isSpotlight && !isWindow && 
+        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
 
 	//VR: this path's vertices were projected for the game camera during the
 	//update, which a head-tracked eye does not match: leave them out of the

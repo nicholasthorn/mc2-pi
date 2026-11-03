@@ -28,6 +28,7 @@ class LogisticsMech
 		unsigned long	getID() const { return pVariant->ID; }
 		float			getMaxWeight() const { return pVariant->chassis->maxWeight; }
 		long			getChassisName() const { return pVariant->chassis->chassisNameID; }
+		const EString&		getChassisNameText() const { return pVariant->chassis->chassisNameText; }
 		const EString&		getName() const { return pVariant->variantName; }
 		long			getEncyclopediaID() const { return pVariant->chassis->encyclopediaID; }
 		long			getHelpID() const { return pVariant->chassis->helpID; }
