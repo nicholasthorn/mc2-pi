@@ -1533,6 +1533,15 @@ void ForceGroupIcon::setIconVariables()
 	curScreenWidth = Environment.screenWidth;
 }
 
+// Omnitech moved the pilots out of mcui_*2.tga, which it ships with none in, and
+// into a sheet of their own
+static void addPilotSheetName( char* path, const char* stockName, const char* omnitechName )
+{
+	char omnitechPath[256];
+	sprintf( omnitechPath, "%s%s", path, omnitechName );
+	strcat( path, fileExists( omnitechPath ) ? omnitechName : stockName );
+}
+
 PilotIcon::PilotIcon()
 {
 	pilotTextureIndex = 0;
@@ -1544,15 +1553,15 @@ PilotIcon::PilotIcon()
 		strcpy( path, "data" PATH_SEPARATOR "art" PATH_SEPARATOR);
 		if ( Environment.screenWidth == 640 )
 		{
-			strcat( path, "mcui_low2.tga" );
+			addPilotSheetName( path, "mcui_low2.tga", "pilots_l2.tga" );
 		}
 		else if ( Environment.screenWidth == 800 )
 		{
-			strcat( path, "mcui_med2.tga" );
+			addPilotSheetName( path, "mcui_med2.tga", "pilots_med.tga" );
 		}
 		else
 		{
-			strcat( path, "mcui_high2.tga" );
+			addPilotSheetName( path, "mcui_high2.tga", "pilots_high.tga" );
 		}
 
 		s_pilotTextureHandle = mcTextureManager->loadTexture( path, gos_Texture_Alpha, 0, 0, 0x2);
@@ -1626,15 +1635,15 @@ void PilotIcon::swapResolutions( bool bForce)
 		strcpy( path, "data" PATH_SEPARATOR "art" PATH_SEPARATOR);
 		if ( Environment.screenWidth == 640 )
 		{
-			strcat( path, "mcui_low2.tga" );
+			addPilotSheetName( path, "mcui_low2.tga", "pilots_l2.tga" );
 		}
 		else if ( Environment.screenWidth == 800 )
 		{
-			strcat( path, "mcui_med2.tga" );
+			addPilotSheetName( path, "mcui_med2.tga", "pilots_med.tga" );
 		}
 		else
 		{
-			strcat( path, "mcui_high2.tga" );
+			addPilotSheetName( path, "mcui_high2.tga", "pilots_high.tga" );
 		}
 
 		s_pilotTextureHandle = mcTextureManager->loadTexture( path, gos_Texture_Alpha, 0, 0, 0x2);

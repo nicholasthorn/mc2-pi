@@ -323,7 +323,7 @@ void MechLabScreen::begin()
 
 	if ( pVariant )
 	{
-		textObjects[3].setText( pVariant->getChassisName() );
+		textObjects[3].setText( pVariant->getChassisNameText() );
 		originalCost = pVariant->getCost();
 
 

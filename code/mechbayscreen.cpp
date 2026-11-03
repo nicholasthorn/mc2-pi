@@ -824,7 +824,7 @@ void MechBayScreen::setMech( LogisticsMech* pMech,  bool bCommandFromLB )
 		textObjects[10].setText( str );
 		attributeMeters[2].setValue( jumpRange * 25 / MAX_JUMP_RANGE );
 
-		textObjects[11].setText( pCurMech->getChassisName() );
+		textObjects[11].setText( pCurMech->getChassisNameText() );
 		textObjects[12].setText( pCurMech->getName() );
 	}
 	else

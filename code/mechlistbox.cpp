@@ -169,7 +169,7 @@ MechListBoxItem::MechListBoxItem( LogisticsMech* pRefMech, long count )
 	aObject::init( 0, outline.top(), outline.width(), outline.height() );
 	setColor( 0, 0 );
 
-	chassisName.setText( pMech->getChassisName() );
+	chassisName.setText( pMech->getChassisNameText() );
 	
 	char text[32];
 	sprintf( text, "%d", pMech->getCost() );
@@ -506,10 +506,7 @@ long MechListBox::AddItem(aListItem* itemString)
 	if ( pItem )
 	{
 		// pItem is NULL when itemString is not a MechListBoxItem
-		EString addedName;
-		char tmp[256];
-		cLoadString( pItem->getMech()->getChassisName(), tmp, 255 );
-		addedName = tmp;
+		EString addedName = pItem->getMech()->getChassisNameText();
 
 		pItem->bOrange = bOrange;
 		pItem->bIncludeForceGroup = bIncludeForceGroup;
@@ -524,10 +521,7 @@ long MechListBox::AddItem(aListItem* itemString)
 		for ( int i = 0; i < itemCount; i++ )
 		{
 
-			long ID = ((MechListBoxItem*)items[i])->pMech->getChassisName();
-			char tmpChassisName[256];
-			cLoadString( ID, tmpChassisName, 255 );
-			chassisName = tmpChassisName;
+			chassisName = ((MechListBoxItem*)items[i])->pMech->getChassisNameText();
 			if ( ((MechListBoxItem*)items[i])->pMech->getMaxWeight() < pItem->pMech->getMaxWeight() )
 			{
 				return InsertItem( itemString, i );

@@ -248,8 +248,13 @@ void LogisticsPilotListBox::makeUVs( LogisticsPilot* pPilot, aObject& icon )
 	// need to set the UV's
 	int index = pPilot->getPhotoIndex();
 
-	long xIndex = index % 12;
-	long yIndex = index / 12;
+	// stock's sheets are 256 wide with 12 a row; Omnitech's is larger, with as
+	// many as fit
+	const float sheetWidth = icon.getFileWidth() > 256.f ? icon.getFileWidth() : 256.f;
+	const long perRow = sheetWidth > 256.f ? (long)( sheetWidth / icon.width() ) : 12;
+
+	long xIndex = index % perRow;
+	long yIndex = index / perRow;
 
 	float fX = xIndex;
 	float fY = yIndex;
@@ -266,7 +271,7 @@ void LogisticsPilotListBox::makeUVs( LogisticsPilot* pPilot, aObject& icon )
 	float u2 = (fX * width);
 	float v2 = (fY * height);
 
-	icon.setFileWidth(256.f);
+	icon.setFileWidth( sheetWidth );
 	icon.setUVs( u, v, u2, v2 );
 
 }
