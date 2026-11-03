@@ -5,7 +5,7 @@
 // (smoke, bench, UI walks), which take the game's output from the terminal.
 
 // Sends stdout and stderr to mc2.log in the config folder, the last run's log
-// kept as mc2.previous.log, and copies them on to where they were going, so
+// kept as mc2.previous.log, and copies both on to where stdout was going, so
 // the terminal still shows them. MC2_LOG_FILE=0 turns it off. For the start
 // of main, before anything is printed.
 void gos_LogFileStart();

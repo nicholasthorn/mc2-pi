@@ -40,7 +40,7 @@ void gos_SetLogFlush(void (*flush)());    // gameos_debugging.cpp
 #define MC2_VERSION "dev"
 #endif
 
-// where a crash writes: stderr's descriptor
+// where a crash writes: the log, or stderr's descriptor
 static int g_error_fd = 2;
 
 #ifdef PLATFORM_WINDOWS
@@ -49,6 +49,8 @@ static int fd_dup2(int from, int to) { return _dup2(from, to); }
 static int fd_read(int fd, char* buf, unsigned n) { return _read(fd, buf, n); }
 static int fd_write(int fd, const char* buf, unsigned n) { return _write(fd, buf, n); }
 static int fd_close(int fd) { return _close(fd); }
+static long long fd_size(int fd) { return _filelengthi64(fd); }
+static const char* const NULL_DEVICE = "NUL";
 static void make_folder(const std::string& path) { _mkdir(path.c_str()); }
 // binary: fd 1 and 2 become this file, and text mode would double the \r of
 // the copy that goes on to the console
@@ -64,6 +66,8 @@ static int fd_dup2(int from, int to) { return dup2(from, to); }
 static int fd_read(int fd, char* buf, unsigned n) { return (int)read(fd, buf, n); }
 static int fd_write(int fd, const char* buf, unsigned n) { return (int)write(fd, buf, n); }
 static int fd_close(int fd) { return close(fd); }
+static long long fd_size(int fd) { struct stat st; return fstat(fd, &st) == 0 ? (long long)st.st_size : -1; }
+static const char* const NULL_DEVICE = "/dev/null";
 static void make_folder(const std::string& path) { mkdir(path.c_str(), 0755); }
 static int open_for_append(const char* path) { return open(path, O_WRONLY | O_CREAT | O_APPEND, 0644); }
 static int open_for_read(const char* path) { return open(path, O_RDONLY); }
@@ -80,14 +84,42 @@ static int g_copy_from_fd = -1;
 static const int COPY_PERIOD_MS = 100;
 static bool g_copying = false;
 
+// Plenty for a long session (about 100 KB an hour), and the end of the disk is
+// not far off without it: with no data found the game repeats its "insert the
+// CD" box at about 40 MB a second. Past it stdout and stderr go nowhere, and
+// the terminal stops with them; a crash still adds its lines (g_error_fd).
+static const long long MAX_LOG_BYTES = 64 * 1024 * 1024;
+
+static void stop_at_limit()
+{
+    static const char line[] = "[LOG] mc2.log reached its size limit: nothing more is written but a crash\n";
+    fd_write(g_error_fd, line, sizeof(line) - 1);
+    const int null_device = open_for_append(NULL_DEVICE);
+    if(null_device < 0)
+        return;
+    fd_dup2(null_device, fd_of(stdout));
+    fd_dup2(null_device, fd_of(stderr));
+    fd_close(null_device);
+}
+
 static int SDLCALL copy_thread(void*)
 {
     char buf[4096];
+    bool at_limit = false;
     for(;;) {
+        if(!at_limit && fd_size(g_copy_from_fd) >= MAX_LOG_BYTES) {
+            at_limit = true;
+            stop_at_limit();
+        }
         int n;
-        while((n = fd_read(g_copy_from_fd, buf, sizeof(buf))) > 0)
-            if(fd_write(g_terminal_fd, buf, (unsigned)n) < 0)
-                break;
+        while((n = fd_read(g_copy_from_fd, buf, sizeof(buf))) > 0) {
+            for(int done = 0; done < n && g_terminal_fd >= 0; ) {
+                const int written = fd_write(g_terminal_fd, buf + done, (unsigned)(n - done));
+                if(written <= 0)
+                    break;
+                done += written;
+            }
+        }
         SDL_Delay(COPY_PERIOD_MS);
     }
 }
@@ -113,6 +145,13 @@ static std::string log_folder()
         else
             make_folder(xdg);
         make_folder(folder);
+#ifndef PLATFORM_WINDOWS
+        // earlier builds made it with no search permission: nothing in it can
+        // then be opened, by anyone but root
+        struct stat st;
+        if(stat(folder.c_str(), &st) == 0 && !(st.st_mode & S_IXUSR))
+            chmod(folder.c_str(), st.st_mode | S_IXUSR | S_IXGRP | S_IXOTH);
+#endif
     }
     return folder;
 }
@@ -145,7 +184,7 @@ void gos_LogFileStart()
         return;
 
     const std::string folder = log_folder();
-    const std::string path = log_file::logPath(folder);
+    std::string path = log_file::logPath(folder);
     keep_previous(path, log_file::previousPath(folder));
 
     // before the file is opened, which could take a closed stdout's number
@@ -153,17 +192,29 @@ void gos_LogFileStart()
     fflush(stderr);
     give_descriptor(stdout);
     give_descriptor(stderr);
+    // where stdout was going, or stderr with stdout closed. One destination:
+    // both streams are copied there.
     g_terminal_fd = above_standard(fd_dup(fd_of(stdout)));
+    if(g_terminal_fd < 0)
+        g_terminal_fd = above_standard(fd_dup(fd_of(stderr)));
 
-    const int file = above_standard(open_for_append(path.c_str()));
+    int file = above_standard(open_for_append(path.c_str()));
+    if(file < 0 && !folder.empty()) {
+        path = log_file::logPath("");
+        keep_previous(path, log_file::previousPath(""));
+        file = above_standard(open_for_append(path.c_str()));
+    }
     if(file < 0) {
         fprintf(stderr, "[LOG] cannot write %s: output only goes to the terminal\n", path.c_str());
         return;
     }
     fd_dup2(file, fd_of(stdout));
     fd_dup2(file, fd_of(stderr));
+    // its own descriptor: stderr stops at the size limit
+    g_error_fd = above_standard(fd_dup(file));
+    if(g_error_fd < 0)
+        g_error_fd = fd_of(stderr);
     fd_close(file);
-    g_error_fd = fd_of(stderr);
     // a line at a time, so a crash loses at most part of one. MSVC has no line
     // buffering: its _IOLBF is full buffering.
 #ifdef PLATFORM_WINDOWS
@@ -173,7 +224,7 @@ void gos_LogFileStart()
 #endif
 
     g_copy_from_fd = open_for_read(path.c_str());
-    if(g_terminal_fd >= 0 && g_copy_from_fd >= 0) {
+    if(g_copy_from_fd >= 0) {
         SDL_Thread* thread = SDL_CreateThread(copy_thread, "mc2log", nullptr);
         g_copying = thread != nullptr;
         if(thread)
@@ -264,7 +315,7 @@ static void on_signal(int sig, siginfo_t* info, void*)
     // waits is part of a line
     char line[128];
     const size_t len = log_file::formatCrash(line, sizeof(line), "signal", (uint32_t)sig,
-            (uint64_t)(uintptr_t)info->si_addr);
+            info->si_code > 0 ? (uint64_t)(uintptr_t)info->si_addr : 0);  // sent: no address, the union holds the sender
     fd_write(g_error_fd, line, (unsigned)len);
     int index = 0;
     _Unwind_Backtrace(on_frame, &index);
