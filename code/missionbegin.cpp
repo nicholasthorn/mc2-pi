@@ -770,7 +770,7 @@ const char* MissionBegin::update()
 					}
 
 
-					leftAnim.begin();
+					beginSlide( leftAnim );
 					curScreenX++;
 					soundSystem->playDigitalSample( LOG_NEXTBACKBUTTONS );
 					animJustBegun = true;
@@ -792,7 +792,7 @@ const char* MissionBegin::update()
 				
 					screens[curScreenX-1][curScreenY]->begin();
 				}
-				rightAnim.begin();
+				beginSlide( rightAnim );
 				curScreenX--;
 				soundSystem->playDigitalSample( LOG_NEXTBACKBUTTONS );
 				animJustBegun = true;
@@ -802,7 +802,7 @@ const char* MissionBegin::update()
 				pCurScreen->end();
 				if ( screens[curScreenX][curScreenY+1] )
 					screens[curScreenX][curScreenY+1]->begin();
-				upAnim.begin();
+				beginSlide( upAnim );
 				curScreenY++;
 				soundSystem->playDigitalSample( LOG_NEXTBACKBUTTONS );
 				animJustBegun = true;
@@ -812,7 +812,7 @@ const char* MissionBegin::update()
 				pCurScreen->end();
 				if (screens[curScreenX][curScreenY-1]) 
 					screens[curScreenX][curScreenY-1]->begin();
-				downAnim.begin();
+				beginSlide( downAnim );
 				curScreenY--;
 				soundSystem->playDigitalSample( LOG_NEXTBACKBUTTONS );
 				animJustBegun = true;
@@ -831,7 +831,7 @@ const char* MissionBegin::update()
 				{
 					if ( screens[curScreenX+1+1][curScreenY] )
 						screens[curScreenX+1+1][curScreenY]->begin();
-					leftAnim.begin();
+					beginSlide( leftAnim );
 					curScreenX++;
 					curScreenX++;
 					soundSystem->playDigitalSample( LOG_NEXTBACKBUTTONS );
@@ -847,7 +847,7 @@ const char* MissionBegin::update()
 				pCurScreen->end();
 				if (screens[curScreenX-1-1][curScreenY] ) 
 					screens[curScreenX-1-1][curScreenY]->begin();
-				rightAnim.begin();
+				beginSlide( rightAnim );
 				curScreenX--;
 				curScreenX--;
 				soundSystem->playDigitalSample( LOG_NEXTBACKBUTTONS );
@@ -860,6 +860,18 @@ const char* MissionBegin::update()
 
 	return NULL;
 
+}
+
+// Starts a slide to another screen. One still running from the last move must
+// stop: render() takes the first running slide, and works out the other screen
+// from the current one, which has moved (off the grid, from the mech lab).
+void MissionBegin::beginSlide( aAnimation& anim )
+{
+	leftAnim.end();
+	rightAnim.end();
+	upAnim.end();
+	downAnim.end();
+	anim.begin();
 }
 
 void MissionBegin::render()

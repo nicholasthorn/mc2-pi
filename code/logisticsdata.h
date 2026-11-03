@@ -186,6 +186,7 @@ public:
 
 	void				addNewBonusPurchaseFile( const char* pFileName ); 
 	void				appendAvailability(const char* pFileName, bool* availableArray );
+	void				keepPlayedMissionsPilots();
 
 	bool				skipLogistics();
 	bool				showChooseMission();

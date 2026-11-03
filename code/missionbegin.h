@@ -77,6 +77,7 @@ class MissionBegin
 		aAnimation					rightAnim;
 		aAnimation					upAnim;
 		aAnimation					downAnim;
+		void						beginSlide( aAnimation& anim );
 	
 		bool						bMultiplayer;
 

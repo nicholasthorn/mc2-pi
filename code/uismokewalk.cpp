@@ -218,6 +218,10 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::Save, "name", UiAction::NameSave },
 	{ UiScreen::Load, "pick", UiAction::PickSave },
 	{ UiScreen::CampaignSelect, "tutorial", UiAction::PickTutorial },
+	{ UiScreen::CampaignSelect, "pick", UiAction::PickCampaign },
+	{ UiScreen::MechLab, "swap", UiAction::SwapVariant },
+	{ UiScreen::MechLab, "own", UiAction::OwnVariant },
+	{ UiScreen::MechLab, "accept", UiAction::LabAccept },
 };
 
 } // namespace
@@ -286,7 +290,9 @@ bool UiSmokeWalk::parse(const char* text, char* err, size_t errSize)
 			snprintf(err, errSize, "a walk starts at mainmenu, not '%s'", uiScreenName(s));
 			return false;
 		}
-		if (count > 0 && uiRoute(steps[count - 1].screen, s) == UiAction::None) {
+		// another in-screen action on the same screen needs no route
+		const bool sameScreen = count > 0 && steps[count - 1].screen == s && action != UiAction::None;
+		if (count > 0 && !sameScreen && uiRoute(steps[count - 1].screen, s) == UiAction::None) {
 			snprintf(err, errSize, "no route from %s to %s",
 					uiScreenName(steps[count - 1].screen), uiScreenName(s));
 			count = 0;
@@ -349,5 +355,8 @@ UiSmokeWalk::Result UiSmokeWalk::update(UiScreen current, float dt)
 		return { Event::Done, step.screen, UiAction::None };
 	}
 	waited = 0.0f;
+	// the same screen again, for its next action: no button to press
+	if (steps[index].screen == step.screen)
+		return { Event::Waiting, step.screen, UiAction::None };
 	return { Event::Act, steps[index].screen, uiRoute(step.screen, steps[index].screen) };
 }

@@ -85,6 +85,7 @@ class LogisticsMissionInfo
 
 		int					getAdditionalPurachaseFiles( const char** list, long& maxCount );
 		void				addBonusPurchaseFile( const char* fileName ); // extra bonus
+		int					getPlayedPurchaseFiles( const char** list, int maxCount ) const;
 
 		bool				skipLogistics();
 		bool				showChooseMission();

@@ -177,6 +177,19 @@ cannot say why a click did nothing.
    no results), so the driver refuses that win
    (`LogisticsData::isLastMission()`; `campaignOver()` only turns true
    once the win is counted). It runs on stock and Omnitech data.
+   `campaign+pick` picks any campaign by file name, from
+   `MC2_UISMOKE_CAMPAIGN` (a walk cannot carry a name with spaces): how
+   `scripts/walk_campaigns.sh` walks Omnitech's campaign packs
+   (`MOD-COMPAT.md` item 13). It refuses a campaign whose display name an
+   earlier one has: OK looks campaigns up by that name.
+   The mech lab: `mechlab+swap` picks another variant (logs it and carries
+   on if the list holds no other), `mechlab+own` the mech's own again, and
+   `mechlab+accept` makes the next step leave by Accept rather than Cancel.
+   A screen can repeat in a walk when the repeat has an action
+   (`mechlab+swap,mechlab+own`). Default walk 2 does these; Accept with no
+   change left the lab holding the variant it had just freed. The driver,
+   pressing from outside the screen's update, drew it in the slide out; a real
+   click ends the screen first, so no player route to the crash was found.
 4. **Built (2026-11-01):** out of a mission. `mission` leads to `salvage`,
    `pilotreview` or `promotion`: once the mission has been held, the driver
    sets `scenarioResult` to a big win, as `Mission::update`'s

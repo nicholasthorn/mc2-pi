@@ -17,6 +17,7 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #include"team.h"
 #include"mech.h"
 #include"logisticsmissioninfo.h"
+#include"logisticsscreen.h"
 #include"packet.h"
 #include"movobj.h"
 #include"gamesound.h"
@@ -1476,6 +1477,50 @@ LogisticsVariant* LogisticsData::getVariant( const char* mechName )
 	return NULL;
 }
 
+// MechCommander Omnitech's data, told by the front-end layouts made for it (no
+// stock layout makes the front end larger).
+static bool omnitechData()
+{
+	return LogisticsScreen::frontEndWidth() != 800;
+}
+
+// Whether a purchase file's "MechN" line sells this variant of its chassis.
+// Stock sells every variant whose components are all available (available:
+// the file's list, or NULL for what is available now). MechCommander Omnitech
+// sells just one, whatever it holds: variant 0, or the one a "MechVariantN"
+// line names. Its campaigns count on that (Clan Wars' first mission sold
+// nothing by stock's rule, and could not be launched). A design the player
+// saved has an id of its own and is always on sale, or it would drop out of the
+// shop at the next mission.
+static bool variantOnSale( LogisticsVariant* pVariant, long wantedVariant, const bool* available )
+{
+	if ( omnitechData() )
+		return !pVariant->isDesignerMech() || (long)( pVariant->getID() >> 16 ) == wantedVariant;
+
+	long componentCount = 255;
+	long componentArray[256];
+	pVariant->getComponents( componentCount, componentArray );
+	for ( int i = 0; i < componentCount; i++ )
+	{
+		bool bAvailable = available ? available[componentArray[i]]
+			: LogisticsData::instance->getComponent( componentArray[i] )->isAvailable();
+		if ( !bAvailable )
+			return false;
+	}
+	return true;
+}
+
+// The purchase file's "MechVariantN" for its "MechN" line, or 0.
+static long wantedVariant( FitIniFile& file, int mechIndex )
+{
+	char name[32];
+	sprintf( name, "MechVariant%d", mechIndex );
+	long variant = 0;
+	if ( NO_ERR != file.readIdLong( name, variant ) )
+		return 0;
+	return variant;
+}
+
 long LogisticsData::updateAvailability()
 {
 	bNewWeapons = 0;
@@ -1583,8 +1628,6 @@ long LogisticsData::updateAvailability()
 
 	// go through each variant, and see if it's available
 	char chassisFileName[255];
-	long componentArray[255];
-	long componentCount;
 
 	file.seekBlock( "Mechs" );
 	for (int i = 0; i < 255; i++ )
@@ -1592,6 +1635,7 @@ long LogisticsData::updateAvailability()
 		sprintf( tmp, "Mech%d", i );
 		if ( NO_ERR != file.readIdString( tmp, chassisFileName, 254 ) )
 			break;
+		const long wanted = wantedVariant( file, i );
 
 		// go through each variant, if it has the same chassis, check and see if all of its components are valid
 		for (VARIANT_LIST::EIterator vIter = variants.Begin(); !vIter.IsDone(); vIter++ )
@@ -1601,23 +1645,7 @@ long LogisticsData::updateAvailability()
 			_splitpath( mechName, NULL, NULL, realName, NULL );
 			if ( S_stricmp( realName, chassisFileName ) == 0 )
 			{
-				componentCount = 255;
-				bool bRight = true;
-				(*vIter)->getComponents( componentCount, componentArray );
-				for ( int i = 0; i < componentCount; i++ )
-				{
-					if ( !available[componentArray[i]] ) // unavailable componets
-					{
-						//char errorStr[256];
-						//sprintf( errorStr, "mech %s discarded because it contains a %ld", 
-						//	chassisFileName, componentArray[i] );
-						//PAUSE(( errorStr ));
-						bRight= false;
-						break;
-					}
-				}
-
-				if ( bRight )
+				if ( variantOnSale( *vIter, wanted, available ) )
 				{
 					(*vIter)->setAvailable( true );
 
@@ -1652,6 +1680,10 @@ long LogisticsData::updateAvailability()
 		}
 	}
 
+	// a pilot Omnitech offered once stays, see keepPlayedMissionsPilots
+	if ( omnitechData() )
+		keepPlayedMissionsPilots();
+
 	for (PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
 	{
 		
@@ -1669,6 +1701,38 @@ long LogisticsData::updateAvailability()
 
 	return 0;
 
+}
+
+// Exodus and MW2 Mercs name a pilot in one mission's purchase file and not in the
+// next ones, so from Exodus' second mission on the pilot list was empty. The other
+// Omnitech campaigns repeat their whole roster, so this changes nothing for them.
+// Worked out from the played missions, not saved, so a load gets the same list.
+void LogisticsData::keepPlayedMissionsPilots()
+{
+	const char* pFileNames[512];
+	int fileCount = missionInfo->getPlayedPurchaseFiles( pFileNames, 512 );
+
+	for ( int f = 0; f < fileCount; f++ )
+	{
+		FitIniFile file;
+		if ( NO_ERR != file.open( pFileNames[f] ) || NO_ERR != file.seekBlock( "Pilots" ) )
+			continue;
+
+		char tmp[32];
+		char pilotName[255];
+		for ( int i = 0; i < 255; i++ )
+		{
+			sprintf( tmp, "Pilot%d", i );
+			if ( NO_ERR != file.readIdString( tmp, pilotName, 254 ) )
+				break;
+
+			for ( PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
+			{
+				if ( (*pIter).getFileName().Compare( pilotName, 0 ) == 0 )
+					(*pIter).setAvailable( true );
+			}
+		}
+	}
 }
 
 void LogisticsData::appendAvailability(const char* pFileName, bool* availableArray )
@@ -1734,6 +1798,7 @@ void LogisticsData::appendAvailability(const char* pFileName, bool* availableArr
 		sprintf( tmp, "Mech%d", i );
 		if ( NO_ERR != file.readIdString( tmp, chassisFileName, 255 ) )
 			break;
+		const long wanted = wantedVariant( file, i );
 
 		// go through each variant, if it has the same chassis, check and see if all of its components are valid
 		for ( VARIANT_LIST::EIterator vIter = variants.Begin(); !vIter.IsDone(); vIter++ )
@@ -1743,31 +1808,16 @@ void LogisticsData::appendAvailability(const char* pFileName, bool* availableArr
 			_splitpath( mechName, NULL, NULL, realName, NULL );
 			if ( S_stricmp( realName, chassisFileName ) == 0 )
 			{
-				long componentCount = 255;
-				long componentArray[256];
-				bool bRight = true;
-				(*vIter)->getComponents( componentCount, componentArray );
-				for ( int i = 0; i < componentCount; i++ )
-				{
-					LogisticsComponent* pComp = getComponent(componentArray[i]);
-					if ( !pComp->isAvailable() ) // unavailable componets
-					{
-						//char errorStr[256];
-						//sprintf( errorStr, "mech %s discarded because it contains a %ld", 
-						//	chassisFileName, componentArray[i] );
-						//PAUSE(( errorStr ));
-						bRight= false;
-						break;
-					}
-				}
-
-				if ( bRight )
+				const bool bOnSale = variantOnSale( *vIter, wanted, NULL );
+				if ( bOnSale )
 				{
 					(*vIter)->setAvailable( true );
 					newAvailableCount++;
 				}
 
-				break;
+				// stock looks at the chassis' first variant only
+				if ( bOnSale || !omnitechData() )
+					break;
 			}
 		}
 	}

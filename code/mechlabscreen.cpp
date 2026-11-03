@@ -279,6 +279,7 @@ void MechLabScreen::begin()
 		int maxCount = 0;
 		LogisticsVariant** pVar = NULL;
 		int addedCount = 0;
+		bool bOwnListed = false;
 
 		LogisticsData::instance->getChassisVariants( pVariant->getChassis(),pVar, maxCount );
 		if ( maxCount )
@@ -290,13 +291,18 @@ void MechLabScreen::begin()
 
 			for ( int i = 0; i < maxCount; i++ )
 			{
-				if ( pVar[i]->allComponentsAvailable() )
+				// the mech's own variant is listed whatever it holds: a salvaged
+				// mech, or any on MechCommander Omnitech data, which sells mechs
+				// with components not yet available
+				const bool bOwn = pVar[i]->getName().Compare( pVariant->getName() ) == 0;
+				if ( bOwn || pVar[i]->allComponentsAvailable() )
 				{
 					variantList.AddItem( pVar[i]->getName(), rects[1].getColor() );
-					if ( pVar[i]->getName().Compare( pVariant->getName() )  == 0 )
+					if ( bOwn )
 					{
-						variantList.SelectItem( i );
+						variantList.SelectItem( addedCount );
 						variantList.EditBox().setEntry( pVar[i]->getName() );
+						bOwnListed = true;
 					}
 
 					addedCount++;
@@ -304,10 +310,10 @@ void MechLabScreen::begin()
 			}
 
 		}
-		if ( !addedCount ) // this is a mech we don't have access to yet
+		if ( !bOwnListed ) // this is a mech we don't have access to yet
 		{
 			variantList.AddItem( pVariant->getName(), rects[1].getColor() );
-			variantList.SelectItem( 0 );
+			variantList.SelectItem( addedCount );
 			variantList.EditBox().setEntry(pVariant->getName() );
 
 		}
@@ -411,6 +417,7 @@ void MechLabScreen::update()
 			{
 				LogisticsData::instance->acceptMechModifications( pCurDialog->getFileName() );
 				pCurDialog->end();
+				pVariant = NULL;
 				status = UP;
 				bSaveDlg = 0;
 			}
@@ -1103,6 +1110,7 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 					if ( pCurVar && *pCurVar == *pVariant )
 					{
 						LogisticsData::instance->acceptMechModificationsUseOldVariant( pCurVar->getName() );
+						pVariant = NULL;	// freed, as Cancel leaves it: nothing may read it now
 						status = UP;
 					}
 					else

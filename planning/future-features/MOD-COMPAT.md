@@ -550,8 +550,31 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      `smoke.sh --missions` now takes a `|`-separated list for such names,
      passes them quoted (the game keeps a quoted name whole), and fails a
      run that starts a mission other than the one asked for.
-   - Smoke only: the campaigns themselves (logistics, purchase files, the
-     ABL mission brains over a whole campaign) are not played through.
+   - The first mission of these eight, Clan Wars, Desert Fox and MW2 Mercs
+     (2026-11-02) also passes a UI walk from the new campaign dialog:
+     mission selection, briefing, purchase, the mech lab (swap a variant
+     and back, Accept), pilot, launch (or straight into the mission, as its
+     campaign file says), a win, the results screens, back to mission
+     selection; plain and under ASan + UBSan. `scripts/walk_campaigns.sh
+     --game-dir DIR` holds the walk of each and runs what the folder has,
+     by hand, as CI has no Omnitech data.
+   - Those walks found Clan Wars could not be started: its first mission's
+     shop was empty and its force starts with no mechs. Stock sells every
+     variant of a named chassis whose components are all available.
+     Omnitech sells one, whatever it holds: variant 0, or the one a
+     `MechVariantN` line names (`How to create purchase and salvage files
+     for MCO.txt`; its 2012 source is earlier, and just drops the check,
+     its `//M23`). `LogisticsData`'s `variantOnSale` does that on Omnitech
+     data (`omnitechData()`, told by `frontEndWidth()`, the one place to
+     change that test). A `MechVariantN` naming no variant sells nothing,
+     silently; Omnitech gives an error.
+   - The mech lab's variant list now always holds the mech's own variant.
+     Not ported: Omnitech's component inventory (`icomponents`), so in the
+     mech lab a part of such a mech that is not yet available warns when
+     removed and cannot be added back, and accepting real changes takes
+     stock's dialog (only Accept with no change is walked).
+   - Later missions of these campaigns are not played through: only that
+     each loads and runs (above).
 
 14. **Front-end labels and the mech view (2026-11-02, branch
    `omnitech-frontend-labels-mech`).** From a Quest playtest of the menus.

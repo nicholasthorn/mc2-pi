@@ -65,6 +65,8 @@ class MechLabScreen: public LogisticsScreen
 
 	private:
 
+		friend class UiSmokeDriver;	// -uismoke picks a variant and accepts
+
 		MechLabScreen( const MechLabScreen& src );
 		MechLabScreen& operator=( const MechLabScreen& echLabScreen );
 		static MechLabScreen*	s_instance;

@@ -1107,6 +1107,24 @@ int			LogisticsMissionInfo::getAdditionalPurachaseFiles( const char** list, long
 
 	return additionalPurchaseFiles.Count();
 }
+// The purchase files of the missions already played: every mission of the groups
+// before the current one (a save only records the current group's completed
+// missions), and the completed ones of the current group.
+int					LogisticsMissionInfo::getPlayedPurchaseFiles( const char** list, int maxCount ) const
+{
+	int count = 0;
+	for ( long i = 0; i <= currentStage && i < groupCount; i++ )
+	{
+		for ( MISSION_LIST::EIterator iter = groups[i].infos.Begin(); !iter.IsDone(); iter++ )
+		{
+			if ( ( i < currentStage || (*iter)->completed ) && count < maxCount )
+				list[count++] = (*iter)->purchaseFileName;
+		}
+	}
+
+	return count;
+}
+
 void				LogisticsMissionInfo::addBonusPurchaseFile( const char* fileName )
 {
 	if ( !fileName )
