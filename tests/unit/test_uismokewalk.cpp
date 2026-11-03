@@ -128,6 +128,7 @@ TEST_CASE("in-screen actions belong to one screen each") {
 	CHECK(uiScreenAction(UiScreen::MechPurchase, "buy", 3) == UiAction::BuyMech);
 	CHECK(uiScreenAction(UiScreen::MechBay, "add", 3) == UiAction::AddToForce);
 	CHECK(uiScreenAction(UiScreen::PilotReady, "pilot", 5) == UiAction::AssignPilot);
+	CHECK(uiScreenAction(UiScreen::PilotReady, "mech", 4) == UiAction::ShowMech);
 	CHECK(uiScreenAction(UiScreen::Promotion, "skill", 5) == UiAction::PickSkill);
 	CHECK(uiScreenAction(UiScreen::MechBay, "buy", 3) == UiAction::None);
 	CHECK(uiScreenAction(UiScreen::MechPurchase, "bu", 2) == UiAction::None);

@@ -576,6 +576,36 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
    - Later missions of these campaigns are not played through: only that
      each loads and runs (above).
 
+14. **Front-end labels and the mech view (2026-11-02, branch
+   `omnitech-frontend-labels-mech`).** From a Quest playtest of the menus.
+   - **`undefined_string_sebi`.** Layouts, stock's too, give `TextID = 0` to a
+     label the game fills in at run time. Id 0 is a placeholder in our string
+     table; on Windows `LoadString` found nothing. Stock's code fills all of its
+     own, but Omnitech's layouts add labels for its own systems, so the
+     placeholder showed. `gos_GetResourceString` now returns no text for id 0.
+   - **Labels left blank**, as what fills them is not ported: pilot salaries, mech
+     maintenance and balance, resource points and drop zones, the weight and RP
+     +/- text, a pilot's sensors, jumping, shots by weapon type and mech
+     preferences. Filled now: a pilot's vehicle kills and the mech lab's variant
+     line (the drop-down stays where Omnitech's data puts it, so the name shows
+     twice). Their buttons still draw and no code handles them (the mech bay's
+     repair and its weight and RP boxes, hire pilots).
+   - **White box on pilot ready.** `PilotReadyStatic38` has no art: Omnitech
+     draws the mission's tac map there. It now shows the briefing's map. The
+     mech view covers it with the layout's own rects 19 and 24, not stock's
+     hard-coded rect, which stops short of Omnitech's pilot panel.
+   - **Solid mech in the wrong place (VR only).** Not Omnitech's: `MC2_VR_PATHS=1`
+     reproduces it on stock data too. VR sends every mesh down the GPU path, which
+     draws for the world's eyes; a `SimpleCamera` draws into the interface, with
+     its own projection. Its object now takes the CPU path, as on a flat screen
+     (`Camera::drawsToInterface`, `vrMeshPath` in `tgl.cpp`).
+   - **Sparse screens: as Omnitech has them.** Its mech bay, mech lab, pilot ready
+     and mech info layouts name no panel art, only frames, icons and `Button_N`;
+     stock's name large `mcl_mb_2/3`-style panels. No file is missing.
+   - **Not done:** mech icons draw garbled and the pilot list's small portraits
+     blank. Omnitech's changelog moves them to `data/art/mechicons` (40x48) and
+     `pilots_l2.tga` / `pilots_med.tga`; our code reads the stock files.
+
 ## Scope if we do this
 
 In: load and play Omnitech-era single-player campaigns on stock-format data,

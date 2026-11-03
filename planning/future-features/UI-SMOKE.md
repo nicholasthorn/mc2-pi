@@ -151,7 +151,10 @@ cannot say why a click did nothing.
    mech purchase (`MB_MSG_ADD` on the first variant that fits the mission's
    drop weight and the C-bills), `add` on the mech bay (`MB_MSG_ADD`, the
    mech it selects into the force), `pilot` on pilot ready (`PR_MSG_ADD`,
-   the selected pilot into the selected slot). Only `buy` picks a list item
+   the selected pilot into the selected slot), `mech` on pilot ready (the mech
+   view, as a click on a slot with no pilot). `MC2_UISMOKE_HOLD=<frames>`
+   holds each screen longer, to grab pictures of them from the X server.
+   Only `buy` picks a list item
    itself: the variant `begin()` selects may not fit (MechCommander
    Omnitech's `a_0_2` takes 65 t and lists an Atlas first, so "add" then
    stays off); the others use what `begin()` selects. The purchase screen

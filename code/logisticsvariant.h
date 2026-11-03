@@ -57,6 +57,7 @@ protected:
 	
 	float				maxWeight;
 	long				chassisNameID;	// resource ID
+	EString				chassisNameText;	// its string, or the data file's name where that is a placeholder
 	long				baseCost;
 	long				maxHeat;
 	long				baseArmor;
@@ -128,6 +129,7 @@ protected:
 		unsigned long	getID() const { return ID; }
 		float			getMaxWeight() const { return chassis->maxWeight; }
 		long			getChassisName() const { return chassis->chassisNameID; }
+		const EString&		getChassisNameText() const { return chassis->chassisNameText; }
 		const EString&		getName() const { return variantName; }
 		long			getEncyclopediaID() const { return chassis->encyclopediaID; }
 		long			getHelpID() const { return chassis->helpID; }
