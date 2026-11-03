@@ -735,7 +735,11 @@ void MechLabScreen::updateDiagramInput()
 						updateDiagram();
 					}
 					else
+					{
 						soundSystem->playDigitalSample( LOG_WRONGBUTTON );
+						// once: the press point stays on it for as long as the button is held
+						pSelectedComponent = 0;
+					}
 				}
 				else
 					pSelectedComponent = 0;
