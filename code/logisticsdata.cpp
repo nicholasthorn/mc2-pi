@@ -950,6 +950,26 @@ const char*	LogisticsData::getBestPilot( long mechWeight )
 	}
 
 	gosASSERT( !"We're out of pilots, shouldn't be here" );
+
+	// No free pilot was collected, so pPilots[0] is NULL (or past the end of an
+	// empty roster). Callers strcpy the name, so reuse a roster pilot, as below.
+	if ( !count )
+	{
+		if ( !pilots.Count() )
+			Fatal( 0, " LogisticsData.getBestPilot: no pilots in the roster " );
+		// prefer a living, purchased pilot, even one already flying
+		PILOT_LIST::EIterator best = pilots.Begin();
+		for ( PILOT_LIST::EIterator iter = pilots.Begin(); !iter.IsDone(); iter++ )
+		{
+			if ( (*iter).isAvailable() )
+			{
+				best = iter;
+				break;
+			}
+		}
+		(*best).setUsed( true );
+		return (*best).getFileName();
+	}
 	
 	pPilots[0]->setUsed( true );
 	return pPilots[0]->getFileName();

@@ -226,11 +226,9 @@ bool aObject::rectIntersect(long left, long top, long right, long bottom) const
 
 bool aObject::rectIntersect(const GUI_RECT& testRect) const
 {
-	if ((testRect.right > location[0].x) && (testRect.left < location[0].y) &&
-		(testRect.bottom > location[2].y) && (testRect.top < location[2].y))
-		return (TRUE);
-	else
-		return (FALSE);
+	// this used to compare left with location[0].y and bottom with location[2].y,
+	// so the mech bay counted a drop on the mech list as over the force group
+	return rectIntersect(testRect.left, testRect.top, testRect.right, testRect.bottom);
 }
 
 

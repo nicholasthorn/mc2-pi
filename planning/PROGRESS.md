@@ -38,7 +38,7 @@ belongs in commit messages and PRs.
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
 - [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
-- [ ] cppcheck: `nullPointer` (87, mostly known false positives), `nullPointerRedundantCheck` cleared (2026-11-01: 25 sites with cppcheck 2.19 after `Fatal()` became `[[noreturn]]`; 23 fixed, 5 of them real bugs, 2 suppressed as false positives) (roadmap Phase 2). `uninitMemberVar` is cleared (#23, #24; baseline 413); see "Work through the cppcheck baseline" below
+- [x] cppcheck: baseline empty since 2026-11-01 (#68); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [x] Deterministic smoke runs (seed the RNG): `-deterministic` and `smoke.sh --deterministic` (2026-11-01); opt-in, since it turns sound off
 - [ ] GPU benchmark phases 3-4: GPU timer queries, compare script, HUD (`future-features/GPU-BENCHMARK.md`); a second scenario on a daylight map
@@ -240,21 +240,17 @@ on 2026-10-31.
 
 **Bugs noticed in passing**
 
-- [ ] Found by the 2026-11-01 cppcheck batches, outside their checks, not
-      fixed: `aObject::rectIntersect(const GUI_RECT&)` (`gui/asystem.cpp`)
-      compares x with y (`testRect.left < location[0].y`), used by mech bay
-      drag-and-drop; `mech.cpp`'s death-from-above "both jumping" block is
-      gated by `!sameTeam` although its comment suggests every case;
-      `SalvageListItem::icon` is never deleted; `LogisticsData::getBestPilot`
-      reads `pPilots[0]` with an empty roster; `EWCharString::Format`
-      over-reads and leaks `pTmp` (no callers; fixed in #60); a zero font metric makes
-      `renderObjective`'s dot count infinite (guarded in #60).
-- [ ] `aAnimButton`'s scaled-render path is broken: it resizes to about
-      0.5 * scale * width squared (`gui/abutton.cpp`, `resize(width() *
-      scaleX, ...)`). #60 made the animation read `getScaleY()` for Y (it
-      read X twice), which only changes which animations take that path;
-      it does not fix the scaling. No shipped `.fit` sets X and Y scales
-      separately, as far as checked. (2026-11-01)
+- [x] Found by the 2026-11-01 cppcheck batches, outside their checks. Fixed
+      on `fix/noticed-bugs`: `aObject::rectIntersect(const GUI_RECT&)` compared
+      x with y, so a mech bay drop on the mech list counted as over the force
+      group; `SalvageListItem::icon` was never deleted; `getBestPilot` read a
+      NULL `pPilots[0]` with no free pilot (reuses a roster pilot; an empty
+      roster is a `Fatal`); `aAnimButton`'s scaled render resized to about 0.5
+      * scale * width squared (only `mcl_cm_standinop.fit` scales, and no stock
+      data loads it). Fixed in #60: `EWCharString::Format`, the zero font
+      metric in `renderObjective`.
+- [x] `mech.cpp`'s death-from-above block: kept as shipped, decided 2026-11-03
+      (see "Kept as shipped").
 - [x] `streamToBuffer` (`gameos_graphics.cpp`): a failed `glMapBufferRange`
       only `gosASSERT`s (compiled out) and draws stale data. (PR #5 review)
       Fixed on `fix/passing-bugs`: the draw is skipped, also when
@@ -513,6 +509,11 @@ change, not as a bug fix.
   Removing the shadow would make destroyed forests passable (and change
   `ObjectManager::getSpecificObjects` for terrain objects). Marked in
   `code/terrobj.h` and at the test in `code/terrobj.cpp`.
+- **A same-team jump collision does no damage** (decided 2026-11-03).
+  `mech.cpp`'s death-from-above block is gated by `collideeJumping &&
+  !sameTeam`, although its comment describes double damage when both mechs
+  jump, for every case. Removing the team check would make friendly jump
+  collisions hurt. Marked at the test.
 - **Fog byte semantics differ between actors and terrain** (original
   behaviour, kept): actors (and crater/gvactor/mech3d) turn "no fog"
   (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Worth checking
@@ -531,6 +532,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-03: bugs noticed during the cppcheck triage (branch `fix/noticed-bugs`): mech bay drops on the mech list no longer count as over the force group (`rectIntersect` compared x with y); `SalvageListItem` deletes its icon; `getBestPilot` no longer reads a NULL pilot when none is free; `aAnimButton`'s scaled render uses the right size (no stock data reaches it). Death-from-above kept as shipped, by decision. GCC desktop GL locally; the rest on CI; the mech bay drag needs a person (`HARDWARE-TESTS.md`).
 - 2026-11-02: First long Quest playtest, on the `v0.3.0-rc1` build plus the sound path fix (branch `quest-playtest-fixes`), mc2_01 to mc2_03. Fixed: music and mission voices were silent on Android (a relative path; heard working on the headset). Video sound now goes through the mixer's music hook, since SDL on Android has one output (measured on desktop GL with the disk audio driver; not yet heard on the Quest). Mech lab drags use the press point, and the other hand no longer takes over the pointer mid-drag. In VR, save and variant dialogs start with an unused name, so OK works with no keyboard. A cyclic buzz in the last quarter of mc2_03 is not explained: the second audio device or an underrun at full load are candidates, and this build changes both. Frame rates from the headset's own log: mc2_01 median 61, mc2_02 55 (both effects off), mc2_03 51 (shadows and high detail on for at least its last part); different missions, so not a clean comparison.
 - 2026-11-02: Player log (branch `log-file`): a player's run writes `mc2.log` in the config folder (the game folder where no `HOME` is set), keeps the last run as `mc2.previous.log`, names the version and start time, and still shows it all in the terminal; `MC2_LOG_FILE=0` turns the file off. A crash adds `CRASH:` lines: the signal or Windows exception and the stack as module plus offset, for `addr2line` with the symbols package. Automated runs are unchanged. The Quest already wrote `mc2.log`: it now keeps the previous one and adds the same lines. Linux x64 run under Xvfb (a sent signal and a real fault in another thread); the Android game builds; Windows only built by CI. Not run: Windows, the Quest, a stack overflow. On Windows, `abort()` and fast-fail end the process without passing through the handler, so they add no `CRASH:` line.
 - 2026-11-02: VR button map (branch `vr-button-map`): held while the other hand clicks, X run, Y jump, left stick click force fire, B waypoints (it never was force fire: Ctrl is the game's waypoint key); right stick click selects the visible units. Gives up Shift and Alt. Quest 2: reported all good by the user, with #89 merged in, double-pulling the trigger included. `cppcheck_gate.py` now skips files the build does not compile, instead of failing when one is all a change touches. From review, not yet run in the headset: B + pan pans in VR instead of rotating the light, and the command buttons send keys only while a mission takes orders.

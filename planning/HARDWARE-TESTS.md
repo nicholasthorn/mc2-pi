@@ -15,6 +15,11 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **Dragging a mech out of the force group** (`fix/noticed-bugs`). In the
+      mech bay, drag a force-group mech onto the mech list at the same height
+      as the force-group icons: it must leave the force group. Then drag one
+      from the list onto the icons: it must join. GL or GLES. `./mc2`, then the
+      logistics screens.
 - [ ] **Mech colours stay put on an LOD change** (#43). Zoom in and out on
       your mechs and some vehicles: the paint must not switch to swapped
       colours. GL and GLES. `./mc2 -mission mc2_01`

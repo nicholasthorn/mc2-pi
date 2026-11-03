@@ -904,6 +904,8 @@ bool BattleMechType::handleCollision (GameObjectPtr collidee, GameObjectPtr coll
 					// Since we reset the jumping mech's lastJumpTime right here,
 					// we should apply the damage to the collider here, as well.
 					// If both are jumping...well then, double damage is taken!
+					// Kept as shipped on purpose (planning/PROGRESS.md, "Kept as shipped"):
+					// the !sameTeam means a same-team jump collision does no damage.
 					if (collideeJumping && !sameTeam) 
 					{
 						WeaponShotInfo shotInfo;
