@@ -557,7 +557,7 @@ void __stdcall gos_LoadDataFromRegistry( const char* keyName, void* pData, DWORD
 
     // if directory does not exist create it
 #ifndef PLATFORM_WINDOWS
-    int permissions = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    int permissions = S_IRWXU | S_IRWXG | S_IRWXO;
 #endif
 	if(-1 == stat(mc2_conf_dir, &st)) {
 #ifdef PLATFORM_WINDOWS
