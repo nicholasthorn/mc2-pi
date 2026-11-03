@@ -157,9 +157,34 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
       tracked, as the world's meshes stay on the GPU path. In a mission, the
       gameplay options' mech preview is textured and in its frame too, and the
       world is unharmed on going back: no walk opens that tab in a mission.
+## Quest playtest fixes (`quest-playtest-fixes`)
+
+- [ ] **Video sound on the Quest:** a briefing video with its own sound
+      (`node_*`, `cinema*`) is heard, and a skipped video's sound stops.
+- [ ] **The buzz:** a steady buzz at about 1 Hz started late in a long session
+      and carried on into the menus. Not explained, and not fixed by this
+      branch: play a long session and listen for it.
+- [ ] **HUD size on Omnitech:** play several missions in a row; the HUD stays
+      full size and does not go small to the lower left. The fix follows a real
+      change of frame size, logged as `[XR] the window's frame is now`; a menu
+      mode change to 1280x1024 is what shrank it. Its first commit blames taking
+      the headset off and on, which the log did not bear out.
+- [ ] **Mech lab drags on the Quest:** drag 1x1 and 2x2 components out of the
+      diagram and from the list; drag with the other hand's trigger brushed.
+- [ ] **Saving with no keyboard:** a new save and a new variant start with an
+      unused name, OK works, and the save loads.
+- [ ] **Flat mech lab:** drag a component by mouse from its edge, and flick it
+      within the diagram; it should still pick up what was pressed. A flick that
+      leaves the diagram before the drag counts picks up nothing, and a component
+      that cannot be removed sounds its refusal once.
 
 ## Releases (`RELEASES.md`)
 
+- [ ] **Player log on Windows and the Quest** (`log-file`): double-click
+      `mc2.exe`: `mc2.log` appears in the game folder (or the config folder if
+      `HOME` is set), the console still shows the output, and a second start
+      keeps `mc2.previous.log`. A crash on either adds `CRASH:` lines to the
+      log. Linux was checked under Xvfb only.
 - [ ] **A package on a clean machine** (phase 1 exit): unpack the Linux x64
       package on a machine that has never built the game, install the apt
       line from `INSTALL.md`, build the data with `./build_gamedata.sh`,

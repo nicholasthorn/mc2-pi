@@ -1,6 +1,9 @@
 #include "gameos.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include "utils/vec.h"
@@ -71,7 +74,7 @@ class gosStreamedAudio {
 class SoundEngine {
 
     public:
-        SoundEngine():frequency_(0), format_(0), channels_(0), chunksize_(0), is_initialized_(false), channel_info_() {} 
+        SoundEngine():frequency_(0), format_(0), channels_(0), chunksize_(0), streamed_lock_(NULL), is_initialized_(false), channel_info_() {} 
         bool init(int frequency, bool b_fmt_16_bit, bool b_fmt_signed, bool b_stereo);
         void update();
         void destroy();
@@ -116,7 +119,10 @@ class SoundEngine {
 
         void deleteStreamedAudio(gosStreamedAudio* audio) {
             gosStreamedAudio::destroyStreamedAudio(audio);
-            SDL_ClearQueuedAudio(audio_device);
+            // a skipped video's sound ends with it
+            SDL_LockMutex(streamed_lock_);
+            streamed_pending_.clear();
+            SDL_UnlockMutex(streamed_lock_);
             std::vector<gosStreamedAudio*>::iterator it = 
                 std::remove(streamedAudioList_.begin(), streamedAudioList_.end(), audio);
             streamedAudioList_.erase(it, streamedAudioList_.end());
@@ -149,7 +155,9 @@ class SoundEngine {
         SDL_AudioFormat format_; // see SDL_audio.h
         int channels_; // mono/stereo
         int chunksize_;
-        SDL_AudioDeviceID audio_device;
+        static void SDLCALL mixStreamedAudio(void* user, Uint8* stream, int len);
+        SDL_mutex* streamed_lock_;
+        std::vector<uint8_t> streamed_pending_;     // decoded, waiting for the mixer
 
         bool is_initialized_;
 
@@ -174,7 +182,12 @@ bool SoundEngine::init(int frequency, bool b_fmt_16_bit, bool b_fmt_signed, bool
         format_ = b_fmt_signed ? AUDIO_S8 : AUDIO_U8;
     }
     channels_ = b_stereo ? 2 : 1;
+#ifdef __ANDROID__
+    // the mixer thread has to keep up with the game at full load on the Quest
+    chunksize_ = 2048;
+#else
     chunksize_ = 1024;
+#endif
 
     int rv = Mix_OpenAudio(frequency_, format_, channels_, chunksize_);
     if(rv == -1) {
@@ -193,27 +206,26 @@ bool SoundEngine::init(int frequency, bool b_fmt_16_bit, bool b_fmt_signed, bool
                 (audio_format&0xFF),                                                
                 (audio_channels > 2) ? "surround" : (audio_channels > 1) ? "stereo" : "mono",
                 (audio_format&0x1000) ? "Big-Endian" : "Little-Endian",                                
-                audio_buffers);  
+                audio_buffers);
+
+        // what the device gave, which can differ (WASAPI's channel count):
+        // everything converted for the mixer has to match it
+        if(rv != -1) {
+            frequency_ = audio_rate;
+            format_ = audio_format;
+            channels_ = audio_channels;
+        }
     }
 
     int num_allocated_chanels = Mix_AllocateChannels(NUM_CHANNELS);
     gosASSERT(NUM_CHANNELS == num_allocated_chanels);
 
-    // used for streamed audio
-    {
-		SDL_AudioSpec audio_spec;
-		SDL_memset(&audio_spec, 0, sizeof(audio_spec));
-		audio_spec.freq = frequency_;
-		audio_spec.format = format_;
-		audio_spec.channels = channels_;
-		audio_spec.samples = 4096;
-
-        SDL_AudioSpec obtained;
-		audio_device = SDL_OpenAudioDevice(NULL, 0, &audio_spec, &obtained, 0);
-		if (audio_device == 0) {
-			SDL_Log("Failed to open audio device: %s", SDL_GetError());
-		}
-		SDL_PauseAudioDevice(audio_device, 0);
+    // Streamed audio (the sound in videos) goes in through the mixer's music
+    // hook, which nothing else uses. A second audio device is not an option:
+    // SDL on Android has one output to give.
+    if(rv != -1) {
+        streamed_lock_ = SDL_CreateMutex();
+        Mix_HookMusic(mixStreamedAudio, this);
     }
 
 #if 0
@@ -246,12 +258,34 @@ void SoundEngine::update() {
     for(;it!=streamedAudioList_.end();++it) {
         gosStreamedAudio* audio = *it;
         while((bytes_read = audio->dequeueData(buf, sizeof(buf))) > 0) { 
-            SDL_QueueAudio(audio_device, buf, bytes_read);
+            if(!streamed_lock_)
+                continue;   // no mixer to take it
+            SDL_LockMutex(streamed_lock_);
+            streamed_pending_.insert(streamed_pending_.end(), buf, buf + bytes_read);
+            SDL_UnlockMutex(streamed_lock_);
         }
     }
 }
 
+// on the mixer's thread; the stream starts out silent
+void SDLCALL SoundEngine::mixStreamedAudio(void* user, Uint8* stream, int len) {
+
+    SoundEngine* engine = static_cast<SoundEngine*>(user);
+    SDL_LockMutex(engine->streamed_lock_);
+    std::vector<uint8_t>& pending = engine->streamed_pending_;
+    const size_t bytes = std::min(pending.size(), (size_t)len);
+    if(bytes > 0) {
+        memcpy(stream, pending.data(), bytes);
+        pending.erase(pending.begin(), pending.begin() + bytes);
+    }
+    SDL_UnlockMutex(engine->streamed_lock_);
+}
+
 void SoundEngine::destroy() {
+
+    Mix_HookMusic(NULL, NULL);
+    SDL_DestroyMutex(streamed_lock_);
+    streamed_lock_ = NULL;
 
     for(int i=0; i<NUM_CHANNELS;++i) {
         Mix_HaltChannel(i);
@@ -262,9 +296,6 @@ void SoundEngine::destroy() {
             gosAudio::destroyAudio(*it);
     }
     audioList_.clear();
-
-    SDL_CloseAudioDevice(audio_device);
-    audio_device = 0;
 
     Mix_CloseAudio();
     Mix_Quit();
@@ -385,6 +416,17 @@ void __stdcall gosAudio_CreateResource( HGOSAUDIO* hgosaudio, enum gosAudio_Reso
 
         from_file = true;
 
+#ifdef __ANDROID__
+        // SDL on Android looks for a relative path in the internal folder and
+        // the APK's assets, not the current directory (android_prepare)
+        std::string android_path;
+        const char* android_dir = SDL_AndroidGetExternalStoragePath();
+        if(android_dir && file_name[0] != '/') {
+            android_path = std::string(android_dir) + "/" + file_name;
+            file_name = android_path.c_str();
+        }
+#endif
+
 #ifndef USE_MIX_LOAD
         SDL_AudioSpec spec;
         SDL_AudioSpec* pspec;
@@ -410,7 +452,9 @@ void __stdcall gosAudio_CreateResource( HGOSAUDIO* hgosaudio, enum gosAudio_Reso
 #else
         chunk = Mix_LoadWAV(file_name);
         if(NULL == chunk) {
-            SPEW(("AUDIO", "gosAudio_CreateResource: Failed to load %s, %s\n", file_name, Mix_GetError()));
+            // PAUSE, not SPEW, which a release build compiles out: silent music
+            // and voices have to show up in the log
+            PAUSE(("gosAudio_CreateResource: Failed to load %s, %s\n", file_name, Mix_GetError()));
             *hgosaudio = NULL;
             return;
         }

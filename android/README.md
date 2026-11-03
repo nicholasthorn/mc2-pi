@@ -29,7 +29,8 @@ How it differs from the desktop build:
   `libSDL2.so` and `libSDL2_mixer.so` and calls `SDL_main`.
 - At start (`android_prepare` in `GameOS/gameos/gameosmain.cpp`) the game
   changes to the app's files folder, sets `HOME` there, reads its command line
-  from `mc2args.txt` and writes stdout and stderr to `mc2.log`.
+  from `mc2args.txt` and writes stdout and stderr to `mc2.log`, keeping the
+  run before as `mc2.previous.log`. Outside a bench, a crash adds `CRASH:` lines.
 - `libmc2res_64.so` is loaded by name from the APK, not from the data folder.
 
 ## On the headset

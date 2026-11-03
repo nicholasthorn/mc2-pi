@@ -83,6 +83,13 @@ static void show_error_box(const char* text)
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "MechCommander 2", message, window);
 }
 
+// gos_logfile.cpp: gets the log file's last lines to the terminal
+static void (*g_log_flush)() = NULL;
+void gos_SetLogFlush(void (*flush)())
+{
+    g_log_flush = flush;
+}
+
 // _Exit, not exit: static destructors over a broken engine can crash and hide
 // the message. SDL_Quit first, after the message is out, so a fullscreen or
 // KMSDRM (Pi console) display mode is put back; it also tears down video
@@ -92,6 +99,8 @@ static void show_error_box(const char* text)
     fprintf(stderr, "STOP: exiting (%s)\n", reason);
     fflush(stdout);
     fflush(stderr);
+    if (g_log_flush)
+        g_log_flush();
     show_error_box(text);
     SDL_Quit();
     _Exit(EXIT_FAILURE);

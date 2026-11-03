@@ -718,8 +718,10 @@ void MechLabScreen::updateDiagramInput()
 		}			
 		else if ( userInput->isLeftDrag() )
 		{
+			// where the press was: by the time this counts as a drag the cursor
+			// can be out of the cell (in VR it moves in a jump, off the click hold)
 			long i, j;
-			getMouseDiagramCoords( i, j );
+			getMouseDiagramCoords( (long)userInput->getMouseDragX(), (long)userInput->getMouseDragY(), i, j );
 
 			if ( i != -1 && j != -1 )
 			{
@@ -736,7 +738,11 @@ void MechLabScreen::updateDiagramInput()
 						updateDiagram();
 					}
 					else
+					{
 						soundSystem->playDigitalSample( LOG_WRONGBUTTON );
+						// once: the press point stays on it for as long as the button is held
+						pSelectedComponent = 0;
+					}
 				}
 				else
 					pSelectedComponent = 0;
