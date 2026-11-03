@@ -142,6 +142,10 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
 {
     static const char* dummy_string_res = "missing string res";
     gosASSERT(handle);
+    // Id 0 is no text: layouts give it to labels the game fills in at run time
+    // (LoadString finds nothing for it). The table only has a placeholder there.
+    if(id == 0)
+        return "";
     gos_StringRes* pstrres = (gos_StringRes*)(handle);
     const char* str = pstrres->getStringByIdFptr(id);
     if(NULL == str)

@@ -142,6 +142,26 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       out of the game camera's view still works. Rotated ones were checked on
       the desktop only, with rays from the game camera.
 
+## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
+
+Checked on the flat desktop on GL and GLES, and with `MC2_VR_PATHS=1` (the VR
+mesh paths on a flat window, which reproduced the solid mech); not on a headset.
+Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in.
+
+- [ ] **Mech view, Omnitech data:** mech bay, mech purchase and pilot ready (click
+      a force slot with no pilot) show the mech textured, not a solid colour, and
+      inside its frame, turning in place. The mech lab's component view too.
+- [ ] **Mech view, stock data:** the same screens. The solid mech came from the VR
+      path, not from Omnitech's data, so stock had it too.
+- [ ] **Labels, Omnitech data:** no `undefined_string_sebi` on the mech bay, mech
+      lab or pilot ready.
+- [ ] **Pilot ready, Omnitech data:** the mission's map where the white box was,
+      and the mech view fully covering the map and the pilot's panel when a slot
+      with no pilot is clicked; click a pilot and the map is back.
+- [ ] **A mission still looks right** after the menus: mechs textured and head
+      tracked, as the world's meshes stay on the GPU path. In a mission, the
+      gameplay options' mech preview is textured and in its frame too, and the
+      world is unharmed on going back: no walk opens that tab in a mission.
 ## Quest playtest fixes (`quest-playtest-fixes`)
 
 - [ ] **Video sound on the Quest:** a briefing video with its own sound

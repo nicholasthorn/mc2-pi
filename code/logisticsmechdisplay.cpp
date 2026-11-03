@@ -113,7 +113,7 @@ void LogisticsMechDisplay::setMech( LogisticsMech* pMech, bool bFromLB )
 			pCurMech = pMech;
 			if ( pCurMech )
 			{
-				textObjects[0].setText( pCurMech->getChassisName() );
+				textObjects[0].setText( pCurMech->getChassisNameText() );
 				textObjects[1].setText( pCurMech->getName() );
 
 				char text[64];

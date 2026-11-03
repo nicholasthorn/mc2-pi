@@ -238,6 +238,7 @@ class Camera
 		float					eyeOffset;				//-stereo: this eye's sideways offset, applied last in setCameraOrigin
 		float					eyeParallax;			//-stereo: overlay x shift per unit of screen w for this eye (renderWorld)
 		const gosVREyeView*		vrEye;					//VR: the head-tracked eye being drawn (renderWorld), or NULL
+		bool					toInterface;			//see drawsToInterface
 		Stuff::Matrix4D			gameClipToWorld;		//VR: the game camera's clipToWorld, kept for the eyes (overlayToEye)
 		Stuff::Matrix4D			gameToEyeClip;			//VR: game camera clip space to the eye's (overlayToEye)
 		float					gameClipX, gameClipY;	//VR: the game camera's cameraToClip scale on x and y (overlayToEye)
@@ -316,6 +317,7 @@ class Camera
 			cameraShiftZ = goalPositionZ = 0.0f;
 			eyeOffset = eyeParallax = 0.0f;
 			vrEye = NULL;
+			toInterface = false;
 			gameClipX = gameClipY = 1.0f;
 			vrFollowsHead = false;
 			vrHead[0] = vrHead[1] = vrHead[2] = 0.0f;
@@ -548,6 +550,12 @@ class Camera
 		bool hidesOverlays (void)
 		{
 			return vrEye != NULL;
+		}
+
+		//Draws one object into the interface (SimpleCamera), not the world.
+		bool drawsToInterface (void)
+		{
+			return toInterface;
 		}
 
 		//VR: where an overlay point lands in the head-tracked eye being drawn.

@@ -383,7 +383,7 @@ void Mechlopedia::MechScreen::begin()
 		for (int i = 0; i < count; i++ )
 		{
 			MechlopediaListItem* pEntry = new MechlopediaListItem();
-			pEntry->setText( pChassis[i]->getChassisName() );
+			pEntry->setText( pChassis[i]->getChassisNameText() );
 			pEntry->resize( groupListBox->width() - groupListBox->getScrollBarWidth() - 18,
 				pEntry->height() );
 			groupListBox->AddItem( pEntry );
@@ -558,9 +558,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 
 	camera.setMech( pChassis->getFileName(), prefs.baseColor, prefs.highlightColor, prefs.highlightColor );
 
-	char name[256];
-	cLoadString( pChassis->getChassisName(), name, 255 );
-	EString upper = name;
+	EString upper = pChassis->getChassisNameText();
 	upper.MakeUpper();
 	textObjects[0].setText( upper  );
 

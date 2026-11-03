@@ -42,6 +42,7 @@ SimpleCamera::SimpleCamera()
 	rotateLightRight(90.0f);
 
 	bIsInMission = false;
+	toInterface = true;
 
     bContextNotSet = true;
 

@@ -58,6 +58,16 @@ int LogisticsChassis::init( CSVFile* file, int chassisID )
 
 	result = file->readLong( 5, 2, chassisNameID );
 	gosASSERT( result == NO_ERR );
+
+	// Omnitech's string table has placeholders ("undefined") for many of its
+	// mechs: it names them from the data file
+	char nameText[256];
+	cLoadString( chassisNameID, nameText, 256 );
+	if ( ( !nameText[0] || 0 == S_strnicmp( nameText, "undefined", 9 ) )
+		&& NO_ERR == file->readString( 3, 2, buffer, 256 ) )
+		chassisNameText = buffer;
+	else
+		chassisNameText = nameText;
 	
 	result = file->readFloat(  3, 5, maxWeight );
 	gosASSERT( result == NO_ERR );
