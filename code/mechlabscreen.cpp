@@ -279,6 +279,7 @@ void MechLabScreen::begin()
 		int maxCount = 0;
 		LogisticsVariant** pVar = NULL;
 		int addedCount = 0;
+		bool bOwnListed = false;
 
 		LogisticsData::instance->getChassisVariants( pVariant->getChassis(),pVar, maxCount );
 		if ( maxCount )
@@ -301,6 +302,7 @@ void MechLabScreen::begin()
 					{
 						variantList.SelectItem( addedCount );
 						variantList.EditBox().setEntry( pVar[i]->getName() );
+						bOwnListed = true;
 					}
 
 					addedCount++;
@@ -308,10 +310,10 @@ void MechLabScreen::begin()
 			}
 
 		}
-		if ( !addedCount ) // this is a mech we don't have access to yet
+		if ( !bOwnListed ) // this is a mech we don't have access to yet
 		{
 			variantList.AddItem( pVariant->getName(), rects[1].getColor() );
-			variantList.SelectItem( 0 );
+			variantList.SelectItem( addedCount );
 			variantList.EditBox().setEntry(pVariant->getName() );
 
 		}
@@ -415,6 +417,7 @@ void MechLabScreen::update()
 			{
 				LogisticsData::instance->acceptMechModifications( pCurDialog->getFileName() );
 				pCurDialog->end();
+				pVariant = NULL;
 				status = UP;
 				bSaveDlg = 0;
 			}
@@ -1098,6 +1101,7 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 					if ( pCurVar && *pCurVar == *pVariant )
 					{
 						LogisticsData::instance->acceptMechModificationsUseOldVariant( pCurVar->getName() );
+						pVariant = NULL;	// freed: the slide out still draws this screen
 						status = UP;
 					}
 					else

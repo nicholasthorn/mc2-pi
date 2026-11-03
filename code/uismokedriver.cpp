@@ -49,6 +49,7 @@ bool g_over = false;
 long g_frames = 0;
 std::chrono::steady_clock::time_point g_last;	// previous update()
 UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
+bool g_labAccept = false;	// mechlab+accept: leave the mech lab by Accept
 
 void finish(const char* line, bool failed)
 {
@@ -136,15 +137,51 @@ const char* UiSmokeDriver::pickCampaign(const char* fileName)
 	if (!dialog)
 		return "screen is gone";
 	aListBox& list = dialog->gameListBox;
+	long found = -1;
+	for (long i = 0; i < list.GetItemCount() && found < 0; i++)
+		if (0 == S_stricmp(((aLocalizedListItem*)list.GetItem(i))->getHiddenText(), fileName))
+			found = i;
+	if (found < 0)
+		return "no such campaign in the list";
+	const char* displayName = ((aLocalizedListItem*)list.GetItem(found))->getText();
+	// OK looks the campaign up by the name in the box, first match: the walk
+	// would run another campaign and pass
+	for (long i = 0; i < found; i++)
+		if (0 == S_stricmp(((aLocalizedListItem*)list.GetItem(i))->getText(), displayName))
+			return "an earlier campaign in the list has the same display name";
+	list.SelectItem(found);
+	dialog->edits[0].setEntry(displayName);
+	return NULL;
+}
+
+// Picks a variant in the mech lab's list, as a click would: its update() swaps
+// to whatever the box names. other: any other than the one shown, if there is
+// one; else the mech's own (pVariant keeps its name through a swap).
+const char* UiSmokeDriver::pickVariant(LogisticsScreen* screen, bool other)
+{
+	MechLabScreen* lab = dynamic_cast<MechLabScreen*>(screen);
+	if (!lab || !lab->pVariant)
+		return "screen is gone";
+	EString shown;
+	lab->variantList.EditBox().getEntry(shown);
+	aListBox& list = lab->variantList.ListBox();
 	for (long i = 0; i < list.GetItemCount(); i++) {
-		aLocalizedListItem* item = (aLocalizedListItem*)list.GetItem(i);
-		if (0 == S_stricmp(item->getHiddenText(), fileName)) {
+		const char* name = ((aTextListItem*)list.GetItem(i))->getText();
+		const bool match = other ? 0 != shown.Compare(name)
+				: 0 == lab->pVariant->getName().Compare(name);
+		if (match) {
 			list.SelectItem(i);
-			dialog->edits[0].setEntry(item->getText());
+			lab->variantList.EditBox().setEntry(name);
 			return NULL;
 		}
 	}
-	return "no such campaign in the list";
+	if (!other)
+		return "the mech's own variant is not listed";
+	// not a failure: early in a campaign few components are available, and the
+	// list holds only variants made of those
+	printf("[UISMOKE] mechlab+swap: no other variant listed\n");
+	fflush(stdout);
+	return NULL;
 }
 
 UiScreen UiSmokeDriver::currentScreen()
@@ -288,6 +325,11 @@ const char* UiSmokeDriver::press(UiAction action)
 	case UiAction::Next:
 		return pressButton(screen, MB_MSG_NEXT);
 	case UiAction::Previous:
+		// the mech lab's Accept and Cancel lead to the same screen
+		if (g_labAccept && dynamic_cast<MechLabScreen*>(screen)) {
+			g_labAccept = false;
+			return pressButton(screen, MB_MSG_NEXT);
+		}
 		return pressButton(screen, MB_MSG_PREV);
 	case UiAction::ChangeLoadout:
 		return pressButton(screen, MB_MSG_CHANGE_LOADOUT);
@@ -439,6 +481,13 @@ const char* UiSmokeDriver::press(UiAction action)
 			return "campaign+pick needs MC2_UISMOKE_CAMPAIGN (a campaign's file name)";
 		return pickCampaign(name);
 	}
+	case UiAction::SwapVariant:
+		return pickVariant(screen, true);
+	case UiAction::OwnVariant:
+		return pickVariant(screen, false);
+	case UiAction::LabAccept:
+		g_labAccept = true;
+		return NULL;
 	case UiAction::None:
 		break;
 	}

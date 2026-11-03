@@ -88,7 +88,10 @@ enum class UiAction {
 	NameSave,			// save+name: type the walk's save name ("uismoke")
 	PickSave,			// load+pick: pick the walk's save from the list
 	PickTutorial,		// campaign+tutorial: pick the tutorial instead of the campaign
-	PickCampaign		// campaign+pick: pick the campaign MC2_UISMOKE_CAMPAIGN names
+	PickCampaign,		// campaign+pick: pick the campaign MC2_UISMOKE_CAMPAIGN names
+	SwapVariant,		// mechlab+swap: pick another variant in the variant list
+	OwnVariant,			// mechlab+own: pick the mech's own variant again
+	LabAccept			// mechlab+accept: leave by Accept, not Cancel, at the next step
 };
 
 const char* uiScreenName(UiScreen s);
@@ -115,7 +118,8 @@ public:
 	// "mainmenu,options-graphics,mainmenu,...": comma separated screen names,
 	// each optionally followed by "+<action>" ("mechpurchase+buy"). The first
 	// must be mainmenu (where the game starts), each pair of neighbouring
-	// screens must have a route, and each action must belong to its screen.
+	// screens must have a route (or be one screen, the second with an action:
+	// "mechlab+swap,mechlab+own"), and each action must belong to its screen.
 	// On failure returns false with the reason in err.
 	bool parse(const char* text, char* err, size_t errSize);
 

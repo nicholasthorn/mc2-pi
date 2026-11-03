@@ -29,6 +29,7 @@ private:
 	static OptionsXScreen* optionsScreen (MainMenu* menu);
 	static UiScreen optionsTab (OptionsXScreen* options);
 	static const char* pickCampaign (const char* fileName);
+	static const char* pickVariant (LogisticsScreen* screen, bool other);
 	static UiScreen currentScreen ();
 	static const char* press (UiAction action);
 };
