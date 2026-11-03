@@ -160,6 +160,11 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## Releases (`RELEASES.md`)
 
+- [ ] **Player log on Windows and the Quest** (`log-file`): double-click
+      `mc2.exe`: `mc2.log` appears in the game folder (or the config folder if
+      `HOME` is set), the console still shows the output, and a second start
+      keeps `mc2.previous.log`. A crash on either adds `CRASH:` lines to the
+      log. Linux was checked under Xvfb only.
 - [ ] **A package on a clean machine** (phase 1 exit): unpack the Linux x64
       package on a machine that has never built the game, install the apt
       line from `INSTALL.md`, build the data with `./build_gamedata.sh`,
