@@ -8,6 +8,7 @@
 
 #include <SDL2/SDL.h>
 #include "gos_input.h"
+#include "gos_logfile.h"
 
 #include "utils/camera.h"
 #include "utils/shader_builder.h"
@@ -414,6 +415,7 @@ static void android_prepare(int& argc, char**& argv)
     const char* dir = SDL_AndroidGetExternalStoragePath();
     if(dir && chdir(dir) == 0)
         setenv("HOME", dir, 1);
+    gos_LogFileKeepPrevious();
     if(freopen("mc2.log", "w", stdout)) {
         dup2(fileno(stdout), fileno(stderr));
         setvbuf(stdout, NULL, _IOLBF, 0);
@@ -498,6 +500,16 @@ int main(int argc, char** argv)
         if(0 == strcmp(argv[i], "-stereo"))
             gos_SetStereoSeparation((float)atof(argv[i+1]));
     }
+    // a player's run keeps a log file and records a crash; an automated run's
+    // output is read from the terminal by the script that started it
+    const bool automated = bench_csv != NULL || autoexit_frames > 0 || g_uismoke_walk != NULL;
+    if(!automated) {
+#ifndef __ANDROID__
+        gos_LogFileStart();
+#endif
+        gos_LogFileHeader();
+        gos_LogFileCatchCrashes();
+    }
     // -deterministic: -bench's fixed step and seed without its CSV, so two
     // -autoexit runs of a mission end in the same state (scripts/smoke.sh
     // --deterministic compares the [STATEHASH] lines). Takes no value, so it is
@@ -512,7 +524,7 @@ int main(int argc, char** argv)
     g_bench = bench_csv != NULL;
     g_fixed_step = g_bench || deterministic;
     gos_SetFixedFrameLength(g_fixed_step ? BENCH_FRAME_LENGTH : 0.0f);
-    gos_SetAutomatedRun(g_bench || autoexit_frames > 0 || g_uismoke_walk != NULL);
+    gos_SetAutomatedRun(automated);
     if(bench_fov < 0.0f || bench_fov >= 170.0f) {
         // tan(fov / 2) in the projection breaks down towards 180
         fprintf(stderr, "-benchfov %g: must be between 0 (off) and 170 degrees\n", bench_fov);

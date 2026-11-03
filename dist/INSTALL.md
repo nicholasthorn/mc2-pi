@@ -70,6 +70,14 @@ To jump straight into a mission: `./mc2 -mission mc2_01`.
 
 ## When something goes wrong
 
+Each run writes everything it prints to `mc2.log`, and keeps the run before as
+`mc2.previous.log`. They are in `~/.config/.mechcommander2/` (or
+`$XDG_CONFIG_HOME/.mechcommander2/`); on Windows, usually in the game's own
+folder. The first line printed names the file. A crash adds `CRASH:` lines to
+the end. Please attach `mc2.log` to any report, and make the copy before
+starting the game twice more, since only the last two runs are kept. A run
+stops logging at 64 MB, and the terminal stops with it.
+
 - A box saying `STOP` with a message means the game hit an error it cannot
   carry on from. The same text is printed to the terminal. Please report it,
   with that text, at https://github.com/nicholasthorn/mc2-pi/issues.
