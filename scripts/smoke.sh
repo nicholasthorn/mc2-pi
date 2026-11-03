@@ -21,7 +21,9 @@
 #   --ui "..."        front-end walks to run, space separated; each is a
 #                     comma-separated list of screens for -uismoke, each
 #                     optionally "<screen>+<action>" (names in
-#                     code/uismokewalk.cpp). "" skips them. Default: the three
+#                     code/uismokewalk.cpp; "campaign+pick" picks the campaign
+#                     named in MC2_UISMOKE_CAMPAIGN, see walk_campaigns.sh).
+#                     "" skips them. Default: the three
 #                     walks below (walk 1 for MechCommander Omnitech data
 #                     when the game dir has it)
 #   --timeout S       seconds before a run counts as hung (default: 300)
@@ -46,8 +48,9 @@ set -u
 #    load that save. Launch mc2_02 and win it too: salvage, a pilot
 #    promotion (pick a skill), pilot review, back to mission selection.
 # 2: a single mission (mc2_02), which starts with no mechs: buy one, put it
-#    in the force, open the mech lab (Cancel), back to the briefing, give
-#    the mech a pilot and launch.
+#    in the force, open the mech lab (Cancel; then again, swap to another
+#    variant and back, Accept), back to the briefing, give the mech a pilot
+#    and launch.
 # 3: the tutorial, from the new campaign dialog: its five missions launch
 #    from mission selection (no logistics, no results); win the first four,
 #    launch the fifth (winning it would end the campaign: the final video,
@@ -70,7 +73,8 @@ UI_OPTIONS_MCO="$UI_OPTIONS_MCO,mechpurchase+buy,mechbay+add,pilotready+pilot,mi
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,options-graphics,options-hotkeys,mission"
 UI_OPTIONS_MCO="$UI_OPTIONS_MCO,salvage,pilotreview,missionselection"
 UI_LOGISTICS="mainmenu,singlemission,briefing,mechbay,mechpurchase+buy,mechbay+add,mechlab"
-UI_LOGISTICS="$UI_LOGISTICS,mechbay,briefing,mechbay,pilotready+pilot,mission"
+UI_LOGISTICS="$UI_LOGISTICS,mechbay,mechlab+swap,mechlab+own,mechlab+accept,mechbay"
+UI_LOGISTICS="$UI_LOGISTICS,briefing,mechbay,pilotready+pilot,mission"
 UI_TUTORIAL="mainmenu,campaign+tutorial,missionselection"
 UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection"
 UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection,mission"

@@ -112,6 +112,12 @@ TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
 
 	CHECK(uiScreenAction(UiScreen::Save, "name", 4) == UiAction::NameSave);
 	CHECK(uiScreenAction(UiScreen::CampaignSelect, "tutorial", 8) == UiAction::PickTutorial);
+	CHECK(uiScreenAction(UiScreen::CampaignSelect, "pick", 4) == UiAction::PickCampaign);
+	CHECK(uiScreenAction(UiScreen::Load, "tutorial", 8) == UiAction::None);
+	CHECK(uiScreenAction(UiScreen::MechLab, "swap", 4) == UiAction::SwapVariant);
+	CHECK(uiScreenAction(UiScreen::MechLab, "own", 3) == UiAction::OwnVariant);
+	CHECK(uiScreenAction(UiScreen::MechLab, "accept", 6) == UiAction::LabAccept);
+	CHECK(uiScreenAction(UiScreen::MechBay, "accept", 6) == UiAction::None);
 	// the tutorials launch from mission selection
 	CHECK(uiRoute(UiScreen::MissionSelection, UiScreen::Mission) == UiAction::Next);
 	CHECK(uiScreenAction(UiScreen::Load, "pick", 4) == UiAction::PickSave);
@@ -164,6 +170,39 @@ TEST_CASE("parse reads screen+action steps") {
 	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,pilotreview+skill", r.err, sizeof(r.err)));
 	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,briefing", r.err, sizeof(r.err)));
 	CHECK(std::strstr(r.err, "no route from mission to briefing") != nullptr);
+}
+
+TEST_CASE("a screen can repeat for another in-screen action") {
+	Run r;
+	REQUIRE(r.walk.parse("mainmenu,singlemission,briefing,mechbay,mechlab+swap,mechlab+own,mechbay",
+			r.err, sizeof(r.err)));
+	CHECK(r.walk.numSteps() == 7);
+	// a repeat without an action is still no route
+	CHECK_FALSE(r.walk.parse("mainmenu,mainmenu", r.err, sizeof(r.err)));
+	CHECK(std::strstr(r.err, "no route from mainmenu to mainmenu") != nullptr);
+
+	REQUIRE(r.walk.parse("mainmenu,singlemission,briefing,mechbay,mechlab+swap,mechlab+own,mechbay",
+			r.err, sizeof(r.err)));
+	r.walk.holdFrames = 1;
+	const UiScreen before[] = { UiScreen::MainMenu, UiScreen::SingleMission, UiScreen::Briefing, UiScreen::MechBay };
+	for (UiScreen s : before) {
+		CHECK(r.walk.update(s, 0.1f).event == UiSmokeWalk::Event::Shown);
+		CHECK(r.walk.update(s, 0.1f).event == UiSmokeWalk::Event::Act);
+	}
+	const UiScreen lab = UiScreen::MechLab;
+	CHECK(r.walk.update(lab, 0.1f).event == UiSmokeWalk::Event::Shown);
+	UiSmokeWalk::Result act = r.walk.update(lab, 0.1f);
+	CHECK(act.event == UiSmokeWalk::Event::Act);
+	CHECK(act.action == UiAction::SwapVariant);
+	// no press between the two steps, then the second is shown and acts
+	CHECK(r.walk.update(lab, 0.1f).event == UiSmokeWalk::Event::Waiting);
+	CHECK(r.walk.update(lab, 0.1f).event == UiSmokeWalk::Event::Shown);
+	act = r.walk.update(lab, 0.1f);
+	CHECK(act.event == UiSmokeWalk::Event::Act);
+	CHECK(act.action == UiAction::OwnVariant);
+	act = r.walk.update(lab, 0.1f);
+	CHECK(act.event == UiSmokeWalk::Event::Act);
+	CHECK(act.action == UiAction::Previous);
 }
 
 TEST_CASE("an in-screen action is pressed after the hold, then held again") {
