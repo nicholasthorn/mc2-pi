@@ -957,9 +957,18 @@ const char*	LogisticsData::getBestPilot( long mechWeight )
 	{
 		if ( !pilots.Count() )
 			Fatal( 0, " LogisticsData.getBestPilot: no pilots in the roster " );
-		PILOT_LIST::EIterator first = pilots.Begin();
-		(*first).setUsed( true );
-		return (*first).getFileName();
+		// prefer a living, purchased pilot, even one already flying
+		PILOT_LIST::EIterator best = pilots.Begin();
+		for ( PILOT_LIST::EIterator iter = pilots.Begin(); !iter.IsDone(); iter++ )
+		{
+			if ( (*iter).isAvailable() )
+			{
+				best = iter;
+				break;
+			}
+		}
+		(*best).setUsed( true );
+		return (*best).getFileName();
 	}
 	
 	pPilots[0]->setUsed( true );
