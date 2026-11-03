@@ -324,6 +324,8 @@ SalvageListItem::~SalvageListItem()
 {
 	removeAllChildren( true );  // frees checkButton (it is a child)
 	checkButton = NULL;         // don't leave a dangling member behind
+	delete icon;                // not a child: the constructor news it
+	icon = NULL;
 }
 
 void	SalvageListItem::init( FitIniFile* file )

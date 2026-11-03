@@ -750,7 +750,9 @@ void aAnimButton::update( const aAnimation& animData )
 
 
 		moveToNoRecurse( newLeft, newTop );
-		resize( width() * scaleX, height() * scaleY );
+		// scaleX/Y are half the new size (see newLeft/newTop); this used to
+		// multiply them by the width and height again
+		resize( 2.f * scaleX, 2.f * scaleY );
 		aButton::render();
 		resize( oldWidth, oldHeight );
 		moveToNoRecurse( oldLeft, oldTop );
