@@ -184,8 +184,9 @@ cannot say why a click did nothing.
    `mechlab+accept` makes the next step leave by Accept rather than Cancel.
    A screen can repeat in a walk when the repeat has an action
    (`mechlab+swap,mechlab+own`). Default walk 2 does these; Accept with no
-   change was a use-after-free (the lab kept the variant it had just freed,
-   and drew it in the slide out).
+   change left the lab holding the variant it had just freed. The driver,
+   pressing from outside the screen's update, drew it in the slide out; a real
+   click ends the screen first, so no player route to the crash was found.
 4. **Built (2026-11-01):** out of a mission. `mission` leads to `salvage`,
    `pilotreview` or `promotion`: once the mission has been held, the driver
    sets `scenarioResult` to a big win, as `Mission::update`'s

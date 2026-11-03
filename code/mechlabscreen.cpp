@@ -1101,7 +1101,7 @@ int	MechLabScreen::handleMessage( unsigned long msg, unsigned long who)
 					if ( pCurVar && *pCurVar == *pVariant )
 					{
 						LogisticsData::instance->acceptMechModificationsUseOldVariant( pCurVar->getName() );
-						pVariant = NULL;	// freed: the slide out still draws this screen
+						pVariant = NULL;	// freed, as Cancel leaves it: nothing may read it now
 						status = UP;
 					}
 					else

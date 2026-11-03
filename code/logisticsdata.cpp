@@ -1489,11 +1489,13 @@ static bool omnitechData()
 // the file's list, or NULL for what is available now). MechCommander Omnitech
 // sells just one, whatever it holds: variant 0, or the one a "MechVariantN"
 // line names. Its campaigns count on that (Clan Wars' first mission sold
-// nothing by stock's rule, and could not be launched).
+// nothing by stock's rule, and could not be launched). A design the player
+// saved has an id of its own and is always on sale, or it would drop out of the
+// shop at the next mission.
 static bool variantOnSale( LogisticsVariant* pVariant, long wantedVariant, const bool* available )
 {
 	if ( omnitechData() )
-		return (long)( pVariant->getID() >> 16 ) == wantedVariant;
+		return !pVariant->isDesignerMech() || (long)( pVariant->getID() >> 16 ) == wantedVariant;
 
 	long componentCount = 255;
 	long componentArray[256];
