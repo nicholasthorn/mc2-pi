@@ -1,4 +1,4 @@
-﻿# Multiplayer: proposal
+# Multiplayer: proposal
 
 Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 nearly built: the
 wire format (`code/netwire.*`), the transport interface (`GameOS/gameos/gos_net.*`) and

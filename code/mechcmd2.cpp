@@ -1158,7 +1158,7 @@ void __stdcall InitializeGameEngine()
 					{
 						bool result = FastFileInit(fileName);
 						if (!result)
-							STOP(("Unable to startup fastfile %s.  Probably an old or corrupt one in the directory!!",fileName));
+							STOP(("Unable to startup fastfile %s.  It is missing, old or corrupt.",fileName));
 	
 						fileNum++;
 						sprintf(fastFileId,"File%d",fileNum);
