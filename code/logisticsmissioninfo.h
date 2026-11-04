@@ -103,7 +103,7 @@ class LogisticsMissionInfo
 		bool				mercChampionSelected() const;
 		bool				mercJump();
 		void				mercAddRepairBill( float damageFraction, long tons );
-		void				mercMissionDone();
+		void				mercMissionDone( bool hasMechs );
 
 		bool				canHaveSalavageCraft();
 		bool				canHaveRepairTruck();

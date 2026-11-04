@@ -1433,7 +1433,7 @@ void	LogisticsData::setMissionCompleted( )
 		}
 	}
 
-	missionInfo->mercMissionDone();
+	missionInfo->mercMissionDone( inventory.Count() > 0 );
 #endif
 }
 

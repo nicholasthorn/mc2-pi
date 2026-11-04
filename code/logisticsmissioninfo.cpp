@@ -362,7 +362,7 @@ void LogisticsMissionInfo::mercAddRepairBill( float damageFraction, long tons )
 		merc->lastRepairs += mercRepairBill( damageFraction, tons );
 }
 
-void LogisticsMissionInfo::mercMissionDone()
+void LogisticsMissionInfo::mercMissionDone( bool hasMechs )
 {
 	if ( !merc )
 		return;
@@ -372,8 +372,7 @@ void LogisticsMissionInfo::mercMissionDone()
 		mercChampionBeaten( merc->state, merc->world() );
 	merc->state.contractsDone++;
 	merc->lastPay = CBills - mercCBillsBefore;
-	// the guild carries a company it would otherwise ground
-	CBills = CBills > merc->lastRepairs ? CBills - merc->lastRepairs : 0;
+	CBills = mercCBillsAfterJob( CBills, merc->lastRepairs, hasMechs );
 	mercRebuildBoard();
 	merc->lastRepairs = 0;
 	// what a smoke run checks

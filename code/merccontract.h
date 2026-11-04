@@ -69,6 +69,11 @@ std::string mercContractMap(const std::string& name);
 // the cost of a mech that came home with this fraction of its armour gone
 long mercRepairBill(float damageFraction, long tons);
 
+// the guild's stake for a company with no mechs: enough to buy one
+const long MERC_GROUNDED_STAKE = 100000;
+// C-Bills once the repairs are paid: never debt, and never stuck with no way to fight
+long mercCBillsAfterJob(long cBills, long repairs, bool hasMechs);
+
 // The text of a mission file for the contract: the terrain settings and player
 // units of the stock mission, with its enemies, objectives and script replaced.
 // Enemies start at the spot farthest from the player that the mission used,

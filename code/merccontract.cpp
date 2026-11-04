@@ -296,6 +296,12 @@ long mercRepairBill(float damageFraction, long tons)
 	return static_cast<long>(damage * static_cast<float>(tons) * 200.0f);
 }
 
+long mercCBillsAfterJob(long cBills, long repairs, bool hasMechs)
+{
+	const long left = std::max(0L, cBills - repairs);
+	return hasMechs ? left : std::max(left, MERC_GROUNDED_STAKE);
+}
+
 std::string mercBuildContractFit(const std::string& sourceFit, const MercContract& contract)
 {
 	std::string source = sourceFit;

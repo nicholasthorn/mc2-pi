@@ -204,6 +204,15 @@ TEST_SUITE("Merc")
 		CHECK(mercRepairBill(2.0f, 50) == mercRepairBill(1.0f, 50));
 	}
 
+	TEST_CASE("repairs never ground a company: no debt, and a stake for one with no mechs")
+	{
+		CHECK(mercCBillsAfterJob(50000, 10000, true) == 40000);
+		CHECK(mercCBillsAfterJob(5000, 10000, true) == 0);
+		// no mechs left, and not enough to buy one
+		CHECK(mercCBillsAfterJob(5000, 10000, false) == MERC_GROUNDED_STAKE);
+		CHECK(mercCBillsAfterJob(MERC_GROUNDED_STAKE + 500, 0, false) == MERC_GROUNDED_STAKE + 500);
+	}
+
 	TEST_CASE("building a contract keeps the terrain and player, replaces the rest")
 	{
 		const MercContract c = testContract();
