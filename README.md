@@ -19,7 +19,8 @@ Touch controllers.
 | ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | ![Mechs standing among temple-like buildings and banners in mission 22](media/town.jpg) |
 | *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | *A quieter moment: mechs among the buildings of mission 22* |
 
-Scripted battles from the desktop build (`scripts/bench.sh --scenario`). The
+Scripted battles from the desktop build at 1920x1080
+(`scripts/bench.sh --scenario`). The
 game data, and Omnitech's, are not in this repository.
 
 The main branch is called `pi-port` and the repository `mc2-pi` for
@@ -163,6 +164,8 @@ Conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md) and
 
 - No networking: the multiplayer screens are stubs (the menu button is disabled).
 - Sound: no doppler (stereo panning works).
+- The in-mission HUD is a fixed number of pixels, so it is centred but small on
+  1440p and 4K screens.
 - WSLg's GPU driver shows a white screen with desktop GL; use
   `LIBGL_ALWAYS_SOFTWARE=1`.
 

@@ -30,6 +30,7 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"objective.h"
 #include"mission.h"
 #include"infowindow.h"
+#include"hud_layout.h"
 
 #include"txmmgr.h"
 
@@ -52,6 +53,9 @@ ButtonData* ControlGui::vehicleData = NULL;
 
 long ControlGui::hiResOffsetX = 0;
 long ControlGui::hiResOffsetY = 0;
+// the pilot video window stays on the screen's right edge, wherever the HUD is
+static long videoOffsetX = 0;
+static long videoStaticShift = 0;
 
 long ControlGui::OBJECTIVESTOP= 0;
 long ControlGui::OBJECTIVESLEFT= 0;
@@ -2493,16 +2497,17 @@ void ControlGui::initStatics( FitIniFile& file )
 	file.readIdLong( "right", 	videoRect.right );
 	file.readIdLong( "top", 	videoRect.top );
 	file.readIdLong( "bottom", 	videoRect.bottom );
-	videoRect.left += hiResOffsetX;
-	videoRect.right += hiResOffsetX;
+	videoRect.left += videoOffsetX;
+	videoRect.right += videoOffsetX;
 
 	file.seekBlock( "VideoTextBox" );
 	file.readIdLong( "left", 	videoTextRect.left );
 	file.readIdLong( "right", 	videoTextRect.right );
 	file.readIdLong( "top", 	videoTextRect.top );
 	file.readIdLong( "bottom", 	videoTextRect.bottom );
-	videoTextRect.left += hiResOffsetX;
-	videoTextRect.right += hiResOffsetX;
+	// absolute in the file, like the frame around the video
+	videoTextRect.left += videoStaticShift;
+	videoTextRect.right += videoStaticShift;
 
 
 	if ( videoInfoCount )
@@ -2511,7 +2516,7 @@ void ControlGui::initStatics( FitIniFile& file )
 		for ( i = 0; i < videoInfoCount; i++ )
 		{
 			sprintf( blockName, "VideoStatic%d", i );
-			videoInfos[i].init( file, blockName );
+			videoInfos[i].init( file, blockName, videoStaticShift );
 		}
 	}
 
@@ -2543,7 +2548,7 @@ void ControlGui::initStatics( FitIniFile& file )
 		for ( i = 0; i < missionStatusInfoCount; i++ )
 		{
 			sprintf( blockName, "ResultsStatic%d", i );
-			missionStatusInfos[i].init( file, blockName );
+			missionStatusInfos[i].init( file, blockName, videoStaticShift / 2 );
 
 		}
 	}
@@ -2554,6 +2559,9 @@ void ControlGui::initStatics( FitIniFile& file )
 	file.readIdLong( "top", missionStatusRect.rect.top );	
 	file.readIdLong( "bottom", missionStatusRect.rect.bottom );	
 	file.readIdLong( "ResultsTextColor", missionStatusRect.color );	
+	// centred on the layout's width, which may be narrower than the screen
+	missionStatusRect.rect.left += videoStaticShift / 2;
+	missionStatusRect.rect.right += videoStaticShift / 2;
 
 	file.seekBlock( "ChatPlayerNameRect" );
 	long left, top, width, height;
@@ -2640,35 +2648,23 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 {
 	FitIniFile buttonFile;
 	char path[256];
-	strcpy( path, artPath );
-	
-	char fileName[32];
 
-    int y_correction = 0;
-    int x_correction = 0;
-
-	if ( resolutionX == 1920) {
-		strcpy( fileName, "buttonlayout1920.fit" );
-    } else if ( resolutionX == 1600) {
-		strcpy( fileName, "buttonlayout1600.fit" ); 
-    } else if ( resolutionX == 1280) {
-		strcpy( fileName, "buttonlayout1280.fit" ); 
-    } else if ( resolutionX == 1024) {
-		strcpy( fileName, "buttonlayout1024.fit" ); 
-    } else if ( resolutionX == 800 ) {
-		strcpy( fileName, "buttonlayout800.fit" );
-    } else if ( resolutionX == 640 ) {
-		strcpy( fileName, "buttonlayout640.fit" );
-    } else {
-		strcpy( fileName, "buttonlayout1920.fit" );
-    }
-	
-	strcat( path, fileName );
-	if ( NO_ERR != buttonFile.open( path ) )
+	// a mod need not have every layout: Omnitech has no 1920
+	int layoutWidth = hudLayoutWidth( resolutionX );
+	for ( ;; )
 	{
-		char error[256];
-		sprintf( error, "couldn't find the file %s", path );
-		Assert( 0, 0, error );
+		snprintf( path, sizeof( path ), "%sbuttonlayout%d.fit", artPath, layoutWidth );
+		if ( NO_ERR == buttonFile.open( path ) )
+			break;
+		const int smaller = hudLayoutWidth( layoutWidth - 1 );
+		if ( smaller == layoutWidth )
+		{
+			char error[256];
+			sprintf( error, "couldn't find the file %s", path );
+			Assert( 0, 0, error );
+			break;
+		}
+		layoutWidth = smaller;
 	}
 
 	//------------------------------------
@@ -2689,25 +2685,12 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 		hiResOffsetX = hiResOffsetY = 0;
 	}
 
-	if ( resolutionX == 1920) {
-        y_correction = resolutionY - (768 + hiResOffsetY);
-    } else if ( resolutionX == 1600) {
-        y_correction = resolutionY - (768 + hiResOffsetY);
-    } else if ( resolutionX == 1280) {
-        y_correction = resolutionY - (768 + hiResOffsetY);
-    } else if ( resolutionX == 1024) {
-        y_correction = resolutionY - (768 + hiResOffsetY);
-    } else if ( resolutionX == 800 ) {
-        y_correction = resolutionY - (600 + hiResOffsetY);
-    } else if ( resolutionX == 640 ) {
-        y_correction = resolutionY - (480 + hiResOffsetY);
-    } else {
-        y_correction = resolutionY - (768 + hiResOffsetY);
-    }
-	
-    // add corrections
-	hiResOffsetY += y_correction;
-	hiResOffsetX += x_correction;
+	// the file's own offset is what its video window coordinates assume
+	videoStaticShift = hudRightEdgeShift( resolutionX, layoutWidth );
+	videoOffsetX = hiResOffsetX + videoStaticShift;
+
+	hiResOffsetY = resolutionY - hudBaseHeight( layoutWidth );
+	hiResOffsetX = hudOffsetX( resolutionX, layoutWidth, hiResOffsetX );
 		
 	infoWnd->init( buttonFile );
 
