@@ -15,6 +15,7 @@
 #ifndef WARRIOR_H
 #include"warrior.h"
 #endif
+#include"movesavebounds.h"
 
 #ifndef GAMEOBJ_H
 #include"gameobj.h"
@@ -8323,6 +8324,11 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 	mainGoalLocation = data.mainGoalLocation;
 	mainGoalControlRadius = data.mainGoalControlRadius;
 	lastGoalPathSize = data.lastGoalPathSize;
+	if (!savedCountValid(lastGoalPathSize,MAX_GLOBAL_PATH))
+	{
+		PAUSE(("Saved goal path of %d areas is out of range. Dropped",(int)lastGoalPathSize));
+		lastGoalPathSize = 0;
+	}
 	MemCpy(lastGoalPath,data.lastGoalPath);
 	
 	MemCpy(newTacOrderReceived, data.newTacOrderReceived);
@@ -8364,6 +8370,30 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 	willHelp = data.willHelp;
 	
 	data.moveOrders.copyTo(moveOrders);
+
+	// a bad save must not index past these arrays: drop the path, and the
+	// unit works out a new one, as pathType undefined always does
+	bool movePathsValid = savedStepsValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,MAX_GLOBAL_PATH) &&
+		savedStepsValid(moveOrders.numWayPts,moveOrders.curWayPt,MAX_WAYPTS);
+	for (long i = 0; i < 2; i++)
+	{
+		const MovePath* movePath = moveOrders.path[i];
+		movePathsValid = movePathsValid &&
+			savedCountValid(movePath->numSteps,MAX_STEPS_PER_MOVEPATH) &&
+			savedStepsValid(movePath->numStepsWhenNotPaused,movePath->curStep,MAX_STEPS_PER_MOVEPATH) &&
+			savedIndexValid(movePath->globalStep,MAX_GLOBAL_PATH);
+	}
+	if (!movePathsValid)
+	{
+		PAUSE(("Saved move orders of %s are out of range. Path dropped",name));
+		moveOrders.numGlobalSteps = 0;
+		moveOrders.curGlobalStep = 0;
+		moveOrders.numWayPts = 0;
+		moveOrders.curWayPt = 0;
+		moveOrders.pathType = MOVEPATH_UNDEFINED;
+		for (long i = 0; i < 2; i++)
+			moveOrders.path[i]->init();
+	}
 
 	attackOrders = data.attackOrders;
 	situationOrders = data.situationOrders;
