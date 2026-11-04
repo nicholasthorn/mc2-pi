@@ -50,6 +50,7 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Terrain blend caches** resized to the current size: check on screen.
       `.txm` cache names do not include their size and every mission shares
       them. (10-31)
+- [ ] **Units keep moving after a load** (`fix/saved-path-sizes`). Save mid-mission with units walking a long way, load it: they carry on to their goals, and the log has no line starting "Saved".
 - [ ] **Loading a saved game** through the size-checked pathing reader
       (`saveload.cpp` also exits on `badLoad`). (10-30)
 - [ ] **Faster save/load dialog** (#16): the campaign dialog lists saves
