@@ -262,10 +262,12 @@ long LogisticsPilot::update( MechWarrior* pWarrior )
 
 	missionsCompleted++;
 	long missionJustPlayed = LogisticsData::instance->getCurrentMissionId();
-	if ((missionJustPlayed < 0) || (missionJustPlayed > MAX_MISSIONS))
-		STOP(("Logistics thinks last mission played was %d",missionJustPlayed));
-
-	missionsPlayed[missionJustPlayed] = 1;
+	// ids run on through a campaign's groups, so a mod's can pass MAX_MISSIONS:
+	// the pilot just has no record of that mission
+	if ((missionJustPlayed < 0) || (missionJustPlayed >= MAX_MISSIONS))
+		PAUSE(("Logistics thinks last mission played was %d",(int)missionJustPlayed));
+	else
+		missionsPlayed[missionJustPlayed] = 1;
 
 	if ( pWarrior->getStatus() == WARRIOR_STATUS_DEAD )
 	{

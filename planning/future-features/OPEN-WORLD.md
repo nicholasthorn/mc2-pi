@@ -135,17 +135,17 @@ leave VRAM (`mclib/txmmgr.cpp:1766-1783`).
 What has to change first:
 
 1. **Allow the size.** 240 is not on the list in `mclib/terrain.cpp:299-305`.
-2. **`MAX_GLOBAL_PATH` is a memory-safety bug waiting for this.** It is 50, and
-   the check at `mclib/move.cpp:3829` is a `gosASSERT`, which compiles to nothing
-   in normal builds. A long route on a bigger map would write past the fixed
-   `globalPath` array (`code/warrior.h:454`). **Worth fixing anyway.**
+2. **`MAX_GLOBAL_PATH` is 50.** `GlobalMap::calcPath` now treats a longer route as
+   no route, so a bigger map cannot overrun the fixed `globalPath` array
+   (`code/warrior.h:454`), but its units would refuse long moves. Raising it
+   changes the saved `MechWarrior` data (`code/warrior.h:495,745`).
 3. **Collision grid.** It is 24x24 at radius 200, covering 4800 units and clamping
    anything outside to the edge (`code/collsn.cpp:258-280,417-420`).
 4. **Bounds checks** on the special building and control tables (`code/objmgr.h`).
 5. **Pilot history.** `MAX_MISSIONS` is 50 and it indexes a fixed array by mission
    ID (`code/logisticspilot.h:21`, `code/logisticspilot.cpp:265-268`), so a big
-   world cannot give each contract its own ID. The check also lets 50 through, one
-   past the end. Medals are hard-coded to stock mission numbers.
+   world cannot give each contract its own ID: an ID past the end is logged and not
+   recorded. Medals are hard-coded to stock mission numbers.
 6. **A map builder.** This is the real blocker. The move data is precomputed and
    nothing in this repo calls `MOVE_buildData`. `mc2-opengl-remastered/editor` has
    a Windows mission editor that reaches it, but whether it can produce this format
