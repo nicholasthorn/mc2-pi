@@ -3282,8 +3282,6 @@ long GroundVehicle::update (void)
 				appearance->update();
 				windowsVisible = turn;
 			}
-			else if (isNetHost())
-				appearance->update();	// gestures feed vehicle logic (refit, mines)
 			
 			if ( attackRange == FIRERANGE_CURRENT && !isDisabled() )
 			{
@@ -3335,8 +3333,6 @@ long GroundVehicle::update (void)
 					appearance->update();
 					windowsVisible = turn;
 				}
-				else if (isNetHost())
-					appearance->update();	// gestures feed vehicle logic (refit, mines)
 				
 				if ( attackRange == FIRERANGE_CURRENT && !isDisabled() )
 				{
@@ -3490,9 +3486,9 @@ long GroundVehicle::update (void)
 		velMag = velocityMag;
 
 
-	// A multiplayer host's view must not change the game. Not solved on a host: a
-	// unit that stops short of the map edge (setPosition) stays until the mission ends.
-	if (withdrawing && !inView && !isNetHost() && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
+	// inView is only ever set by now on a destroyed vehicle, and a multiplayer
+	// host's view must not change the game.
+	if (withdrawing && (!inView || isNetHost()) && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
 		getObjectType()->handleDestruction(this, NULL);
 
 	//We are a vehicle pilot.  Whack us when we are no longer in view.

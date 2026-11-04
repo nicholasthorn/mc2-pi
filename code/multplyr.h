@@ -1511,6 +1511,8 @@ class MultiPlayer : public MultiPlayerState {
 		// How many movers each commander brings, by the number of players.
 		static long moversPerCommander (long numPlayers) {
 			static const long movers[MAX_MC_PLAYERS] = {12, 12, 12, 9, 7, 6, 5, 4};
+			if (numPlayers > MAX_MC_PLAYERS)
+				numPlayers = MAX_MC_PLAYERS;
 			return(movers[(numPlayers < 1) ? 0 : numPlayers - 1]);	// getPlayers is still a stub: 0
 		}
 

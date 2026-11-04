@@ -1772,8 +1772,8 @@ void GameObjectManager::update (bool terrain, bool movers, bool other)
 			}
 		}
 		
-		// A multiplayer host's view must not change the game: buildings and
-		// turrets update wherever the camera is (trees are only for show).
+		// A multiplayer host's view must not change the game: buildings update
+		// wherever the camera is (trees are only for show).
 		const bool hostGame = isNetHost();
 		for (long terrainBlock = 0; terrainBlock < Terrain::numObjBlocks; terrainBlock++) 
 		{
