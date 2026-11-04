@@ -101,6 +101,7 @@ long renderer = 0;
 long FilterState = gos_FilterNone;
 bool quitGame = FALSE;
 bool justStartMission = FALSE;
+static long netHostPlayers = 0;		// -nethost <players>: multiplayer host, no network
 bool gamePaused = FALSE;
 bool hasGuardBand = false;
 bool canMultiTextureDetail = false;
@@ -187,6 +188,7 @@ char buildNumber[80];
 extern int TERRAIN_TXM_SIZE;
 int ObjectTextureSize = 128;
 
+extern unsigned int MultiPlayTeamId;
 extern unsigned int MultiPlayCommanderId;
 extern bool	useRealLOS;
 bool reloadBounds = false;
@@ -1687,13 +1689,29 @@ void __stdcall InitializeGameEngine()
 		{
 			logistics->setLogisticsState(log_STARTMISSIONFROMCMDLINE);
 			char commandersToLoad[MAX_MC_PLAYERS][3] = {{0, 0, 0}, {1, 1, 1}, {2, 0, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}, {6, 6, 6}, {7, 7, 7}};
-			mission->init(missionName, MISSION_LOAD_SP_QUICKSTART, 0, NULL, commandersToLoad, 2);
+			if (netHostPlayers > 0)
+			{
+				MPlayer = new MultiPlayer;
+				MPlayer->setup();
+				MPlayer->startLocalHost(netHostPlayers);
+				MultiPlayTeamId = 0;
+				MultiPlayCommanderId = 0;
+				// a team per commander, and only as many as there are players
+				for (long i = 0; i < MAX_MC_PLAYERS; i++)
+					for (long j = 0; j < 3; j++)
+						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
+				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(netHostPlayers));
+			}
+			else
+				mission->init(missionName, MISSION_LOAD_SP_QUICKSTART, 0, NULL, commandersToLoad, 2);
 			eye->activate();
 			eye->update();
 			mission->start();
 		}
 		else
 		{
+			if (netHostPlayers > 0)
+				PAUSE(("-nethost: ignored without -mission"));
 			int param = log_SPLASH;
 			if ( MPlayer && MPlayer->launchedFromLobby )
 				param = log_ZONE;
@@ -2542,6 +2560,17 @@ void ParseCommandLine(const char *command_line)
 				justStartMission = true;
 				viewObject = textToLong(argv[i]);
 				strcpy(missionName,"mis0101");
+			}
+		}
+		else if (S_stricmp(argv[i],"-nethost") == 0)
+		{
+			// Leave the next argument alone unless it is the number
+			if (((i + 1) < n_args) && isdigit((unsigned char)argv[i + 1][0]))
+				netHostPlayers = textToLong(argv[++i]);
+			if (netHostPlayers < 1 || netHostPlayers > MAX_MC_PLAYERS)
+			{
+				PAUSE(("-nethost: needs a number of players, 1 to %d", MAX_MC_PLAYERS));
+				netHostPlayers = 0;
 			}
 		}
 		else if (S_stricmp(argv[i],"-nodialog") == 0)

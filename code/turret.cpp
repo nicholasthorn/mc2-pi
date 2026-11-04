@@ -649,7 +649,7 @@ long Turret::update (void)
 		if ((ObjectManager->getByWatchID(parent)->getTeamId() != Team::home->getId()) && (turn > 5) && (getTeamId() != -1))
 			soundSystem->playBettySample(BETTY_BUILDING_RECAPTURED);
 
-		setTeamId(ObjectManager->getByWatchID(parent)->getTeam()->getId(),false);
+		setTeamId(ObjectManager->getByWatchID(parent)->getTeamId(),false);	// -1, no Team, if neutral
 	}
 
 	if ( parent && 
@@ -810,6 +810,8 @@ long Turret::update (void)
 		windowsVisible = turn;
 		didReveal = true;
 	}
+	else if (isNetHost())
+		appearance->update();	// canFire waits for the gesture, whatever the host looks at
 
 	//-------------------------------------
 	// Are we a spotlight?

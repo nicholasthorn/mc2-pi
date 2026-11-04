@@ -526,7 +526,7 @@ change, not as a bug fix.
 
 ## Known issues
 
-- Networking is stubbed (UI only). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
+- Networking is stubbed (UI only), except that `-nethost <players>` runs the host's side of the multiplayer code with no network and no clients (phase 0 of `future-features/NETWORKING.md`). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -537,6 +537,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: Multiplayer phase 0 (branch `mp-phase0`): `-nethost <players>` runs the host's side of the multiplayer code with no network and no clients; `smoke.sh --nethost`, `bench/nethost_m08.fit` (a battle with damage on). `mc2_m01` to `mc2_m10` and the battle clean under ASan + UBSan on desktop GL, single-player state hashes match `pi-port`. Fixed: mission ended on its first frame, full weapon fire queue was Fatal, turret with a neutral parent, `1 << -1` from the force group icons; a host's camera no longer decides withdrawals, building and turret updates, or turret and vehicle gestures. Open: the same battle from two camera positions still differs from frame 282 (positions match until one hit outcome, consistent with cosmetic code sharing the RNG, not proven); no run has had a turret fire; withdrawing units can stop short of the map edge on a host; `Team::home` is not audited. No network yet.
 - 2026-11-04: CI moved to cppcheck 2.19.0 (built from source and cached, `.github/actions/cppcheck`), with 2.13 kept in the nightly run. Of 2.19's 1,201 findings, 1,165 are two checks turned off in the gate with the reason (`dangerousTypeCast`, `nullPointerOutOfMemory`); the rest fixed: `FastFile::create` and makefst no longer use a failed `fopen`, 12 owning classes have copies deleted, ignored `readIdULong` results in gate and turret, `move.cpp` cast rewritten because 2.19 could not parse the file. Baseline empty under both versions (#112).
 - 2026-11-04: Plan for macOS on Apple silicon: `future-features/MACOS.md` (branch `macos-plan`); nothing built.
 - 2026-11-04: Multiplayer proposal (`future-features/NETWORKING.md`, replaces the feasibility study; branch `docs/multiplayer-proposal`): host-authoritative, keeping the legacy gameplay branches and chunks, GameNetworkingSockets subject to an Android spike, same-room Quest play needing no alignment until a shared table, head-to-head and co-op on one mechanism. Nothing built or run.

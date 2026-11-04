@@ -375,10 +375,10 @@ void BenchDirector::update (const char* missionName) {
 		loaded = true;
 	}
 
-	// a battle that never ends and nobody loses
+	// a battle that never ends and, unless the scenario says, nobody loses
 	neverEndingStory = true;
 	for (long t = 0; t < MAX_TEAMS; t++)
-		Team::noPain[t] = true;
+		Team::noPain[t] = !scenario.pain;
 	ShowMovers = true;
 
 	if (frame == 0)
