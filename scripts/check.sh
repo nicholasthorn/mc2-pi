@@ -187,6 +187,21 @@ if [ -n "$CPP" ] && command -v cppcheck >/dev/null; then
                 { after[k] += n }
                 END { for (k in after) { d = after[k] - before[k]; if (d > 0) print k (d > 1 ? " (x" d ")" : "") } }
             ' <(grep '^NEW' "$before") <(grep '^NEW' "$after"))
+            # A new .cpp has no "before" run, so everything a newer cppcheck
+            # finds in the legacy headers it includes would count as added. Only
+            # then, fail on findings in changed files alone and list the others
+            # (CI's gate, on the baseline's own version, still sees them). With
+            # a "before" run for every file, an increase anywhere came from the
+            # change, so it still fails.
+            if [ "$(echo $BEFORE_CPP | wc -w)" -lt "$(echo $CPP | wc -w)" ]; then
+                added_all=$added
+                added=$(echo "$CHANGED" | awk 'NR == FNR { changed[$0] = 1; next } { p = $2; sub(/:$/, "", p); if (p in changed) print }' - <(echo "$added_all"))
+                elsewhere=$(echo "$CHANGED" | awk 'NR == FNR { changed[$0] = 1; next } /^NEW/ { p = $2; sub(/:$/, "", p); if (!(p in changed)) print }' - <(echo "$added_all"))
+                if [ -n "$elsewhere" ]; then
+                    warn "cppcheck: new file, $(echo "$elsewhere" | wc -l) finding line(s) in files this branch did not change (local cppcheck $local_ver, baseline $base_ver): left to CI"
+                    echo "$elsewhere" | head -n 10 | sed 's/^/      /'
+                fi
+            fi
             if [ -z "$added" ]; then
                 ok "cppcheck: nothing new compared with $($GIT rev-parse --short "$REF") (local cppcheck $local_ver, baseline $base_ver)"
             else
