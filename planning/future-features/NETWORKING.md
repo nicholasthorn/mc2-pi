@@ -3,8 +3,8 @@
 Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 has begun: the
 wire format (`code/netwire.*`) and the transport interface with a test loopback
 (`GameOS/gameos/gos_net.*`) exist, and nothing calls them yet. No real transport:
-the library builds for Quest but has not run there (see "Android spike"), so
-Decision 4 is not final.
+the library has run on a Quest in a test program but is not in the game or the
+build (see "Android spike").
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are
@@ -217,7 +217,7 @@ shaped like DirectPlay and is not worth implementing.
 | NAT traversal | Built-in ICE client; you supply signaling, STUN, TURN | Not built in (to confirm) |
 | Lag and loss simulation | Built in | No |
 | Dependencies | Protobuf, plus libsodium or OpenSSL | None |
-| Android arm64 | **Not in its docs or its CI**, but it builds (see "Android spike"); not run yet | Plain C, expected to be easy |
+| Android arm64 | **Not in its docs or its CI**, but it builds and runs on a Quest 2 (see "Android spike") | Plain C, expected to be easy |
 | State | v1.6.1, October 2026, after a gap from 2022 | Stable and small |
 | Licence | BSD-3-Clause | MIT |
 | Steam | Not needed; relay and signaling services are Steam-only | Not applicable |
@@ -234,7 +234,21 @@ the internet.
 
 GNS v1.6.1 with its native ICE client, OpenSSL 3.0.15 and protobuf 21.12 (the last
 version without Abseil) compile for Android arm64 with NDK r28c, API 29, with no
-source changes to any of them. It has not been loaded or run on a headset.
+source changes to any of them, and carry messages between a Quest 2 and a PC.
+
+**Run on a Quest 2 (Android 14), by a small test program started from `adb shell`.**
+A client sends 100-byte messages at 30 Hz, one in six reliable, and a server echoes
+them. A connection joins in about 20 ms, encrypted by default. Round trips include about
+12 ms from GNS's send batching and the test's own loop, seen on loopback too.
+
+| Path | Reliable | Unreliable | Round trip p50 / p95 / max |
+|---|---|---|---|
+| Quest alone, loopback, 5 s | 25 of 25, in order | 125 of 125 | 12 / 12 / 13 ms |
+| PC (WSL) to Quest over home Wi-Fi, 20 s | 100 of 100, in order | 500 of 500 | 17 / 23 / 72 ms |
+
+This does not cover: the app itself (the manifest has no `INTERNET` permission yet, and
+a shell has different rights), a headset in use (it was asleep, and rendering and worn
+power states may change Wi-Fi), a Quest as the client, two Quests, or a long run.
 
 - **Size:** `libGameNetworkingSockets.so` is 7.0 MB stripped, built with `MinSizeRel`
   (2.5 MB gzipped), with OpenSSL and protobuf linked in. The APK stores native
@@ -248,14 +262,14 @@ source changes to any of them. It has not been loaded or run on a headset.
   before the attempt stopped). The spike compiled OpenSSL in WSL instead, with Ubuntu's
   clang 21 against the NDK's headers. That is not a build to ship: a real one uses the
   NDK's own compiler, on Linux, or from Windows with a full Perl.
-- **Not settled by the spike:** whether it works on a Quest (sockets, permissions,
-  threads), Windows MSVC (OpenSSL and protobuf, or `BCrypt`, into `3rdparty`), Pi and
-  Linux. Ubuntu 26.04 offers `libprotobuf-dev` 3.21.12 and `libssl-dev`, neither
-  built against here. Older distributions in the CI list need checking.
+- **Other platforms:** Linux x64 built in WSL from the same protobuf source and the
+  system OpenSSL. Not built: Windows MSVC (OpenSSL and protobuf, or `BCrypt`, into
+  `3rdparty`) and arm64 Linux. Ubuntu 26.04 offers `libprotobuf-dev` 3.21.12; older
+  distributions in the CI list need checking.
 
-**Recommendation so far: keep GNS.** The risk this spike was for did not stop it. Next:
-load it on a Quest and send messages over Wi-Fi between it and a PC, which is what
-would still send this to ENet.
+**Decision: GNS.** The risk that could have sent this to ENet did not appear. Next: a
+`gos_net` backend, and the dependencies in the build on every target. The cost to accept is
+those dependencies, about 7 MB on a Quest, and a real OpenSSL build for Android.
 
 Rejected: VPNs such as Tailscale as the remote answer (fine for PC players, but a
 poor request for a headset), TCP (a lost packet delays every later update), and
@@ -509,7 +523,7 @@ For you:
 
 For the work:
 
-- Does GNS run on a Quest? (It builds, and adds about 7 MB: "Android spike".)
+- Does GNS still behave on a Quest inside the app, while rendering and worn?
 - How much cheaper is a client's step than single-player's on a Quest?
 - Is legacy step-following acceptable at 100 to 250 ms with loss?
 - What does the game do today when the OpenXR session loses focus, and can a
