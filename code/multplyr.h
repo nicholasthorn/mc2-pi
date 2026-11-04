@@ -1704,6 +1704,9 @@ class MultiPlayer : public MultiPlayerState {
 
 		long addCaptureBuildingChunk (BuildingPtr building, long prevCommanderID, long newCommanderID);
 
+		// Over the network, what addArtilleryChunk and the like have queued.
+		void flushWorldEvents (void);
+
 		long addEndMissionChunk (void);
 
 		long grabWorldChunks (unsigned long* packedChunkBuffer);

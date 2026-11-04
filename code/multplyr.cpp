@@ -377,7 +377,9 @@ void MultiPlayer::startLocalHost (long numPlayers) {
 
 	iAmHost = true;
 	commanderID = 0;
-	// Every commander is on a team of their own. Mission::init reads these.
+	// Every commander is on a team of their own. Mission::init reads these, and
+	// Building::setTeamId clears any team at or past numTeams.
+	numTeams = numPlayers;
 	for (long i = 0; i < MAX_MC_PLAYERS; i++) {
 		const char id = (i < numPlayers) ? (char)i : (char)-1;
 		playerInfo[i].commanderID = id;
@@ -410,6 +412,9 @@ static void netClose (void) {
 
 static const float NET_WAIT_SECONDS = 300.0f;
 static long netOrdersApplied = 0;
+static long netRepairsApplied = 0;
+static long netWorldApplied[5] = {0};	// by event type: artillery, mine, fire, capture, kill or loss
+static const long NET_CAUSE_REFIT_POINTS = -5;	// a weapon hit chunk's cause: a repair spending its points
 static const uint32_t NET_SWEEP_AWAKE = 0x10000u;	// on a unit's index in a sweep
 static const long NET_TURRET_SUBJECT = MAX_MULTIPLAYER_MOVERS;	// a WeaponFire batch's subject from here is a turret
 
@@ -840,6 +845,27 @@ long MultiPlayer::addWorldChunk (WorldChunkPtr chunk) {
 
 //---------------------------------------------------------------------------
 
+static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, long a, long b, unsigned long value) {
+
+	if (!netSession || !player->isServer() || (a < 0) || (b < 0))
+		return;
+	netwire::WorldEvent event;
+	event.type = type;
+	event.a = (uint16_t)a;
+	event.b = (uint16_t)b;
+	event.value = (uint32_t)value;
+	uint32_t words[netwire::WORLD_EVENT_WORDS];
+	if ((a > netwire::MAX_WORLD_FIELD) || (b > netwire::MAX_WORLD_FIELD) || !netwire::encodeWorldEvent(event, words))
+		return;
+	if ((player->numWorldChunks + (long)netwire::WORLD_EVENT_WORDS) > MAX_WORLD_CHUNKS)
+		player->flushWorldEvents();
+	player->worldChunks[player->numWorldChunks++] = words[0];
+	player->worldChunks[player->numWorldChunks++] = words[1];
+	player->worldStateLoad++;
+}
+
+//---------------------------------------------------------------------------
+
 long MultiPlayer::addMissionScriptMessageChunk (long code, long param) {
 
 	return(0);
@@ -847,8 +873,12 @@ long MultiPlayer::addMissionScriptMessageChunk (long code, long param) {
 
 //---------------------------------------------------------------------------
 
-long MultiPlayer::addArtilleryChunk (long commanderId, long artilleryType, Stuff::Vector3D location, long seconds) 
+long MultiPlayer::addArtilleryChunk (long commanderId, long artilleryType, Stuff::Vector3D location, long seconds)
 {
+	int row = 0, col = 0;
+	land->worldToCell(location, row, col);
+	addWorldEvent(this, netwire::WorldEventType::Artillery, row, col,
+		((unsigned long)commanderId & 0xFF) | (((unsigned long)artilleryType & 0xFF) << 8) | (((unsigned long)seconds & 0xFFFF) << 16));
 	return(0);
 }
 
@@ -856,6 +886,8 @@ long MultiPlayer::addArtilleryChunk (long commanderId, long artilleryType, Stuff
 
 long MultiPlayer::addMineChunk (long tileR, long tileC, long teamId, long mineState, long explosionType) {
 
+	addWorldEvent(this, netwire::WorldEventType::Mine, tileR, tileC,
+		((unsigned long)mineState & 0xFF) | (((unsigned long)explosionType & 0xFF) << 8));
 	return(0);
 }
 
@@ -863,6 +895,8 @@ long MultiPlayer::addMineChunk (long tileR, long tileC, long teamId, long mineSt
 
 long MultiPlayer::addLightOnFireChunk (GameObjectPtr object, long seconds) {
 
+	if (object)
+		addWorldEvent(this, netwire::WorldEventType::TerrainFire, seconds, 0, (unsigned long)object->getPartId());
 	return(0);
 }
 
@@ -884,6 +918,13 @@ long MultiPlayer::addScoreChunk (long commanderID, long score) {
 
 long MultiPlayer::addKillLossChunk (long killerCID, long loserCID) {
 
+	if (netSession) {
+		if ((killerCID >= 0) && (killerCID < MAX_MC_PLAYERS))
+			playerInfo[killerCID].kills++;
+		if ((loserCID >= 0) && (loserCID < MAX_MC_PLAYERS))
+			playerInfo[loserCID].losses++;
+		addWorldEvent(this, netwire::WorldEventType::KillLoss, killerCID, loserCID, 0);
+	}
 	return(0);
 }
 
@@ -898,6 +939,8 @@ long MultiPlayer::addEndMissionChunk (void) {
 
 long MultiPlayer::addCaptureBuildingChunk (BuildingPtr building, long prevCommanderID, long newCommanderID) {
 
+	if (building && (newCommanderID >= 0) && (newCommanderID < MAX_MC_PLAYERS))
+		addWorldEvent(this, netwire::WorldEventType::Capture, newCommanderID, playerInfo[newCommanderID].team, (unsigned long)building->getPartId());
 	return(0);
 }
 
@@ -1103,6 +1146,18 @@ void MultiPlayer::sendPlayerMoverGroup (long groupId,
 
 void MultiPlayer::sendPlayerArtillery (long strikeType, Stuff::Vector3D location, long seconds) {
 
+	if (!netSession || iAmHost)
+		return;
+	int row = 0, col = 0;
+	land->worldToCell(location, row, col);
+	// an order with no unit: it is the commander's own
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::Order;
+	batch.words.push_back((uint32_t)strikeType);
+	batch.words.push_back((uint32_t)row);
+	batch.words.push_back((uint32_t)col);
+	batch.words.push_back((uint32_t)seconds);
+	netSession->sendToHost(gos_net::Delivery::ReliableOrdered, batch);
 }
 
 
@@ -1221,8 +1276,22 @@ void MultiPlayer::sendWeaponHitUpdate (void) {
 
 //---------------------------------------------------------------------------
 
+void MultiPlayer::flushWorldEvents (void) {
+
+	if (!netSession || (numWorldChunks < 1))
+		return;
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::World;
+	batch.words.assign(worldChunks, worldChunks + numWorldChunks);
+	numWorldChunks = 0;
+	netSession->sendToClients(gos_net::Delivery::ReliableOrdered, batch);
+}
+
+//---------------------------------------------------------------------------
+
 void MultiPlayer::sendWorldUpdate (void) {
 
+	flushWorldEvents();
 }
 
 //---------------------------------------------------------------------------
@@ -1288,6 +1357,8 @@ static void applyNetCheck (MultiPlayer* player, const netwire::ChunkBatch& batch
 			farthest = distance;
 	}
 	printf("[NETCHECK] %ld units: status differs %ld, armour differs %ld, farthest %.0f\n", units, statusDiffers, armorDiffers, farthest);
+	printf("[NETWORLD] artillery %ld, mines %ld, fires %ld, captures %ld, kills and losses %ld, repairs %ld\n",
+		netWorldApplied[0], netWorldApplied[1], netWorldApplied[2], netWorldApplied[3], netWorldApplied[4], netRepairsApplied);
 	fflush(stdout);
 }
 
@@ -1496,9 +1567,6 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 	chunk.init();
 	chunk.data = data;
 	chunk.unpack();
-	// a repair: phase 3. As a hit it would take armour off.
-	if (chunk.refit)
-		return;
 	GameObjectPtr target = NULL;
 	if (chunk.targetType == WEAPONHITCHUNK_TARGET_MOVER)
 		target = (GameObjectPtr)player->moverRoster[chunk.targetId];
@@ -1506,6 +1574,20 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 		target = ObjectManager->findByPartId(chunk.targetId);
 	if (!target)
 		return;
+	// Not hits, though they travel as hits (tacordr.cpp). A repair runs here too, on the
+	// same state, and comes to the same result.
+	if (chunk.targetType == WEAPONHITCHUNK_TARGET_MOVER) {
+		if (chunk.refit) {
+			float pointsUsed = 0.0f;
+			((MoverPtr)target)->refit(chunk.damage, pointsUsed);
+			netRepairsApplied++;
+			return;
+		}
+		if (chunk.cause == NET_CAUSE_REFIT_POINTS) {
+			target->burnRefitPoints(chunk.damage);
+			return;
+		}
+	}
 	WeaponShotInfo shot;
 	shot.attackerWID = 0;
 	shot.masterId = chunk.cause;
@@ -1513,6 +1595,67 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 	shot.hitLocation = chunk.hitLocation;
 	shot.entryAngle = entryQuadTable[chunk.entryAngle];
 	target->handleWeaponHit(&shot, false);
+}
+
+//---------------------------------------------------------------------------
+
+static void applyWorldEvent (MultiPlayer* player, const netwire::WorldEvent& event) {
+
+	switch (event.type) {
+		case netwire::WorldEventType::Artillery: {
+			const long commander = event.value & 0xFF;
+			const long strike = (event.value >> 8) & 0xFF;
+			const long seconds = (short)(event.value >> 16);
+			if (!GameMap->inBounds(event.a, event.b) || (commander >= MAX_MC_PLAYERS) || !Commander::commanders[commander]
+				|| !Commander::commanders[commander]->getTeam()
+				|| ((strike != ARTILLERY_SMALL) && (strike != ARTILLERY_LARGE) && (strike != ARTILLERY_SENSOR)))
+				return;
+			Stuff::Vector3D location;
+			land->cellToWorld(event.a, event.b, location);
+			location.z = land->getTerrainElevation(location);
+			CallArtillery(commander, strike, location, seconds, false);
+			netWorldApplied[0]++;
+			break;
+		}
+		case netwire::WorldEventType::Mine: {
+			const long state = event.value & 0xFF;
+			const long explosion = (event.value >> 8) & 0xFF;
+			if (!GameMap->inBounds(event.a, event.b) || (state > 2))
+				return;
+			GameMap->setMine(event.a, event.b, state);
+			if (explosion == 2) {
+				Stuff::Vector3D location;
+				land->cellToWorld(event.a, event.b, location);
+				ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, location, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
+			}
+			netWorldApplied[1]++;
+			break;
+		}
+		case netwire::WorldEventType::TerrainFire: {
+			GameObjectPtr object = ObjectManager->findByPartId((long)event.value);
+			if (!object || (object->getObjectClass() != TERRAINOBJECT) || (((TerrainObjectPtr)object)->getSubType() != TERROBJ_TREE))
+				return;
+			((TerrainObjectPtr)object)->lightOnFire((float)event.a);
+			netWorldApplied[2]++;
+			break;
+		}
+		case netwire::WorldEventType::Capture: {
+			GameObjectPtr object = ObjectManager->findByPartId((long)event.value);
+			if (!object || (object->getObjectClass() != BUILDING) || (event.a >= MAX_MC_PLAYERS) || (event.b >= MAX_TEAMS) || !Team::teams[event.b])
+				return;
+			object->setCommanderId(event.a);
+			object->setTeamId(event.b, false);
+			netWorldApplied[3]++;
+			break;
+		}
+		case netwire::WorldEventType::KillLoss:
+			if (event.a < MAX_MC_PLAYERS)
+				player->playerInfo[event.a].kills++;
+			if (event.b < MAX_MC_PLAYERS)
+				player->playerInfo[event.b].losses++;
+			netWorldApplied[4]++;
+			break;
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -1572,6 +1715,13 @@ static void applyHostBatch (MultiPlayer* player, const netwire::ChunkBatch& batc
 			for (size_t i = 0; i < batch.words.size(); i++)
 				applyWeaponHit(player, batch.words[i]);
 			break;
+		case netwire::ChunkKind::World: {
+			netwire::WorldEvent event;
+			for (size_t i = 0; (i + netwire::WORLD_EVENT_WORDS) <= batch.words.size(); i += netwire::WORLD_EVENT_WORDS)
+				if (netwire::decodeWorldEvent(&batch.words[i], event))
+					applyWorldEvent(player, event);
+			break;
+		}
 		case netwire::ChunkKind::Check:
 			applyNetCheck(player, batch);
 			break;
@@ -1586,6 +1736,25 @@ static void applyHostBatch (MultiPlayer* player, const netwire::ChunkBatch& batc
 static void applyClientOrder (MultiPlayer* player, const netsession::Received& received) {
 
 	const netwire::ChunkBatch& batch = received.batch;
+	if (batch.subject == netwire::NO_SUBJECT) {
+		// a strike the client called: the host keeps the count, and it is theirs
+		if (batch.words.size() != 4)
+			return;
+		const long strike = (long)batch.words[0];
+		const long row = (long)batch.words[1];
+		const long col = (long)batch.words[2];
+		// more than five minutes is not a strike
+		const long seconds = (long)(int32_t)batch.words[3];
+		if (((strike != ARTILLERY_SMALL) && (strike != ARTILLERY_LARGE) && (strike != ARTILLERY_SENSOR))
+			|| (seconds < -1) || (seconds > 300) || !GameMap->inBounds(row, col))
+			return;
+		Stuff::Vector3D location;
+		land->cellToWorld(row, col, location);
+		location.z = land->getTerrainElevation(location);
+		CallArtillery(received.commander, strike, location, seconds, false);
+		netOrdersApplied++;
+		return;
+	}
 	if ((batch.subject >= MAX_MULTIPLAYER_MOVERS) || (batch.words.size() != 3))
 		return;
 	MoverPtr mover = player->moverRoster[batch.subject];
@@ -1676,6 +1845,7 @@ long MultiPlayer::updateClients (bool forceIt) {
 		sendTurretWeaponFireUpdate();
 		sendMoverCriticalUpdate();
 		sendWeaponHitUpdate();
+		flushWorldEvents();
 		// on their own clock, not the frame
 		const double now = netNow();
 		static double nextMoverUpdate = 0.0, nextCheck = 0.0;
@@ -1750,6 +1920,22 @@ bool MultiPlayer::calcMissionStatus (void) {
 	for (long i = 0; i < MAX_MC_PLAYERS; i++)
 		playerInfo[i].winner = (playerInfo[i].commanderID > -1) && (playerInfo[i].team == winner);
 	printf("[NET] game over: team %ld wins\n", winner);
+	// what both ends must agree on by now: net_smoke.sh compares the lines
+	long mines = 0;
+	for (long row = 0; row < GameMap->getHeight(); row++)
+		for (long col = 0; col < GameMap->getWidth(); col++)
+			if (GameMap->getMine(row, col) == 1)
+				mines++;
+	long buildings[MAX_TEAMS] = {0};
+	for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
+		const long owner = ObjectManager->getBuilding(i)->getTeamId();
+		if ((owner >= 0) && (owner < MAX_TEAMS))
+			buildings[owner]++;
+	}
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if (playerInfo[i].commanderID > -1)
+			printf("[NETSCORE] commander %ld: kills %d, losses %d, team's buildings %ld\n", i, playerInfo[i].kills, playerInfo[i].losses, buildings[playerInfo[i].team]);
+	printf("[NETSCORE] mines %ld\n", mines);
 	fflush(stdout);
 	return(true);
 }
