@@ -91,6 +91,7 @@ for side in host client; do
 done
 grep -q '^\[NET\] turn .* weapon hit [1-9]' "$LOG_DIR/host.log" || reasons+=("no weapon hits: the battle did not happen")
 grep -q 'orders from clients [1-9]' "$LOG_DIR/host.log" || reasons+=("no orders reached the host")
+grep -q ', holds [1-9]' "$LOG_DIR/host.log" || reasons+=("no hold position reached the host")
 hostwin=$(grep -m1 '^\[NET\] game over' "$LOG_DIR/host.log")
 clientwin=$(grep -m1 '^\[NET\] game over' "$LOG_DIR/client.log")
 [ "$hostwin" = "$clientwin" ] || reasons+=("host and client disagree: '$hostwin', '$clientwin'")

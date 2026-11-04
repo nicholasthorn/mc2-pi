@@ -310,8 +310,18 @@ void strike (void) {
 // it reaches a client: a mine between the lines, a repair, and a building changing hands.
 void netEvents (void) {
 
-	if (!MPlayer || !MPlayer->isNetworked() || !MPlayer->isServer())
+	if (!MPlayer || !MPlayer->isNetworked())
 		return;
+	if (!MPlayer->isServer()) {
+		// a client's hold position, for its own units, keeping the range they have
+		for (size_t i = 0; i < fighters.size(); i++)
+			if (fighters[i]->getCommander() == Commander::home)
+				fighters[i]->setSelected(true);
+		MPlayer->sendHoldPosition();
+		for (size_t i = 0; i < fighters.size(); i++)
+			fighters[i]->setSelected(false);
+		return;
+	}
 
 	int row = 0, col = 0;
 	land->worldToCell(onGround(arena.x, arena.y + scenario.spacing * (float)(strikes++ % 8 - 4)), row, col);
