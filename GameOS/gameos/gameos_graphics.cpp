@@ -3086,6 +3086,19 @@ int __stdcall gos_GetVREyeViews(gosVREyeView views[2])
     return gos_xr::eyeViews(views);
 }
 
+void __stdcall gos_SetVRBackground(DWORD rgb)
+{
+    const float red = ((rgb >> 16) & 0xff) / 255.0f;
+    const float green = ((rgb >> 8) & 0xff) / 255.0f;
+    const float blue = (rgb & 0xff) / 255.0f;
+    gos_xr::setEyeClearColor(red, green, blue);
+    if(!gos_xr::active()) {
+        glClearColor(red, green, blue, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    }
+}
+
 bool __stdcall gos_IsVR()
 {
     // MC2_VR_PATHS=1: a flat game takes the VR render paths too (GPU meshes,

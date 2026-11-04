@@ -34,6 +34,7 @@ out vec4 VertexColor;
 out vec3 VertexLight;
 out vec3 WorldPos;
 out vec3 CameraPos;
+out float ModelHeight;
 
 void main(void)
 {
@@ -51,6 +52,7 @@ void main(void)
     p.w = -rhw;
 
     WorldPos = (world_ * vec4(pos.xyz, 1.0)).xyz;
+    ModelHeight = pos.y;
 
     // something is wrong with this: check later
     //CameraPos = (inverse(view_) * vec4(0,0,0,1)).xyz;

@@ -12,6 +12,8 @@
 // Include Files
 #ifndef TERRAIN_H
 #include"terrain.h"
+
+#include"vr_edge_fade.h"
 #endif
 
 #ifndef VERTEX_H
@@ -968,6 +970,11 @@ void Terrain::geometry (void)
 	Stuff::Vector3D boxMin(FLT_MAX, FLT_MAX, FLT_MAX);
 	Stuff::Vector3D boxMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+	//VR: the ground fades out before the window's edge (vr_edge_fade.h)
+	const bool vrEdge = gos_IsVR();
+	const vr_edge_fade::Range vrEdgeRange = vr_edge_fade::rangeFor(visibleVerticesPerSide, worldUnitsPerVertex);
+	const Stuff::Vector3D vrEdgeCentre = eye->getPosition();
+
  	long i=0;
 	for (i=0;i<numberVertices;i++)
 	{
@@ -1058,6 +1065,13 @@ void Terrain::geometry (void)
 					currentVertex->hazeFactor = 0.0f;
 				}
 				
+				if (vrEdge)
+				{
+					const float edgeFade = vr_edge_fade::amount(vrEdgeRange, currentVertex->vx - vrEdgeCentre.x, currentVertex->vy - vrEdgeCentre.y);
+					if (edgeFade > currentVertex->hazeFactor)
+						currentVertex->hazeFactor = edgeFade;
+				}
+
 				//---------------------------------------
 				// Vertex is at edge of world or beyond.
 				Stuff::Vector3D vPos(currentVertex->vx,currentVertex->vy,currentVertex->pVertex->elevation);

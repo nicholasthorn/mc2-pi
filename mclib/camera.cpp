@@ -1701,9 +1701,21 @@ void Camera::renderWorld (void)
 	gosVREyeView vrViews[2];
 	const int vrEyes = gos_GetVREyeViews(vrViews);
 	const float separation = vrEyes ? 0.0f : gos_GetStereoSeparation();
+
+	// VR: the world fades to the fog colour, with that behind it. Fog with no
+	// alpha and no colour means no fog to the shaders, and some missions' fog
+	// is black, so give it alpha for the eyes.
+	const DWORD gameFogColor = fogColor;
+	if (gos_IsVR())
+	{
+		gos_SetVRBackground(fogColor);
+		fogColor |= 0xff000000;
+	}
+
 	if ((separation <= 0.0f) && (vrEyes == 0))
 	{
 		render();
+		fogColor = gameFogColor;
 		return;
 	}
 
@@ -1755,6 +1767,7 @@ void Camera::renderWorld (void)
 		FloatHelp::renderAndResetFrom(helpsBeforeEyes);
 	}
 	setEye(-1);
+	fogColor = gameFogColor;
 
 	// VR: the eyes were drawn into the headset's images. The window gets no
 	// world, only the interface drawn after this, which the headset shows as
