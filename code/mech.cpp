@@ -6069,7 +6069,9 @@ long BattleMech::update (void)
 		if (inView)
 			windowsVisible = turn;
 			
-		if (withdrawing && !inView && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
+		// A multiplayer host's view must not change the game. Not solved on a host: a
+		// unit that stops short of the map edge (setPosition) stays until the mission ends.
+		if (withdrawing && !inView && !isNetHost() && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
 			ObjectManager->getObjectType(typeHandle)->handleDestruction(this, NULL);
 
 		MovePathPtr path = pilot->getMovePath();

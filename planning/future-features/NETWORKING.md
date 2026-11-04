@@ -1,9 +1,10 @@
 # Multiplayer: proposal
 
-Status: proposal, nothing built. Revised 2026-11-04 from a read of `pi-port`
-at `bec9e85` and of current library and Meta docs; replaces the feasibility
-study of 2026-10-29. Nothing here has been run: code findings are from reading
-it. Line numbers are not recorded on purpose (grep the symbol).
+Status: proposal; phase 0 built (see "Phase 0 results"), no networking yet.
+Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
+and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
+nothing here has been run: code findings are from reading it. Line numbers are
+not recorded on purpose (grep the symbol).
 
 ## Summary
 
@@ -406,6 +407,32 @@ A PC host can later run under Xvfb as a dedicated server of sorts, since the smo
 runs do. A real one needs appearance state kept while drawing is stubbed
 (animation feeds the sim), so it is not cheap.
 
+### Phase 0 results
+
+`-nethost <players>` runs the host's code with no network and no clients (PR 110).
+
+- All ten stock multiplayer maps (`mc2_m01` to `mc2_m10`) and a damage-on battle
+  (`bench/nethost_m08.fit`) ran 3000 frames clean under ASan + UBSan on x64
+  desktop GL. CI runs `mc2_m09` and the battle on x64 GL, arm64 GLES and sanitized.
+  `mc2_m02a` and `mc2_m02b` were not run.
+- Few fixes were needed: the `calcMissionStatus` stub, draining the send queues
+  (a full weapon fire queue is `Fatal`), a turret with a neutral parent, a
+  negative shift, and movers per commander on six and eight player maps.
+- A 100-second battle with 24 units queued 1,020 weapon fire, 923 weapon hit and
+  59 critical hit chunks. Mover updates are not counted yet.
+
+Not settled by phase 0:
+
+- **Camera independence is not proven,** so that part of the exit criterion is
+  open. The same battle from two camera positions parts at frame 282, at one mech
+  going down. That fits cosmetic code sharing the RNG, harmless with one host.
+- No run has had a turret fire, so the off-camera turret change is unproven.
+- A withdrawing mech that stops short of the map edge stays until the mission ends.
+- Quitting through the menu crashes in `MPStats::render` (no `ChatWindow`): phase 3.
+- `Team::home` and `Commander::home` are not audited for host versus player.
+- Host cost off camera: buildings update everywhere, and at night their lights can
+  fill the world light table. Measure on a Quest in phase 2.
+
 ## Verification
 
 - **Unit (every commit, all four configurations):** round trip per message and
@@ -457,8 +484,6 @@ For the work:
 - What does the game do today when the OpenXR session loses focus, and can a
   background thread keep the network going while the app is paused?
 - Can a sideloaded app use Shared Spatial Anchors, and what does it take?
-- Does the stock data include all the original multiplayer maps? (Not checked: no
-  data checkout was available.)
 
 ## Sources
 

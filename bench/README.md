@@ -49,6 +49,7 @@ f Spacing = 90.0
 l ReorderEvery = 90
 f StrikeRadius = 350.0    ; artillery lands within this of the arena centre
 b Follow = TRUE           ; camera keys relative to the fight's centre
+b Pain = FALSE            ; TRUE: units take damage and can be destroyed
 f ScreenX = 0.5           ; hold that centre here on screen (fractions from
 f ScreenY = 0.4           ;   the top left; default 0.5, 0.5)
 l NumSegments = 2
@@ -67,8 +68,8 @@ FITend
 
 Only `NumSegments` and each segment's `Start` are required. A missing key
 keeps its default: `Frames` 3600, `Gather` 16, `LineGap` 600, `Spacing` 100,
-`ReorderEvery` 90, `StrikeRadius` 300, `Follow` TRUE, `ScreenX` / `ScreenY`
-0.5, `Shot` -1, `StrikeEvery` 0, `Name` `seg<i>`. The game refuses a
+`ReorderEvery` 90, `StrikeRadius` 300, `Follow` TRUE, `Pain` FALSE, `ScreenX` /
+`ScreenY` 0.5, `Shot` -1, `StrikeEvery` 0, `Name` `seg<i>`. The game refuses a
 scenario (`[BENCH] ERROR: ...`, and bench.sh fails the run) with a negative
 `Gather`, a bad, repeated or too long segment name (31 characters at most),
 a `Mission` over 63 characters, a camera key without exactly 6 values, or a
@@ -125,6 +126,9 @@ would repeat per eye (`planning/future-features/VR-TABLETOP.md`).
 
 ## Scenarios
 
+- `nethost_m08.fit`: not a performance benchmark. A damage-on battle on a
+  two-player map for the multiplayer host's code (`-nethost 2`), so weapon hits
+  and destruction run; the `[NETHOST]` lines count the messages it would send.
 - `mc2_19.fit`: mc2_19 has the most enemies of any campaign mission (82).
   The player's lance and the 20 nearest enemies fight at the player's start.
   The camera circles the fight the whole run (one turn a minute). Segments

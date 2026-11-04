@@ -185,6 +185,15 @@ jobs:
         run: >
           scripts/smoke.sh --game-dir gamedata --missions "mc2_10" --frames 1000
           --ui "" --deterministic --timeout 1200 --log-dir smoke-logs/deterministic
+      - name: Multiplayer host (no network)
+        # The host's side of the multiplayer code on two-player maps. Units idle
+        # on mc2_m09; the scenario makes them fight on mc2_m08, damage on.
+        run: |
+          scripts/smoke.sh --game-dir gamedata --missions "mc2_m09" --frames 3000 \
+            --ui "" --nethost 2 --timeout 1200 --log-dir smoke-logs/nethost
+          scripts/smoke.sh --game-dir gamedata --missions "mc2_m08" --frames 3000 \
+            --ui "" --nethost 2 --scenario "$PWD/bench/nethost_m08.fit" --timeout 1200 \
+            --log-dir smoke-logs/nethost-battle
       - uses: actions/upload-artifact@v7
         if: always()
         with:
