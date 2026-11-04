@@ -9,6 +9,14 @@ Most of the tree is 2001 Microsoft code plus alariq's port. Treat it as legacy:
   changing: it wrecks `git blame` and makes merges from `alariq/mc2` conflict.
 - **Fix narrowly.** A bug fix touches the lines that are wrong, plus a short
   comment when the reason is not obvious (why a null check, why `memcpy`).
+- **But fix the kind of bug, not one instance.** Much of this tree is being
+  reworked, so when you find a bug, ask what assumption caused it and where else
+  that assumption is made (other screens, other sheets, other data sets, Omnitech
+  as well as stock). Search for those places. Prefer one fix or helper that
+  covers them over a patch for the case you saw, and where you can, check them
+  against real data or a sanitizer run. Say in the PR what you checked and what
+  you left. Still no unrelated cleanup: the diff stays small because it fixes the
+  cause, not because it stops at the first symptom.
 - **`STOP(...)` ends the game** (log, message box, exit 1), but
   `MC2_STOP_EXITS=0` makes it log and carry on, and `gosASSERT` compiles to
   nothing unless `_ARMOR` is defined. So a null check that only calls `STOP`
