@@ -1,8 +1,9 @@
 # Release packages (planning/RELEASES.md, phase 2).
 #
-# Pushing a tag v* builds the three packages, runs the unit tests in each
-# build, and creates a DRAFT release with the packages, their debug symbols
-# and SHA256SUMS. Nothing is published until someone reviews the draft.
+# Pushing a tag v* builds the three packages and the Quest APK, runs the unit
+# tests in each desktop build (the APK's arm64 Android code cannot run on the
+# runner), and creates a DRAFT release with them, their debug symbols and
+# SHA256SUMS. Nothing is published until someone reviews the draft.
 # Tags with a hyphen (v0.1.0-rc1) become pre-releases.
 #
 # Run by hand (workflow_dispatch), nightly, or on a pull request that
@@ -21,6 +22,8 @@ on:
       - ".github/workflows/release.yml"
       - "scripts/package.sh"
       - "scripts/build_gamedata.sh"
+      - "scripts/android/**"
+      - "android/**"
       - "dist/**"
   schedule:
     - cron: "17 4 * * *"
@@ -162,10 +165,48 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ github.ref_type == 'tag' && 30 || 7 }}
 
+  quest:
+    name: Meta Quest (arm64 APK, GLES, OpenXR)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install the Android SDK parts
+        # the versions in scripts/android/build.sh, which stops if one is missing
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" --install "ndk;28.2.13676358" "cmake;3.31.6" "build-tools;36.0.0" "platforms;android-36" > /dev/null
+      - name: Signing key
+        # Android only installs an update signed with the same key, and
+        # uninstalling deletes the game data on the headset. Without this
+        # secret build.sh makes a new key, so each APK needs a clean install.
+        env:
+          QUEST_KEYSTORE: ${{ secrets.QUEST_KEYSTORE }}
+        run: |
+          if [ -n "$QUEST_KEYSTORE" ]; then
+            echo "$QUEST_KEYSTORE" | base64 -d > android/debug.keystore
+          else
+            echo "no QUEST_KEYSTORE secret: signing with a new key"
+          fi
+      - name: Build
+        run: JAVA_HOME="$JAVA_HOME_17_X64" MC2_VERSION="$VERSION" bash scripts/android/build.sh
+      - name: Package
+        run: bash scripts/android/package.sh --version "$VERSION" --out dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-quest-arm64
+          path: |
+            dist/*.apk
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || 7 }}
+
   release:
     name: Draft release
     if: github.ref_type == 'tag'
-    needs: [rpi, linux, windows]
+    needs: [rpi, linux, windows, quest]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

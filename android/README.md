@@ -33,6 +33,20 @@ How it differs from the desktop build:
   run before as `mc2.previous.log`. Outside a bench, a crash adds `CRASH:` lines.
 - `libmc2res_64.so` is loaded by name from the APK, not from the data folder.
 
+## Release builds
+
+`.github/workflows/release.yml` builds the same APK on every `v*` tag and in
+its dry runs, and `scripts/android/package.sh` packages it as
+`mc2-<ver>-quest-arm64.apk` with `-files.tar.gz` (the shaders, which the APK
+does not hold, and the licences) and `-symbols.tar.gz`. Players follow
+`dist/INSTALL.md`.
+
+Updating an installed app needs the same signing key, and uninstalling deletes
+the game data in its folder. So releases sign with the keystore in the
+`QUEST_KEYSTORE` repository secret (base64; store and key password `android`,
+alias `androiddebugkey`, as `build.sh` makes). Without the secret each build
+gets a new key and needs a clean install.
+
 ## On the headset
 
 The headset needs developer mode, and `adb` (in the SDK's `platform-tools`)

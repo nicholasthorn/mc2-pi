@@ -30,6 +30,7 @@ data tools so players can build the data themselves without a compiler (see
 | `mc2-<ver>-linux-x86_64.AppImage` | Most Linux PCs | Desktop GL | Oldest supported base (Ubuntu 22.04, glibc 2.35) | AppImage bundling SDL2, SDL2_mixer, SDL2_ttf, GLEW, zlib |
 | `mc2-<ver>-linux-arm64.AppImage` | Other arm64 Linux machines (SBCs, ARM laptops) | GLES 3.1 | `debian:bookworm` on the arm64 runner | AppImage, as above |
 | `mc2-<ver>-windows-x64.zip` | Windows 10 / 11 | Desktop GL | `windows-2022`, MSVC | Zip: unpack and run |
+| `mc2-<ver>-quest-arm64.apk`, with `-files.tar.gz` (shaders, licences) and `-symbols.tar.gz` | Meta Quest 2 / 3 / Pro, sideloaded (test build) | GLES 3.1, OpenXR | `ubuntu-24.04`, Android NDK | APK; job `quest` in `release.yml`, setup in `android/README.md` |
 | `mc2-<ver>-debug-symbols.tar.gz` | Crash reports | | All of the above | Separate, so the game packages stay small |
 | `SHA256SUMS` | Checking downloads | | | |
 
@@ -79,6 +80,7 @@ third-party licenses for anything bundled.
 |---|---|---|
 | Tested | Pi 4/400 on Raspberry Pi OS 64-bit; Windows 10/11 x64; Linux x64 AppImage on Ubuntu LTS | Run by hand before each release |
 | Built | Linux arm64 AppImage; other Linux distributions | Built and smoke-tested in CI only |
+| Test build | Meta Quest APK | Built in CI, not smoke-tested there; run on a headset by hand |
 
 The Pi moves to "Tested" once a release has been run on real hardware; until
 then the release notes say it is untested on hardware.
