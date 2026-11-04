@@ -23,6 +23,11 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       The win or lose banner is centred, also with Omnitech at 1920.
 - [ ] **Omnitech at 1920x1080** (`hud-centre`). A mission plays, on its 1600 layout,
       with the same checks.
+- [ ] **Multiplayer host in a window** (#110). `./mc2 -mission mc2_m08 -nethost 2`:
+      the mission loads and plays, units fight, and moving the camera away
+      changes nothing visible when you come back. Do not expect a clean quit:
+      leaving through the menu is known to crash in `MPStats::render` until
+      phase 3. GL and GLES.
 - [ ] **Dragging a mech out of the force group** (`fix/noticed-bugs`). In the
       mech bay, drag a force-group mech onto the mech list at the same height
       as the force-group icons: it must leave the force group. Then drag one

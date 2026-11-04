@@ -43,6 +43,7 @@ TEST_CASE("reads the [Bench] block and every segment")
 	CHECK(s.reorderEvery == 60);
 	CHECK(s.strikeRadius == doctest::Approx(300.0f));
 	CHECK_FALSE(s.follow);	// the fixture turns following off
+	CHECK(s.pain);			// and damage on
 	CHECK(s.screenX == doctest::Approx(0.7f));
 	CHECK(s.screenY == doctest::Approx(0.25f));
 
@@ -197,6 +198,7 @@ TEST_CASE("optional keys keep their defaults when missing")
 	CHECK(s.reorderEvery == 90);
 	CHECK(s.strikeRadius == doctest::Approx(300.0f));
 	CHECK(s.follow);
+	CHECK_FALSE(s.pain);
 	CHECK(s.screenX == doctest::Approx(0.5f));
 	CHECK(s.screenY == doctest::Approx(0.5f));
 	REQUIRE(s.numSegments == 2);

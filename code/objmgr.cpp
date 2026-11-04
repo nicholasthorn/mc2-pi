@@ -1772,16 +1772,19 @@ void GameObjectManager::update (bool terrain, bool movers, bool other)
 			}
 		}
 		
+		// A multiplayer host's view must not change the game: buildings update
+		// wherever the camera is (trees are only for show).
+		const bool hostGame = isNetHost();
 		for (long terrainBlock = 0; terrainBlock < Terrain::numObjBlocks; terrainBlock++) 
 		{
-			if (Terrain::objBlockInfo[terrainBlock].active || (turn < 3)) 
+			if (Terrain::objBlockInfo[terrainBlock].active || (turn < 3) || hostGame) 
 			{
 				long numObjs = Terrain::objBlockInfo[terrainBlock].numObjects;
 				long objIndex = Terrain::objBlockInfo[terrainBlock].firstHandle;
 				for (long terrainObj = 0; terrainObj < numObjs; terrainObj++,objIndex++) 
 				{
 					if (objList[objIndex] && 
-						(Terrain::objVertexActive[objList[objIndex]->getVertexNum()] || (turn < 3)) && 
+						(Terrain::objVertexActive[objList[objIndex]->getVertexNum()] || (turn < 3) || (hostGame && objList[objIndex]->isBuilding())) && 
 						objList[objIndex]->getExists())
 					{
 			#ifdef LAB_ONLY

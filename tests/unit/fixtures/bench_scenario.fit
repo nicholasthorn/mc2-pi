@@ -11,6 +11,7 @@ f Spacing = 120.0
 l ReorderEvery = 60
 f StrikeRadius = 300.0
 b Follow = FALSE
+b Pain = TRUE
 f ScreenX = 0.7
 f ScreenY = 0.25
 l NumSegments = 2

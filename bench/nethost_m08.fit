@@ -1,0 +1,22 @@
+FITini
+// A battle on the two-player map mc2_m08, for the multiplayer host's code (no
+// network, no clients):
+//   mc2 -mission mc2_m08 -nethost 2 -autoexit 3000 -bench <csv> -benchscenario <this>
+// Both forces fight with damage on, so weapon hits, destruction and the
+// host-only branches run. Not a performance benchmark.
+
+[Bench]
+st Mission = "mc2_m08"
+l Frames = 3000
+l Gather = 12
+f LineGap = 500.0
+f Spacing = 90.0
+b Pain = TRUE
+l NumSegments = 1
+
+[Segment0]
+st Name = "battle"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend
