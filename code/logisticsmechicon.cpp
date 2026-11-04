@@ -7,6 +7,7 @@
 
 #include"logisticsmechicon.h"
 #include"mechicon.h"
+#include"iconsheet.h"
 #include"logisticsmech.h"
 #include"logisticspilot.h"
 #include "../resource.h"
@@ -120,6 +121,50 @@ void LogisticsMechIcon::assignAnimation( FitIniFile& file, long& number )
 	}
 }
 
+// Omnitech's shop sheet has art for 102 mechs and its data goes on to 127. The rest
+// are on the mission HUD's sheet, in cells of the same size: copy them across, once
+// each time the texture is loaded, as locking costs the whole sheet.
+static void fillEmptyLargeSheetCells( const aObject& icon )
+{
+	static DWORD s_filledHandle = 0;
+	const DWORD gosID = mcTextureManager->get_gosTextureHandle( icon.getTextureHandle() );
+	if ( !gosID || gosID == 0xffffffff || gosID == s_filledHandle )
+		return;
+	s_filledHandle = gosID;
+
+	TGAFileHeader* highSheet = loadIconSheet( "mcui_high7.tga" );
+	if ( !highSheet )
+		return;
+	if ( highSheet->pixel_depth == 32 )
+	{
+		TEXTUREPTR textureData;
+		gos_LockTexture( gosID, 0, 0, &textureData );
+		fillEmptyCells( reinterpret_cast<uint32_t*>( textureData.pTexture ), textureData.Width, textureData.Height,
+			reinterpret_cast<const uint8_t*>( highSheet + 1 ), highSheet->width, highSheet->height,
+			HIGH_MECH_ICON_X, HIGH_MECH_ICON_Y );
+		gos_UnLockTexture( gosID );
+	}
+	delete [] reinterpret_cast<char*>( highSheet );
+}
+
+void LogisticsMechIcon::setIconUVs( aObject& icon, long index )
+{
+	// stock's sheet is 256 wide with 10 icons a row, each the size it is drawn;
+	// Omnitech's is 1024 with 25 of 40x48, whatever size a layout draws them at
+	const bool largeSheet = icon.getFileWidth() == 1024.f;
+	const long iconsPerRow = largeSheet ? 25 : 10;
+	const float width = largeSheet ? HIGH_MECH_ICON_X : icon.width();
+	const float height = largeSheet ? HIGH_MECH_ICON_Y : icon.height();
+	if ( largeSheet )
+		fillEmptyLargeSheetCells( icon );
+	else
+		icon.setFileWidth(256.f);
+
+	const float fX = index % iconsPerRow;
+	const float fY = index / iconsPerRow;
+	icon.setUVs( fX * width, fY * height, (fX + 1.f) * width, (fY + 1.f) * height );
+}
+
 void LogisticsMechIcon::setMech( LogisticsMech* pNewMech )
 {
 	pMech = pNewMech;
@@ -127,27 +172,7 @@ void LogisticsMechIcon::setMech( LogisticsMech* pNewMech )
 	if ( pMech )
 	{
 		// need to set the uv's of the mech icon
-		long index = pMech->getIconIndex();
-		long xIndex = index % 10;
-		long yIndex = index / 10;
-
-		float fX = xIndex;
-		float fY = yIndex;
-
-		float width = icon.width();
-		float height = icon.height();
-
-		float u = (fX * width);
-		float v = (fY * height);
-
-		fX += 1.f;
-		fY += 1.f;
-		
-		float u2 = (fX * width);
-		float v2 = (fY * height);
-
-		icon.setFileWidth(256.f);
-		icon.setUVs( u, v, u2, v2 );
+		setIconUVs( icon, pMech->getIconIndex() );
 
 		chassisName.setText( pMech->getChassisNameText() );
 

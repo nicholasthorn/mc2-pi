@@ -421,7 +421,21 @@ void Mechlopedia::MechScreen::select( aTextListItem* pItem )
 		name += " Prime";
 
 		LogisticsVariant* pChassis  = LogisticsData::instance->getVariant( name );
-		setMech( pChassis, 1 );
+		if ( !pChassis )
+		{
+			// a chassis name need not be how its variants are spelled (Omnitech's
+			// Kitfox has a "Kit Fox Prime"): find the row's own variant
+			const LogisticsVariant* pPrimes[256];
+			int count = 256;
+			LogisticsData::instance->getEncyclopediaMechs( pPrimes, count );
+			for ( int i = 0; i < count && i < 256 && !pChassis; i++ )
+			{
+				if ( S_stricmp( pPrimes[i]->getChassisNameText(), pText ) == 0 )
+					pChassis = const_cast<LogisticsVariant*>( pPrimes[i] );
+			}
+		}
+		if ( pChassis )
+			setMech( pChassis, 1 );
 	}
 	else
 	{
@@ -1099,6 +1113,9 @@ void Mechlopedia::BuildingScreen::begin()
 	{
 		char tmp[256];
 		cLoadString( pBldgs[i]->nameID, tmp, 255 );
+		// a building with no name has no entry (id 0: Omnitech has 20 of them)
+		if ( !tmp[0] )
+			continue;
 		EString str = tmp;
 		str.MakeUpper();
 		EString liao = "Liao ";

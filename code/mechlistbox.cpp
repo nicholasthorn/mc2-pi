@@ -8,6 +8,7 @@ MechListBox.cpp			: Implementation of the MechListBox component.
 
 #include"mechlistbox.h"
 #include"logisticsmech.h"
+#include"logisticsmechicon.h"
 #include"paths.h"
 #include"inifile.h"
 #include"err.h"
@@ -474,27 +475,7 @@ void MechListBox::initIcon( LogisticsMech* pMech, aObject& mechIcon )
 {
 	mechIcon = (MechListBoxItem::s_templateItem->mechIcon);
 
-	long index = pMech->getIconIndex();
-	long xIndex = index % 10;
-	long yIndex = index / 10;
-
-	float fX = xIndex;
-	float fY = yIndex;
-
-	float width = mechIcon.width();
-	float height = mechIcon.height();
-
-	float u = (fX * width);
-	float v = (fY * height);
-
-	fX += 1.f;
-	fY += 1.f;
-	
-	float u2 = (fX * width);
-	float v2 = (fY * height);
-
-	mechIcon.setFileWidth(256.f);
-	mechIcon.setUVs( u, v, u2, v2 );
+	LogisticsMechIcon::setIconUVs( mechIcon, pMech->getIconIndex() );
 
 }
 

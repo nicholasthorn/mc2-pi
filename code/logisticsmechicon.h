@@ -29,6 +29,7 @@ public:
 	void update();
 	void render( long offsetX, long offsetY );
 
+	static void setIconUVs( aObject& icon, long index );
 	void setMech( LogisticsMech* pMech );
 	LogisticsMech* getMech( ){ return pMech; }
 	LogisticsPilot* getPilot();
