@@ -358,6 +358,20 @@ long MultiPlayer:: setup (void) {
 
 //---------------------------------------------------------------------------
 
+void MultiPlayer::startLocalHost (long numPlayers) {
+
+	iAmHost = true;
+	commanderID = 0;
+	// Every commander is on a team of their own. Mission::init reads these.
+	for (long i = 0; i < MAX_MC_PLAYERS; i++) {
+		const char id = (i < numPlayers) ? (char)i : (char)-1;
+		playerInfo[i].commanderID = id;
+		playerInfo[i].team = id;
+	}
+}
+
+//---------------------------------------------------------------------------
+
 void MultiPlayer::initUpdateFrequencies() {
 
 }
@@ -366,6 +380,8 @@ void MultiPlayer::initUpdateFrequencies() {
 
 long MultiPlayer::update (void) {
 
+	if (iAmHost)
+		updateClients();
 	return(MPLAYER_NO_ERR);
 }
 
@@ -730,6 +746,7 @@ long MultiPlayer::grabWorldChunks (unsigned long* packedChunkBuffer) {
 
 long MultiPlayer::addWeaponHitChunk (WeaponHitChunkPtr chunk) {
 
+	weaponHitLoad++;
 	return(0);
 }
 
@@ -737,6 +754,7 @@ long MultiPlayer::addWeaponHitChunk (WeaponHitChunkPtr chunk) {
 
 long MultiPlayer::addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr shotInfo, bool isRefit) {
 
+	weaponHitLoad++;
 	return(0);
 }
 
@@ -1118,6 +1136,22 @@ void MultiPlayer::buildMoverRosterRLE (void) {
 
 long MultiPlayer::updateClients (bool forceIt) {
 
+	if (!mission || !mission->isActive())
+		return(MPLAYER_NO_ERR);
+
+	// Nobody to send to yet, so empty the queues the game fills for clients (a
+	// full weapon fire queue is Fatal), and log what they held.
+	for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
+		MoverPtr mover = ObjectManager->getMover(i);
+		moverWeaponFireLoad += mover->clearWeaponFireChunks(CHUNK_SEND);
+		moverCriticalLoad += mover->clearCriticalHitChunks(CHUNK_SEND);
+		mover->clearRadioChunks(CHUNK_SEND);
+	}
+	for (long i = 0; i < ObjectManager->getNumTurrets(); i++)
+		turretWeaponFireLoad += ObjectManager->getTurret(i)->clearWeaponFireChunks(CHUNK_SEND);
+	if ((turn % 600) == 0)
+		printf("[NETHOST] turn %ld: chunks queued so far: weapon fire %ld (turrets %ld), weapon hit %ld, critical hit %ld\n",
+			(long)turn, moverWeaponFireLoad + turretWeaponFireLoad, turretWeaponFireLoad, weaponHitLoad, moverCriticalLoad);
 	return(MPLAYER_NO_ERR);
 }
 
@@ -1125,7 +1159,8 @@ long MultiPlayer::updateClients (bool forceIt) {
 
 bool MultiPlayer::calcMissionStatus (void) {
 
-	return(true);
+	// No win conditions yet, and true would end the mission on its first frame.
+	return(false);
 }
 
 //-----------------------------------------------------------------------------

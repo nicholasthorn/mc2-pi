@@ -3486,11 +3486,13 @@ long GroundVehicle::update (void)
 		velMag = velocityMag;
 
 
-	if (withdrawing && !inView && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
+	// inView is only ever set by now on a destroyed vehicle, and a multiplayer
+	// host's view must not change the game.
+	if (withdrawing && (!inView || isNetHost()) && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
 		getObjectType()->handleDestruction(this, NULL);
 
 	//We are a vehicle pilot.  Whack us when we are no longer in view.
-	if (isVehiclePilot && !inView)
+	if (isVehiclePilot && (!inView || isNetHost()))
 		setExists(false);
 
 	//We are a Vehicle Pilot. Check If I have nothing to do.  If not, move 'em out!
