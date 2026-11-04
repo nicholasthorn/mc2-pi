@@ -54,7 +54,15 @@ struct TGAFileHeader
 
 #pragma pack()
 
-void tgaDecomp (MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header);
+// true when fileSize bytes hold the header and, past its id and colour map,
+// width x height pixels of depth bits (a header can claim anything)
+bool tgaPixelsFit (const void *fileImage, long fileSize, long width, long height, long depth);
+// the same for the size and depth the header itself claims
+bool tgaHeaderFits (const void *fileImage, long fileSize);
+
+// false when the data ends early or does not fit the header's size: dest holds
+// the header's width x height x 4 bytes, source sourceSize bytes
+bool tgaDecomp (MemoryPtr dest, MemoryPtr source, long sourceSize, TGAFileHeader *tga_header);
 
 void loadTGATexture (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height);
 void loadTGAMask (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height);

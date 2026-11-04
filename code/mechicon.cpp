@@ -452,6 +452,11 @@ TGAFileHeader* loadIconSheet( const char* fileName )
 	int size = file.getLength();
 	TGAFileHeader* sheet = reinterpret_cast<TGAFileHeader*>( new char[size] );
 	file.read( reinterpret_cast<BYTE*>( sheet ), size );
+	if ( !tgaHeaderFits( sheet, size ) )
+	{
+		delete [] reinterpret_cast<char*>( sheet );
+		return NULL;
+	}
 	flipTopToBottom( reinterpret_cast<BYTE*>( sheet + 1 ), sheet->pixel_depth, sheet->width, sheet->height );
 	return sheet;
 }
@@ -508,6 +513,13 @@ bool MechIcon::initTextures()
 
 		s_MechTextures = (TGAFileHeader*)new char[size];
 		file.read( (BYTE*)s_MechTextures, size );
+		if ( !tgaHeaderFits( s_MechTextures, size ) )
+		{
+			Assert( 0, 0, "The mech parts sheet does not hold the image its header claims" );
+			delete [] reinterpret_cast<char*>( s_MechTextures );
+			s_MechTextures = NULL;
+			return false;
+		}
 		BYTE* pTmp = (BYTE*)(s_MechTextures + 1);
 
 		flipTopToBottom (pTmp, s_MechTextures->pixel_depth, s_MechTextures->width, s_MechTextures->height );
@@ -541,7 +553,8 @@ bool MechIcon::init( Mover* pMover )
 
 bool MechIcon::init( long whichIndex )
 {
-	initTextures();
+	if ( !initTextures() )
+		return false;
 
 	int pixelDepth = s_MechTextures->pixel_depth/8; 
 	if ( pixelDepth != 4 )
@@ -1186,6 +1199,13 @@ bool VehicleIcon::init( Mover* pMover )
 
 		s_VehicleTextures = (TGAFileHeader*)new char[size];
 		file.read( (BYTE*)s_VehicleTextures, size );
+		if ( !tgaHeaderFits( s_VehicleTextures, size ) )
+		{
+			Assert( 0, 0, "The vehicle parts sheet does not hold the image its header claims" );
+			delete [] reinterpret_cast<char*>( s_VehicleTextures );
+			s_VehicleTextures = NULL;
+			return false;
+		}
 		BYTE* pTmp = (BYTE*)(s_VehicleTextures + 1); 
 
 		flipTopToBottom (pTmp, s_VehicleTextures->pixel_depth, s_VehicleTextures->width, s_VehicleTextures->height );

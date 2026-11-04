@@ -331,6 +331,29 @@ TEST_CASE("an FST with no entries still opens")
 	remove(fstPath.c_str());
 }
 
+TEST_CASE("readFastRAW refuses a buffer smaller than the entry")
+{
+	const std::string fstPath = scratchPath("raw_small.fst");
+	authorFst(fstPath, kFstEntryName, kFstPayload, (int)strlen(kFstPayload));
+	{
+		FastFile ff;
+		REQUIRE(ff.open(fstPath.c_str()) == NO_ERR);
+		const long entry = ff.openFast(elfHash(kFstEntryName), kFstEntryName);
+		REQUIRE(entry >= 0);
+		REQUIRE(ff.lzSizeFast(entry) > 1);
+
+		char tiny[2] = { 'x', 'y' };
+		CHECK(ff.readFastRAW(entry, tiny, 1) == 0);
+		CHECK(tiny[0] == 'x');
+		CHECK(tiny[1] == 'y');
+
+		// the size it asks for still works
+		std::string whole((size_t)ff.lzSizeFast(entry), '\0');
+		CHECK(ff.readFastRAW(entry, &whole[0], (DWORD)whole.size()) == ff.lzSizeFast(entry));
+	}
+	remove(fstPath.c_str());
+}
+
 // Where there is no dialog (Linux, Pi), MessageBox answers neither OK nor Cancel,
 // so the retry loops must give up instead of spinning. On Windows these paths
 // open a real dialog, which would block the tests.

@@ -386,6 +386,28 @@ void TerrainColorMap::refractalizeBaseMesh (const char *fileName, long Threshold
 float ContrastEnhance = 1.5f;
 float ShadowEnhance = 2.0f;
 //---------------------------------------------------------------------------
+// The colour and height map readers go by the header: width x width pixels of
+// 24 or 32 bits.  A file that cannot hold that comes back as NO_IMAGE, which
+// they skip.
+static bool readSquareTGAHeader (TGAFileHeader &info, MemoryPtr tgaFileImage, long fileSize)
+{
+	memset(&info,0,sizeof(TGAFileHeader));
+	if (fileSize < (long)sizeof(TGAFileHeader))
+		return false;
+
+	memcpy(&info,tgaFileImage,sizeof(TGAFileHeader));
+	if (info.image_type != UNC_TRUE)
+		return true;
+
+	if (info.width == info.height && (info.pixel_depth == 24 || info.pixel_depth == 32) &&
+		tgaPixelsFit(tgaFileImage,fileSize,info.width,info.width,info.pixel_depth))
+		return true;
+
+	info.image_type = NO_IMAGE;
+	return false;
+}
+
+//---------------------------------------------------------------------------
 void TerrainColorMap::burnInShadows (bool doBumpPass, const char *fileName)
 {
 	//-----------------------------------------------------------------
@@ -443,8 +465,13 @@ void TerrainColorMap::burnInShadows (bool doBumpPass, const char *fileName)
 			heightMapFile.read(tgaFileImage,heightMapFile.fileSize());
 			
 			TGAFileHeader heightMapInfo;
-			memcpy(&heightMapInfo,tgaFileImage,sizeof(TGAFileHeader));
-			
+			if (!readSquareTGAHeader(heightMapInfo,tgaFileImage,heightMapFile.fileSize()))
+			{
+				PAUSE(("Hi-Res Height Map %s is not a whole square 24 or 32 bit image. No shadows will be burnt.  Press Continue",heightMapFile.getFilename()));
+				free(tgaFileImage);
+				return;
+			}
+
 			if (heightMapInfo.width != pixelWidth)
 			{
 				PAUSE(("Hi-Res Height Map wrong size %d. Should be %d. No shadows will be burnt.  Press Continue",heightMapInfo.width,pixelWidth));
@@ -979,7 +1006,7 @@ inline bool textureIsOKFormat (const char *fileName)
 	long result = tgaFile.open(fileName);
 	if (result == NO_ERR)
 	{
-		struct TGAFileHeader tgaHeader;
+		struct TGAFileHeader tgaHeader = {};
 		tgaFile.read((MemoryPtr)&tgaHeader,sizeof(TGAFileHeader));
 		if (((tgaHeader.image_type == UNC_TRUE) || (tgaHeader.image_type == RLE_TRUE)) &&
 			(tgaHeader.width == tgaHeader.height) &&
@@ -1142,7 +1169,14 @@ void TerrainColorMap::recalcLight(const char *fileName)
 	colorMapFile.read(tgaFileImage,colorMapFile.fileSize());
 		
 	TGAFileHeader colorMapInfo;
-	memcpy(&colorMapInfo,tgaFileImage,sizeof(TGAFileHeader));
+	if (!readSquareTGAHeader(colorMapInfo,tgaFileImage,colorMapFile.fileSize()))
+	{
+		PAUSE(("Terrain Color Map %s is not a whole square 24 or 32 bit image.  Press Continue",colorMapFile.getFilename()));
+		free(tgaFileImage);
+		delete colorMapRAMHeap;
+		colorMapRAMHeap = NULL;
+		return;
+	}
 		
 	if (colorMapInfo.image_type == UNC_TRUE)
 	{
@@ -1290,7 +1324,14 @@ void TerrainColorMap::resetBaseTexture (const char *fileName)
 	colorMapFile.read(tgaFileImage,colorMapFile.fileSize());
 		
 	TGAFileHeader colorMapInfo;
-	memcpy(&colorMapInfo,tgaFileImage,sizeof(TGAFileHeader));
+	if (!readSquareTGAHeader(colorMapInfo,tgaFileImage,colorMapFile.fileSize()))
+	{
+		PAUSE(("Terrain Color Map %s is not a whole square 24 or 32 bit image.  Press Continue",colorMapFile.getFilename()));
+		free(tgaFileImage);
+		delete colorMapRAMHeap;
+		colorMapRAMHeap = NULL;
+		return;
+	}
 		
 	if (colorMapInfo.image_type == UNC_TRUE)
 	{
@@ -1445,7 +1486,14 @@ void TerrainColorMap::getScaledColorMap (MemoryPtr bfr, long dWidth)
 		colorMapFile.read(tgaFileImage,colorMapFile.fileSize());
 		
 		TGAFileHeader colorMapInfo;
-		memcpy(&colorMapInfo,tgaFileImage,sizeof(TGAFileHeader));
+		if (!readSquareTGAHeader(colorMapInfo,tgaFileImage,colorMapFile.fileSize()))
+		{
+			PAUSE(("Terrain Color Map %s is not a whole square 24 or 32 bit image.  Press Continue",colorMapFile.getFilename()));
+			free(tgaFileImage);
+			delete colorMapRAMHeap;
+			colorMapRAMHeap = NULL;
+			return;
+		}
 		
 		if (colorMapInfo.image_type == UNC_TRUE)
 		{
@@ -1750,7 +1798,8 @@ long TerrainColorMap::init (char *fileName)
 			colorMapFile.read(tgaFileImage,colorMapFile.fileSize());
 
 			TGAFileHeader colorMapInfo;
-			memcpy(&colorMapInfo,tgaFileImage,sizeof(TGAFileHeader));
+			if (!readSquareTGAHeader(colorMapInfo,tgaFileImage,colorMapFile.fileSize()))
+				STOP(("Terrain Color Map %s is not a whole square 24 or 32 bit image",colorMapFile.getFilename()));
 
 			if (colorMapInfo.image_type == UNC_TRUE)
 			{

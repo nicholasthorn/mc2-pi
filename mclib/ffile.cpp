@@ -726,13 +726,17 @@ long FastFile::readFastRAW (DWORD fastFileHandle, void *bfr, DWORD size)
 
 	if ((fastFileHandle >= 0) && (fastFileHandle < numFiles) && files[fastFileHandle].inuse)
 	{
+		// retrying cannot make the entry fit, and the retry below reads the whole entry
+		if (size < files[fastFileHandle].pfe->size)
+		{
+			PAUSE(("%s is %d bytes, more than the %d bytes given to read it",files[fastFileHandle].pfe->name,(int)files[fastFileHandle].pfe->size,(int)size));
+			return 0;
+		}
+
 		logicalPosition = fseek(handle,files[fastFileHandle].pos + files[fastFileHandle].pfe->offset,SEEK_SET);
 
-		if (size >= files[fastFileHandle].pfe->size)
-		{
-			result = fread(bfr,1,files[fastFileHandle].pfe->size,handle);
-			logicalPosition += files[fastFileHandle].pfe->size;
-		}
+		result = fread(bfr,1,files[fastFileHandle].pfe->size,handle);
+		logicalPosition += files[fastFileHandle].pfe->size;
 
 		if (result != files[fastFileHandle].pfe->size)
 		{
