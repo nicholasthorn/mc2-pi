@@ -422,6 +422,12 @@ static void android_prepare(int& argc, char**& argv)
     }
     printf("[ANDROID] files folder: %s\n", dir ? dir : SDL_GetError());
 
+    // On OpenSL a steady buzz at about 1 Hz came in late in long Quest sessions,
+    // and it was not in the game's mix. Not overwriting: the environment or
+    // mc2args.txt can still choose. A driver is only passed over if its library
+    // cannot be set up: one that fails later, opening the device, gets no second try.
+    setenv("SDL_AUDIODRIVER", "aaudio,openslES,android", 0);
+
     if(argc > 1)
         return;
     // by full path: SDL resolves a relative one against the internal storage
