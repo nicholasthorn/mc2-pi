@@ -49,6 +49,28 @@ Mechlopedia::~Mechlopedia()
 
 
 
+// These layouts are 800x600 and have no version for a larger front end (Omnitech's),
+// so there they go in the middle. A tab's contents sit at a fixed place within that.
+static long originX()
+{
+	return ( LogisticsScreen::frontEndWidth() - 800 ) / 2;
+}
+
+static long originY()
+{
+	return ( LogisticsScreen::frontEndHeight() - 600 ) / 2;
+}
+
+static long tabX()
+{
+	return originX() + 285;
+}
+
+static long tabY()
+{
+	return originY() + 58;
+}
+
 int Mechlopedia::init()
 {
 	FullPathFileName path;
@@ -64,6 +86,7 @@ int Mechlopedia::init()
 	}
 
 	LogisticsScreen::init( file, "Static", "Text", "Rect", "Button" );
+	move( originX(), originY() );
 
 	buttons[buttonCount-1].setMessageOnRelease();
 
@@ -181,7 +204,7 @@ int Mechlopedia::SubScreen::init( FitIniFile& file )
 		buttons[i].setMessageOnRelease();
 
 	descriptionListBox.init( rects[0].left(), rects[0].top(), rects[0].width(), rects[0].height() );
-	descriptionListBox.move( 285, 58 );
+	descriptionListBox.move( tabX(), tabY() );
 	descriptionListBox.setDisabledFX( -1 );
 	descriptionListBox.setHighlightFX( -1 );
 	descriptionListBox.setPressFX( -1 );
@@ -257,15 +280,15 @@ void Mechlopedia::MechScreen::init()
 	SubScreen::init( file );
 
 	compListBox.init( rects[2].left(), rects[2].top(), rects[2].width(), rects[2].height() );
-	compListBox.move( 285, 58 );
+	compListBox.move( tabX(), tabY() );
 	statsListBox.init( rects[1].left(), rects[1].top(), rects[1].width(), rects[1].height() );
-	statsListBox.move( 285, 58 );
+	statsListBox.move( tabX(), tabY() );
 
 	statsListBox.setDisabledFX( -1 );
 	statsListBox.setHighlightFX( -1 );
 	statsListBox.setPressFX( -1 );
 
-	camera.init( statics[4].left() + 285, statics[4].top() + 58, statics[4].right() + 285, statics[4].bottom() + 58 );
+	camera.init( statics[4].left() + tabX(), statics[4].top() + tabY(), statics[4].right() + tabX(), statics[4].bottom() + tabY() );
 	statics[4].setColor( 0 );
 
 	textObjects[0].setText( "" );
@@ -458,7 +481,7 @@ void Mechlopedia::MechScreen::render()
 	statsListBox.render();
 	compListBox.render();
 
-	LogisticsScreen::render(285, 58);
+	LogisticsScreen::render( tabX(), tabY() );
 }
 
 void Mechlopedia::MechScreen::setVehicle( LogisticsVehicle* pVehicle )
@@ -672,10 +695,10 @@ void Mechlopedia::WeaponScreen::init()
 
 	SubScreen::init( file );
 
-	statsListBox.init( rects[2].left(), rects[2].top(), rects[2].right(), rects[2].bottom() );
-	statsListBox.move( 285, 58 );
+	statsListBox.init( rects[2].left(), rects[2].top(), rects[2].width(), rects[2].height() );
+	statsListBox.move( tabX(), tabY() );
 
-	camera.init( statics[4].left() + 285, statics[4].top() + 58, statics[4].right() + 285, statics[4].bottom() + 58 );
+	camera.init( statics[4].left() + tabX(), statics[4].top() + tabY(), statics[4].right() + tabX(), statics[4].bottom() + tabY() );
 	statics[4].setColor( 0 );
 
 	textObjects[0].setText( "" );
@@ -694,7 +717,7 @@ void Mechlopedia::WeaponScreen::render()
 	statsListBox.render();
 	groupListBox->render();
 
-	LogisticsScreen::render( 285, 58 );
+	LogisticsScreen::render( tabX(), tabY() );
 	camera.render();
 	
 }
@@ -919,7 +942,7 @@ void Mechlopedia::PersonalityScreen::render()
 	descriptionListBox.render();
 	groupListBox->render();
 
-	LogisticsScreen::render(285, 58);
+	LogisticsScreen::render( tabX(), tabY() );
 }
 void Mechlopedia::PersonalityScreen::begin()
 {
@@ -1077,14 +1100,14 @@ void Mechlopedia::BuildingScreen::init()
 	SubScreen::init( file );
 
 	compListBox.init( rects[2].left(), rects[2].top(), rects[2].width(), rects[2].height() );
-	compListBox.move( 285, 58 );
+	compListBox.move( tabX(), tabY() );
 
-	camera.init( statics[4].left() + 285, statics[4].top() + 58, statics[4].right() + 285, statics[4].bottom() + 58 );
+	camera.init( statics[4].left() + tabX(), statics[4].top() + tabY(), statics[4].right() + tabX(), statics[4].bottom() + tabY() );
 	statics[4].setColor( 0 );
 
 	textObjects[0].setText( "" );
 
-	descriptionListBox.init( rects[1].left() + 285, rects[1].top() + 58, rects[1].width(), rects[1].height() );
+	descriptionListBox.init( rects[1].left() + tabX(), rects[1].top() + tabY(), rects[1].width(), rects[1].height() );
 
 
 }
@@ -1099,7 +1122,7 @@ void Mechlopedia::BuildingScreen::render()
 	compListBox.render();
 	descriptionListBox.render();
 	groupListBox->render();
-	LogisticsScreen::render(285, 58);
+	LogisticsScreen::render( tabX(), tabY() );
 	camera.render();
 }
 void Mechlopedia::BuildingScreen::begin()

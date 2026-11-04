@@ -120,11 +120,12 @@ void Logistics::start (long startMode)
 	{
 		case log_RESULTS: // pull out results later...
 			active = true;
-			//Heading back to logistics now.  Change screen back to the front end's mode
+			//Heading back to logistics now.  The results screens have 800x600 layouts on any
+			//data; MainMenu and MissionBegin go on to the front end's mode
 			if (prefs.renderer == 3)
-				gos_SetScreenMode(LogisticsScreen::frontEndWidth(),LogisticsScreen::frontEndHeight(),16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
+				gos_SetScreenMode(800,600,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
 			else
-				gos_SetScreenMode(LogisticsScreen::frontEndWidth(),LogisticsScreen::frontEndHeight(),16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+				gos_SetScreenMode(800,600,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
 
 			lastMissionResult = scenarioResult;
 			if ( !missionResults )
