@@ -791,6 +791,15 @@ void MainMenu::render()
 				const int ySplash = (Environment.screenHeight - 600) / 2;
 				background.render( xSplash, ySplash );
 				intro.render( xSplash, ySplash );
+				// the art runs past 800x600, where stock's screen ends
+				GUI_RECT above = { 0, 0, Environment.screenWidth, ySplash };
+				GUI_RECT below = { 0, ySplash + 600, Environment.screenWidth, Environment.screenHeight };
+				GUI_RECT left = { 0, 0, xSplash, Environment.screenHeight };
+				GUI_RECT right = { xSplash + 800, 0, Environment.screenWidth, Environment.screenHeight };
+				drawRect( above, 0xff000000 );
+				drawRect( below, 0xff000000 );
+				drawRect( left, 0xff000000 );
+				drawRect( right, 0xff000000 );
 			}
 			else
 			{
