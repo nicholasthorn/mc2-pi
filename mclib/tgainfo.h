@@ -54,7 +54,22 @@ struct TGAFileHeader
 
 #pragma pack()
 
-void tgaDecomp (MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header);
+// true when fileSize bytes hold the header and, past its id and colour map,
+// width x height pixels of depth bits (a header can claim anything)
+bool tgaPixelsFit (const void *fileImage, long fileSize, long width, long height, long depth);
+// the same for the size and depth the header itself claims
+bool tgaHeaderFits (const void *fileImage, long fileSize);
+// Copies the header for the colour and height map readers, which go by it:
+// width x width pixels of 24 or 32 bits.  A file that cannot hold that comes back
+// false and as NO_IMAGE, which they skip.  Other image types are not read.
+bool tgaReadSquareHeader (TGAFileHeader &info, const void *fileImage, long fileSize);
+// Could a file this long hold a square image this wide, even run-length coded
+// (a 4 byte packet gives at most 128 pixels)?  For sizing a buffer from a header.
+bool tgaWidthIsPlausible (long width, long fileSize);
+
+// false when the data ends early or does not fit the header's size: dest holds
+// the header's width x height x 4 bytes, source sourceSize bytes
+bool tgaDecomp (MemoryPtr dest, MemoryPtr source, long sourceSize, TGAFileHeader *tga_header);
 
 void loadTGATexture (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height);
 void loadTGAMask (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height);

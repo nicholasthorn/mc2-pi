@@ -158,10 +158,10 @@ Added 2026-10-31.
     archive) and `NumFastFiles` in `system.cfg`. Small fixed or bounded sizes 28,
     buffers of a file's real length 16, dead code 13 (`refractalizeBaseMesh` and
     `rescaleMap`, nothing calls them).
-  - [ ] The last 4 are sized by a TGA header's width and height (`flipTopToBottom`,
+  - [x] The last 4 are sized by a TGA header's width and height (`flipTopToBottom`,
     `burnInShadows`), and a NULL check would not help: a header that lies about
     its size overruns the buffer in the caller's `memcpy` first. The TGA readers
-    need the header checked against the file's length.
+    now check the header against the file's length (branch `fix/tga-header-check`).
   - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
     each batch, so the count only goes down.
 - [x] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
@@ -547,6 +547,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: TGA headers are checked against the file (branch `fix/tga-header-check`). `tgaPixelsFit` and `tgaHeaderFits` in `mclib/tgainfo.cpp`; the terrain tile, mask, colour map, height map, icon sheet and waiting-screen readers refuse a file that cannot hold what its header claims, and `tgaDecomp` is bounded by source and image. All 3021 TGAs in `mc2srcdata` pass the check. `readFastRAW` refuses a too-small buffer instead of overflowing it on a Windows retry. `ByteFlag::initTGA` has no callers and is unchanged.
 - 2026-11-04: Study, nothing built: `planning/future-features/OPEN-WORLD.md` proposes an open-world mercenary mode (star map, generated contracts, lasting damage, rivals, shops, zones up to 240 vertices, eras) as a layer above the missions, with zones and loading screens rather than streaming. It found `MAX_GLOBAL_PATH` (only a no-op assert guards a fixed array) and an off-by-one in the pilot `MAX_MISSIONS` check, neither fixed.
 - 2026-11-04: A missing FST no longer hangs on Linux and the Pi (branch `fix/missing-fst-hang`). The retry loops behind the old "insert the CD" dialogs only exit on Cancel, and the Linux `MessageBoxA` stub answers neither OK nor Cancel, so they spun for ever: a missing archive, a file missing with `tgl.fst` gone too, an archive cut off before its data, and a missing pilot video. They now give up when no dialog was shown. Windows dialogs are unchanged.
 - 2026-11-04: Multiplayer phase 1 begun (branch `mp-phase1`): wire format `code/netwire.*` (fixed-width little-endian, range-checked decoders, round-trip and garbage tests) and transport interface `GameOS/gameos/gos_net.*` with a loopback backend for tests. Nothing in the game calls them yet. GameNetworkingSockets v1.6.1 compiles for Android arm64 with OpenSSL and protobuf (7.0 MB stripped), with OpenSSL built in WSL because Git Bash's Perl is incomplete, and a test program over home Wi-Fi between a PC and a sleeping Quest 2 lost nothing in 20 s (round trip p50 17 ms). Then the real backend, `gos_net_gns.cpp`: GNS, protobuf and BoringSSL (BCrypt on Windows) from pinned sources in every build (`cmake/mc2_gns.cmake`, `-DMC2_NET=OFF` to leave out), `net_ping` between two processes in CTest, `scripts/android/net_ping.sh`; PC to Quest over Wi-Fi 600 of 600 messages, round trip p50 6 ms, worst 120 ms. Nothing in the game calls it yet (`NETWORKING.md`, "Android spike"). Fixed in passing: `fetch_deps.sh` could not unpack on a fresh Windows checkout.
