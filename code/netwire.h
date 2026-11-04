@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 2;
+constexpr uint16_t PROTOCOL_VERSION = 3;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -98,6 +98,30 @@ struct ChunkBatch {
 	uint16_t subject = NO_SUBJECT;
 	std::vector<uint32_t> words;
 };
+
+// Something that happened to the world, from the host: two words in a ChunkKind::World
+// batch. What the fields mean by type is the game's, and it must check their ranges.
+enum class WorldEventType : uint8_t {
+	Artillery = 1,		// a, b: cell; value: commander | strike << 8 | seconds << 16
+	Mine = 2,			// a, b: cell; value: state | explosion << 8
+	TerrainFire = 3,	// a: seconds; value: part id
+	Capture = 4,		// a: commander; b: team; value: part id
+	KillLoss = 5		// a: killer; b: loser
+};
+
+constexpr size_t WORLD_EVENT_WORDS = 2;
+constexpr uint16_t MAX_WORLD_FIELD = 0xFFF;	// a and b are 12 bits
+
+struct WorldEvent {
+	WorldEventType type = WorldEventType::Mine;
+	uint16_t a = 0;
+	uint16_t b = 0;
+	uint32_t value = 0;
+};
+
+// False for a field that does not fit, or a type this build does not know.
+bool encodeWorldEvent(const WorldEvent& event, uint32_t words[WORLD_EVENT_WORDS]);
+bool decodeWorldEvent(const uint32_t words[WORLD_EVENT_WORDS], WorldEvent& event);
 
 // Appends little-endian fields to a buffer.
 class Writer {

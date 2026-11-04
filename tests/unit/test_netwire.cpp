@@ -134,6 +134,48 @@ TEST_CASE("ChunkBatch: the check kind is known, the one after it is not")
 	CHECK_FALSE(decode(out.data(), out.size(), back));
 }
 
+TEST_CASE("WorldEvent: exact words and round trip")
+{
+	WorldEvent e;
+	e.type = WorldEventType::Artillery;
+	e.a = 0x123;
+	e.b = 0xABC;
+	e.value = 0xDEADBEEFu;
+	uint32_t words[WORLD_EVENT_WORDS];
+	REQUIRE(encodeWorldEvent(e, words));
+	CHECK(words[0] == 0xABC12301u);
+	CHECK(words[1] == 0xDEADBEEFu);
+
+	WorldEvent back;
+	REQUIRE(decodeWorldEvent(words, back));
+	CHECK(back.type == e.type);
+	CHECK(back.a == e.a);
+	CHECK(back.b == e.b);
+	CHECK(back.value == e.value);
+}
+
+TEST_CASE("WorldEvent: what does not fit is refused")
+{
+	uint32_t words[WORLD_EVENT_WORDS];
+	WorldEvent e;
+	e.a = MAX_WORLD_FIELD + 1;
+	CHECK_FALSE(encodeWorldEvent(e, words));
+	e.a = 0;
+	e.b = MAX_WORLD_FIELD + 1;
+	CHECK_FALSE(encodeWorldEvent(e, words));
+	e.b = 0;
+	e.type = static_cast<WorldEventType>(0);
+	CHECK_FALSE(encodeWorldEvent(e, words));
+	e.type = static_cast<WorldEventType>(6);
+	CHECK_FALSE(encodeWorldEvent(e, words));
+
+	WorldEvent back;
+	const uint32_t none[WORLD_EVENT_WORDS] = { 0u, 0u };
+	CHECK_FALSE(decodeWorldEvent(none, back));
+	const uint32_t past[WORLD_EVENT_WORDS] = { 6u, 0u };
+	CHECK_FALSE(decodeWorldEvent(past, back));
+}
+
 TEST_CASE("Hello: an empty name is fine")
 {
 	std::vector<uint8_t> out;
