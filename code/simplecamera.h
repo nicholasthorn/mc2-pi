@@ -17,6 +17,8 @@ class SimpleCamera : public Camera
 {
 public:
 	SimpleCamera();
+	SimpleCamera(const SimpleCamera&) = delete;
+	SimpleCamera& operator=(const SimpleCamera&) = delete;
 	~SimpleCamera();
 
 	void setMech( const char* fileName, long base = 0xffff7e00, long highlight = 0xffff7e00, long h2 = 0xffbcbcbc );

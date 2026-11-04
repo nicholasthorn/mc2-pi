@@ -53,6 +53,8 @@ namespace Stuff {
 			Node *node,
 			bool has_unique_entries
 		);
+		Hash(const Hash&) = delete;
+		Hash& operator=(const Hash&) = delete;
 		~Hash();
 
 		void

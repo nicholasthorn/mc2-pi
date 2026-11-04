@@ -30,6 +30,8 @@ class MissionSelectionScreen : public LogisticsScreen
 public:
 
 	MissionSelectionScreen();
+	MissionSelectionScreen(const MissionSelectionScreen&) = delete;
+	MissionSelectionScreen& operator=(const MissionSelectionScreen&) = delete;
 	virtual ~MissionSelectionScreen();
  	virtual void render( int xOffset, int yOffset );
 	virtual void begin();

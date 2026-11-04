@@ -1685,7 +1685,7 @@ long GlobalMap::init (PacketFilePtr packetFile, long whichPacket) {
 	gosASSERT(doorLinks != NULL);
 
 	doors = (GlobalMapDoorPtr)systemHeap->Malloc(sizeof(GlobalMapDoor) * (numDoors + NUM_DOOR_OFFSETS));
-	doors_links = (DoorInfoLinksPtr*)systemHeap->Malloc(sizeof(DoorInfoLinksPtr) * (numDoors + NUM_DOOR_OFFSETS));
+	doors_links = static_cast<DoorInfoLinksPtr*>(systemHeap->Malloc(sizeof(DoorInfoLinksPtr) * (numDoors + NUM_DOOR_OFFSETS)));
 	gosASSERT(doors != NULL);
 	if (!readPathRecords(packetFile, whichPacket++, doors, numDoors + NUM_DOOR_OFFSETS, narrowGlobalMapDoor<GlobalMapDoor>)) {
 		reportBadPathPacket(packetFile, whichPacket - 1, "doors", 0, numDoors + NUM_DOOR_OFFSETS);

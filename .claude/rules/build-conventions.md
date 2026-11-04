@@ -73,6 +73,11 @@ When you can only build one locally, say which ones were not built.
   hand; regenerate it with the `update_baseline` run of `static.yml` (the
   baseline depends on the cppcheck version, so it comes from CI) after fixing
   findings, so counts only go down.
+- **cppcheck versions.** The gate runs 2.19.0, built from source and cached
+  (`.github/actions/cppcheck`, which pins the commit). The nightly run also runs
+  Ubuntu 24.04's 2.13 against the same baseline, because each finds things the
+  other misses. Checks that only fire on a pattern the legacy code uses
+  everywhere are turned off in the gate, with the reason, not baselined.
 
 ## Dependencies
 

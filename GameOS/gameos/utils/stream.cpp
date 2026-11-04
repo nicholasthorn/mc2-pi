@@ -27,6 +27,8 @@ class file_stream: public stream
 public:
 
 	file_stream(void);
+	file_stream(const file_stream&) = delete;
+	file_stream& operator=(const file_stream&) = delete;
 	virtual ~file_stream(void);
 	virtual int open(const char *, const char *);
 	virtual int close();
