@@ -1599,6 +1599,18 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 
 //---------------------------------------------------------------------------
 
+// Whether a strike from the network can be, and where on the ground.
+static bool netStrikeLocation (long strike, long row, long col, Stuff::Vector3D& location) {
+
+	if (((strike != ARTILLERY_SMALL) && (strike != ARTILLERY_LARGE) && (strike != ARTILLERY_SENSOR)) || !GameMap->inBounds(row, col))
+		return(false);
+	land->cellToWorld(row, col, location);
+	location.z = land->getTerrainElevation(location);
+	return(true);
+}
+
+//---------------------------------------------------------------------------
+
 static void applyWorldEvent (MultiPlayer* player, const netwire::WorldEvent& event) {
 
 	switch (event.type) {
@@ -1606,13 +1618,10 @@ static void applyWorldEvent (MultiPlayer* player, const netwire::WorldEvent& eve
 			const long commander = event.value & 0xFF;
 			const long strike = (event.value >> 8) & 0xFF;
 			const long seconds = (short)(event.value >> 16);
-			if (!GameMap->inBounds(event.a, event.b) || (commander >= MAX_MC_PLAYERS) || !Commander::commanders[commander]
-				|| !Commander::commanders[commander]->getTeam()
-				|| ((strike != ARTILLERY_SMALL) && (strike != ARTILLERY_LARGE) && (strike != ARTILLERY_SENSOR)))
-				return;
 			Stuff::Vector3D location;
-			land->cellToWorld(event.a, event.b, location);
-			location.z = land->getTerrainElevation(location);
+			if ((commander >= MAX_MC_PLAYERS) || !Commander::commanders[commander] || !Commander::commanders[commander]->getTeam()
+				|| !netStrikeLocation(strike, event.a, event.b, location))
+				return;
 			CallArtillery(commander, strike, location, seconds, false);
 			netWorldApplied[0]++;
 			break;
@@ -1643,6 +1652,9 @@ static void applyWorldEvent (MultiPlayer* player, const netwire::WorldEvent& eve
 			GameObjectPtr object = ObjectManager->findByPartId((long)event.value);
 			if (!object || (object->getObjectClass() != BUILDING) || (event.a >= MAX_MC_PLAYERS) || (event.b >= MAX_TEAMS) || !Team::teams[event.b])
 				return;
+			// as the order that took it did on the host (tacordr.cpp)
+			if ((object->getObjectType()->getObjTypeNum() == GENERIC_HQ_BUILDING_OBJNUM) && (player->missionSettings.missionType == MISSION_TYPE_CAPTURE_BASE))
+				object->setFlag(OBJECT_FLAG_CAPTURABLE, false);
 			object->setCommanderId(event.a);
 			object->setTeamId(event.b, false);
 			netWorldApplied[3]++;
@@ -1745,12 +1757,9 @@ static void applyClientOrder (MultiPlayer* player, const netsession::Received& r
 		const long col = (long)batch.words[2];
 		// more than five minutes is not a strike
 		const long seconds = (long)(int32_t)batch.words[3];
-		if (((strike != ARTILLERY_SMALL) && (strike != ARTILLERY_LARGE) && (strike != ARTILLERY_SENSOR))
-			|| (seconds < -1) || (seconds > 300) || !GameMap->inBounds(row, col))
-			return;
 		Stuff::Vector3D location;
-		land->cellToWorld(row, col, location);
-		location.z = land->getTerrainElevation(location);
+		if ((seconds < -1) || (seconds > 300) || !netStrikeLocation(strike, row, col, location))
+			return;
 		CallArtillery(received.commander, strike, location, seconds, false);
 		netOrdersApplied++;
 		return;
@@ -1928,7 +1937,8 @@ bool MultiPlayer::calcMissionStatus (void) {
 				mines++;
 	long buildings[MAX_TEAMS] = {0};
 	for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
-		const long owner = ObjectManager->getBuilding(i)->getTeamId();
+		BuildingPtr building = ObjectManager->getBuilding(i);
+		const long owner = building ? building->getTeamId() : -1;
 		if ((owner >= 0) && (owner < MAX_TEAMS))
 			buildings[owner]++;
 	}

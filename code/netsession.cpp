@@ -250,7 +250,8 @@ void Session::handleClient(const Event& event)
 		case MessageType::ChunkBatch: {
 			Received received;
 			// state can overtake the Start on the way here: there is nothing yet to apply it to
-			if (started_ && decode(event.data.data(), event.data.size(), received.batch)) {
+			// and after the end the host is still playing on, past the result both must agree on
+			if (started_ && !gameOver_ && decode(event.data.data(), event.data.size(), received.batch)) {
 				received.delivery = event.delivery;
 				inbox_.push_back(std::move(received));
 			}

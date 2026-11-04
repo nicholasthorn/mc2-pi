@@ -1906,6 +1906,14 @@ void ShutdownNetworking (void);
 
 extern MultiPlayer* MPlayer;
 
+// Repair points as a weapon hit chunk can carry them. Over a network both ends must
+// spend the same, so the host rounds before it spends rather than only when it sends.
+inline float netRefitPoints (float points) {
+	if (points > 255.0f)
+		points = 255.0f;
+	return(MPlayer ? (float)((unsigned long)(points * 4.0f)) * 0.25f : points);
+}
+
 // True on a multiplayer host. Its view must not change the game for everyone,
 // so code that only runs for what the camera sees also runs off camera here.
 inline bool isNetHost (void) {

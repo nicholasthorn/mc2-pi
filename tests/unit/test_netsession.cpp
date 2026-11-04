@@ -296,6 +296,32 @@ TEST_CASE("garbage from a peer never crashes a session")
 	}
 }
 
+TEST_CASE("a client takes no batches after the game is over")
+{
+	Game game;
+	REQUIRE(game.host.host(PORT, 2, HASH));
+	Session& a = game.addClient();
+	game.pump();
+	game.host.setRosterHash(ROSTER);
+	CHECK(a.sendReady(ROSTER));
+	game.pump();
+	CHECK(game.host.start());
+	game.pump();
+
+	ChunkBatch batch;
+	batch.kind = ChunkKind::World;
+	batch.words = { 1, 2 };
+	CHECK(game.host.sendToClients(gos_net::Delivery::ReliableOrdered, batch));
+	game.host.endGame(0);
+	CHECK(game.host.sendToClients(gos_net::Delivery::ReliableOrdered, batch));
+	game.pump();
+
+	Received received;
+	CHECK(a.nextBatch(received));	// the one before the end
+	CHECK_FALSE(a.nextBatch(received));
+	CHECK(a.gameOver());
+}
+
 TEST_CASE("a client hears when the host goes")
 {
 	Game game;

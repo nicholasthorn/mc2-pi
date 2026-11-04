@@ -99,7 +99,7 @@ if ! diff <(grep '^\[NETSCORE\]' "$LOG_DIR/host.log") <(grep '^\[NETSCORE\]' "$L
     reasons+=("host and client ended with other scores, buildings or mines ($LOG_DIR/score.diff)")
 fi
 world=$(grep '^\[NETWORLD\]' "$LOG_DIR/client.log" | tail -1)
-for what in 'artillery' 'mines' 'kills and losses' 'repairs'; do
+for what in 'artillery' 'mines' 'captures' 'kills and losses' 'repairs'; do
     echo "$world" | grep -Eq "$what [1-9]" || reasons+=("no $what reached the client: $world")
 done
 last=$(grep '^\[NETCHECK\] [0-9]* units' "$LOG_DIR/client.log" | tail -1)
