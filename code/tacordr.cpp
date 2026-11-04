@@ -555,7 +555,8 @@ bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
 	const bool guardLocation = (code == TACORDERCHUNK_CODE_MASK);
 	if (guardLocation)
 		code = TACTICAL_ORDER_GUARD;
-	else if ((code <= TACTICAL_ORDER_NONE) || (code >= NUM_TACTICAL_ORDERS))
+	// execute STOPs on a recover order, in single player too
+	else if ((code <= TACTICAL_ORDER_NONE) || (code >= NUM_TACTICAL_ORDERS) || (code == TACTICAL_ORDER_RECOVER))
 		return(false);
 
 	unsigned long fields = data0 >> (TACORDERCHUNK_CODE_BITS + TACORDERCHUNK_ORIGIN_BITS + TACORDERCHUNK_UNITORDER_BITS + TACORDERCHUNK_GROUP_BITS);
