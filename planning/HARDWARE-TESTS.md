@@ -166,9 +166,12 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
 
 - [ ] **Video sound on the Quest:** a briefing video with its own sound
       (`node_*`, `cinema*`) is heard, and a skipped video's sound stops.
-- [ ] **The buzz:** a steady buzz at about 1 Hz started late in a long session
-      and carried on into the menus. Not explained, and not fixed by this
-      branch: play a long session and listen for it.
+- [ ] **The buzz:** a steady buzz at about 1 Hz started late in long sessions on
+      SDL's OpenSL driver and carried on into the menus; it was not in the
+      game's mix. Android now prefers AAudio, and one session of about 31 minutes
+      on it was clean. Play longer sessions, stock and Omnitech, and listen for it.
+      `SDL_AUDIODRIVER=openslES` in `mc2args.txt` goes back to OpenSL to
+      compare.
 - [ ] **HUD size on Omnitech:** play several missions in a row; the HUD stays
       full size and does not go small to the lower left. The fix follows a real
       change of frame size, logged as `[XR] the window's frame is now`; a menu
