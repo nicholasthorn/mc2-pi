@@ -149,7 +149,7 @@ void LogisticsMechIcon::setMech( LogisticsMech* pNewMech )
 		icon.setFileWidth(256.f);
 		icon.setUVs( u, v, u2, v2 );
 
-		chassisName.setText( pMech->getChassisName() );
+		chassisName.setText( pMech->getChassisNameText() );
 
 		iconConnector.showGUIWindow( true );
 

@@ -432,6 +432,20 @@ const char* UiSmokeDriver::press(UiAction action)
 		return pressButton(screen, MB_MSG_ADD);
 	case UiAction::AssignPilot:
 		return pressButton(screen, PR_MSG_ADD);
+	case UiAction::ShowMech: {
+		// what clicking a force slot with no pilot does; the pilot list stays
+		if (!screen)
+			return "screen is gone";
+		EList<LogisticsMech*, LogisticsMech*> mechs;
+		LogisticsData::instance->getInventory(mechs);
+		for (EList<LogisticsMech*, LogisticsMech*>::EIterator it = mechs.Begin(); !it.IsDone(); it++) {
+			if ((*it)->getForceGroup()) {
+				static_cast<PilotReadyScreen*>(screen)->setMech(*it);
+				return NULL;
+			}
+		}
+		return "no mech in the force";
+	}
 	case UiAction::PickSkill:
 		// the list holds the skills the pilot's new rank allows and it does
 		// not have yet, under a heading per rank
@@ -509,6 +523,9 @@ void UiSmokeDriver::update()
 			finish(line, true);
 			return;
 		}
+		// a longer hold, to take pictures of the screens
+		if (const char* hold = getenv("MC2_UISMOKE_HOLD"))
+			g_walk.holdFrames = atol(hold);
 		printf("[UISMOKE] walk of %ld screens: %s\n", g_walk.numSteps(), text);
 		fflush(stdout);
 		g_last = std::chrono::steady_clock::now();

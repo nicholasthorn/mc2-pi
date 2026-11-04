@@ -1700,6 +1700,10 @@ long LogisticsData::updateAvailability()
 		}
 	}
 
+	// a pilot Omnitech offered once stays, see keepPlayedMissionsPilots
+	if ( omnitechData() )
+		keepPlayedMissionsPilots();
+
 	for (PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
 	{
 		
@@ -1717,6 +1721,38 @@ long LogisticsData::updateAvailability()
 
 	return 0;
 
+}
+
+// Exodus and MW2 Mercs name a pilot in one mission's purchase file and not in the
+// next ones, so from Exodus' second mission on the pilot list was empty. The other
+// Omnitech campaigns repeat their whole roster, so this changes nothing for them.
+// Worked out from the played missions, not saved, so a load gets the same list.
+void LogisticsData::keepPlayedMissionsPilots()
+{
+	const char* pFileNames[512];
+	int fileCount = missionInfo->getPlayedPurchaseFiles( pFileNames, 512 );
+
+	for ( int f = 0; f < fileCount; f++ )
+	{
+		FitIniFile file;
+		if ( NO_ERR != file.open( pFileNames[f] ) || NO_ERR != file.seekBlock( "Pilots" ) )
+			continue;
+
+		char tmp[32];
+		char pilotName[255];
+		for ( int i = 0; i < 255; i++ )
+		{
+			sprintf( tmp, "Pilot%d", i );
+			if ( NO_ERR != file.readIdString( tmp, pilotName, 254 ) )
+				break;
+
+			for ( PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
+			{
+				if ( (*pIter).getFileName().Compare( pilotName, 0 ) == 0 )
+					(*pIter).setAvailable( true );
+			}
+		}
+	}
 }
 
 void LogisticsData::appendAvailability(const char* pFileName, bool* availableArray )

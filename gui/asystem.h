@@ -154,6 +154,7 @@ public:
 	virtual void		moveNoRecurse( float offsetX, float offsetY );
 
 	void				setFileWidth( float newWidth ){ fileWidth = newWidth; }
+	float				getFileWidth() const { return fileWidth; }
 	int				getID() const { return ID; }
 	void			setID(int newID) { ID = newID; }
 

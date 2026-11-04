@@ -418,10 +418,7 @@ SalvageListItem::SalvageListItem( BattleMech* pMech )
 	// add the chassis
 	aText* pText = new aText();
 	*pText = *mechNameText;
-	int nameID = pVariant->getChassisName();
-	char tmp[64];
-	cLoadString( nameID, tmp, 63 );
-	pText->setText( tmp );
+	pText->setText( pVariant->getChassisNameText() );
 	addChild( pText );
 
 	// add the variant name
