@@ -39,6 +39,8 @@ public:
 	virtual void update();
 	void	init( FitIniFile* file );
 	virtual int			handleMessage( unsigned long, unsigned long );
+	bool				mercPickChampion();
+	bool				mercJumpToOpenWorld();
 
 
 private:

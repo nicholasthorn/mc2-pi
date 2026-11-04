@@ -9,6 +9,7 @@ belongs in commit messages and PRs.
 
 **Built**
 
+- [x] Mercenary mode, first test slice: star map, generated contracts on stock maps, licence fights, repair bills, in New Campaign; not in releases (`planning/future-features/OPEN-WORLD.md`)
 - [x] Linux build on Ubuntu 22.04 / GCC 11 (pkg-config fallbacks for SDL2_mixer/ttf) through 26.04 / GCC 15
 - [x] OpenGL ES 3.1 renderer behind `-DMC2_GLES=ON` (Raspberry Pi 4/400); desktop GL unchanged
 - [x] GLES texture upload repacking for 8-bit channel-count mismatches
@@ -547,6 +548,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: Mercenary mode, first slice to judge whether it is fun (branch `openworld-slice`): three worlds on a star map, a board of generated contracts on stock maps, licence fights that open the next jump, repair bills, pilots who survive. Reuses the mission selection screen. New `merc/` holds its data; a fourth UI smoke walk covers it. Not played by a person yet; real damage carried between missions, hiring and rivals are still to come.
 - 2026-11-04: TGA headers are checked against the file (branch `fix/tga-header-check`). `tgaPixelsFit` and `tgaHeaderFits` in `mclib/tgainfo.cpp`; the terrain tile, mask, colour map, height map, icon sheet and waiting-screen readers refuse a file that cannot hold what its header claims, and `tgaDecomp` is bounded by source and image. All 3021 TGAs in `mc2srcdata` pass the check. `readFastRAW` refuses a too-small buffer instead of overflowing it on a Windows retry. `ByteFlag::initTGA` has no callers and is unchanged.
 - 2026-11-04: Study, nothing built: `planning/future-features/OPEN-WORLD.md` proposes an open-world mercenary mode (star map, generated contracts, lasting damage, rivals, shops, zones up to 240 vertices, eras) as a layer above the missions, with zones and loading screens rather than streaming. It found `MAX_GLOBAL_PATH` (only a no-op assert guards a fixed array) and an off-by-one in the pilot `MAX_MISSIONS` check, neither fixed.
 - 2026-11-04: A missing FST no longer hangs on Linux and the Pi (branch `fix/missing-fst-hang`). The retry loops behind the old "insert the CD" dialogs only exit on Cancel, and the Linux `MessageBoxA` stub answers neither OK nor Cancel, so they spun for ever: a missing archive, a file missing with `tgl.fst` gone too, an archive cut off before its data, and a missing pilot video. They now give up when no dialog was shown. Windows dialogs are unchanged.

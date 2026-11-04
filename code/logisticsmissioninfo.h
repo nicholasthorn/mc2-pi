@@ -17,6 +17,7 @@ LogisticsMissionInfo.h			: Interface for the LogisticsMissionInfo component.
 
 //*************************************************************************************************
 class FitIniFile;
+class MercMode;
 /**************************************************************************************************
 CLASS DESCRIPTION
 LogisticsMissionInfo:
@@ -95,6 +96,14 @@ class LogisticsMissionInfo
 		bool				skipPurchasing();
 
 		void				setSingleMission( const char* pName );
+
+		// mercenary mode, planning/future-features/OPEN-WORLD.md
+		bool				isMercenary() const { return merc != NULL; }
+		bool				mercJumpSelected() const;
+		bool				mercChampionSelected() const;
+		bool				mercJump();
+		void				mercAddRepairBill( float damageFraction, long tons );
+		void				mercMissionDone();
 
 		bool				canHaveSalavageCraft();
 		bool				canHaveRepairTruck();
@@ -195,6 +204,10 @@ class LogisticsMissionInfo
 		bool					bMultiplayer;
 
 		FILE_LIST				additionalPurchaseFiles;
+
+		MercMode*				merc;
+		long					mercCBillsBefore;
+		void					mercRebuildBoard();
 
 		LogisticsMissionInfo::MissionInfo* getPreviousMission();
 		void readMissionInfo( FitIniFile& file, LogisticsMissionInfo::MissionInfo* pInfo );

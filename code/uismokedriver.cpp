@@ -502,6 +502,16 @@ const char* UiSmokeDriver::press(UiAction action)
 	case UiAction::LabAccept:
 		g_labAccept = true;
 		return NULL;
+	case UiAction::PickMercenary:
+		return pickCampaign("merc");
+	case UiAction::MercChampion:
+		if (MissionSelectionScreen* selection = dynamic_cast<MissionSelectionScreen*>(screen))
+			return selection->mercPickChampion() ? NULL : "no licence fight on the board";
+		return "screen is gone";
+	case UiAction::MercJump:
+		if (MissionSelectionScreen* selection = dynamic_cast<MissionSelectionScreen*>(screen))
+			return selection->mercJumpToOpenWorld() ? NULL : "no world is open to jump to";
+		return "screen is gone";
 	case UiAction::None:
 		break;
 	}

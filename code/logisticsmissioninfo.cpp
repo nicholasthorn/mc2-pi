@@ -15,6 +15,7 @@ LogisticsMissionInfo.cpp			: Implementation of the LogisticsMissionInfo componen
 
 #include"logisticserrors.h"
 #include"multplyr.h"
+#include"mercmode.h"
 
 extern char missionName[1024];
 
@@ -24,6 +25,8 @@ LogisticsMissionInfo::LogisticsMissionInfo()
 	currentStage = 0;
 	lastMission = 0;
 	lastStage = 0;
+	merc = NULL;
+	mercCBillsBefore = 0;
 	groups = 0;
 	currentMissionName = missionName;
 	groupCount = 0;
@@ -64,7 +67,8 @@ void LogisticsMissionInfo::clear()
 
 	additionalPurchaseFiles.Clear();
 
-
+	delete merc;
+	merc = NULL;
 
 	currentMission = -1;
 	currentStage = 0;
@@ -259,7 +263,121 @@ long LogisticsMissionInfo::init( FitIniFile& file )
 
 	}
 
+	// a mercenary campaign's single group is filled from the board, not the file
+	MercMode* mercMode = new MercMode;
+	if ( mercMode->init( file ) )
+	{
+		merc = mercMode;
+		mercRebuildBoard();
+	}
+	else
+		delete mercMode;
+
 	return 0;
+}
+
+void LogisticsMissionInfo::mercRebuildBoard()
+{
+	MissionGroup* pGroup = &groups[0];
+	for ( MISSION_LIST::EIterator iter = pGroup->infos.Begin(); !iter.IsDone(); iter++ )
+		delete (*iter);
+	pGroup->infos.Clear();
+
+	pGroup->operationFileName = merc->world().operationFile.c_str();
+
+	EString shop = missionPath;
+	shop += merc->world().shopFile.c_str();
+	shop += ".fit";
+
+	const std::vector<MercMode::Entry>& board = merc->rebuild( CBills );
+	for ( size_t i = 0; i < board.size(); i++ )
+	{
+		const MercMode::Entry& entry = board[i];
+		MissionInfo* pInfo = new MissionInfo();	// () zeroes the flags not set below
+		pInfo->fileName = entry.fileName.c_str();
+		pInfo->purchaseFileName = shop;
+		pInfo->playLogistics = true;
+		pInfo->playSalvage = true;
+		pInfo->playPilotPromotion = true;
+		pInfo->playPurchasing = true;
+		if ( entry.jumpWorld >= 0 )
+		{
+			pInfo->missionDescriptiveName = entry.title.c_str();
+			pInfo->description = entry.description.c_str();
+			pInfo->completed = !entry.jumpOpen;	// shows its button disabled
+			pInfo->dropWeight = 300;
+		}
+		else
+		{
+			FitIniFile missionFile;
+			if ( NO_ERR == mercOpenMissionFit( missionFile, entry.fileName.c_str() ) )
+				readMissionInfo( missionFile, pInfo );
+			if ( merc->lastPay || merc->lastRepairs )
+			{
+				char report[128];
+				sprintf( report, "\n\nLast job: paid %ld, repairs %ld.", merc->lastPay, merc->lastRepairs );
+				pInfo->description += report;
+			}
+		}
+		pGroup->infos.Append( pInfo );
+	}
+
+	currentMission = 0;
+	currentMissionName = board.empty() ? "" : board[0].fileName.c_str();
+}
+
+bool LogisticsMissionInfo::mercJumpSelected() const
+{
+	if ( !merc )
+		return false;
+	const MercMode::Entry* entry = merc->entry( currentMissionName );
+	return entry && entry->jumpWorld >= 0;
+}
+
+bool LogisticsMissionInfo::mercChampionSelected() const
+{
+	if ( !merc )
+		return false;
+	const MercMode::Entry* entry = merc->entry( currentMissionName );
+	return entry && entry->champion;
+}
+
+bool LogisticsMissionInfo::mercJump()
+{
+	const MercMode::Entry* entry = merc ? merc->entry( currentMissionName ) : NULL;
+	if ( !entry || entry->jumpWorld < 0 || !entry->jumpOpen )
+		return false;
+	const long world = entry->jumpWorld;
+	CBills -= merc->worldAt( world ).jumpCost;
+	merc->state.world = world;
+	merc->state.contractsDone++;
+	merc->lastPay = merc->lastRepairs = 0;
+	mercRebuildBoard();
+	return true;
+}
+
+void LogisticsMissionInfo::mercAddRepairBill( float damageFraction, long tons )
+{
+	if ( merc )
+		merc->lastRepairs += mercRepairBill( damageFraction, tons );
+}
+
+void LogisticsMissionInfo::mercMissionDone()
+{
+	if ( !merc )
+		return;
+	// the board can only change now: the results above read the mission just played
+	const MercMode::Entry* entry = merc->entry( lastMissionName );
+	if ( entry && entry->champion )
+		mercChampionBeaten( merc->state, merc->world() );
+	merc->state.contractsDone++;
+	merc->lastPay = CBills - mercCBillsBefore;
+	// the guild carries a company it would otherwise ground
+	CBills = CBills > merc->lastRepairs ? CBills - merc->lastRepairs : 0;
+	mercRebuildBoard();
+	merc->lastRepairs = 0;
+	// what a smoke run checks
+	printf( "[MERC] world %ld licences %ld C-Bills %ld paid %ld\n", merc->state.world, merc->state.licences, CBills, merc->lastPay );
 }
 
 void LogisticsMissionInfo::readMissionInfo( FitIniFile& file, LogisticsMissionInfo::MissionInfo* pInfo )
@@ -373,6 +491,17 @@ long LogisticsMissionInfo::load( FitIniFile& file )
 	// reset rp
 	file.readIdLong( "CBills", CBills );
 
+	if ( merc )
+	{
+		long seed = (long)merc->state.seed;
+		file.readIdLong( "MercWorld", merc->state.world );
+		file.readIdLong( "MercLicences", merc->state.licences );
+		file.readIdLong( "MercContractsDone", merc->state.contractsDone );
+		file.readIdLong( "MercSeed", seed );
+		merc->state.seed = (uint32_t)seed;
+		mercRebuildBoard();
+	}
+
 	// set the current mission group
 	file.readIdLong( "Group", currentStage );
 
@@ -471,6 +600,14 @@ void LogisticsMissionInfo::save( FitIniFile& file )
 
 	// save the rp
 	file.writeIdLong( "CBills", CBills );
+
+	if ( merc )
+	{
+		file.writeIdLong( "MercWorld", merc->state.world );
+		file.writeIdLong( "MercLicences", merc->state.licences );
+		file.writeIdLong( "MercContractsDone", merc->state.contractsDone );
+		file.writeIdLong( "MercSeed", (long)merc->state.seed );
+	}
 
 	// save the current mission group
 	file.writeIdLong( "Group", currentStage );
@@ -799,6 +936,12 @@ void LogisticsMissionInfo::setMissionComplete( )
 	lastMission = currentMission;
 	lastMissionName = currentMissionName;
 
+	if ( merc )
+	{
+		mercCBillsBefore = CBills;
+		return;
+	}
+
 	MissionGroup* pGroup = &groups[currentStage];
 	if ( pGroup && currentMission > -1 )
 	{
@@ -1039,6 +1182,9 @@ const char*			LogisticsMissionInfo::getFinalVideo() const
 
 bool LogisticsMissionInfo::isLastMission() const
 {
+	if ( merc )
+		return false;
+
 	if ( currentStage < 0 || currentStage != groupCount - 1 || currentMission < 0 )
 		return false;
 

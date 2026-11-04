@@ -10,6 +10,7 @@
 #include"logisticspilot.h"
 #include"logisticserrors.h"
 #include"logisticsdata.h"
+#include"logisticsmissioninfo.h"
 
 #include"warrior.h"
 #include"../resource.h"
@@ -267,7 +268,8 @@ long LogisticsPilot::update( MechWarrior* pWarrior )
 
 	missionsPlayed[missionJustPlayed] = 1;
 
-	if ( pWarrior->getStatus() == WARRIOR_STATUS_DEAD )
+	// a mercenary pilot ejects and comes back
+	if ( pWarrior->getStatus() == WARRIOR_STATUS_DEAD && !LogisticsData::instance->getMissionInfo()->isMercenary() )
 	{
 		bDead = true;
 		bJustDied = true;

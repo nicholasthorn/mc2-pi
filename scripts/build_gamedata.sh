@@ -59,4 +59,6 @@ make -C "$BS" "${MAKE_ARGS[@]}"
 mkdir -p "$OUT"
 cp -r "$BS/data" "$BS/assets" "$OUT/"
 cp "$BS"/*.fst "$BS"/*.cfg "$BS/testtxm.tga" "$OUT/"
+# the mercenary mode (planning/future-features/OPEN-WORLD.md) is data in this repo
+cp -r "$(dirname "$0")/../merc/data/." "$OUT/data/"
 echo "build_gamedata: game data in $OUT ($(du -sh "$OUT" | cut -f1))"

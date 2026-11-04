@@ -83,6 +83,12 @@ UI_LOGISTICS="$UI_LOGISTICS,briefing,mechbay,pilotready+mech,mechbay,pilotready+
 UI_TUTORIAL="mainmenu,campaign+tutorial,missionselection"
 UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection"
 UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection,mission"
+# 4: the mercenary mode (planning/future-features/OPEN-WORLD.md): buy a mech, a
+#    generated contract, the licence fight, the jump it opens, then save and load.
+UI_MERC="mainmenu,campaign+merc,missionselection,briefing,mechbay,mechpurchase+buy,mechbay+add"
+UI_MERC="$UI_MERC,pilotready+pilot,mission,salvage,pilotreview,missionselection+champion"
+UI_MERC="$UI_MERC,briefing,mechbay,pilotready,mission,salvage,pilotreview,missionselection+jump"
+UI_MERC="$UI_MERC,mainmenu,save+name,missionselection,mainmenu,load+pick,missionselection"
 
 GAME_DIR=""
 BUILD_DIR=""
@@ -125,8 +131,13 @@ if [ "$UI_SET" = 0 ]; then
     if grep -qs HiresOffsets "$GAME_DIR/data/art/mcl_mm.fit"; then
         UI_WALKS="$UI_OPTIONS_MCO $UI_LOGISTICS $UI_TUTORIAL"
     else
-        UI_WALKS="$UI_OPTIONS $UI_LOGISTICS $UI_TUTORIAL"
+        UI_WALKS="$UI_OPTIONS $UI_LOGISTICS $UI_TUTORIAL $UI_MERC"
     fi
+fi
+
+# the mercenary mode's data lives in this repo: CI's cached game data predates it
+if ! grep -qs HiresOffsets "$GAME_DIR/data/art/mcl_mm.fit"; then
+    cp -r "$SRC_DIR/merc/data/." "$GAME_DIR/data/" || exit 2
 fi
 
 if [ -n "$BUILD_DIR" ]; then

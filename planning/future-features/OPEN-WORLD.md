@@ -407,19 +407,48 @@ In VR, the star map could be a holotable, which fits the tabletop direction in
   Pokemon link is only inspiration. No formal fan-work policy turned up in a quick
   search, so this is a working assumption and not legal advice.
 
+## What the first slice built and found
+
+Built (2026-11-04): worlds in `merc/data/campaign/merc.fit`, pure rules in
+`code/merccontract.cpp`, game glue in `code/mercmode.cpp` and small hooks in the
+logistics code. It departs from the plan above in a few ways:
+
+- **The star map is the mission selection screen**, with an operation file per world:
+  worlds and contracts are its buttons, and Next on a world makes the jump. No new
+  screen was needed.
+- **Generated missions go in the save directory**, named `merc_c<slot>_<map>`, which
+  also names the stock mission whose terrain they load.
+- **`mc2_gencon.abl` already existed:** a generic script Microsoft shipped for this
+  sort of mission. With the `dredattack01` brain, contracts need no new scripts.
+- **No spawn sidecar is needed:** enemies start at the mission's own enemy start point
+  farthest from the player, so the ground is known to be passable.
+- **Damage is a repair bill, not carried damage**, to test the loop first. In phase 2.
+
+Measured: a mission start took 2 to 8 s in total including game startup, on llvmpipe
+in WSL, with other work running. That is noisy, and the Pi is still to be measured.
+
+To try it, from a game directory with `merc/data` copied over its `data/`: New
+Campaign, then "Mercenary Company (test)". Only 3 worlds and 1 job type (destroy the
+lance) so far. To be judged by playing: pay and prices, lance sizes, and whether
+contracts on the same maps get repetitive.
+
+## Decisions
+
+- **Tone: Pokemon-like first** (2026-11-04). Pilots get injured rather than die, and
+  a lost mech can be bought back. Harsh rules can become a difficulty option later.
+- **Progress: gated by licences** (2026-11-04). Three worlds in the first slice, with
+  a champion fight unlocking the next.
+
 ## Open questions
 
-1. **Who is the player?** Pokemon-like (a friendly route with a collecting focus and
-   gentle failure), or BattleTech-like (harsh money and permanent loss)? Could be
-   a difficulty choice, but the tone and first impressions need one lead.
-2. **Is it free roam from the start, or Pokemon's gated progress through licences?**
-   I lean to gated: it gives a clear goal and limits how much must be balanced.
-3. **How much story writing is wanted, and by whom?** It sets the size of phase 4.
-4. **Is Pi playability a hard requirement for big zones?** If only desktop has to
+1. **How much story writing is wanted, and by whom?** It sets the size of phase 4.
+   For now: minimal text drafted by the agent, for Nicholas to edit.
+2. **Is Pi playability a hard requirement for big zones?** If only desktop has to
    run them, phase 6 gets a lot easier.
-5. **Which era second?** I would pick the Clan Invasion, since the chassis exist.
-6. **Fate of the stock campaign in this mode?** Carver V could appear as a world that
+3. **Which era second?** I would pick the Clan Invasion, since the chassis exist.
+4. **Fate of the stock campaign in this mode?** Carver V could appear as a world that
    starts the stock story, which is a nice touch but ties story state to the sandbox.
+   For now: separate.
 
 ## Sources
 

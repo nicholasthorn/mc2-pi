@@ -16,6 +16,7 @@
 
 #ifndef MISSION_H
 #include"mission.h"
+#include"mercmode.h"
 #endif
 
 //#ifndef MOVE_H
@@ -2074,14 +2075,14 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	strncpy(missionFileName,missionName,79);
 
 	FullPathFileName missionFileName;
-	missionFileName.init(missionPath,missionName,".fit");
+	mercMissionFitPath(missionFileName,missionName);
 
 	duration = 60;
 	
 	missionFile = new FitIniFile;
 	gosASSERT(missionFile != NULL);
 	
-	result = missionFile->open(missionFileName);
+	result = mercOpenMissionFit(*missionFile,missionName);
 	if (result != NO_ERR)
 		STOP(("Unable to open Mission File %s",missionFileName));
 
@@ -2350,7 +2351,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	// Start the Terrain System
 
 	FullPathFileName terrainFileName;
-	terrainFileName.init( missionPath, missionName, ".pak" ); 
+	terrainFileName.init( missionPath, mercMissionTerrain(missionName), ".pak" ); 
 
 	PacketFile pakFile;
 	result = pakFile.open( terrainFileName );

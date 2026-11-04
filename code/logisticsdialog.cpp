@@ -7,6 +7,7 @@ LogisticsDialog.cpp			: Implementation of the LogisticsDialog component.
 \*************************************************************************************************/
 
 #include"logisticsdialog.h"
+#include"mercmode.h"
 #include"abutton.h"
 #include"inifile.h"
 #include"mclib.h"
@@ -616,6 +617,13 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 				if ( pExt )
 					*pExt = '\0';
 
+				// after the stock campaigns, below: New Campaign's first entry stays the campaign
+				if ( bCampaign && S_stricmp( findResult.cFileName, "merc" ) == 0 )
+				{
+					delete pEntry;
+					continue;
+				}
+
 				// Opens the file, so check each save game once
 				bool addItem = bCampaign || isCorrectVersionSaveGame(findResult.cFileName);
 
@@ -675,6 +683,21 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 			pEntry->setText( campaignName );
 
 			pEntry->setHiddenText( "tutorial" );
+			pEntry->setColor( edits[0].getColor() );
+			gameListBox.AddItem( pEntry );
+		}
+
+		path.init(campaignPath, "merc", ".fit" );
+
+		if (fileExists(path))
+		{
+			aLocalizedListItem* pEntry = new aLocalizedListItem();
+			*pEntry = s_instance->templateItem;
+			char campaignName[1024];
+			readCampaignNameFromFile( "merc", campaignName, 1023 );
+			pEntry->setText( campaignName );
+
+			pEntry->setHiddenText( "merc" );
 			pEntry->setColor( edits[0].getColor() );
 			gameListBox.AddItem( pEntry );
 		}
@@ -1036,9 +1059,7 @@ void LogisticsSaveDialog::setMission( const char* fileName)
 		FullPathFileName path;
 		FitIniFile file;
 
-		path.init( missionPath, fileName, ".fit" );
-
-		if ( NO_ERR == file.open( path ) )
+		if ( NO_ERR == mercOpenMissionFit( file, fileName ) )
 		{
 			char missionName[256];
 			missionName[0] = 0;
@@ -1872,9 +1893,7 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 
 		FitIniFile file;
 		FullPathFileName path;
-		path.init( missionPath, pFileName, ".fit" );
-
-		if ( NO_ERR == file.open( path ) )
+		if ( NO_ERR == mercOpenMissionFit( file, pFileName ) )
 		{
 		
 			char missionName[256];

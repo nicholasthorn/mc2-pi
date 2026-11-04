@@ -222,6 +222,9 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechLab, "swap", UiAction::SwapVariant },
 	{ UiScreen::MechLab, "own", UiAction::OwnVariant },
 	{ UiScreen::MechLab, "accept", UiAction::LabAccept },
+	{ UiScreen::CampaignSelect, "merc", UiAction::PickMercenary },
+	{ UiScreen::MissionSelection, "champion", UiAction::MercChampion },
+	{ UiScreen::MissionSelection, "jump", UiAction::MercJump },
 };
 
 } // namespace

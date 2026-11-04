@@ -12,6 +12,7 @@
 // Include Files
 #ifndef MCLIB_H
 #include"mclib.h"
+#include"mercmode.h"
 #endif
 
 #ifndef MISSION_H
@@ -1072,7 +1073,7 @@ void Mission::load (const char *loadFileName)
 	//------------------------------------------------------------
 	// Start the Terrain System
 	FullPathFileName terrainFileName;
-	terrainFileName.init( missionPath, missionFileName, ".pak" ); 
+	terrainFileName.init( missionPath, mercMissionTerrain(missionFileName), ".pak" ); 
 
 	PacketFile pakFile;
 	result = pakFile.open( terrainFileName );

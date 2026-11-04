@@ -92,7 +92,10 @@ enum class UiAction {
 	PickCampaign,		// campaign+pick: pick the campaign MC2_UISMOKE_CAMPAIGN names
 	SwapVariant,		// mechlab+swap: pick another variant in the variant list
 	OwnVariant,			// mechlab+own: pick the mech's own variant again
-	LabAccept			// mechlab+accept: leave by Accept, not Cancel, at the next step
+	LabAccept,			// mechlab+accept: leave by Accept, not Cancel, at the next step
+	PickMercenary,		// campaign+merc: pick the mercenary campaign
+	MercChampion,		// missionselection+champion: select the licence fight on the board
+	MercJump			// missionselection+jump: jump to the first world that is open
 };
 
 const char* uiScreenName(UiScreen s);

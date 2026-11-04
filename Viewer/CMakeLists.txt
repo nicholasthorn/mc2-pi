@@ -5,6 +5,8 @@ set(VIEWER_SOURCES
     "../code/logisticsdata.cpp"
     "../code/logisticsmech.cpp"
     "../code/logisticsmissioninfo.cpp"
+    "../code/merccontract.cpp"
+    "../code/mercmode.cpp"
     "../code/logisticspilot.cpp"
     "../code/logisticsvariant.cpp"
     "../code/mechlopedia.cpp"

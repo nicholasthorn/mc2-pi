@@ -114,6 +114,9 @@ TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
 	CHECK(uiScreenAction(UiScreen::CampaignSelect, "tutorial", 8) == UiAction::PickTutorial);
 	CHECK(uiScreenAction(UiScreen::CampaignSelect, "pick", 4) == UiAction::PickCampaign);
 	CHECK(uiScreenAction(UiScreen::Load, "tutorial", 8) == UiAction::None);
+	CHECK(uiScreenAction(UiScreen::CampaignSelect, "merc", 4) == UiAction::PickMercenary);
+	CHECK(uiScreenAction(UiScreen::MissionSelection, "champion", 8) == UiAction::MercChampion);
+	CHECK(uiScreenAction(UiScreen::MissionSelection, "jump", 4) == UiAction::MercJump);
 	CHECK(uiScreenAction(UiScreen::MechLab, "swap", 4) == UiAction::SwapVariant);
 	CHECK(uiScreenAction(UiScreen::MechLab, "own", 3) == UiAction::OwnVariant);
 	CHECK(uiScreenAction(UiScreen::MechLab, "accept", 6) == UiAction::LabAccept);
