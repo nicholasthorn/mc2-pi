@@ -1,0 +1,24 @@
+FITini
+// For the game modes that turn on an HQ, on a map of that mode, between two processes:
+//   scripts/net_smoke.sh --mission mc2_m05 --scenario bench/net_capture.fit --expect-winner 0 --world-events no
+// Nobody takes damage. Partway in the host's team takes an HQ: the enemy's base on a
+// capture base map, the hill or a territory otherwise. So its team must win, by capture
+// or at the time limit, whichever the mode says. The capture is staged, not ordered.
+
+[Bench]
+l Frames = 20000
+l Gather = 2
+f LineGap = 500.0
+f Spacing = 90.0
+b Pain = FALSE
+l ReorderEvery = 0
+l NetCaptureHqAt = 200
+f NetTimeLimit = 40.0
+l NumSegments = 1
+
+[Segment0]
+st Name = "capture"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend

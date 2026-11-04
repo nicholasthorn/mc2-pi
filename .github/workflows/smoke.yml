@@ -23,7 +23,7 @@ on:
       - "**/CMakeLists.txt"
       - "scripts/smoke.sh"
       - "scripts/net_smoke.sh"
-      - "bench/net_m08.fit"
+      - "bench/net_*.fit"
       - "scripts/build_gamedata.sh"
       - ".github/workflows/smoke.yml"
 
@@ -202,6 +202,17 @@ jobs:
         run: |
           scripts/net_smoke.sh --game-dir gamedata --log-dir smoke-logs/net
           scripts/net_smoke.sh --game-dir gamedata --lag-ms 100 --loss-percent 2 --log-dir smoke-logs/net-lag
+      - name: Multiplayer, the game modes
+        # Each of the stock maps' modes, on a map of that mode. Where an HQ decides it,
+        # the host's team takes one partway in, so it must win.
+        run: |
+          capture="--scenario $PWD/bench/net_capture.fit --expect-winner 0 --world-events no"
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 $capture --log-dir smoke-logs/net-capture-base
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m05 $capture --log-dir smoke-logs/net-king-of-the-hill
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m06 $capture --log-dir smoke-logs/net-last-on-the-hill
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m07 $capture --log-dir smoke-logs/net-territories
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m04 --scenario "$PWD/bench/net_timed.fit" \
+            --world-events no --log-dir smoke-logs/net-last-man-standing
       - uses: actions/upload-artifact@v7
         if: always()
         with:

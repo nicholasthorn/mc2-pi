@@ -350,6 +350,9 @@ void netEvents (void) {
 		BuildingPtr building = ObjectManager->getBuilding(i);
 		if (!building || !building->getExists() || building->isDisabled() || (building->getCommanderId() == Commander::home->getId()))
 			continue;
+		// an HQ can decide the game
+		if (building->getObjectType()->getObjTypeNum() == GENERIC_HQ_BUILDING_OBJNUM)
+			continue;
 		MPlayer->addCaptureBuildingChunk(building, building->getCommanderId(), Commander::home->getId());
 		building->setCommanderId(Commander::home->getId());
 		building->setTeamId(Team::home->getId(), false);
@@ -473,6 +476,12 @@ void BenchDirector::update (const char* missionName) {
 		strike();
 	if ((scenario.netEventsEvery > 0) && (frame > 2) && (frame % scenario.netEventsEvery == 0))
 		netEvents();
+	if (MPlayer && MPlayer->isNetworked() && MPlayer->isServer()) {
+		if (scenario.netTimeLimit > 0.0f)
+			MPlayer->missionSettings.timeLimit = scenario.netTimeLimit;
+		if ((scenario.netCaptureHqAt > 0) && (scenario.netCaptureHqAt == frame))
+			MPlayer->stageHqCapture();
+	}
 	for (long i = 0; i < scenario.numSegments; i++)
 		if (scenario.segments[i].shot == frame)
 			gos_BenchScreenshot(scenario.segments[i].name);

@@ -23,6 +23,8 @@ TIMEOUT=900
 LOG_DIR="net-smoke-logs"
 LAG=""
 LOSS=""
+EXPECT_WINNER=""
+WORLD_EVENTS=yes
 PORT=$((27815 + $$ % 1000))
 
 while [ $# -gt 0 ]; do
@@ -37,6 +39,8 @@ while [ $# -gt 0 ]; do
         --lag-ms) LAG="$2"; shift 2 ;;
         --loss-percent) LOSS="$2"; shift 2 ;;
         --port) PORT="$2"; shift 2 ;;
+        --expect-winner) EXPECT_WINNER="$2"; shift 2 ;;
+        --world-events) WORLD_EVENTS="$2"; shift 2 ;;
         *) echo "net_smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -89,9 +93,11 @@ for side in host client; do
     grep -q '^\[NET\] mission start' "$log" || reasons+=("$side: the mission never started")
     grep -q '^\[NET\] game over' "$log" || reasons+=("$side: played to no result")
 done
-grep -q '^\[NET\] turn .* weapon hit [1-9]' "$LOG_DIR/host.log" || reasons+=("no weapon hits: the battle did not happen")
-grep -q 'orders from clients [1-9]' "$LOG_DIR/host.log" || reasons+=("no orders reached the host")
-grep -q ', holds [1-9]' "$LOG_DIR/host.log" || reasons+=("no hold position reached the host")
+if [ "$WORLD_EVENTS" = yes ]; then
+    grep -q '^\[NET\] turn .* weapon hit [1-9]' "$LOG_DIR/host.log" || reasons+=("no weapon hits: the battle did not happen")
+    grep -q 'orders from clients [1-9]' "$LOG_DIR/host.log" || reasons+=("no orders reached the host")
+    grep -q ', holds [1-9]' "$LOG_DIR/host.log" || reasons+=("no hold position reached the host")
+fi
 hostwin=$(grep -m1 '^\[NET\] game over' "$LOG_DIR/host.log")
 clientwin=$(grep -m1 '^\[NET\] game over' "$LOG_DIR/client.log")
 [ "$hostwin" = "$clientwin" ] || reasons+=("host and client disagree: '$hostwin', '$clientwin'")
@@ -100,9 +106,14 @@ if ! diff <(grep '^\[NETSCORE\]' "$LOG_DIR/host.log") <(grep '^\[NETSCORE\]' "$L
     reasons+=("host and client ended with other scores, buildings or mines ($LOG_DIR/score.diff)")
 fi
 world=$(grep '^\[NETWORLD\]' "$LOG_DIR/client.log" | tail -1)
-for what in 'artillery' 'mines' 'captures' 'kills and losses' 'repairs'; do
-    echo "$world" | grep -Eq "$what [1-9]" || reasons+=("no $what reached the client: $world")
-done
+if [ "$WORLD_EVENTS" = yes ]; then
+    for what in 'artillery' 'mines' 'captures' 'kills and losses' 'repairs'; do
+        echo "$world" | grep -Eq "$what [1-9]" || reasons+=("no $what reached the client: $world")
+    done
+fi
+if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then
+    reasons+=("expected team $EXPECT_WINNER to win: $hostwin")
+fi
 last=$(grep '^\[NETCHECK\] [0-9]* units' "$LOG_DIR/client.log" | tail -1)
 if [ -z "$last" ]; then
     reasons+=("no convergence check reached the client")
