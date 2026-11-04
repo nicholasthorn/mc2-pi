@@ -40,6 +40,7 @@ public:
 
 	virtual void begin();
 	virtual void end();
+	void				releaseMap();
 
 	void setPilot( LogisticsPilot* pPilot );
 	void setMech( LogisticsMech* pMech );
