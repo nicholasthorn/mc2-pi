@@ -21,6 +21,20 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       `net_ping client <its address> 27900` on the other; both ways round. On a
       Quest: `scripts/android/net_ping.sh`. Allow UDP through Windows' firewall.
 
+## Multiplayer
+
+- [ ] **Two machines on one network, in windows** (phase 2). GL on both, then a Pi or GLES
+      build on one. On one: `./mc2 -mission mc2_m08 -nethost 2 -netlisten 27815`. On the other:
+      `./mc2 -mission mc2_m08 -netjoin <its address>:27815`. Allow UDP 27815 through a firewall.
+      Order units on both, from both. Do the other side's mechs walk smoothly, or stutter and
+      warp? Do shots, hits and explosions look right on the client? That answers whether the
+      legacy movement stays. Quitting mid-game is not expected to be tidy yet.
+- [ ] **A Windows peer** (phase 2). The same, one end on Windows: also proves the BCrypt
+      handshake in the game (see "Network transport").
+- [ ] **A Quest as client** (phase 2). `-netjoin` from a PC host, through `args.txt`, worn and
+      in the app. Measure the client's step against a single-player run of `mc2_19`: the plan's
+      question of how much cheaper a client is.
+
 ## In the game (any PC with a display)
 
 - [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click
