@@ -1,118 +1,479 @@
-# Multiplayer networking
+# Multiplayer: proposal
 
-Status: feasibility study, nothing built. Written 2026-10-29 from a read of
-`pi-port`.
+Status: proposal, nothing built. Revised 2026-11-04 from a read of `pi-port`
+at `bec9e85` and of current library and Meta docs; replaces the feasibility
+study of 2026-10-29. Nothing here has been run: code findings are from reading
+it. Line numbers are not recorded on purpose (grep the symbol).
+
+## Summary
+
+- **Model: one authoritative host, clients send orders and receive state.** Not
+  lockstep. This is what the original game did, the hooks for it are still in
+  the code, and it is the only model that survives a mix of x64 and arm64
+  players and a player taking a headset off.
+- **Keep the gameplay branches and the chunk formats. Replace the wire format
+  and the transport, and rewrite the empty `MultiPlayer` methods.**
+- **Transport: GameNetworkingSockets (GNS)**, subject to a short spike on Android
+  builds. ENet is the fallback. GNS brings encryption, congestion control,
+  ICE NAT traversal and a lag simulator.
+- **Same room needs less than it looks.** Quests on one Wi-Fi network, each with
+  its own view, need no shared coordinates and nothing from Meta. Alignment is
+  needed only for one shared physical table, which comes after the VR tabletop
+  mode, and two controller touches on the table can provide it with no cloud.
+- **Start with the riskiest part.** First run a mission with the server branches
+  on and no network at all, then two processes in one mission from the command
+  line. The lobby comes later: the old plan's lobby go/no-go proved little.
 
 ## Problem
 
 MC2 shipped with LAN and internet multiplayer over DirectPlay 8. This port has
-none: the main menu's Multiplayer button is disabled and the multiplayer
-screens crash on the stubbed player data if reached.
+none, and the main menu's Multiplayer button is disabled (`mainmenu.cpp`).
 
-## What is left in the code
+Wanted:
 
-**Removed (before this port existed):** Microsoft's source release already had
-the multiplayer layer stubbed out; `code/multplyr.cpp` is the same in the
-repository's first commit. Specifically:
+1. **Same room:** several Quest 2s in one room playing together.
+2. **Remote:** ordinary internet play, without asking players to forward ports.
+3. **Mixed:** a PC, a Pi and a Quest in one game, since all three are targets.
 
-- About 80 `MultiPlayer` methods are empty or return a constant: session scan,
-  host, join, leave, update, `updateClients`, player info, rosters, the
-  `waitTill*` load barriers, message sending and handling.
-- `WorldChunk::pack` / `unpack` are empty.
-- The GameOS network API (`gos_NetSendMessage`, `gos_NetGetMessage`,
-  `gos_NetInformation`, ... in `GameOS/include/gameos.hpp`, `network.hpp`) is
-  declared but not implemented. `dplay8.h` is only included on non-Linux builds.
+## Scope
 
-**Kept:**
+In: head-to-head and co-op (see "Game modes"), 2 to 8 human players, host on any platform,
+LAN discovery, direct connect, internet rendezvous, chat, cross-play between
+all four build configurations and Quest, leaving and rejoining after a short
+drop.
 
-- `code/multplyr.h` (about 1,850 lines): about 40 message types
-  (`MCMSG_CHAT`, `MCMSG_PLAYER_ORDER`, `MCMSG_MOVER_UPDATE`,
-  `MCMSG_WEAPONHIT_UPDATE`, `MCMSG_WORLD_UPDATE`, `MCMSG_START_MISSION`, ...)
-  with their message classes, session/player structs, `MAX_MC_PLAYERS` = 8,
-  and accessors such as `isServer()`.
-- **Game-side serialisation:** `MoveChunk` and `StatusChunk` (`mover.cpp`),
-  `WeaponFireChunk` and `WeaponHitChunk` (`gameobj.cpp`), `ArtilleryChunk`
-  (`artlry.cpp`), `TacticalOrder::pack/unpack` (`tacordr.cpp`).
-- **Game-side hooks:** about 1,000 `MPlayer` references across `code/`
-  (mission, logistics, mech, ground vehicle, mover, controls, buildings,
-  artillery), including about 110 server/client branches and chunk-queueing
-  calls (`addWeaponHitChunk`, `addWorldChunk`, ...).
-- **Screens:** host game, game browser, direct TCP/IP, parameters, map load,
-  setup, add AI player, stats (`code/mp*.cpp`).
+Out at first: dedicated server, join in progress for a player who was never in
+the mission, host migration (the original had it), ranked play, accounts,
+anti-cheat beyond host validation, built-in voice, store distribution (the game
+data is under the original EULA, every player brings their own).
 
-**Model (inferred from message names and call sites, to be confirmed):**
-host-authoritative state sync. Clients send orders; the server runs the
-simulation and sends mover updates (run-length packed move data), weapon
-fire/hit, world events (mines, artillery, building capture, scores) and mission
-start/end. It is not lockstep, so the simulation does not need to be
-deterministic.
+## What is in the code
 
-## What it would take
+**Gone.** Microsoft's source release had the layer removed already:
 
-1. **Wire format.** The message classes are raw structs with `long` fields
-   (about 165 in `multplyr.h`) and flexible arrays. `long` is 32-bit on Windows
-   and 64-bit on Linux and the Pi, so sending structs as-is would make Windows
-   and Linux players incompatible. Write explicit serialisation with
-   fixed-width little-endian fields. Ideal for TDD: round-trip unit tests per
-   message.
-2. **Transport.** Implement the GameOS network API (or a slimmer replacement)
-   over **ENet**: small, portable C, works on Linux, Windows, Pi and Android,
-   with reliable ordered and unreliable channels that map onto
-   `gosNetFlag_guaranteed`. Alternatives: Valve's GameNetworkingSockets
-   (heavier), SDL_net (TCP/UDP only, more to build).
-3. **`MultiPlayer` reimplementation:** the bulk of the work. Host, join and
-   direct IP; player roster and colours; message dispatch per `MCMSG_*`;
-   the update loops and frequencies (`initUpdateFrequencies`); the load and
-   start barriers; chat; end of mission and stats. No original implementation
-   survives, so the behaviour has to be rebuilt from the header, the call
-   sites and how the game behaves.
-4. **`WorldChunk`** packing: a new design, since the original layout is gone.
-5. **Game-side audit.** None of the ~1,000 multiplayer branches has run since
-   2001 or on 64-bit. Expect bugs; the known NULL dereferences of
-   `getPlayerInfo()` in the MP screens come first.
-6. **Discovery.** LAN: UDP broadcast for the game browser. Internet: direct IP
-   with port forwarding, or a VPN such as Tailscale or ZeroTier. NAT traversal
-   and a lobby server are out of scope.
+- No sockets anywhere, and no `gos_Net*` implementation. `GameOS/include` has
+  the declarations and about 3,400 lines of orphan network headers.
+- `code/multplyr.cpp`: about 140 `MultiPlayer` methods, nearly all empty,
+  including `update`, `processMessages`, `updateClients`, `calcMissionStatus`,
+  every `send*` and `handle*`, and `WorldChunk::pack` / `unpack`.
+- `isServer()` returns false, so a non-null `MPlayer` today takes the client
+  branch everywhere.
+- Win and hill logic went with `calcMissionStatus`. `LAST_MAN_STANDING` has no
+  reference outside its enum, and recovery in multiplayer never existed:
+  `STOP((" Need to implement recover for multiplayer "))` in `tacordr.cpp`.
+
+**Kept, compiled, and not run since 2001:**
+
+- **Hooks:** about 1,030 lines mention `MPlayer`, 94 of them `isServer()` across
+  18 files. Only the host applies damage and destroys things, clients return
+  early from physics and take their state from chunks, and clients skip ABL
+  alarm handlers.
+- **Chunks:** `MoveChunk`, `StatusChunk` (`mover.*`), `WeaponFireChunk`,
+  `WeaponHitChunk` (`gameobj.*`), `ArtilleryChunk` (`artlry.*`) and
+  `TacticalOrder::pack` / `unpack`. They are bit-packed into one or two words.
+  `build*Chunk` and `handle*Chunk` have definitions but no callers: their
+  callers were in the removed code.
+- **Client movement:** `updateNetworkControl` and `netUpdateMovement` walk a mover
+  along steps from its `MoveChunk`, and warp it if it strays past `warpFactor`.
+- **Protocol:** 42 `MCMSG_*` types and 28 live message classes (`multplyr.h`), for
+  documentation of intent more than for reuse: they are raw structs with `long`
+  fields.
+- **Screens:** connection type, browser, host, lobby (`mpparameterscreen`, about
+  2,400 lines), map load and stats compile. `mpdirecttcpip` and `mpaddaiplayer`
+  do not.
+
+CLAUDE.md's "UI stubs" undersells this: the transport and the `MultiPlayer` logic
+are gone, the game side of the protocol is not.
+
+## Decision 1: host-authoritative, not lockstep
+
+| | Lockstep | Host-authoritative (proposed) |
+|---|---|---|
+| x64 with arm64 | Needs bit-identical floats across compilers and libcs | No requirement |
+| Work before the first game | Large sim refactor | Fill in the stubs |
+| Headset taken off | Everyone stalls | Only that player is affected |
+| Client CPU | Runs the full sim | Can skip AI and pathing |
+| Bandwidth | Very low | Low: see below |
+| Rejoin | Replay or a state dump | Next state sweep, plus a catch-up message |
+| Fairness | Equal | Host has no lag, and can cheat |
+
+Lockstep is the classic RTS answer, but this sim is a poor candidate. Found in
+the code:
+
+- **Variable step:** one sim step per frame with `frameLength` from wall-clock
+  time. `-deterministic` fixes it but only promises a match "on one machine".
+- **RNG:** `gos_rand` is libc `rand()`, so the sequence depends on the libc
+  (glibc, bionic, UCRT). Cosmetic code draws from the same stream (weather,
+  `mech3d`, debris, beam wiggle, crater angles), so options and visuals change
+  sim rolls.
+- **Floats:** no `-ffp-contract` is set. GCC's default permits fused
+  multiply-add on arm64, which baseline x64 lacks. `sin`, `cos`, `pow` come from
+  each platform's libm. `SortList` uses `qsort`, whose order for equal keys
+  depends on the libc.
+- **Camera changes the game:** a withdrawing mech is destroyed when out of view
+  (`withdrawing && !inView`), terrain objects update only in active blocks, and
+  in VR the game camera now follows the head (`VR-HEAD-CAMERA.md`). In lockstep,
+  turning your head would desync the match.
+- **Animation feeds the sim:** jump and speed logic reads gesture state, and
+  `Mech3DAppearance::update` draws random numbers.
+
+Frontier's GDC 2024 talk on a cross-platform lockstep RTS reached fixed-point
+maths, at a performance cost, with a sim designed for it. Doing that to 2001 code
+is a rewrite.
+
+**Rollback and client prediction: rejected.** An RTS order tolerates 100 to 200 ms.
+Clients acknowledge at once locally (order marker, pilot voice) and wait for the
+host for everything else. This is the one place a modern action-game technique
+is not worth its cost.
+
+**The topology is client-server,** with the host's machine also playing. No
+peer-to-peer mesh: all traffic goes through the host, even when the link to
+it was set up with NAT traversal.
+
+## Decision 2: what the host and clients run
+
+**Host.** Runs the game as it does now, with the server branches on, and
+sends state. Its load is single-player's plus packing, which is what a Quest
+already runs: the step is about 11 ms at 30 Hz (`MC2_XR_LOGIC_HZ`). Sending
+should not need its own frame budget, but this is to be measured, and frames
+with a step are already over budget on Quest (21 ms against 13.9).
+
+**The host's camera must stop affecting the game.** State sync hides this as a
+desync, but it is still wrong: a host looking elsewhere would change what
+everyone plays. To fix when `isServer()`, leaving single-player behaviour alone:
+
+- withdrawing movers are destroyed by `inView` (mech and vehicle),
+- `Terrain::objBlockInfo[].active` gates terrain-object updates,
+- `Team::home` / `Commander::home` (43 uses in mech and vehicle alone) assume one
+  local human; each needs checking for host-versus-player meaning.
+
+**Client.** Keep the legacy split: movers under `CONTROL_NET` walk their steps,
+animate and play effects locally. Cosmetic randomness may now differ per
+machine, which is harmless. A client that skips pathing and AI may run a
+cheaper step than single-player, which matters on a Quest: **measure it in
+phase 2.** It may be the most useful side effect of the design.
+
+**Sim timing.** No fixed-step refactor is needed: state sync tolerates the host's
+variable step. Network sends run on their own clock, independent of the frame.
+
+## Decision 3: replication
+
+Start with the legacy design and change only what cannot work:
+
+| Traffic | Direction | Delivery | Content |
+|---|---|---|---|
+| Lobby, mission setup, load barriers, chat | both | reliable, ordered | new encoding of the `MCMSG_*` |
+| Player orders | client to host | reliable, ordered | `TacticalOrder` chunk |
+| Weapon hits, world events (mines, capture, artillery, destruction) | host to client | reliable, ordered | `WeaponHitChunk`, `WorldChunk` (new) |
+| Weapon fire, radio | host to client | reliable, unordered | `WeaponFireChunk` |
+| Mover and turret updates | host to client | unreliable, newest wins | `MoveChunk`, `StatusChunk` |
+| Head and hand poses | via host | unreliable, newest wins | new, phase 7 |
+
+Rough size, to confirm in phase 2: 96 movers times two 32-bit chunks plus an id is
+about 1 kB per sweep, so 5 kB/s per client at 5 Hz, before weapon events and
+transport overhead. Even eight players on a home uplink should fit, and a Quest on
+Wi-Fi has plenty of room. The original's update frequencies are lost
+(`initUpdateFrequencies` is empty), so these are tuned from scratch.
+
+**Mover updates may need replacing.** Step-following is compact and animates well
+but is untested. If it visibly stutters or warps at realistic loss and latency,
+replace `MoveChunk` with quantised position, heading and speed, and a client
+interpolation buffer about two updates behind the host (the now-standard
+snapshot interpolation). Trying legacy first costs little, and the decision
+is made in phase 2 with numbers.
+
+**Modern additions, each cheap:**
+
+- **Explicit wire format:** `code/netwire.*`, with no GL or SDL, fixed-width
+  little-endian fields. Chunks' `unsigned long` becomes `uint32_t`: it is 64 bits
+  on Linux and 32 on Windows, and buffers are sized from it.
+- **Untrusted input:** every field is range-checked on receipt. Today a bad
+  packet could end the game: `Fatal(0, " mech.update: newMoveChunk stepPos not on
+  map! ")`, and roster indices become pointers in `TacticalOrder::unpack`. The
+  host also checks that a player owns the movers in their order. The decoders get
+  a fuzz test under ASan.
+- **Handshake:** protocol version, plus a hash of the mission and object data and
+  the mod set, so a mismatch is refused in the lobby rather than found in play.
+- **Fog of war by team** is already computed on the host (`contactStatus[]`).
+  Sending each client only what its team sees saves bandwidth and removes
+  map hacks. It comes later, since legacy clients may assume they know every
+  mover.
+
+## Decision 4: transport
+
+Behind a small new interface, `GameOS/gameos/gos_net.*` (listen, connect, send on
+a channel, poll), so that the choice can be changed. The declared `gos_Net*` API is
+shaped like DirectPlay and is not worth implementing.
+
+| | GameNetworkingSockets | ENet |
+|---|---|---|
+| Reliable and unreliable channels | Yes | Yes |
+| Encryption | AES-GCM-256, Curve25519 | Not built in (to confirm) |
+| NAT traversal | Built-in ICE client; you supply signaling, STUN, TURN | Not built in (to confirm) |
+| Lag and loss simulation | Built in | No |
+| Dependencies | Protobuf, plus libsodium or OpenSSL | None |
+| Android arm64 | **Not mentioned in its docs**; iOS is | Plain C, expected to be easy |
+| State | v1.5.1, May 2026, after a gap from 2022 | Stable and small |
+| Licence | BSD-3-Clause | MIT |
+| Steam | Not needed; relay and signaling services are Steam-only | Not applicable |
+
+**GNS is the recommendation, reversing the old study's ENet,** because remote play
+without port forwarding is now a requirement, and hand-written hole punching and
+encryption are what a modern library should spare us. **The risk is Android:**
+Protobuf cross-compiled with NDK r28c, alongside the Windows `3rdparty` story and
+the apt lists. Phase 1 opens with a time-boxed spike. If GNS does not build
+cleanly on all targets, use ENet for LAN, and pair it with an ICE library for
+the internet.
+
+Rejected: VPNs such as Tailscale as the remote answer (fine for PC players, but a
+poor request for a headset), TCP (a lost packet delays every later update), and
+Photon or other hosted services (per-user commercial dependency, for a sideloaded
+open-source port).
+
+## Game modes: head-to-head and co-op
+
+Support both, on one mechanism: **a game is a set of commanders on teams, and a
+commander is a human or the AI.** The network layer does not know the difference,
+because all AI runs on the host and clients only see movers. The structure is
+already there: `MC2Player` has `commanderID` and `team`, so several humans on one
+team was part of the original.
+
+| | Head-to-head | Co-op skirmish | Co-op campaign mission |
+|---|---|---|---|
+| Sides | Humans against humans | Humans against an AI commander | Humans against the mission's own forces |
+| Map | Multiplayer maps | Multiplayer maps | Single-player missions |
+| Win condition | `calcMissionStatus`, to rebuild | Same | Mission objectives |
+| Original support | Built for this | Partial: an unbuilt add-AI screen | **None seen: new work** |
+
+**What they share:** phases 0 to 2 (transport, wire format, replication, orders),
+and the lobby. Choosing one now does not rule out the other.
+
+**What co-op adds:**
+
+- **AI needs its own brain.** Every mover in multiplayer is forced to `pbrain`
+  (`mover.cpp`, `mission.cpp`), so an AI force would have no real behaviour. Keep
+  the mission's brain for commanders that are not human.
+- **Host CPU.** Enemy AI runs on the host. A Quest 2 took about 13 ms of game logic
+  per frame on the `mc2_19` bench (a lance against 20 enemies), so a Quest host
+  has little room for co-op. Measure it; a PC host may be the answer here.
+
+**What campaign missions add on top:**
+
+- **Objectives and endings.** `Team::home->objectives` and the player-force-dead
+  checks in `Mission::update` sit behind `!MPlayer`. They need to run on the host
+  for the human team and send their result, in place of `calcMissionStatus`.
+- **Mission scripts.** The host runs them: `addMissionScriptMessageChunk` is there
+  for telling clients. But ABL `ArtilleryStrike` calls `Fatal` in multiplayer, so
+  any script that uses it ends the game. Each such guard needs a real answer.
+- **Dividing the force.** The mission expects one player's lance. Each human needs
+  a share, chosen in a pre-mission screen.
+- **Limits.** `MAX_MULTIPLAYER_MOVERS` is 96 and the multiplayer path allocates
+  less than single-player. Check them against the largest campaign missions.
+- **Single-human assumptions.** `Team::home` and `Commander::home` have 351 uses.
+  With two commanders on one team, each needs a choice of team or commander. This
+  matters for head-to-head too, but less, since each player is their own team.
+
+**Campaign progress (money, salvage, mech lab, saves between missions): out.** Co-op
+plays one mission at a time. Carrying a shared campaign across missions is a much
+larger feature, and can be its own proposal if wanted.
+
+## Same room on Quest
+
+Each level stands alone, and most of the value is in the first.
+
+### Level 0: same network, separate views (no alignment)
+
+Each player has their own view of the battlefield, as in any networked game. Other
+players' mechs are simply in the world. This needs no shared coordinates, because
+**the only shared space is the map**, and the host owns that.
+
+- **Discovery:** UDP broadcast on the LAN, feeding the existing game browser. The
+  same code finds a PC or Pi host, and needs no internet.
+- **Manifest:** today's `AndroidManifest.xml` has **no `INTERNET` permission**.
+  Add it, plus `ACCESS_WIFI_STATE`, and `CHANGE_WIFI_MULTICAST_STATE` with a
+  `MulticastLock` so broadcasts are received. Check Android's coming
+  `ACCESS_LOCAL_NETWORK` rule (API 37 targets) when raising the target.
+- **Wi-Fi latency:** hold a low-latency `WifiLock`, since power saving can add
+  latency spikes.
+- **Fallbacks:** routers with client isolation block both discovery and play.
+  Offer a host address on a controller-only keypad, and suggest a phone hotspot.
+- **No typing:** the host and join flow must work with controllers alone, as
+  saving does since the Quest playtest fixes.
+- **Safety:** the Guardian does not show other people. Players should sit, or
+  have separate spaces, until phase 7 shows where they are.
+
+**Headset off is the hard case.** With the proximity sensor covered or off, the
+session leaves `FOCUSED` and may stop drawing, and Android may suspend the app.
+
+- A client that goes away: the host carries on, the network keeps a long timeout,
+  and the client catches up on return (phase 6).
+- **A host that goes away stops the game for everyone.** The game pauses for all
+  with "host is away", and resumes. Advise a PC host where one is available.
+  What the game does today when the session loses focus is untested for this,
+  so it is the first thing to try on hardware.
+
+### Level 1: one shared table (after VR phase 5)
+
+Everyone sees the same battlefield on the same real table. It needs two things.
+
+**A shared map view.** Today each player's scroll is their own. A shared table
+needs one scroll and scale, kept by the host and sent to all, and any player may
+grab it. A private view can be an option. Neither affects the sim.
+
+**An alignment, by hand first:** each player touches two marked points on the
+table with a controller. Gravity gives vertical, so two points fix position and
+rotation. Store the result as a local spatial anchor (`XR_FB_spatial_entity`) so
+it survives recentring.
+
+- No cloud, no internet, no Meta account dependency, works when sideloaded.
+- Published and forum reports for similar methods give a few centimetres of error
+  (research paper: a few cm; Meta forum: 4 to 5 cm). At 1:285 a mech is about 4 cm,
+  so the real table can be one mech out from the virtual one. **That is tolerable:**
+  poses are sent in map coordinates, so players' virtual beams and hands point at
+  the right mech whatever the error. The error shows only as a mismatch
+  between someone's real and virtual position.
+
+**Meta Shared Spatial Anchors: optional later, not the base.** They would make this
+automatic, and Quest 2 is supported, but:
+
+- anchors go through Meta's cloud, and colocation discovery (`XR_META_colocation_discovery`,
+  Horizon OS v71+) requires internet and reaches Meta's servers, with Quest-only
+  reach (no PC or Pi host),
+- the device setting and permissions (`com.oculus.permission.IMPORT_EXPORT_IOT_MAP_DATA`,
+  `USE_COLOCATION_DISCOVERY_API`) are extra setup,
+- **whether a sideloaded, unregistered app may use them is unconfirmed.** The docs
+  read do not say. Test on two headsets before committing.
+
+### Presence (phase 7, both same room and remote)
+
+Head and hands as simple shapes, sent in map coordinates at about 20 Hz: three poses
+at 28 bytes is about 1.7 kB/s per player. A beam from another player's hand is the
+"look at that" of a shared game, and it shows where people are in the room.
+
+## Remote play
+
+1. **Direct connect first,** by address and port: no infrastructure, enough to
+   prove internet latency and loss.
+2. **Room codes next.** A small rendezvous service for ICE signaling: short-lived
+   codes, no accounts, no game data, no stored IPs. STUN from public servers.
+3. **TURN relay** for the NATs that cannot punch through. GNS's docs say to expect
+   to run your own. Traffic is low (see above), so a small VPS should cover it.
+
+Someone has to run items 2 and 3 for players to use them (see open questions).
+Peers see the host's IP address, as in any direct-connect game. Say so in the UI.
+
+Voice: not built in at first. Remote players can use anything else, and same-room
+players can just talk. Opus over GNS can come later.
+
+## Affected areas
+
+- **Platform:** `gos_net.*` (new), Android manifest and Wi-Fi locks, `gos_xr.*` for
+  focus handling.
+- **Game:** `multplyr.*` (most of the work), `netwire.*` (new), server-side camera
+  independence, mission status, `mp*.cpp` and the main menu.
+- **Engine:** chunk widths, `Terrain` active-block handling on the host.
+- **Renderer:** none until presence and the shared table (both renderers then).
+- **Build/CI:** new dependency (apt list in `ci.yml`, Windows `3rdparty`, Android,
+  all `BUILD-*.md`), new two-process smoke tier.
+- **Single-player: must not change.** `MPlayer` stays NULL, and
+  `smoke.sh --deterministic` hashes pin that on every PR.
 
 ## Phases
 
-| Phase | What | Exit criterion |
-|---|---|---|
-| 0. Serialisation | Fixed-width encode/decode for every `MCMSG_*` and chunk, unit-tested | Round-trip tests pass on all four CI configurations |
-| 1. Transport | ENet behind the GameOS net API; loopback test | Two processes exchange guaranteed and unreliable packets in CI |
-| 2. Lobby slice | Direct-IP host/join, player list, chat | Two instances on one machine see each other and chat |
-| 3. Mission start | Mission/settings exchange, load barriers, start | Both clients load the same mission and start together |
-| 4. In-mission sync | Orders up; mover, weapon, world updates down | A short 1v1 mission plays to the end without desync |
-| 5. Wrap-up | End mission, stats, leaving, host dropping | Clean exits in every case |
-| 6. LAN discovery and polish | Broadcast browser, AI players, up to 8 players | Mixed Windows / Linux / Pi game works |
+| Phase | What | Exit criterion | Size |
+|---|---|---|---|
+| 0. Wake the branches | `isServer()` true with zero clients and no network: `-nethost` on a stock multiplayer map; fix crashes; host camera independence | Five missions clean under ASan + UBSan; single-player hashes unchanged | S to M |
+| 1. Wire and transport | GNS spike on all targets, then `gos_net`, `netwire` with round-trip and fuzz tests | Two processes exchange both delivery types on all CI configurations; Android builds | M |
+| 2. **Vertical slice** | `-nethost` / `-netjoin <ip>`, fixed mission and forces, no UI; orders up, mover and weapon state down | 1v1 plays to the end on CI under 100 ms and 2% loss; client matches host; movement approach decided; Quest client step measured | **L, least predictable** |
+| 3. Head-to-head | Every order type, artillery, mines, capture, repair, recovery; `calcMissionStatus`; game modes, elimination first; results | Each mode plays to its result; two-process smoke | L |
+| 4. Lobby and LAN: **first playable** | Enable the screens, LAN browser, data hash, controller-only flow, Android permissions | **Two Quest 2s in a room play a mission (level 0)**; mixed PC and Quest game | M |
+| 4a. Co-op skirmish | AI commanders with their own brains, add-AI in the lobby | Two humans beat an AI force on a multiplayer map | S to M |
+| 4b. Co-op campaign missions | Objectives on the host, script guards, dividing the force, mover limits | A chosen campaign mission plays through with two humans, then the rest one by one | L |
+| 5. Internet | Direct connect, rendezvous and room codes, ICE, TURN | Two homes play without port forwarding | M |
+| 6. Resilience | Reconnect with a catch-up message, headset off, host away, leaving, host drop | Each case ends well, tested with injected drops and on headsets | M |
+| 7. Presence and table | Poses; shared map view; two-touch alignment (needs VR phase 5) | Two Quests share a table and point at the same mech (level 1) | M |
+| 8. Optional | Dedicated server, team fog culling, voice, Meta anchors | Each on request | |
 
-Phase 2 is the go/no-go point: it proves the transport, the screens and the
-wire format with little game risk.
+**Go/no-go points:** phase 0 prices the 2001 branches cheaply, in days, with no
+transport work thrown away. Phase 2 decides whether to go on: the old plan
+placed this after a lobby that proved little, and it is where the risk is.
+
+**Size:** S is days, M is one to three weeks, L is several weeks, part-time with
+agents helping. These are judgement, not measurement; phases 2 and 3 could
+well grow. Altogether, months rather than weeks.
+
+A PC host can later run under Xvfb as a dedicated server of sorts, since the smoke
+runs do. A real one needs appearance state kept while drawing is stubbed
+(animation feeds the sim), so it is not cheap.
 
 ## Verification
 
-- Unit tests for every message format (TDD).
-- CI: two game processes on localhost under llvmpipe, using `-autoexit`, a
-  scripted host/join (needs command-line options such as `-host` / `-join
-  <ip>`) and log checks, like the smoke runs.
-- Manual: Windows host with a Linux or Pi client, over LAN.
+- **Unit (every commit, all four configurations):** round trip per message and
+  chunk, malformed input, fixed sizes, ASan + UBSan fuzz run.
+- **Two-process smoke (CI):** host and client on localhost under llvmpipe with
+  `-autoexit`. The host stays fixed-step, so a run is repeatable on one machine.
+- **Network conditions (CI):** GNS's simulator at, say, 0, 100 and 250 ms with
+  0, 2 and 5% loss.
+- **Convergence, in place of a desync check:** at the end of a run, and regularly
+  in debug builds, host and client log per-mover alive state and armour, and
+  position within a tolerance. CI compares the logs.
+- **Replay (client tests without a host):** record the host's messages to a file and
+  feed them to a client, so client bugs reproduce deterministically.
+- **Single-player:** the `-deterministic` state hash is unchanged on every PR.
+- **By hand, added to `HARDWARE-TESTS.md`:** two Quest 2s on home Wi-Fi and on a
+  phone hotspot; headset off on client and on host; mixed PC, Pi and Quest; two
+  homes; a long session for frame time on a Quest host. Not run by agents.
 
-## Size and risk
+## Risks
 
-Large: weeks to months of part-time work, with phase 4 the biggest and least
-predictable part. Main risks: rebuilding behaviour nobody has the original of
-(update rates, packing of move data, barrier semantics), latency handling
-(the original tuned for 2001 LANs and modems), and bugs in untested multiplayer
-branches of the game code.
-
-## Recommendation
-
-Only if multiplayer matters to you. If so, do phases 0 to 2 as a contained
-experiment before committing to the rest.
+| Risk | Mitigation |
+|---|---|
+| 1,000 branches, untested for 25 years and never on 64-bit | Phase 0 finds out early and cheaply |
+| Lost behaviour (update rates, barriers, win logic) | Rebuild from call sites and play; no need to match the original exactly |
+| GNS on Android | Spike first, ENet fallback, interface in between |
+| Quest host misses frame budget | Measure; recommend a PC host; game step on its own thread is already a VR to-do |
+| Host's headset comes off | Pause for all, and recommend a PC host for longer games |
+| Single-player regressions | `MPlayer` NULL path untouched, pinned by hash in CI |
+| Merges from `alariq/mc2` | Most changes fall in already-stubbed `multplyr.cpp` and new files |
 
 ## Open questions
 
-- Does any other MC2 source fork have a working transport to learn from? (The
-  remaster has none.)
-- Should the host also be able to run headless (a dedicated server on the Pi)?
-- Keep the original 8-player limit and team rules?
+For you:
+
+1. **Does co-op need campaign missions,** or is skirmish against AI on multiplayer
+   maps enough at first? The plan does skirmish first; both are in it.
+2. **Will you run a small server** for room codes and TURN? If not, remote play stays
+   direct connect, with port forwarding on the host side.
+3. **Is a shared physical table essential at first,** or are separate views in one
+   room enough for the first playable game? This plan assumes they are.
+4. **How many players** matter on Quest? Eight is the original limit (`MAX_MC_PLAYERS`,
+   96 movers), but fewer may make Wi-Fi and a Quest host far easier.
+
+For the work:
+
+- Does GNS build for Android with NDK r28c, and at what APK size?
+- How much cheaper is a client's step than single-player's on a Quest?
+- Is legacy step-following acceptable at 100 to 250 ms with loss?
+- What does the game do today when the OpenXR session loses focus, and can a
+  background thread keep the network going while the app is paused?
+- Can a sideloaded app use Shared Spatial Anchors, and what does it take?
+- Does the stock data include all the original multiplayer maps? (Not checked: no
+  data checkout was available.)
+
+## Sources
+
+- GameNetworkingSockets: [repository](https://github.com/ValveSoftware/GameNetworkingSockets),
+  [BUILDING.md](https://raw.githubusercontent.com/ValveSoftware/GameNetworkingSockets/master/BUILDING.md),
+  [README_P2P.md](https://raw.githubusercontent.com/ValveSoftware/GameNetworkingSockets/master/README_P2P.md),
+  [Phoronix on v1.5](https://phoronix.com/news/GameNetworkingSockets-1.5)
+- ENet: [repository](https://github.com/lsalzman/enet)
+- Meta: [colocation discovery](https://developers.meta.com/horizon/documentation/native/android/openxr-colocation-discovery-api-ref/),
+  [sharing anchors, native](https://developers.meta.com/horizon/documentation/native/android/openxr-ssa-share-content),
+  [space sharing, native](https://developers.meta.com/horizon/documentation/native/android/openxr-space-sharing-api-ref/),
+  [group sharing](https://developers.meta.com/vr/blog/colocation-discovery-group-sharing-shared-spatial-anchors-mixed-reality/),
+  [forum thread on alignment offsets](https://communityforums.atmeta.com/discussions/Questions_Discussions/calibration-of-multiple-vr-headset/1283114)
+- Android: [NsdManager and local network access](https://developer.android.com/reference/android/net/nsd/NsdManager.html)
+- Alignment research: [Co-Experiencing Virtual Spaces](https://zenodo.org/records/4399217/files/Co-ExperiencingVirtualSpaces_IASpace.pdf),
+  [A Quest for Co-Located Mixed Reality](https://typeset.io/pdf/a-quest-for-co-located-mixed-reality-aligning-and-assessing-2jhu0dcrkn.pdf)
+- Lockstep across platforms: [Frontier, GDC 2024](https://media.gdcvault.com/gdc2024/Slides/GDC+slide+presentations/Pollard_Bradley_CrossPlatformDeterminism+2024-03-26+09.34.19.pdf),
+  [Forrest Smith on RTS desyncs](https://www.forrestthewoods.com/blog/synchronous_rts_engines_and_a_tale_of_desyncs/)
