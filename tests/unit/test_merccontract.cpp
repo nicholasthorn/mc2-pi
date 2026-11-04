@@ -50,10 +50,12 @@ const char* const kSource =
 	"[MissionSettings]\nst MissionName = \"Ambush\"\nb MissionNameUseResourceString = TRUE\n"
 	"ul MissionNameResourceStringID = 57003\nst Blurb = \"Old\"\nb BlurbUseResourceString = TRUE\n"
 	"st Blurb2 = \"Old\"\nb Blurb2UseResourceString = TRUE\nf DropWeightLimit = 190.0\n"
-	"l ResourcePoints = 16000\nl AdditionalCBills = 500\n\n"
+	"l ResourcePoints = 16000\nl AdditionalCBills = 500\nf TimeLimit = 600.000000\n\n"
 	"[Team0Objectives]\nul NumObjectives = 2\n\n"
 	"[Team0Objective0]\nst Title = \"Old\"\nb TitleUseResourceString = TRUE\nst Description = \"Old\"\n"
-	"b DescriptionUseResourceString = TRUE\nul Priority = 1\nul ResourcePoints = 7000\nb DisplayMarker = FALSE\n"
+	"b DescriptionUseResourceString = TRUE\nul Priority = 2\nul ResourcePoints = 7000\nb DisplayMarker = FALSE\n"
+	"b PreviousPrimaryObjectiveMustBeComplete = TRUE\nb AllPreviousPrimaryObjectivesMustBeComplete = TRUE\n"
+	"b HiddenTrigger = TRUE\nb ActivateOnFlag = TRUE\nst ActivateFlagID = \"7\"\nb ResetStatusOnFlag = TRUE\n"
 	"f MarkerX = 0.0\nf MarkerY = 0.0\nul NumConditions = 2\nul NumActions = 1\n\n"
 	"[Team0Objective0Condition0]\nul ConditionSpecies = 4\n\n"
 	"[Team0Objective1]\nst Title = \"Gone\"\n\n"
@@ -436,6 +438,73 @@ TEST_SUITE("Merc")
 		CHECK(has(settings.c_str(), "f DropWeightLimit = 200"));
 		CHECK(has(settings.c_str(), "l ResourcePoints = 12000"));
 		CHECK(has(settings.c_str(), "l AdditionalCBills = 0"));
+	}
+
+	TEST_CASE("the objective is primary and open, whatever the source's was, with no time limit")
+	{
+		const std::string fit = mercBuildContractFit(kSource, testContract());
+		const std::string obj = block(fit, "Team0Objective0");
+		// mc2_11's first objective has Priority 2: with no primary, a mission cannot be won
+		CHECK(has(obj.c_str(), "ul Priority = 1"));
+		CHECK(has(obj.c_str(), "b PreviousPrimaryObjectiveMustBeComplete = FALSE"));
+		CHECK(has(obj.c_str(), "b AllPreviousPrimaryObjectivesMustBeComplete = FALSE"));
+		CHECK(has(obj.c_str(), "b HiddenTrigger = FALSE"));
+		CHECK(has(obj.c_str(), "b ActivateOnFlag = FALSE"));
+		CHECK(has(obj.c_str(), "b ResetStatusOnFlag = FALSE"));
+		CHECK(has(block(fit, "MissionSettings").c_str(), "f TimeLimit = -1.000000"));
+	}
+
+	TEST_CASE("a walk reaches only connected passable cells")
+	{
+		// 1 is ground: the left part is cut off from the right by a wall
+		const std::vector<uint8_t> grid = {
+			1, 1, 0, 1,
+			1, 0, 0, 1,
+			1, 1, 0, 1,
+		};
+		const std::vector<uint8_t> reached = mercReachableCells(grid, 4, 3, 0, 0);
+		CHECK(reached[0] == 1);
+		CHECK(reached[8] == 1);
+		CHECK(reached[9] == 1);
+		CHECK(reached[2] == 0);
+		CHECK(reached[3] == 0);
+		CHECK(reached[11] == 0);
+
+		// no diagonal steps
+		const std::vector<uint8_t> diagonal = {1, 0, 0, 1};
+		CHECK(mercReachableCells(diagonal, 2, 2, 0, 0)[3] == 0);
+
+		// a start off the grid or on a wall reaches nothing
+		for (const uint8_t cell : mercReachableCells(grid, 4, 3, 0, 2))
+			CHECK(cell == 0);
+		for (const uint8_t cell : mercReachableCells(grid, 4, 3, -1, 9))
+			CHECK(cell == 0);
+	}
+
+	TEST_CASE("the nearest cell is found from anywhere, on the grid or not")
+	{
+		const std::vector<uint8_t> cells = {
+			0, 0, 0, 0,
+			0, 0, 0, 1,
+			0, 0, 0, 0,
+		};
+		long row = -1, col = -1;
+		CHECK(mercNearestCell(cells, 4, 3, 1, 3, row, col));
+		CHECK(row == 1);
+		CHECK(col == 3);
+
+		row = col = -1;
+		CHECK(mercNearestCell(cells, 4, 3, 2, 0, row, col));
+		CHECK(row == 1);
+		CHECK(col == 3);
+
+		row = col = -1;
+		CHECK(mercNearestCell(cells, 4, 3, -50, 200, row, col));
+		CHECK(row == 1);
+		CHECK(col == 3);
+
+		const std::vector<uint8_t> none(12, 0);
+		CHECK_FALSE(mercNearestCell(none, 4, 3, 1, 1, row, col));
 	}
 
 	TEST_CASE("command groups list the new units")

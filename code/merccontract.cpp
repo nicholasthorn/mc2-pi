@@ -388,6 +388,52 @@ long mercRepairBill(float damageFraction, long tons)
 	return static_cast<long>(damage * static_cast<float>(tons) * 200.0f);
 }
 
+std::vector<uint8_t> mercReachableCells(const std::vector<uint8_t>& passable, long width, long height,
+	long startRow, long startCol)
+{
+	std::vector<uint8_t> reached(passable.size(), 0);
+	const auto at = [width](long row, long col) { return static_cast<size_t>(row * width + col); };
+	if (startRow < 0 || startCol < 0 || startRow >= height || startCol >= width || !passable[at(startRow, startCol)])
+		return reached;
+	std::vector<size_t> open;
+	open.push_back(at(startRow, startCol));
+	reached[open.back()] = 1;
+	while (!open.empty()) {
+		const size_t cell = open.back();
+		open.pop_back();
+		const long row = static_cast<long>(cell) / width, col = static_cast<long>(cell) % width;
+		static const long kSteps[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+		for (const long* step : kSteps) {
+			const long r = row + step[0], c = col + step[1];
+			if (r < 0 || c < 0 || r >= height || c >= width || reached[at(r, c)] || !passable[at(r, c)])
+				continue;
+			reached[at(r, c)] = 1;
+			open.push_back(at(r, c));
+		}
+	}
+	return reached;
+}
+
+bool mercNearestCell(const std::vector<uint8_t>& cells, long width, long height, long row, long col,
+	long& outRow, long& outCol)
+{
+	// far enough to cover the whole grid from (row, col), which may be off it
+	const long most = std::max(std::labs(row) + height, std::labs(col) + width);
+	for (long ring = 0; ring <= most; ring++) {
+		for (long r = row - ring; r <= row + ring; r++) {
+			for (long c = col - ring; c <= col + ring; c++) {
+				const bool edge = r == row - ring || r == row + ring || c == col - ring || c == col + ring;
+				if (!edge || r < 0 || c < 0 || r >= height || c >= width || !cells[static_cast<size_t>(r * width + c)])
+					continue;
+				outRow = r;
+				outCol = c;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 long mercCBillsAfterJob(long cBills, long repairs, bool hasMechs)
 {
 	const long left = std::max(0L, cBills - repairs);
@@ -456,6 +502,7 @@ std::string mercBuildContractFit(const std::string& sourceFit, const MercContrac
 			setValue(text, "f", "DropWeightLimit", formatFloat(num, sizeof(num), static_cast<float>(contract.dropWeight)));
 			setValue(text, "l", "ResourcePoints", std::to_string(contract.resourcePoints));
 			setValue(text, "l", "AdditionalCBills", "0");
+			setValue(text, "f", "TimeLimit", "-1.000000");
 		}
 		out += "[" + b.name + "]\n" + text + "\n";
 	}
@@ -510,6 +557,13 @@ std::string mercBuildContractFit(const std::string& sourceFit, const MercContrac
 	setValue(objectiveText, "st", "Description", quoted(contract.title));
 	setValue(objectiveText, "b", "DescriptionUseResourceString", "FALSE");
 	setValue(objectiveText, "ul", "ResourcePoints", std::to_string(contract.pay));
+	// the only objective, so primary and open from the start, whatever the source's was
+	setValue(objectiveText, "ul", "Priority", "1");
+	setValue(objectiveText, "b", "PreviousPrimaryObjectiveMustBeComplete", "FALSE");
+	setValue(objectiveText, "b", "AllPreviousPrimaryObjectivesMustBeComplete", "FALSE");
+	setValue(objectiveText, "b", "HiddenTrigger", "FALSE");
+	setValue(objectiveText, "b", "ActivateOnFlag", "FALSE");
+	setValue(objectiveText, "b", "ResetStatusOnFlag", "FALSE");
 	setValue(objectiveText, "b", "DisplayMarker", "TRUE");
 	setValue(objectiveText, "f", "MarkerX", formatFloat(num, sizeof(num), spotX));
 	setValue(objectiveText, "f", "MarkerY", formatFloat(num, sizeof(num), spotY));

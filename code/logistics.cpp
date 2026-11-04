@@ -344,7 +344,9 @@ long Logistics::update (void)
 					
 					missionBegin->begin();
 
- 					if ( lastMissionResult == mis_PLAYER_LOST_BIG && !MPlayer )
+						// (the mercenary board has moved on from the rival's fight)
+	 					if ( lastMissionResult == mis_PLAYER_LOST_BIG && !MPlayer
+							&& !LogisticsData::instance->getMissionInfo()->mercShowBoardAfterLoss() )
 					{
 						if ( LogisticsData::instance->skipLogistics()  )
 						{

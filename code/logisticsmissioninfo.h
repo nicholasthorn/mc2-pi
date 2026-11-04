@@ -106,6 +106,8 @@ class LogisticsMissionInfo
 		void				mercAddRepairBill( float damageFraction, long tons );
 		void				mercMissionDone( bool hasMechs );
 		void				mercMissionLost();
+		bool				mercShowBoardAfterLoss();
+		void				mercRefreshJumps();
 
 		bool				canHaveSalavageCraft();
 		bool				canHaveRepairTruck();
@@ -122,10 +124,7 @@ class LogisticsMissionInfo
 			return currentMission;
 		}
 
-		void				setCurrentMissionNumber(long cMission)
-		{
-			currentMission = cMission;
-		}
+		void				setCurrentMissionNumber(long cMission);
 
 
 	
@@ -160,6 +159,7 @@ class LogisticsMissionInfo
 			bool enableAirStrike;
 			bool enableSensorStrike;
 			bool enableMineLayer;
+			bool locked = false;	// on the star map, but its button is disabled
 		};	
 
 		typedef EList<MissionInfo*, MissionInfo*> MISSION_LIST;
@@ -209,6 +209,8 @@ class LogisticsMissionInfo
 
 		MercMode*				merc;
 		long					mercCBillsBefore;
+		bool					mercRivalJustWon;
+		void					mercSelectFirstOpen();
 		void					mercRebuildBoard();
 
 		LogisticsMissionInfo::MissionInfo* getPreviousMission();

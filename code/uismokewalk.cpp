@@ -174,10 +174,9 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 		break;
 	case UiScreen::Mission:
 		// the mission's data can skip either results screen (the tutorials
-		// skip both), and a promotion opens over pilot review as it comes up;
-		// mission+lose goes back to the briefing
+		// skip both), and a promotion opens over pilot review as it comes up
 		if (to == UiScreen::Salvage || to == UiScreen::PilotReview || to == UiScreen::Promotion
-				|| to == UiScreen::MissionSelection || to == UiScreen::Briefing)
+				|| to == UiScreen::MissionSelection)
 			return UiAction::WinMission;
 		if (to == UiScreen::OptionsGraphics)
 			return UiAction::MissionOptions;

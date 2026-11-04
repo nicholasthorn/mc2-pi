@@ -104,10 +104,17 @@ const long MERC_GROUNDED_STAKE = 100000;
 // C-Bills once the repairs are paid: never debt, and never stuck with no way to fight
 long mercCBillsAfterJob(long cBills, long repairs, bool hasMechs);
 
+// Cell grids hold 1 for true, row by row. The cells a walk from the start can get to, on
+// passable cells, and the true cell nearest to (row, col); false if there is none.
+std::vector<uint8_t> mercReachableCells(const std::vector<uint8_t>& passable, long width, long height,
+	long startRow, long startCol);
+bool mercNearestCell(const std::vector<uint8_t>& cells, long width, long height, long row, long col,
+	long& outRow, long& outCol);
+
 // The text of a mission file for the contract: the terrain settings and player
 // units of the stock mission, with its enemies, objectives and script replaced.
-// Enemies start at the spot farthest from the player that the mission used,
-// which is known to be passable. Returns "" if the source has no player units,
+// Enemies start at the spot farthest from the player that the mission used;
+// Mission::init moves any the player could not walk to. Returns "" if the source has no player units,
 // enemies or objective to work from.
 std::string mercBuildContractFit(const std::string& sourceFit, const MercContract& contract);
 

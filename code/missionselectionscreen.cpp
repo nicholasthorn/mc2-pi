@@ -216,6 +216,8 @@ void MissionSelectionScreen::begin()
 	if ( fadeInTime )
 		operationScreen.beginFadeIn( fadeInTime );
 
+	LogisticsData::instance->getMissionInfo()->mercRefreshJumps();
+
 	// initialize the operation
 	const char* str = LogisticsData::instance->getCurrentOperationFileName();
 

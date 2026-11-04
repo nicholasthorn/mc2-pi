@@ -65,11 +65,9 @@ TEST_CASE("routes are the buttons a player presses") {
 	// only back to the campaign
 	for (int i = 0; i < (int)UiScreen::Count; ++i) {
 		const UiScreen s = (UiScreen)i;
-		// mission selection too: the tutorials skip both results screens;
-		// the briefing is where mission+lose goes back to
+		// mission selection too: the tutorials skip both results screens
 		const bool results = s == UiScreen::Salvage || s == UiScreen::PilotReview
-				|| s == UiScreen::Promotion || s == UiScreen::MissionSelection
-				|| s == UiScreen::Briefing;
+				|| s == UiScreen::Promotion || s == UiScreen::MissionSelection;
 		const UiAction expected = results ? UiAction::WinMission
 				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions : UiAction::None;
 		CHECK(uiRoute(UiScreen::Mission, s) == expected);
@@ -176,8 +174,8 @@ TEST_CASE("parse reads screen+action steps") {
 	CHECK(r.walk.stepAction(1) == UiAction::PickTutorial);
 	CHECK(std::strcmp(uiActionName(UiAction::PickTutorial), "tutorial") == 0);
 	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,pilotreview+skill", r.err, sizeof(r.err)));
-	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,mechbay", r.err, sizeof(r.err)));
-	CHECK(std::strstr(r.err, "no route from mission to mechbay") != nullptr);
+	CHECK_FALSE(r.walk.parse("mainmenu,campaign,mission,briefing", r.err, sizeof(r.err)));
+	CHECK(std::strstr(r.err, "no route from mission to briefing") != nullptr);
 }
 
 TEST_CASE("a screen can repeat for another in-screen action") {

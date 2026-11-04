@@ -27,6 +27,7 @@ LogisticsMissionInfo::LogisticsMissionInfo()
 	lastStage = 0;
 	merc = NULL;
 	mercCBillsBefore = 0;
+	mercRivalJustWon = false;
 	groups = 0;
 	currentMissionName = missionName;
 	groupCount = 0;
@@ -300,11 +301,11 @@ void LogisticsMissionInfo::mercRebuildBoard()
 		pInfo->playSalvage = true;
 		pInfo->playPilotPromotion = true;
 		pInfo->playPurchasing = true;
-		if ( entry.jumpWorld >= 0 )
+		if ( entry.jumpWorld >= 0 || entry.unavailable )
 		{
 			pInfo->missionDescriptiveName = entry.title.c_str();
 			pInfo->description = entry.description.c_str();
-			pInfo->completed = !entry.jumpOpen;	// shows its button disabled
+			pInfo->locked = entry.unavailable || !entry.jumpOpen;
 			pInfo->dropWeight = 300;
 		}
 		else
@@ -328,8 +329,46 @@ void LogisticsMissionInfo::mercRebuildBoard()
 		pGroup->infos.Append( pInfo );
 	}
 
+	mercSelectFirstOpen();
+}
+
+void LogisticsMissionInfo::mercSelectFirstOpen()
+{
+	MissionGroup* pGroup = &groups[0];
 	currentMission = 0;
-	currentMissionName = board.empty() ? "" : board[0].fileName.c_str();
+	for ( int i = pGroup->infos.Count() - 1; i >= 0; i-- )
+		if ( !pGroup->infos[i]->locked )
+			currentMission = i;
+	currentMissionName = pGroup->infos[currentMission]->fileName;
+}
+
+void LogisticsMissionInfo::mercRefreshJumps()
+{
+	if ( !merc )
+		return;
+	// money changes on the other screens, and a board is rolled only when the state changes
+	merc->refreshJumps( CBills );
+	MissionGroup* pGroup = &groups[0];
+	for ( int i = 0; i < pGroup->infos.Count(); i++ )
+	{
+		MissionInfo* pInfo = pGroup->infos[i];
+		const MercMode::Entry* entry = merc->entry( pInfo->fileName );
+		if ( entry && entry->jumpWorld >= 0 )
+		{
+			pInfo->locked = !entry->jumpOpen;
+			pInfo->description = entry->description.c_str();
+		}
+	}
+	if ( pGroup->infos[currentMission]->locked )
+		mercSelectFirstOpen();
+}
+
+void LogisticsMissionInfo::setCurrentMissionNumber( long cMission )
+{
+	currentMission = cMission;
+	// an in-mission save holds only the number, and the mercenary mode goes by the name
+	if ( merc && cMission >= 0 && cMission < groups[0].infos.Count() )
+		currentMissionName = groups[0].infos[cMission]->fileName;
 }
 
 bool LogisticsMissionInfo::mercJumpSelected() const
@@ -337,7 +376,7 @@ bool LogisticsMissionInfo::mercJumpSelected() const
 	if ( !merc )
 		return false;
 	const MercMode::Entry* entry = merc->entry( currentMissionName );
-	return entry && entry->jumpWorld >= 0;
+	return entry && ( entry->jumpWorld >= 0 || entry->unavailable );
 }
 
 bool LogisticsMissionInfo::mercChampionSelected() const
@@ -362,6 +401,8 @@ bool LogisticsMissionInfo::mercJump()
 	if ( !entry || entry->jumpWorld < 0 || !entry->jumpOpen )
 		return false;
 	const long world = entry->jumpWorld;
+	if ( CBills < merc->worldAt( world ).jumpCost )
+		return false;
 	CBills -= merc->worldAt( world ).jumpCost;
 	merc->state.world = world;
 	merc->state.contractsDone++;
@@ -383,10 +424,19 @@ void LogisticsMissionInfo::mercMissionLost()
 	if ( !entry || !entry->rival )
 		return;
 	mercRivalWon( merc->state );
+	mercRivalJustWon = true;
 	merc->state.contractsDone++;
 	merc->lastPay = merc->lastRepairs = 0;
 	mercRebuildBoard();
 	printf( "[MERC] rival won: rank %ld, wins %ld, losses %ld\n", merc->state.rivalRank, merc->state.rivalWins, merc->state.rivalLosses );
+}
+
+// that contract is gone, so the player goes back to the board, not to its briefing
+bool LogisticsMissionInfo::mercShowBoardAfterLoss()
+{
+	const bool show = mercRivalJustWon;
+	mercRivalJustWon = false;
+	return show;
 }
 
 void LogisticsMissionInfo::mercMissionDone( bool hasMechs )
@@ -708,7 +758,7 @@ long LogisticsMissionInfo::getAvailableMissions( const char** missions, int& num
 	MISSION_LIST::EIterator iter = pGroup->infos.Begin();
 	while( !iter.IsDone() )
 	{
-		if ( !(*iter)->completed )
+		if ( !(*iter)->completed && !(*iter)->locked )
 		{
 			if ( count < maxOut )
 			{
@@ -835,7 +885,7 @@ long LogisticsMissionInfo::setNextMission( const char* missionName )
 			{
 				bFound = 1;
 			
-				if ( (*iter)->completed )
+				if ( (*iter)->completed || (*iter)->locked )
 				{
 					return MISSION_ALREADY_DONE;
 				}
@@ -1143,7 +1193,7 @@ bool LogisticsMissionInfo::getMissionAvailable( const char* missionName )
 	{
 		if ( pGroup->infos[i]->fileName.Compare( missionName ) == 0 )
 		{
-			return !pGroup->infos[i]->completed;
+			return !pGroup->infos[i]->completed && !pGroup->infos[i]->locked;
 		}
 	}
 	return false;

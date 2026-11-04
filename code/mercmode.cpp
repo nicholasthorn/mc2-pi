@@ -35,7 +35,7 @@ std::string readWholeFile(const char* path)
 		return "";
 	const unsigned long length = file.getLength();
 	std::string text(length, '\0');
-	if (length && file.read(reinterpret_cast<MemoryPtr>(&text[0]), length) != length)
+	if (length && static_cast<unsigned long>(file.read(reinterpret_cast<MemoryPtr>(&text[0]), length)) != length)
 		text.clear();
 	file.close();
 	return text;
@@ -110,6 +110,10 @@ bool MercMode::init(FitIniFile& campaign)
 		PAUSE(("Mercenary: the campaign file has no worlds"));
 		return false;
 	}
+	if (worldCount() > MERC_MAX_WORLDS) {
+		PAUSE(("Mercenary: the star map holds %ld worlds, the campaign file has %ld", MERC_MAX_WORLDS, worldCount()));
+		worlds.resize(static_cast<size_t>(MERC_MAX_WORLDS));
+	}
 	clampWorld(state, worldCount());
 	return true;
 }
@@ -127,38 +131,55 @@ const std::vector<MercMode::Entry>& MercMode::rebuild(long cBills)
 		const MercContract contract = slot == 1 && mercRivalDue(state, rival)
 			? mercRollRivalContract(state, worlds, rival, slot)
 			: mercRollContract(state, world(), slot);
-		if (!writeContract(contract))
-			continue;
 		Entry e;
-		e.fileName = contract.fileName;
-		e.champion = contract.champion;
-		e.rival = contract.rival;
-		board.push_back(e);
-	}
-
-	for (long i = 0; i < worldCount(); i++) {
-		const MercWorld& w = worldAt(i);
-		Entry e;
-		char text[1024];
-		sprintf(text, "merc_jump%ld", i);
-		e.fileName = text;
-		e.jumpWorld = i;
-		e.title = "Jump to " + w.name;
-		e.jumpOpen = mercCanJump(state, worlds, i) && cBills >= w.jumpCost;
-		if (i == state.world)
-			e.description = "You are here.";
-		else if (state.licences < w.requiredLicences)
-			e.description = "The guild will not clear this jump until you hold more licences.";
-		else if (cBills < w.jumpCost)
-			e.description = "You cannot afford this jump.";
-		else {
-			S_snprintf(text, sizeof(text), "%s, held by %s. %s Jump cost: %ld C-Bills. Press Next to jump.",
-				w.name.c_str(), w.faction.c_str(), w.description.c_str(), w.jumpCost);
-			e.description = text;
+		if (writeContract(contract)) {
+			e.fileName = contract.fileName;
+			e.champion = contract.champion;
+			e.rival = contract.rival;
+		} else {
+			// kept, so the worlds stay on their own buttons
+			e.fileName = "merc_none" + std::to_string(slot);
+			e.title = "No work";
+			e.description = "Nothing on this board today.";
+			e.unavailable = true;
 		}
 		board.push_back(e);
 	}
+
+	for (long i = 0; i < worldCount(); i++)
+		board.push_back(jumpEntry(i, cBills));
 	return board;
+}
+
+MercMode::Entry MercMode::jumpEntry(long i, long cBills) const
+{
+	const MercWorld& w = worldAt(i);
+	Entry e;
+	char text[1024];
+	sprintf(text, "merc_jump%ld", i);
+	e.fileName = text;
+	e.jumpWorld = i;
+	e.title = "Jump to " + w.name;
+	e.jumpOpen = mercCanJump(state, worlds, i) && cBills >= w.jumpCost;
+	if (i == state.world)
+		e.description = "You are here.";
+	else if (state.licences < w.requiredLicences)
+		e.description = "The guild will not clear this jump until you hold more licences.";
+	else if (cBills < w.jumpCost)
+		e.description = "You cannot afford this jump.";
+	else {
+		S_snprintf(text, sizeof(text), "%s, held by %s. %s Jump cost: %ld C-Bills. Press Next to jump.",
+			w.name.c_str(), w.faction.c_str(), w.description.c_str(), w.jumpCost);
+		e.description = text;
+	}
+	return e;
+}
+
+void MercMode::refreshJumps(long cBills)
+{
+	for (Entry& e : board)
+		if (e.jumpWorld >= 0)
+			e = jumpEntry(e.jumpWorld, cBills);
 }
 
 const MercMode::Entry* MercMode::entry(const char* fileName) const

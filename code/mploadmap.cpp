@@ -299,7 +299,10 @@ void MPLoadMap::seedFromCampaign()
 					path.init( savePath, findResult.cFileName, ".fit" );
  					tmpFile.open( path  );
 
-					 if ( NO_ERR == tmpFile.seekBlock( "General" ) )
+					 long mercWorld = 0;
+					 // a mercenary save (merc.fit) unlocks no stock missions
+					 if ( NO_ERR == tmpFile.seekBlock( "General" )
+						 && NO_ERR != tmpFile.readIdLong( "MercWorld", mercWorld ) )
 					 {
 						 long group, missions;
 

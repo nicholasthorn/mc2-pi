@@ -1797,6 +1797,46 @@ bool IsGateOpen (int objectWID) {
 }
 
 //----------------------------------------------------------------------------
+// A contract's enemies start at spots picked without the map (merccontract.cpp), which
+// may be behind a wall or across water: put any the player cannot reach on the nearest
+// ground they can. Destroying them all is the only way to win.
+static void mercMoveUnreachableEnemies (PartPtr parts, long numParts)
+{
+	const long width = GameMap->getWidth(), height = GameMap->getHeight();
+	std::vector<uint8_t> passable(width * height, 0);
+	for (long r = 0; r < height; r++)
+		for (long c = 0; c < width; c++)
+			passable[r * width + c] = GameMap->getPassable(r, c) ? 1 : 0;
+
+	std::vector<uint8_t> reachable;
+	for (long i = 1; i <= numParts && reachable.empty(); i++)
+		if (parts[i].commanderID == 0) {
+			int row = 0, col = 0;
+			long startR = 0, startC = 0;
+			land->worldToCell(parts[i].position, row, col);
+			if (mercNearestCell(passable, width, height, row, col, startR, startC))
+				reachable = mercReachableCells(passable, width, height, startR, startC);
+		}
+	if (reachable.empty())
+		return;
+
+	long moved = 0;
+	for (long i = 1; i <= numParts; i++) {
+		if (parts[i].commanderID == 0)
+			continue;
+		int row = 0, col = 0;
+		long toR = 0, toC = 0;
+		land->worldToCell(parts[i].position, row, col);
+		if (!mercNearestCell(reachable, width, height, row, col, toR, toC) || (toR == row && toC == col))
+			continue;
+		const float z = parts[i].position.z;
+		land->cellToWorld((int)toR, (int)toC, parts[i].position);
+		parts[i].position.z = z;
+		moved++;
+	}
+	printf("[MERC] moved %ld of %ld units to reachable ground\n", moved, numParts);
+}
+
 void Mission::init (const char *missionName, long loadType, long dropZoneID, Stuff::Vector3D* dropZoneList, char commandersToLoad[8][3], long numMoversPerCommander)
 {
 	neverEndingStory = false;
@@ -2925,6 +2965,9 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 
 	//-------------------------
 	// Load the mech objects...
+	if (mercIsContractName(missionName))
+		mercMoveUnreachableEnemies(parts, numParts);
+
 	long curMech = 0;
 	long curVehicle = 0;
 	for (long t = 0; t < 8; t++)

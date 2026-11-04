@@ -9,6 +9,9 @@
 class FitIniFile;
 class FullPathFileName;
 
+// the star map has six buttons (MAX_MISSIONS_IN_GROUP): three contracts, then the worlds
+const long MERC_MAX_WORLDS = 3;
+
 // The mercenary mode's game side (planning/future-features/OPEN-WORLD.md): the
 // worlds of a campaign file with a [Merc] block, and the board of entries the
 // mission selection screen shows for the current world. merccontract.cpp holds the rules.
@@ -22,6 +25,7 @@ public:
 		bool jumpOpen = false;
 		bool champion = false;
 		bool rival = false;
+		bool unavailable = false;	// a slot whose contract could not be made
 	};
 
 	// false if this campaign file is not a mercenary one
@@ -29,6 +33,7 @@ public:
 
 	// the state's board for the current world; writes each contract's mission file
 	const std::vector<Entry>& rebuild(long cBills);
+	void refreshJumps(long cBills);
 	const Entry* entry(const char* fileName) const;
 
 	const MercWorld& world() const { return worlds[static_cast<size_t>(state.world)]; }
@@ -41,6 +46,8 @@ public:
 	long lastRepairs = 0;
 
 private:
+	Entry jumpEntry(long world, long cBills) const;
+
 	std::vector<MercWorld> worlds;
 	std::vector<Entry> board;
 };

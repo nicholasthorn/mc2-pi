@@ -267,7 +267,8 @@ long LogisticsPilot::update( MechWarrior* pWarrior )
 	// the pilot just has no record of that mission
 	if ((missionJustPlayed < 0) || (missionJustPlayed >= MAX_MISSIONS))
 		PAUSE(("Logistics thinks last mission played was %d",(int)missionJustPlayed));
-	else
+	// the campaign ribbons count these by the shipping campaign's numbers
+	else if ( !LogisticsData::instance->getMissionInfo()->isMercenary() )
 		missionsPlayed[missionJustPlayed] = 1;
 
 	// a mercenary pilot ejects and comes back

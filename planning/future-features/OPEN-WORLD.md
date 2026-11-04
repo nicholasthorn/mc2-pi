@@ -420,7 +420,7 @@ logistics code. It departs from the plan above in a few ways:
 - **`mc2_gencon.abl` already existed:** a generic script Microsoft shipped for this
   sort of mission. With the `dredattack01` brain, contracts need no new scripts.
 - **No spawn sidecar is needed:** enemies start at the mission's own enemy start point
-  farthest from the player, so the ground is known to be passable.
+  farthest from the player, and `Mission::init` moves any the player could not walk to.
 - **Damage is a repair bill, not carried damage**, to test the loop first. In phase 2.
 
 Measured: a mission start took 2 to 8 s in total including game startup, on llvmpipe
