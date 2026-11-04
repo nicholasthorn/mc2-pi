@@ -43,6 +43,7 @@ struct BenchScenario {
 	long reorderEvery = 90;		// re-issue attack orders every N frames
 	float strikeRadius = 300.0f;	// artillery lands within this of the centre
 	bool follow = true;			// camera keys relative to the fight, not the arena
+	bool pain = false;			// units take damage and can be destroyed
 	float screenX = 0.5f;		// where on screen to hold the fight's centre,
 	float screenY = 0.5f;		// fractions from the top left (clear of the HUD)
 
