@@ -2495,6 +2495,9 @@ void gos_DestroyWindow() {
 
 HGOSWINDOW gos_CreateWindow(int w, int h, int bpp, int display) {
     g_win_h = graphics::create_window("mc2", w, h, bpp, display);
+    // no display, say: create_window has logged why, and the callers end the game
+    if(!g_win_h)
+        return nullptr;
 
     Environment.displayIndex = display;
     graphics::get_window_size(g_win_h, &Environment.screenWidth, &Environment.screenHeight);

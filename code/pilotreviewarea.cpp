@@ -472,10 +472,12 @@ void DeadPilotListItem::render()
 	tmp.bottom = globalY() + s_liveIconRect->top() + s_liveIconRect->height();
 	drawEmptyRect( tmp, s_liveIconRect->getColor(), s_liveIconRect->getColor() );
 
-	deadIcon->render(	globalX() + s_deadIconRect->left(), 
-						globalY() + s_deadIconRect->top(),
-						globalX() + s_deadIconRect->left() +  s_deadIconRect->width(),
-						globalY() + s_deadIconRect->top() + s_deadIconRect->height() );
+	// Omnitech's sheet has no skull: that index is another pilot's face
+	if ( PilotIcon::hasDeadPicture() )
+		deadIcon->render(	globalX() + s_deadIconRect->left(), 
+							globalY() + s_deadIconRect->top(),
+							globalX() + s_deadIconRect->left() +  s_deadIconRect->width(),
+							globalY() + s_deadIconRect->top() + s_deadIconRect->height() );
 
 	tmp.left = globalX() + s_deadIconRect->left();
 	tmp.top = globalY() + s_deadIconRect->top();

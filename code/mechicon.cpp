@@ -7,6 +7,7 @@ MechIcon.cpp			: Implementation of the MechIcon component.
 \*************************************************************************************************/
 
 #include"mechicon.h"
+#include"iconsheet.h"
 #include"mover.h"
 #include"utilities.h"
 #include"mech.h"
@@ -438,6 +439,46 @@ void ForceGroupIcon::init( )
 {
 }
 
+TGAFileHeader* loadIconSheet( const char* fileName )
+{
+	char path[256];
+	strcpy( path, artPath );
+	strcat( path, fileName );
+
+	File file;
+	if ( NO_ERR != file.open( path ) )
+		return NULL;
+
+	int size = file.getLength();
+	TGAFileHeader* sheet = reinterpret_cast<TGAFileHeader*>( new char[size] );
+	file.read( reinterpret_cast<BYTE*>( sheet ), size );
+	flipTopToBottom( reinterpret_cast<BYTE*>( sheet + 1 ), sheet->pixel_depth, sheet->width, sheet->height );
+	return sheet;
+}
+
+// Omnitech's strips for 640 and 800 wide stop short of its high one (101 mechs of
+// 127, 25 vehicles of 27): add the rest from there
+static void addHighSheetCells( TGAFileHeader*& sheet, const char* highName, int cellX, int cellY )
+{
+	TGAFileHeader* high = loadIconSheet( highName );
+	if ( !high )
+		return;
+
+	const int width = extendedStripWidth( sheet->width, sheet->height, cellX, cellY, high->width, high->height );
+	if ( width && sheet->pixel_depth == 32 && high->pixel_depth == 32 )
+	{
+		TGAFileHeader* grown = reinterpret_cast<TGAFileHeader*>( new char[sizeof(TGAFileHeader) + width * sheet->height * 4] );
+		*grown = *sheet;
+		grown->width = (short)width;
+		extendStrip( reinterpret_cast<const uint8_t*>( sheet + 1 ), sheet->width, sheet->height, cellX, cellY,
+			reinterpret_cast<const uint8_t*>( high + 1 ), high->width, reinterpret_cast<uint8_t*>( grown + 1 ), width );
+		delete [] reinterpret_cast<char*>( sheet );
+		sheet = grown;
+	}
+
+	delete [] reinterpret_cast<char*>( high );
+}
+
 bool MechIcon::initTextures()
 {
 	if ( !s_MechTextures )
@@ -471,6 +512,8 @@ bool MechIcon::initTextures()
 
 		flipTopToBottom (pTmp, s_MechTextures->pixel_depth, s_MechTextures->width, s_MechTextures->height );
 
+		if ( unitIconX != HIGH_MECH_ICON_X )
+			addHighSheetCells( s_MechTextures, "mcui_high7.tga", unitIconX, unitIconY );
 	}
 
 	return true;
@@ -1147,6 +1190,9 @@ bool VehicleIcon::init( Mover* pMover )
 
 		flipTopToBottom (pTmp, s_VehicleTextures->pixel_depth, s_VehicleTextures->width, s_VehicleTextures->height );
 
+		if ( unitIconX != HIGH_MECH_ICON_X )
+			addHighSheetCells( s_VehicleTextures, "mcui_high8.tga", unitIconX, unitIconY );
+
 	}
 
 	pilotIcon.setTextureIndex( 26 );
@@ -1533,13 +1579,39 @@ void ForceGroupIcon::setIconVariables()
 	curScreenWidth = Environment.screenWidth;
 }
 
+// Omnitech's pilot sheet is in use, and it is the high one at a width it has none
+// for, so its cells are not that width's
+static bool s_omnitechPilotSheet = false;
+static bool s_highCellsAtThisWidth = false;
+
 // Omnitech moved the pilots out of mcui_*2.tga, which it ships with none in, and
-// into a sheet of their own
+// into a sheet of their own: only the high one, so the other widths use that too
 static void addPilotSheetName( char* path, const char* stockName, const char* omnitechName )
 {
+	const char* highName = "pilots_high.tga";
 	char omnitechPath[256];
+	char highPath[256];
 	sprintf( omnitechPath, "%s%s", path, omnitechName );
-	strcat( path, fileExists( omnitechPath ) ? omnitechName : stockName );
+	sprintf( highPath, "%s%s", path, highName );
+	s_highCellsAtThisWidth = false;
+	s_omnitechPilotSheet = true;
+	if ( fileExists( omnitechPath ) )
+		strcat( path, omnitechName );
+	else if ( fileExists( highPath ) )
+	{
+		strcat( path, highName );
+		s_highCellsAtThisWidth = true;
+	}
+	else
+	{
+		strcat( path, stockName );
+		s_omnitechPilotSheet = false;
+	}
+}
+
+bool PilotIcon::hasDeadPicture()
+{
+	return !s_omnitechPilotSheet;
 }
 
 PilotIcon::PilotIcon()
@@ -1592,16 +1664,18 @@ void PilotIcon::render( float left, float top, float right, float bottom )
 	pilotLocation[1].y = pilotLocation[2].y = bottom;
 	pilotLocation[4] = pilotLocation[0];
 
-	int iconsPerRow = s_pilotTextureWidth / pilotIconX;
+	const float cellX = s_highCellsAtThisWidth ? HIGH_PILOT_ICON_X : pilotIconX;
+	const float cellY = s_highCellsAtThisWidth ? HIGH_PILOT_ICON_Y : pilotIconY;
+	int iconsPerRow = s_pilotTextureWidth / cellX;
 	int xIndex = pilotTextureIndex % iconsPerRow;
 	int yIndex = pilotTextureIndex / iconsPerRow;
 
-	float xLocation = xIndex * pilotIconX;
-	float yLocation = yIndex * pilotIconY;
+	float xLocation = xIndex * cellX;
+	float yLocation = yIndex * cellY;
 	pilotLocation[0].u = pilotLocation[1].u = xLocation/s_pilotTextureWidth + (.1f/s_pilotTextureWidth);
-	pilotLocation[3].u = pilotLocation[2].u = (xLocation + pilotIconX)/s_pilotTextureWidth+ (.1f/s_pilotTextureWidth);
+	pilotLocation[3].u = pilotLocation[2].u = (xLocation + cellX)/s_pilotTextureWidth+ (.1f/s_pilotTextureWidth);
 	pilotLocation[0].v = pilotLocation[3].v = yLocation/s_pilotTextureWidth+ (.1f/s_pilotTextureWidth);
-	pilotLocation[1].v = pilotLocation[2].v = (yLocation + pilotIconY)/s_pilotTextureWidth+ (.1f/s_pilotTextureWidth);
+	pilotLocation[1].v = pilotLocation[2].v = (yLocation + cellY)/s_pilotTextureWidth+ (.1f/s_pilotTextureWidth);
 	pilotLocation[4] = pilotLocation[0];
 
 

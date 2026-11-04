@@ -435,6 +435,13 @@ void MissionBegin::end()
 {
 	logisticsBrain = NULL;
 	closeABL();
+
+	MissionBriefingScreen* pBriefing = dynamic_cast<MissionBriefingScreen*>( singlePlayerScreens[1][1] );
+	if ( pBriefing )
+		pBriefing->releaseMap();
+	PilotReadyScreen* pPilotReady = dynamic_cast<PilotReadyScreen*>( singlePlayerScreens[3][1] );
+	if ( pPilotReady )
+		pPilotReady->releaseMap();
 }
 
 bool inPurchase = false;

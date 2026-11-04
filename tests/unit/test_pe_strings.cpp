@@ -121,4 +121,16 @@ TEST_CASE("truncated or foreign data yields fewer strings, never a bad read")
 	CHECK(out.empty());
 }
 
+TEST_CASE("isPlaceholderString: what a string table holds for an unused id")
+{
+	CHECK(isPlaceholderString("undefined"));
+	CHECK(isPlaceholderString("UNDEFINED"));
+	CHECK(isPlaceholderString("undefined_string_sebi"));
+	CHECK_FALSE(isPlaceholderString("Clan Heavy Machine Gun"));
+	CHECK_FALSE(isPlaceholderString("Undefined Territory"));
+	CHECK_FALSE(isPlaceholderString("undefine"));
+	CHECK_FALSE(isPlaceholderString(""));
+	CHECK_FALSE(isPlaceholderString(NULL));
+}
+
 } // TEST_SUITE("PeStrings")

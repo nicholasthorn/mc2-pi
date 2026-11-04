@@ -17,4 +17,8 @@
 bool readPeStringTable(const uint8_t* data, size_t size,
                        std::map<uint32_t, std::string>& out);
 
+// True for what a string table holds for an id it has no text for: "undefined",
+// in any case, alone or as "undefined_<something>".
+bool isPlaceholderString(const char* text);
+
 #endif // PE_STRINGS_H

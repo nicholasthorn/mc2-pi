@@ -155,6 +155,7 @@ public:
 
 	void				setFileWidth( float newWidth ){ fileWidth = newWidth; }
 	float				getFileWidth() const { return fileWidth; }
+	unsigned long		getTextureHandle() const { return textureHandle; }
 	int				getID() const { return ID; }
 	void			setID(int newID) { ID = newID; }
 

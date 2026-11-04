@@ -295,9 +295,13 @@ void PilotReadyScreen::showMissionMap()
 void PilotReadyScreen::end()
 {
 	mechDisplay.setMech( NULL );
+}
 
-	// the mission flushes textures and this screen outlives it: a handle kept
-	// could by then be another screen's, and setting the next map would free it
+// not in end(): the screen still draws while it slides away. The mission flushes
+// textures and this screen outlives it: a handle kept could by then be another
+// screen's, and setting the next map would free it
+void PilotReadyScreen::releaseMap()
+{
 	const long map = 38;
 	if ( !stockLayout && staticCount > map )
 	{
