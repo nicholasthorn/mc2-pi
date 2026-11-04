@@ -1777,14 +1777,10 @@ void __stdcall InitializeGameEngine()
 		MessageBox(NULL,msgBuffer,msgTitle,MB_OK);
 
         HGOSWINDOW win = gos_CreateWindow(Environment.screenWidth, Environment.screenHeight, 24, Environment.displayIndex);
-        if(!win) {
-            SPEW(("[INIT]", "Failed to create window\n"));
-            return;
-        }
-        if(false == gos_CreateRenderer(win, Environment.screenWidth, Environment.screenHeight)) {
-            SPEW(("[INIT]", "Failed to create renderer\n"));
-            return;
-        }
+        if(!win)
+            gos_FatalExit( "Could not create the game window" );
+        if(false == gos_CreateRenderer(win, Environment.screenWidth, Environment.screenHeight))
+            gos_FatalExit( "Could not create the game's renderer" );
 
 		//-------------------------------------------------------------
 		// Find the CDPath in the registry and save it off so I can
