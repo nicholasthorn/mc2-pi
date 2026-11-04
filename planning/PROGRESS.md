@@ -37,7 +37,8 @@ belongs in commit messages and PRs.
 
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
-- [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
+- [x] On-disk struct sizes pinned at compile time (`code/ondisksizes.cpp`, 2026-11-04)
+- [ ] More tests: legacy `mclib/stuff` `TestClass()` self-checks
 - [x] cppcheck: baseline empty since 2026-11-01 (#68); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [x] Deterministic smoke runs (seed the RNG): `-deterministic` and `smoke.sh --deterministic` (2026-11-01); opt-in, since it turns sound off
@@ -536,6 +537,9 @@ change, not as a bug fix.
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-04: Multiplayer phase 0 (branch `mp-phase0`): `-nethost <players>` runs the host's side of the multiplayer code with no network and no clients; `smoke.sh --nethost`, `bench/nethost_m08.fit` (a battle with damage on). `mc2_m01` to `mc2_m10` and the battle clean under ASan + UBSan on desktop GL, single-player state hashes match `pi-port`. Fixed: mission ended on its first frame, full weapon fire queue was Fatal, turret with a neutral parent, `1 << -1` from the force group icons; a host's camera no longer decides withdrawals, building and turret updates, or turret and vehicle gestures. Open: the same battle from two camera positions still differs from frame 282 (positions match until one hit outcome, consistent with cosmetic code sharing the RNG, not proven); no run has had a turret fire; withdrawing units can stop short of the map edge on a host; `Team::home` is not audited. No network yet.
+- 2026-11-04: Plan for macOS on Apple silicon: `future-features/MACOS.md` (branch `macos-plan`); nothing built.
+- 2026-11-04: Multiplayer proposal (`future-features/NETWORKING.md`, replaces the feasibility study; branch `docs/multiplayer-proposal`): host-authoritative, keeping the legacy gameplay branches and chunks, GameNetworkingSockets subject to an Android spike, same-room Quest play needing no alignment until a shared table, head-to-head and co-op on one mechanism. Nothing built or run.
+- 2026-11-04: on-disk struct sizes pinned at compile time (branch `test/struct-sizes`, `code/ondisksizes.cpp`): 19 save-game structs per data model (Linux/arm64 and Windows differ, `long`), 10 game-data structs to one size everywhere (they match on MSVC too, so game data really is portable), and the 11 object save structs must have distinct sizes, because `ObjectManager::load` tells types apart by size alone. `check.sh` no longer fails a new `.cpp` on findings in headers it did not change: it lists them as a warning.
 - 2026-11-04: Omnitech's splash on its larger front end (branch `omnitech-splash-size`): the 800x600 art is centred on black, where the screen behind it showed round the edges. Stock's draw calls are unchanged.
 - 2026-11-04: README: fourth screenshot, idle mechs among mission 22's buildings (branch `readme-town-shot`).
 - 2026-11-04: README: Quest 2 as playable, screenshots and a clip in `media/` (scripted battles on the CI-built Linux package, llvmpipe, 1080p; Omnitech at 1280x1024). `future-features/EASY-INSTALL.md`: proposed one-download packages with the game data, and a helper for Omnitech, whose EULA grants no redistribution (branch `release-apk`).

@@ -48,6 +48,12 @@ When you can only build one locally, say which ones were not built.
 - **`-fpermissive` is gone** (the tree builds without it). Do not bring it back:
   it hid code that Clang and MSVC reject.
 
+- **On-disk structs.** `code/ondisksizes.cpp` pins the sizes of the main structs
+  in save games and game data files, for both `long` sizes (not all of them, and
+  size only, not field order). A build failure there means a struct changed: fix
+  it, or, if the change is intended, update the number and accept that older
+  saves stop loading. New save structs get a pin.
+
 ## Warnings and static analysis
 
 - **New code builds with `-Wall -Wextra -Werror`** (GCC/Clang) via
