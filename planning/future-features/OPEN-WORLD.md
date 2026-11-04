@@ -323,8 +323,7 @@ weeks, L is a large one. They are rough and depend on the spikes.
 1. **Load time.** It is unmeasured (`planning/QUALITY-ROADMAP.md:217`). Time mission
    to mission on desktop and on the Pi. This decides how often the player can bear a
    zone change, and so much of the design.
-2. **Fix `MAX_GLOBAL_PATH` and the pilot off-by-one**, whatever else is decided.
-3. **Map builder.** Can `MOVE_buildData` run as a command-line tool in `data_tools/`,
+2. **Map builder.** Can `MOVE_buildData` run as a command-line tool in `data_tools/`,
    and does the remaster's editor save a format this tree loads?
 4. **One stitched 240 map**, loaded and played with stock AI. Measure RAM and frame
    time on llvmpipe, then the Pi.

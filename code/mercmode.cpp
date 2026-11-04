@@ -1,7 +1,6 @@
 #include "mclib.h"
 #include "mercmode.h"
 
-#include <algorithm>
 #include <cstdio>
 
 namespace {
@@ -19,6 +18,14 @@ long readLong(FitIniFile& file, const char* key, long fallback)
 {
 	long value = fallback;
 	return file.readIdLong(key, value) == NO_ERR ? value : fallback;
+}
+
+void clampWorld(MercState& state, long count)
+{
+	if (state.world >= count)
+		state.world = count - 1;
+	if (state.world < 0)
+		state.world = 0;
 }
 
 std::string readWholeFile(const char* path)
@@ -100,7 +107,7 @@ bool MercMode::init(FitIniFile& campaign)
 		PAUSE(("Mercenary: the campaign file has no worlds"));
 		return false;
 	}
-	state.world = std::max(0L, std::min(state.world, worldCount() - 1));
+	clampWorld(state, worldCount());
 	return true;
 }
 
@@ -109,7 +116,7 @@ const std::vector<MercMode::Entry>& MercMode::rebuild(long cBills)
 	board.clear();
 
 	// a save from a changed campaign file must not index past the list
-	state.world = std::max(0L, std::min(state.world, worldCount() - 1));
+	clampWorld(state, worldCount());
 
 	// three contracts then the worlds: the star map's buttons are in this order
 	for (long slot = 0; slot < 3; slot++) {
