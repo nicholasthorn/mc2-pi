@@ -7,6 +7,7 @@ LogisticsVariant.cpp			: Implementation of the LogisticsVariant component.
 \*************************************************************************************************/
 
 #include"logisticsvariant.h"
+#include"utils/pe_strings.h"
 #include"mclib.h"
 #include"logisticsdata.h"
 #include"../resource.h"
@@ -63,7 +64,7 @@ int LogisticsChassis::init( CSVFile* file, int chassisID )
 	// mechs: it names them from the data file
 	char nameText[256];
 	cLoadString( chassisNameID, nameText, 256 );
-	if ( ( !nameText[0] || 0 == S_strnicmp( nameText, "undefined", 9 ) )
+	if ( ( !nameText[0] || isPlaceholderString( nameText ) )
 		&& NO_ERR == file->readString( 3, 2, buffer, 256 ) )
 		chassisNameText = buffer;
 	else
