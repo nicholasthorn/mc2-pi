@@ -450,7 +450,8 @@ each ships the data tools instead.
       uninitialised padding written into the binary shapes. Both data
       builds smoke-run. (2026-11-01)
 - [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
-- [ ] Phase 4: smoke tests against the unpacked packages
+- [x] Phase 4: smoke tests against the unpacked packages (2026-11-04: the full
+      Linux x64 and Pi ones, job `full`)
 - [ ] Phase 5: `v0.2.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
       (tag pushed 2026-11-01 on `80f38884`; draft release made, not published)
 - [ ] Phase 6: `v0.2.0`, with Pi hardware results in the notes
@@ -535,6 +536,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: Full release packages, game data included (branch `release-full`), as approved by the owner: jobs `gamedata` (cache shared with `smoke.yml`, no movies) and `full` in `release.yml`, `scripts/package_full.sh`. The Linux x64 and Pi packages are smoke-tested unpacked with only the runtime libraries; first time a test runs what players download. The Windows zip needs a hand check (`HARDWARE-TESTS.md`).
 - 2026-11-04: README: fourth screenshot, idle mechs among mission 22's buildings (branch `readme-town-shot`).
 - 2026-11-04: README: Quest 2 as playable, screenshots and a clip in `media/` (scripted battles on the CI-built Linux package, llvmpipe, 1080p; Omnitech at 1280x1024). `future-features/EASY-INSTALL.md`: proposed one-download packages with the game data, and a helper for Omnitech, whose EULA grants no redistribution (branch `release-apk`).
 - 2026-11-04: Quest APK on releases (branch `release-apk`): job `quest` in `release.yml` builds the APK on Linux with `scripts/android/build.sh`, and `scripts/android/package.sh` adds the shaders and licences (`-files.tar.gz`) and unstripped libraries (`-symbols.tar.gz`). `MC2_VERSION` sets `mc2.log`'s version and the APK's versionName. Signed with the optional `QUEST_KEYSTORE` secret, so updates can install over each other. Quest steps in `dist/INSTALL.md`; headset check in `HARDWARE-TESTS.md`.

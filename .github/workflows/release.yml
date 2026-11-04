@@ -2,8 +2,9 @@
 #
 # Pushing a tag v* builds the three packages and the Quest APK, runs the unit
 # tests in each desktop build (the APK's arm64 Android code cannot run on the
-# runner), and creates a DRAFT release with them, their debug symbols and
-# SHA256SUMS. Nothing is published until someone reviews the draft.
+# runner), makes full packages with the game data (the Linux and Pi ones are
+# smoke-tested unpacked), and creates a DRAFT release with them, their debug
+# symbols and SHA256SUMS. Nothing is published until someone reviews the draft.
 # Tags with a hyphen (v0.1.0-rc1) become pre-releases.
 #
 # Run by hand (workflow_dispatch), nightly, or on a pull request that
@@ -21,6 +22,7 @@ on:
     paths:
       - ".github/workflows/release.yml"
       - "scripts/package.sh"
+      - "scripts/package_full.sh"
       - "scripts/build_gamedata.sh"
       - "scripts/android/**"
       - "android/**"
@@ -205,10 +207,125 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ github.ref_type == 'tag' && 30 || 7 }}
 
+  gamedata:
+    name: Game data (mc2srcdata, cached)
+    runs-on: ubuntu-24.04
+    outputs:
+      srcdata: ${{ steps.key.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      # the same key as smoke.yml, so a data build there is reused here
+      - name: Cache key
+        id: key
+        run: |
+          sha=$(git ls-remote https://github.com/alariq/mc2srcdata.git HEAD | cut -c1-12)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "key=gamedata-$sha-${{ hashFiles('data_tools/**', 'text_tool/**', 'mclib/**', 'GameOS/**', 'scripts/build_gamedata.sh') }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: cache
+        with:
+          path: gamedata
+          key: ${{ steps.key.outputs.key }}
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      # no movies: they are the only part in Git LFS, which would count against
+      # the upstream repo's bandwidth, and missions run without them
+      - name: Build game data
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_BUILD_TESTS=OFF
+          cmake --build build --target aseconv makefst makersp pak text_tool
+          GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/alariq/mc2srcdata.git srcdata
+          scripts/build_gamedata.sh --src-data srcdata --build-dir build --out gamedata --no-movies
+      - name: Pack
+        run: tar -cf gamedata.tar gamedata
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gamedata
+          path: gamedata.tar
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  full:
+    name: Full package ${{ matrix.platform }}
+    needs: [gamedata, rpi, linux, windows]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # the Linux packages are smoke-tested as players get them: unpacked,
+          # with only the libraries INSTALL.md lists, on the oldest base for x64
+          - platform: rpi-arm64
+            os: ubuntu-24.04-arm
+            ext: tar.gz
+            prefs: minprefs
+            libs: libgles2 libegl1
+          - platform: linux-x86_64
+            os: ubuntu-22.04
+            ext: tar.gz
+            prefs: hiprefs
+            libs: libglew2.2 libgl1
+          - platform: windows-x64
+            os: ubuntu-24.04
+            ext: zip
+            prefs: hiprefs
+    env:
+      PACKAGE: mc2-${{ github.ref_type == 'tag' && github.ref_name || inputs.version || 'v0.0.0-dryrun' }}-${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: package-${{ matrix.platform }}
+          path: pkg
+      - uses: actions/download-artifact@v8
+        with:
+          name: gamedata
+      - name: Package
+        run: |
+          tar -xf gamedata.tar
+          bash scripts/package_full.sh --package "pkg/$PACKAGE.${{ matrix.ext }}" --data gamedata \
+            --data-version "${{ needs.gamedata.outputs.srcdata }}" --prefs ${{ matrix.prefs }} --out full
+      - name: Install what a player installs
+        if: matrix.libs
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri \
+            libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 zlib1g ${{ matrix.libs }}
+      - name: Smoke the package
+        if: matrix.libs
+        run: |
+          mkdir unpacked
+          tar -xzf "full/$PACKAGE-full.tar.gz" -C unpacked
+          scripts/smoke.sh --game-dir "unpacked/$PACKAGE" --missions "mc2_01 mc2_03" \
+            --timeout 900 --log-dir smoke-logs
+      - uses: actions/upload-artifact@v7
+        if: always() && matrix.libs
+        with:
+          name: full-smoke-logs-${{ matrix.platform }}
+          path: smoke-logs
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-full-${{ matrix.platform }}
+          path: full/*
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || 3 }}
+
   release:
     name: Draft release
     if: github.ref_type == 'tag'
-    needs: [rpi, linux, windows, quest]
+    needs: [rpi, linux, windows, quest, full]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
