@@ -1,0 +1,402 @@
+FITini
+
+b ChildCoordinatesAreRelative = 1
+
+[Buttons]
+l Buttoncount = 6
+
+[Button0] // contract 0
+
+l ID = XXX
+l XLocation = 8
+l YLocation = 152
+l Width = 34
+l Height = 39
+
+l HelpCaption = 0
+l HelpDesc = 0
+
+st FileName = "mcl_cm_5.tga"
+
+l UWidth = 51
+l VHeight = 59
+
+l UNormal = 51
+l VNormal = 0
+
+l UPressed = 0
+l VPressed = 0
+
+l UHighlight = 51
+l VHighlight = 0
+
+l UDisabled = 51
+l VDisabled = 0
+
+b AnimateBmp = 1
+b AnimateText = 1
+
+l NormalAnimationTimeStamps = 2
+b NormalAnimationLoops = FALSE
+f NormalTime0 = 0.0
+l NormalColor0 = 0xffFF3C28
+f NormalTime1 = 7.0
+l NormalColor1 = 0xffFF3C28
+
+l PressedAnimationTimeStamps = 2
+b PressedAnimationLoops = FALSE
+f PressedTime0 = 0.0
+l PressedColor0 = 0x47FF3C28
+f PressedTime1 = 0.5
+l PressedColor1 = 0xffFF3C28
+
+l HighlightAnimationTimeStamps = 3
+b HighlightAnimationLoops = TRUE
+f HighlightTime0 = 0.0
+l HighlightColor0 = 0x47FF3C28
+f HighlightTime1 = 0.3
+l HighlightColor1 = 0xffFF3C28
+f HighlightTime2 = 0.6
+l HighlightColor2 = 0x47FF3C28
+
+l DisabledAnimationTimeStamps = 2
+b DisabledAnimationLoops = FALSE
+f DisabledTime0 = 0.0
+l DisabledColor0 = 0xff546380
+f DisabledTime1 = 0.5
+l DisabledColor1 = 0xff546380
+
+[Button1] // contract 1
+
+l ID = XXX
+l XLocation = 56
+l YLocation = 140
+l Width = 34
+l Height = 39
+
+l HelpCaption = 0
+l HelpDesc = 0
+
+st FileName = "mcl_cm_5.tga"
+
+l UWidth = 51
+l VHeight = 59
+
+l UNormal = 51
+l VNormal = 0
+
+l UPressed = 0
+l VPressed = 0
+
+l UHighlight = 51
+l VHighlight = 0
+
+l UDisabled = 51
+l VDisabled = 0
+
+b AnimateBmp = 1
+b AnimateText = 1
+
+l NormalAnimationTimeStamps = 2
+b NormalAnimationLoops = FALSE
+f NormalTime0 = 0.0
+l NormalColor0 = 0xffFF3C28
+f NormalTime1 = 7.0
+l NormalColor1 = 0xffFF3C28
+
+l PressedAnimationTimeStamps = 2
+b PressedAnimationLoops = FALSE
+f PressedTime0 = 0.0
+l PressedColor0 = 0x47FF3C28
+f PressedTime1 = 0.5
+l PressedColor1 = 0xffFF3C28
+
+l HighlightAnimationTimeStamps = 3
+b HighlightAnimationLoops = TRUE
+f HighlightTime0 = 0.0
+l HighlightColor0 = 0x47FF3C28
+f HighlightTime1 = 0.3
+l HighlightColor1 = 0xffFF3C28
+f HighlightTime2 = 0.6
+l HighlightColor2 = 0x47FF3C28
+
+l DisabledAnimationTimeStamps = 2
+b DisabledAnimationLoops = FALSE
+f DisabledTime0 = 0.0
+l DisabledColor0 = 0xff546380
+f DisabledTime1 = 0.5
+l DisabledColor1 = 0xff546380
+
+[Button2] // contract 2
+
+l ID = XXX
+l XLocation = 72
+l YLocation = 182
+l Width = 34
+l Height = 39
+
+l HelpCaption = 0
+l HelpDesc = 0
+
+st FileName = "mcl_cm_5.tga"
+
+l UWidth = 51
+l VHeight = 59
+
+l UNormal = 51
+l VNormal = 0
+
+l UPressed = 0
+l VPressed = 0
+
+l UHighlight = 51
+l VHighlight = 0
+
+l UDisabled = 51
+l VDisabled = 0
+
+b AnimateBmp = 1
+b AnimateText = 1
+
+l NormalAnimationTimeStamps = 2
+b NormalAnimationLoops = FALSE
+f NormalTime0 = 0.0
+l NormalColor0 = 0xffFF3C28
+f NormalTime1 = 7.0
+l NormalColor1 = 0xffFF3C28
+
+l PressedAnimationTimeStamps = 2
+b PressedAnimationLoops = FALSE
+f PressedTime0 = 0.0
+l PressedColor0 = 0x47FF3C28
+f PressedTime1 = 0.5
+l PressedColor1 = 0xffFF3C28
+
+l HighlightAnimationTimeStamps = 3
+b HighlightAnimationLoops = TRUE
+f HighlightTime0 = 0.0
+l HighlightColor0 = 0x47FF3C28
+f HighlightTime1 = 0.3
+l HighlightColor1 = 0xffFF3C28
+f HighlightTime2 = 0.6
+l HighlightColor2 = 0x47FF3C28
+
+l DisabledAnimationTimeStamps = 2
+b DisabledAnimationLoops = FALSE
+f DisabledTime0 = 0.0
+l DisabledColor0 = 0xff546380
+f DisabledTime1 = 0.5
+l DisabledColor1 = 0xff546380
+
+[Button3] // jump to Carver V
+
+l ID = XXX
+l XLocation = 31
+l YLocation = 176
+l Width = 34
+l Height = 39
+
+l HelpCaption = 0
+l HelpDesc = 0
+
+st FileName = "mcl_cm_5.tga"
+
+l UWidth = 51
+l VHeight = 59
+
+l UNormal = 51
+l VNormal = 0
+
+l UPressed = 0
+l VPressed = 0
+
+l UHighlight = 51
+l VHighlight = 0
+
+l UDisabled = 51
+l VDisabled = 0
+
+b AnimateBmp = 1
+b AnimateText = 1
+
+l NormalAnimationTimeStamps = 2
+b NormalAnimationLoops = FALSE
+f NormalTime0 = 0.0
+l NormalColor0 = 0xff5AC8FF
+f NormalTime1 = 7.0
+l NormalColor1 = 0xff5AC8FF
+
+l PressedAnimationTimeStamps = 2
+b PressedAnimationLoops = FALSE
+f PressedTime0 = 0.0
+l PressedColor0 = 0x475AC8FF
+f PressedTime1 = 0.5
+l PressedColor1 = 0xff5AC8FF
+
+l HighlightAnimationTimeStamps = 3
+b HighlightAnimationLoops = TRUE
+f HighlightTime0 = 0.0
+l HighlightColor0 = 0x475AC8FF
+f HighlightTime1 = 0.3
+l HighlightColor1 = 0xff5AC8FF
+f HighlightTime2 = 0.6
+l HighlightColor2 = 0x475AC8FF
+
+l DisabledAnimationTimeStamps = 2
+b DisabledAnimationLoops = FALSE
+f DisabledTime0 = 0.0
+l DisabledColor0 = 0xff546380
+f DisabledTime1 = 0.5
+l DisabledColor1 = 0xff546380
+
+[Button4] // jump to Galatea
+
+l ID = XXX
+l XLocation = 111
+l YLocation = 92
+l Width = 34
+l Height = 39
+
+l HelpCaption = 0
+l HelpDesc = 0
+
+st FileName = "mcl_cm_5.tga"
+
+l UWidth = 51
+l VHeight = 59
+
+l UNormal = 51
+l VNormal = 0
+
+l UPressed = 0
+l VPressed = 0
+
+l UHighlight = 51
+l VHighlight = 0
+
+l UDisabled = 51
+l VDisabled = 0
+
+b AnimateBmp = 1
+b AnimateText = 1
+
+l NormalAnimationTimeStamps = 2
+b NormalAnimationLoops = FALSE
+f NormalTime0 = 0.0
+l NormalColor0 = 0xff5AC8FF
+f NormalTime1 = 7.0
+l NormalColor1 = 0xff5AC8FF
+
+l PressedAnimationTimeStamps = 2
+b PressedAnimationLoops = FALSE
+f PressedTime0 = 0.0
+l PressedColor0 = 0x475AC8FF
+f PressedTime1 = 0.5
+l PressedColor1 = 0xff5AC8FF
+
+l HighlightAnimationTimeStamps = 3
+b HighlightAnimationLoops = TRUE
+f HighlightTime0 = 0.0
+l HighlightColor0 = 0x475AC8FF
+f HighlightTime1 = 0.3
+l HighlightColor1 = 0xff5AC8FF
+f HighlightTime2 = 0.6
+l HighlightColor2 = 0x475AC8FF
+
+l DisabledAnimationTimeStamps = 2
+b DisabledAnimationLoops = FALSE
+f DisabledTime0 = 0.0
+l DisabledColor0 = 0xff546380
+f DisabledTime1 = 0.5
+l DisabledColor1 = 0xff546380
+
+[Button5] // jump to Outreach
+
+l ID = XXX
+l XLocation = 191
+l YLocation = 20
+l Width = 34
+l Height = 39
+
+l HelpCaption = 0
+l HelpDesc = 0
+
+st FileName = "mcl_cm_5.tga"
+
+l UWidth = 51
+l VHeight = 59
+
+l UNormal = 51
+l VNormal = 0
+
+l UPressed = 0
+l VPressed = 0
+
+l UHighlight = 51
+l VHighlight = 0
+
+l UDisabled = 51
+l VDisabled = 0
+
+b AnimateBmp = 1
+b AnimateText = 1
+
+l NormalAnimationTimeStamps = 2
+b NormalAnimationLoops = FALSE
+f NormalTime0 = 0.0
+l NormalColor0 = 0xff5AC8FF
+f NormalTime1 = 7.0
+l NormalColor1 = 0xff5AC8FF
+
+l PressedAnimationTimeStamps = 2
+b PressedAnimationLoops = FALSE
+f PressedTime0 = 0.0
+l PressedColor0 = 0x475AC8FF
+f PressedTime1 = 0.5
+l PressedColor1 = 0xff5AC8FF
+
+l HighlightAnimationTimeStamps = 3
+b HighlightAnimationLoops = TRUE
+f HighlightTime0 = 0.0
+l HighlightColor0 = 0x475AC8FF
+f HighlightTime1 = 0.3
+l HighlightColor1 = 0xff5AC8FF
+f HighlightTime2 = 0.6
+l HighlightColor2 = 0x475AC8FF
+
+l DisabledAnimationTimeStamps = 2
+b DisabledAnimationLoops = FALSE
+f DisabledTime0 = 0.0
+l DisabledColor0 = 0xff546380
+f DisabledTime1 = 0.5
+l DisabledColor1 = 0xff546380
+
+[Statics]
+l Staticcount = 1
+
+[Static0]
+l XLocation = 0
+l YLocation = 0
+l Width = 256
+l Height = 256
+l UNormal = 0
+l VNormal = 0
+l UWidth = 256
+l VHeight = 256
+st FileName = "mcl_merc_starmap.tga"
+
+[Texts]
+l Textcount = 1
+
+[Text0]
+l XLocation = 4
+l YLocation = 230
+l Width = 248
+l Height = 22
+l Color = 0xffff0000
+b outline = FALSE
+l Font = 27656 // use agencyfb11
+l TextID = 27654
+l Alignment = 3
+
+FitEnd
