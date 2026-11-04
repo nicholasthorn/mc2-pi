@@ -6,7 +6,7 @@
 #
 # A port of this run's own: WSL is one machine shared by every session.
 
-string(RANDOM LENGTH 4 ALPHABET 0123456789 suffix)
+string(RANDOM LENGTH 4 ALPHABET 123456789 suffix)	# no leading zero to misread
 math(EXPR port "20000 + ${suffix}")
 execute_process(
     COMMAND "${NET_PING}" server ${port} 40

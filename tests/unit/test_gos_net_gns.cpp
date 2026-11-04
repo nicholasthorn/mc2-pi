@@ -27,9 +27,10 @@ namespace {
 const uint16_t TEST_PORT = static_cast<uint16_t>(20000u + std::random_device()() % 20000u);
 const char* const LOCALHOST = "127.0.0.1";
 
-std::unique_ptr<Transport> create()
+// Long enough for a sanitized build on a busy machine.
+std::unique_ptr<Transport> create(int connectTimeoutMs = 20000)
 {
-	std::unique_ptr<Transport> transport = createGnsTransport(nullptr, 500);
+	std::unique_ptr<Transport> transport = createGnsTransport(nullptr, connectTimeoutMs);
 	REQUIRE(transport);
 	return transport;
 }
@@ -138,7 +139,7 @@ TEST_CASE("ordered messages stay in order, up to the largest size")
 
 TEST_CASE("connecting to nobody ends in Disconnected")
 {
-	std::unique_ptr<Transport> client = create();
+	std::unique_ptr<Transport> client = create(500);
 	ConnectionId id = INVALID_CONNECTION;
 	REQUIRE(client->connect(LOCALHOST, TEST_PORT, id));
 	Event event;

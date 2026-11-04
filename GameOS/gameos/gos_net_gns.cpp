@@ -115,6 +115,8 @@ public:
 		if (!connections_.erase(connection))
 			return;
 		incoming_.erase(connection);
+		connecting_.erase(connection);
+		dropHeld(connection);
 		g_connections.erase(connection);
 		// linger: what was already sent still gets there
 		SteamNetworkingSockets()->CloseConnection(connection, 0, nullptr, true);
@@ -147,7 +149,12 @@ public:
 	void onConnected(HSteamNetConnection connection)
 	{
 		incoming_.erase(connection);
+		connecting_.erase(connection);
 		pushState(EventType::Connected, connection);
+		for (Event& held : held_)
+			if (held.connection == connection)
+				events_.push_back(std::move(held));
+		dropHeld(connection);
 	}
 
 	void onLost(HSteamNetConnection connection)
@@ -157,6 +164,8 @@ public:
 		connections_.erase(connection);
 		g_connections.erase(connection);
 		SteamNetworkingSockets()->CloseConnection(connection, 0, nullptr, false);
+		connecting_.erase(connection);
+		dropHeld(connection);
 		// one that never finished connecting to us was never announced to the caller
 		if (!incoming_.erase(connection))
 			pushState(EventType::Disconnected, connection);
@@ -169,7 +178,14 @@ private:
 		net->SetConnectionPollGroup(connection, group_);
 		net->ConfigureConnectionLanes(connection, NUM_LANES, nullptr, nullptr);
 		connections_.insert(connection);
+		connecting_.insert(connection);
 		g_connections[connection] = this;
+	}
+
+	void dropHeld(ConnectionId connection)
+	{
+		held_.erase(std::remove_if(held_.begin(), held_.end(),
+			[connection](const Event& e) { return e.connection == connection; }), held_.end());
 	}
 
 	void receive()
@@ -179,6 +195,11 @@ private:
 			const int count = SteamNetworkingSockets()->ReceiveMessagesOnPollGroup(group_, messages, 32);
 			for (int i = 0; i < count; i++) {
 				SteamNetworkingMessage_t* m = messages[i];
+				// GNS would carry far more than the interface promises, and any peer can ask
+				if (m->m_cbSize > static_cast<int>(MAX_MESSAGE_SIZE)) {
+					m->Release();
+					continue;
+				}
 				Event event;
 				event.type = EventType::Message;
 				event.connection = m->m_conn;
@@ -188,7 +209,12 @@ private:
 					event.delivery = (m->m_idxLane == LANE_UNORDERED) ? Delivery::ReliableUnordered : Delivery::ReliableOrdered;
 				const uint8_t* data = static_cast<const uint8_t*>(m->m_pData);
 				event.data.assign(data, data + m->m_cbSize);
-				events_.push_back(std::move(event));
+				// GNS's thread can have a message ready before its Connected has been
+				// reported, and a caller must hear of a connection before hearing from it
+				if (connecting_.count(event.connection))
+					held_.push_back(std::move(event));
+				else
+					events_.push_back(std::move(event));
 				m->Release();
 			}
 			if (count < 32)
@@ -208,7 +234,9 @@ private:
 	std::set<HSteamListenSocket> listeners_;
 	std::set<ConnectionId> connections_;
 	std::set<ConnectionId> incoming_;	// accepted, and not yet Connected
+	std::set<ConnectionId> connecting_;	// either way, and not yet Connected
 	std::deque<Event> events_;
+	std::vector<Event> held_;			// messages for those still connecting
 };
 
 void onStatusChanged(SteamNetConnectionStatusChangedCallback_t* info)

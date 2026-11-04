@@ -63,7 +63,7 @@ if(MC2_NET)
 endif()
 add_library(gameos ${SOURCES})
 if(MC2_NET)
-    target_link_libraries(gameos PUBLIC mc2_gns)
+    target_link_libraries(gameos PRIVATE mc2_gns)	# only gos_net_gns.cpp sees its headers
 endif()
 add_library(gameos_main ${MAIN_SRC})
 

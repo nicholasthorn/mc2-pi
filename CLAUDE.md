@@ -137,7 +137,10 @@ detailed conventions.
   `buildShaderHeader()`; shader files never contain `#version`.
 - **The whole engine builds with `-DLINUX_BUILD`, on Windows too.** `PLATFORM_WINDOWS`
   is the real "this is MSVC" flag. `PATH_SEPARATOR` is therefore `/` everywhere.
-- **Networking does not exist.** `code/mp*.cpp` and `multplyr.cpp` are UI stubs.
+- **The game has no networking yet.** `code/mp*.cpp` and `multplyr.cpp` are UI stubs;
+  `-nethost` runs a host's code with no network. The transport exists but nothing in
+  the game calls it: `code/netwire.*`, `GameOS/gameos/gos_net*`, and `cmake/mc2_gns.cmake`,
+  which downloads and builds its libraries (`-DMC2_NET=OFF` leaves them out).
 
 ## Testing
 

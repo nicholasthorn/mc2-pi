@@ -68,10 +68,13 @@ public:
 	virtual bool send(ConnectionId connection, Delivery delivery, const void* data, size_t size) = 0;
 
 	// Close from this end. The other end gets Disconnected; this end gets nothing
-	// more for this connection, not even messages that had already arrived.
+	// more for this connection, not even messages that had already arrived. What was
+	// sent still gets there, if this process keeps a transport open while it does.
 	virtual void disconnect(ConnectionId connection) = 0;
 
-	// The next event, oldest first. False when there are none.
+	// The next event, oldest first. False when there are none. A connection's Connected
+	// comes before anything else about it. A received message is never over
+	// MAX_MESSAGE_SIZE. Nothing limits how many wait here: poll until it returns false.
 	virtual bool poll(Event& event) = 0;
 };
 

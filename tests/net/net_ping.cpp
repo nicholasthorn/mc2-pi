@@ -60,6 +60,9 @@ int runServer(Transport& net, uint16_t port, int seconds)
 		}
 		if (event.type == EventType::Connected) {
 			seen = true;
+			// a welcome at once, as a real host would send
+			const uint8_t welcome = 1;
+			net.send(event.connection, Delivery::ReliableOrdered, &welcome, 1);
 		}
 		else if (event.type == EventType::Disconnected) {
 			fprintf(stderr, "[server] client left\n");
@@ -94,6 +97,10 @@ int runClient(Transport& net, const char* address, uint16_t port, int seconds)
 		printf("[client] bad address %s\n", address);
 		return 2;
 	}
+	// Not looking for a moment lets the Connected and the server's welcome both be
+	// waiting at the first poll, which must give the Connected first. Only two processes
+	// can show this: in one, the server's polls deliver the client's Connected too.
+	std::this_thread::sleep_for(std::chrono::milliseconds(300));
 	const Clock::time_point start = Clock::now();
 	bool connected = false;
 	double nextSend = 0.0;
@@ -114,6 +121,10 @@ int runClient(Transport& net, const char* address, uint16_t port, int seconds)
 			}
 			else if (event.type == EventType::Disconnected) {
 				printf("[client] lost the connection\n");
+				return 1;
+			}
+			else if (!connected) {
+				printf("[client] a message came before Connected\n");
 				return 1;
 			}
 			else if (event.data.size() == MESSAGE_SIZE) {

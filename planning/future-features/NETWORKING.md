@@ -1,10 +1,9 @@
 # Multiplayer: proposal
 
-Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 has begun: the
-wire format (`code/netwire.*`) and the transport interface with a test loopback
-(`GameOS/gameos/gos_net.*`) exist, and nothing calls them yet. No real transport:
-and `gos_net` has a real backend on GameNetworkingSockets, built by every configuration
-(`cmake/mc2_gns.cmake`), but nothing in the game calls it yet.
+Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 nearly built: the
+wire format (`code/netwire.*`), the transport interface (`GameOS/gameos/gos_net.*`) and
+a real backend on GameNetworkingSockets, in every configuration (`cmake/mc2_gns.cmake`).
+Nothing in the game calls them yet, and a Windows peer has not met another platform's.
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are
@@ -18,9 +17,10 @@ not recorded on purpose (grep the symbol).
   players and a player taking a headset off.
 - **Keep the gameplay branches and the chunk formats. Replace the wire format
   and the transport, and rewrite the empty `MultiPlayer` methods.**
-- **Transport: GameNetworkingSockets (GNS)**, subject to a short spike on Android
-  builds. ENet is the fallback. GNS brings encryption, congestion control,
-  ICE NAT traversal and a lag simulator.
+- **Transport: GameNetworkingSockets (GNS)**, which now builds on every target and
+  has run on a Quest. ENet stays the fallback until a Windows peer has met another
+  platform's. GNS brings encryption, congestion control, ICE NAT traversal and a lag
+  simulator.
 - **Same room needs less than it looks.** Quests on one Wi-Fi network, each with
   its own view, need no shared coordinates and nothing from Meta. Alignment is
   needed only for one shared physical table, which comes after the VR tabletop
@@ -216,7 +216,7 @@ shaped like DirectPlay and is not worth implementing.
 | Encryption | AES-GCM-256, Curve25519 | Not built in (to confirm) |
 | NAT traversal | Built-in ICE client; you supply signaling, STUN, TURN | Not built in (to confirm) |
 | Lag and loss simulation | Built in | No |
-| Dependencies | Protobuf, plus libsodium or OpenSSL | None |
+| Dependencies | Protobuf, plus a crypto library (BoringSSL here, BCrypt on Windows) | None |
 | Android arm64 | **Not in its docs or its CI**, but it builds and runs on a Quest 2 (see "Android spike") | Plain C, expected to be easy |
 | State | v1.6.1, October 2026, after a gap from 2022 | Stable and small |
 | Licence | BSD-3-Clause | MIT |
@@ -277,12 +277,17 @@ reliable messages are ordered within a lane.
 
 With all that, `net_ping` over the real backend between a PC (Linux x64) and the Quest over
 home Wi-Fi, 20 s, sending with no batching: 100 of 100 reliable ordered, 100 of 100 reliable
-unordered, 400 of 400 unreliable, none out of order, round trip p50 8 ms, p95 15 ms, max 25 ms.
+unordered, 400 of 400 unreliable, none out of order, round trip p50 6 ms, p95 about 10 ms, with
+a worst case of 120 ms on the reliable ordered messages and 85 ms on the unreliable ones.
+
+**Size with this build:** `net_ping` for Quest, which is the library, its dependencies and
+a small program, is 2.9 MB stripped, against the spike's 7.0 MB with OpenSSL. `libmain.so`
+does not contain any of it until the game calls it, so that cost is still to come.
 
 Still open: a BCrypt peer talking to a BoringSSL one (Windows to Quest) has not been run, and
-the handshake depends on them agreeing; a sleeping headset and a shell are not the app; and
-`libmain.so` does not contain any of this until the game calls it, so the roughly 7 MB
-on a Quest is still to come.
+the handshake depends on them agreeing; a sleeping headset and a shell are not the app. When
+phase 2 links this into the game, `dist/licenses` also needs the notices of the code GNS bundles
+(`src/external`: curve25519-donna, ed25519-donna, sha1-wpa, vjson).
 
 Rejected: VPNs such as Tailscale as the remote answer (fine for PC players, but a
 poor request for a headset), TCP (a lost packet delays every later update), and
