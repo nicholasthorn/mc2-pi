@@ -120,6 +120,63 @@ void LogisticsMechIcon::assignAnimation( FitIniFile& file, long& number )
 	}
 }
 
+// Omnitech's shop sheet has art for 102 mechs and its data goes on to 127. The rest
+// are on the mission HUD's sheet, in cells of the same size: copy one across. The
+// texture can be reloaded after a mission, so this looks each time, and only for an
+// index past the art, as locking costs the whole sheet.
+static void fillEmptyLargeSheetCell( const aObject& icon, long index )
+{
+	const int cellX = 40;
+	const int cellY = 48;
+	const int perRow = 25;
+	static TGAFileHeader* s_highSheet = loadIconSheet( "mcui_high7.tga" );
+	static long s_firstEmptyCell = -1;
+	if ( !s_highSheet || s_highSheet->pixel_depth != 32 || index < 0
+		|| ( index + 1 ) * cellX > s_highSheet->width || cellY > s_highSheet->height )
+		return;
+	if ( s_firstEmptyCell >= 0 && index < s_firstEmptyCell )
+		return;
+
+	const int gosID = mcTextureManager->get_gosTextureHandle( icon.getTextureHandle() );
+	if ( gosID <= 0 )
+		return;
+
+	TEXTUREPTR textureData;
+	gos_LockTexture( gosID, 0, 0, &textureData );
+
+	const auto cellIsEmpty = [&]( long cell )
+	{
+		const DWORD* pRow = textureData.pTexture + ( cell / perRow ) * cellY * textureData.Width + ( cell % perRow ) * cellX;
+		for ( int y = 0; y < cellY; y++, pRow += textureData.Width )
+			for ( int x = 0; x < cellX; x++ )
+				if ( pRow[x] & 0x00ffffff )
+					return false;
+		return true;
+	};
+
+	const long sheetCells = perRow * (long)( textureData.Height / cellY );
+	if ( s_firstEmptyCell < 0 )
+	{
+		s_firstEmptyCell = sheetCells;
+		while ( s_firstEmptyCell > 0 && cellIsEmpty( s_firstEmptyCell - 1 ) )
+			s_firstEmptyCell--;
+	}
+
+	if ( index < sheetCells && index >= s_firstEmptyCell && cellIsEmpty( index ) )
+	{
+		DWORD* pDest = textureData.pTexture + ( index / perRow ) * cellY * textureData.Width + ( index % perRow ) * cellX;
+		const char* pSrc = reinterpret_cast<const char*>( s_highSheet + 1 ) + index * cellX * 4;
+		for ( int y = 0; y < cellY; y++ )
+		{
+			memcpy( pDest, pSrc, cellX * 4 );
+			pDest += textureData.Width;
+			pSrc += s_highSheet->width * 4;
+		}
+	}
+
+	gos_UnLockTexture( gosID );
+}
+
 void LogisticsMechIcon::setIconUVs( aObject& icon, long index )
 {
 	// stock's sheet is 256 wide with 10 icons a row, each the size it is drawn;
@@ -128,7 +185,9 @@ void LogisticsMechIcon::setIconUVs( aObject& icon, long index )
 	const long iconsPerRow = largeSheet ? 25 : 10;
 	const float width = largeSheet ? 40.f : icon.width();
 	const float height = largeSheet ? 48.f : icon.height();
-	if ( !largeSheet )
+	if ( largeSheet )
+		fillEmptyLargeSheetCell( icon, index );
+	else
 		icon.setFileWidth(256.f);
 
 	const float fX = index % iconsPerRow;

@@ -28,6 +28,10 @@ class MechWarrior;
 CLASS DESCRIPTION
 MechIcon:
 **************************************************************************************************/
+// an icon sheet from the art folder, its header then its pixels top row first
+// (new char[]); NULL if it cannot be opened
+TGAFileHeader* loadIconSheet( const char* fileName );
+
 class PilotIcon
 {
 
