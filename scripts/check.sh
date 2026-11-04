@@ -187,6 +187,14 @@ if [ -n "$CPP" ] && command -v cppcheck >/dev/null; then
                 { after[k] += n }
                 END { for (k in after) { d = after[k] - before[k]; if (d > 0) print k (d > 1 ? " (x" d ")" : "") } }
             ' <(grep '^NEW' "$before") <(grep '^NEW' "$after"))
+            # Keep findings in files this branch changed. A new .cpp has no
+            # "before" run, so everything a newer cppcheck finds in the legacy
+            # headers it includes would otherwise count as added. CI's gate,
+            # on the baseline's own version, still sees those files.
+            added_all=$added
+            added=$(echo "$CHANGED" | awk 'NR == FNR { changed[$0] = 1; next } { p = $2; sub(/:$/, "", p); if (p in changed) print }' - <(echo "$added_all"))
+            elsewhere=$(( $(echo "$added_all" | grep -c '^NEW') - $(echo "$added" | grep -c '^NEW') ))
+            [ "$elsewhere" -gt 0 ] && warn "cppcheck: $elsewhere finding(s) only in files this branch did not change (local cppcheck $local_ver, baseline $base_ver): left to CI"
             if [ -z "$added" ]; then
                 ok "cppcheck: nothing new compared with $($GIT rev-parse --short "$REF") (local cppcheck $local_ver, baseline $base_ver)"
             else
