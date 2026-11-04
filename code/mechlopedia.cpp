@@ -1113,6 +1113,9 @@ void Mechlopedia::BuildingScreen::begin()
 	{
 		char tmp[256];
 		cLoadString( pBldgs[i]->nameID, tmp, 255 );
+		// a building with no name has no entry (id 0: Omnitech has 20 of them)
+		if ( !tmp[0] )
+			continue;
 		EString str = tmp;
 		str.MakeUpper();
 		EString liao = "Liao ";
