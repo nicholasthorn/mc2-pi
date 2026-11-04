@@ -294,6 +294,31 @@ TEST_CASE("an FST claiming more entries than it holds is refused")
 	remove(fstPath.c_str());
 }
 
+TEST_CASE("an FST cut off inside its header is refused")
+{
+	const std::string fstPath = scratchPath("truncated.fst");
+	size_t bytes = 6;
+	SUBCASE("in the entry count") { bytes = 6; }
+	SUBCASE("in the version") { bytes = 2; }
+	FILE *f = fopen(fstPath.c_str(), "wb");
+	REQUIRE(f != nullptr);
+	const uint32_t header[2] = { FASTFILE_VERSION, 0x01010101u };
+	fwrite(header, 1, bytes, f);
+	fclose(f);
+
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == READ_PAST_EOF_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+	remove(fstPath.c_str());
+}
+
 TEST_CASE("an FST with no entries still opens")
 {
 	const std::string fstPath = scratchPath("empty.fst");

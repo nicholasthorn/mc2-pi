@@ -204,10 +204,7 @@ long FastFile::open (const char* fName)
     logicalPosition += FASTFILE_VERSION_BYTESIZE;
 
 	if (result != FASTFILE_VERSION_BYTESIZE)
-	{
-		long lastError = errno;
-		return lastError;
-	}
+		return READ_PAST_EOF_ERR;	// errno is not set by a short read
 
 	if (version != FASTFILE_VERSION && version != FASTFILE_VERSION_LZ)
 		return FASTFILE_VERSION;
@@ -223,8 +220,8 @@ long FastFile::open (const char* fName)
 
 	if (result != 4)
 	{
-		long lastError = errno;
-		return lastError;
+		numFiles = 0;	// the short read may have filled part of it
+		return READ_PAST_EOF_ERR;
 	}
 
 	//---------------------------------------------

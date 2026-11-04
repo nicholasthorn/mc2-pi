@@ -407,7 +407,7 @@ void __stdcall InitializeGameEngine()
 				{
 					bool result = FastFileInit(fileName);
 					if (!result)
-						STOP(("Unable to startup fastfiles.  Probably an old one in the directory!!"));
+						STOP(("Unable to startup fastfile %s.  Probably an old or corrupt one in the directory!!",fileName));
 
 					fileNum++;
 					sprintf(fastFileId,"File%d",fileNum);

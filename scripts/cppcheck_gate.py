@@ -62,10 +62,12 @@ ZERO_FILL_MEMSET = re.compile(r"\bmemset\s*\([^,]+,\s*(0+|0[xX]0+|'\\0')\s*,")
 # defect. dangerousTypeCast: every old-style pointer cast between class types
 # (about 1,100), all through the object and list code. nullPointerOutOfMemory:
 # using an allocation with no NULL check (about 70). All 68 were read on
-# 2026-11-04: the ones sized by a count in a file or system.cfg got a real check,
-# and the rest are small, file-length or dead code, where only true exhaustion
-# gives NULL, and that ends the game anyway. A size read from data needs a bounds
-# check whatever this check says, and new code has to get one by review.
+# 2026-11-04: the ones sized by a count in a file or system.cfg got a real check.
+# Nearly all the rest are small, file-length or dead code, where only true
+# exhaustion gives NULL, and that ends the game anyway. Four are sized by a TGA
+# header, which a NULL check would not save (planning/PROGRESS.md has that job).
+# A size read from data needs a bounds check whatever this check says, and new
+# code has to get one by review.
 NOISE = {"dangerousTypeCast", "nullPointerOutOfMemory"}
 # some messages name a line ("called from constructor 'Camera()' at line
 # 389"); keys must not move when unrelated edits shift the code
