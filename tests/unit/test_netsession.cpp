@@ -296,6 +296,17 @@ TEST_CASE("garbage from a peer never crashes a session")
 	}
 }
 
+TEST_CASE("ranks: higher is better, level players share, and the next skips")
+{
+	const long standings[4] = { 10, 30, 10, 5 };
+	long ranks[4] = {};
+	rankPlayers(standings, 4, ranks);
+	CHECK(ranks[0] == 2);
+	CHECK(ranks[1] == 1);
+	CHECK(ranks[2] == 2);
+	CHECK(ranks[3] == 4);
+}
+
 TEST_CASE("a client takes no batches after the game is over")
 {
 	Game game;

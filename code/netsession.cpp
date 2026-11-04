@@ -10,6 +10,17 @@ using namespace netwire;
 
 namespace netsession {
 
+void rankPlayers(const long* standings, int count, long* ranks)
+{
+	for (int i = 0; i < count; i++) {
+		long rank = 1;
+		for (int j = 0; j < count; j++)
+			if (standings[j] > standings[i])
+				rank++;
+		ranks[i] = rank;
+	}
+}
+
 bool Session::host(uint16_t port, uint8_t numPlayers, uint32_t dataHash)
 {
 	if (numPlayers < 1 || numPlayers > MAX_PLAYERS || !transport_.listen(port))

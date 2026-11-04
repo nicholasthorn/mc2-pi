@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 3;
+constexpr uint16_t PROTOCOL_VERSION = 4;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -106,7 +106,9 @@ enum class WorldEventType : uint8_t {
 	Mine = 2,			// a, b: cell; value: state | explosion << 8
 	TerrainFire = 3,	// a: seconds; value: part id
 	Capture = 4,		// a: commander; b: team; value: part id
-	KillLoss = 5		// a: killer; b: loser
+	KillLoss = 5,		// a: killer; b: loser
+	ScriptMessage = 6,	// a, b: parameter, low 12 bits and high 12 bits; value: code
+	Score = 7			// a: team; value: points to add
 };
 
 constexpr size_t WORLD_EVENT_WORDS = 2;

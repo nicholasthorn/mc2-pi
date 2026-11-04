@@ -166,13 +166,13 @@ TEST_CASE("WorldEvent: what does not fit is refused")
 	e.b = 0;
 	e.type = static_cast<WorldEventType>(0);
 	CHECK_FALSE(encodeWorldEvent(e, words));
-	e.type = static_cast<WorldEventType>(6);
+	e.type = static_cast<WorldEventType>(8);
 	CHECK_FALSE(encodeWorldEvent(e, words));
 
 	WorldEvent back;
 	const uint32_t none[WORLD_EVENT_WORDS] = { 0u, 0u };
 	CHECK_FALSE(decodeWorldEvent(none, back));
-	const uint32_t past[WORLD_EVENT_WORDS] = { 6u, 0u };
+	const uint32_t past[WORLD_EVENT_WORDS] = { 8u, 0u };
 	CHECK_FALSE(decodeWorldEvent(past, back));
 }
 

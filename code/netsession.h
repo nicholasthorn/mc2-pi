@@ -35,6 +35,10 @@ struct Received {
 	netwire::ChunkBatch batch;
 };
 
+// Ranks for a results table, from each player's standing, higher is better: 1 for the
+// best, players level share a rank, and the next rank skips past them.
+void rankPlayers(const long* standings, int count, long* ranks);
+
 class Session {
 public:
 	explicit Session(gos_net::Transport& transport) : transport_(transport) {}

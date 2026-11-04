@@ -116,7 +116,7 @@ bool expectType(Reader& in, MessageType type)
 bool encodeWorldEvent(const WorldEvent& e, uint32_t words[WORLD_EVENT_WORDS])
 {
 	const uint8_t t = static_cast<uint8_t>(e.type);
-	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::KillLoss)
+	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::Score)
 		|| e.a > MAX_WORLD_FIELD || e.b > MAX_WORLD_FIELD)
 		return false;
 	words[0] = static_cast<uint32_t>(t) | (static_cast<uint32_t>(e.a) << 8) | (static_cast<uint32_t>(e.b) << 20);
@@ -127,7 +127,7 @@ bool encodeWorldEvent(const WorldEvent& e, uint32_t words[WORLD_EVENT_WORDS])
 bool decodeWorldEvent(const uint32_t words[WORLD_EVENT_WORDS], WorldEvent& e)
 {
 	const uint8_t t = static_cast<uint8_t>(words[0] & 0xFFu);
-	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::KillLoss))
+	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::Score))
 		return false;
 	e.type = static_cast<WorldEventType>(t);
 	e.a = static_cast<uint16_t>((words[0] >> 8) & MAX_WORLD_FIELD);
