@@ -7716,7 +7716,7 @@ long MechWarrior::calcTacOrder (long goalAction,
 
 	newTacOrder.init(ORDER_ORIGIN_COMMANDER, TACTICAL_ORDER_NONE);
 	if (currentAction == GOAL_ACTION_MOVE) {
-		GlobalPathStep globalPath[50];
+		GlobalPathStep globalPath[MAX_GLOBAL_PATH];
 		long numSteps = 0;
 		if (currentTarget)
 			numSteps = getVehicle()->calcGlobalPath(globalPath, currentTarget, NULL, true);
@@ -7834,7 +7834,7 @@ long MechWarrior::calcTacOrder (long goalAction,
 		}
 		}
 	else if (currentAction == GOAL_ACTION_ATTACK) {
-		GlobalPathStep globalPath[50];
+		GlobalPathStep globalPath[MAX_GLOBAL_PATH];
 		long numSteps = getVehicle()->calcGlobalPath(globalPath, currentTarget, NULL, true);
 		if (numSteps > 0) {
 			lastGoalPathSize = numSteps;
@@ -7951,7 +7951,7 @@ long MechWarrior::calcTacOrder (long goalAction,
 				currentTarget = blockerList[blockerToAttack];
 				//}
 			}
-			GlobalPathStep globalPath[50];
+			GlobalPathStep globalPath[MAX_GLOBAL_PATH];
 			long numSteps = getVehicle()->calcGlobalPath(globalPath, currentTarget, NULL, true);
 			if (numSteps > 0) {
 				lastGoalPathSize = numSteps;
