@@ -163,6 +163,8 @@ Conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md) and
 
 - No networking: the multiplayer screens are stubs (the menu button is disabled).
 - Sound: no doppler (stereo panning works).
+- The in-mission HUD is a fixed number of pixels, so it is centred but small on
+  1440p and 4K screens.
 - WSLg's GPU driver shows a white screen with desktop GL; use
   `LIBGL_ALWAYS_SOFTWARE=1`.
 

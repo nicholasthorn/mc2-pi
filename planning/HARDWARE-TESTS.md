@@ -15,6 +15,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click
+      the force icons, minimap and command buttons: each reacts where it is
+      drawn. A pilot video shows at the top right, framed, not off-screen. GL or
+      GLES. CI and screenshots show the position, not the clicks or the video.
+- [ ] **Omnitech at 1920x1080** (`hud-centre`). A mission plays, on its 1600 layout,
+      with the same checks.
 - [ ] **Dragging a mech out of the force group** (`fix/noticed-bugs`). In the
       mech bay, drag a force-group mech onto the mech list at the same height
       as the force-group icons: it must leave the force group. Then drag one
