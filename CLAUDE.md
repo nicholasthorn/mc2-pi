@@ -18,7 +18,7 @@ Desktop GL stays the default everywhere but the Pi. The main branch is
 - **Never open issues or PRs against `alariq/mc2`.** Its README says AI-written
   code is not welcome there. Anything offered upstream is the user's call and the
   user's own work.
-- Keep diffs small and local so merges from `origin/master` stay painless: no
+- Keep diffs focused so merges from `origin/master` stay painless: no
   wholesale reformatting, no renames of legacy files.
 - Game data lives in a separate repo, `alariq/mc2srcdata` (git-lfs), checked out
   as a sibling directory. It is not a submodule.
