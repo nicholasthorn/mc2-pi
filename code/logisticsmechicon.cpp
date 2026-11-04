@@ -120,6 +120,22 @@ void LogisticsMechIcon::assignAnimation( FitIniFile& file, long& number )
 	}
 }
 
+void LogisticsMechIcon::setIconUVs( aObject& icon, long index )
+{
+	// stock's sheet is 256 wide with 10 icons a row, each the size it is drawn;
+	// Omnitech's is 1024 with 25 of 40x48, whatever size a layout draws them at
+	const bool largeSheet = icon.getFileWidth() > 256.f;
+	const long iconsPerRow = largeSheet ? 25 : 10;
+	const float width = largeSheet ? 40.f : icon.width();
+	const float height = largeSheet ? 48.f : icon.height();
+	if ( !largeSheet )
+		icon.setFileWidth(256.f);
+
+	const float fX = index % iconsPerRow;
+	const float fY = index / iconsPerRow;
+	icon.setUVs( fX * width, fY * height, (fX + 1.f) * width, (fY + 1.f) * height );
+}
+
 void LogisticsMechIcon::setMech( LogisticsMech* pNewMech )
 {
 	pMech = pNewMech;
@@ -127,27 +143,7 @@ void LogisticsMechIcon::setMech( LogisticsMech* pNewMech )
 	if ( pMech )
 	{
 		// need to set the uv's of the mech icon
-		long index = pMech->getIconIndex();
-		long xIndex = index % 10;
-		long yIndex = index / 10;
-
-		float fX = xIndex;
-		float fY = yIndex;
-
-		float width = icon.width();
-		float height = icon.height();
-
-		float u = (fX * width);
-		float v = (fY * height);
-
-		fX += 1.f;
-		fY += 1.f;
-		
-		float u2 = (fX * width);
-		float v2 = (fY * height);
-
-		icon.setFileWidth(256.f);
-		icon.setUVs( u, v, u2, v2 );
+		setIconUVs( icon, pMech->getIconIndex() );
 
 		chassisName.setText( pMech->getChassisNameText() );
 
