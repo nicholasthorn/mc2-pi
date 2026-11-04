@@ -551,6 +551,11 @@ the same kills, losses, buildings and mines (`[NETSCORE]`). The repairs and capt
 director, not ordered through a repair truck or a capturing mech, and no run has lit a tree. The
 strike requests are not checked against resource points.
 
+A client's hold position reaches the host, and the in-mission results table has real players, names
+and ranks, the winners first and then by team score. Mission script messages and team scores are sent.
+A `TACTICAL_ORDER_RECOVER` is refused: executing one is a `STOP`, in single player too, so a client
+could have ended the host's game with it.
+
 Not settled by phase 2, against its exit criterion:
 
 - **The Quest client step is not measured,** and the game has not run a network game on a Quest.
@@ -558,8 +563,7 @@ Not settled by phase 2, against its exit criterion:
 - **Sound, effects and movement on the client have not been looked at.** The check covers armour,
   status and position.
 - Not sent yet, for phase 3: gates and turrets changing state beyond the hits on them, a captured
-  vehicle, recovery (the host still `STOP`s on it), reinforcements, turret targets, mission script
-  messages, scores, pilot kill stats. Hold position and move groups are still empty on a client.
+  vehicle, reinforcements, turret targets, pilot kill stats. Recovery is dead code in the game.
 - The host checks one win condition, the last team standing, and a mission script's result is not
   sent. Ending goes straight to quitting: there is no results screen or lobby to return to.
 - A client that leaves is not replaced, and a host that leaves ends the game for the client.
