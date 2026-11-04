@@ -23,6 +23,7 @@ on:
       - ".github/workflows/release.yml"
       - "scripts/package.sh"
       - "scripts/package_full.sh"
+      - "scripts/smoke.sh"
       - "scripts/build_gamedata.sh"
       - "scripts/android/**"
       - "android/**"
@@ -251,7 +252,7 @@ jobs:
           path: gamedata.tar
           compression-level: 0
           if-no-files-found: error
-          retention-days: 1
+          retention-days: ${{ github.ref_type == 'tag' && 30 || 1 }}
 
   full:
     name: Full package ${{ matrix.platform }}
@@ -277,8 +278,6 @@ jobs:
             os: ubuntu-24.04
             ext: zip
             prefs: hiprefs
-    env:
-      PACKAGE: mc2-${{ github.ref_type == 'tag' && github.ref_name || inputs.version || 'v0.0.0-dryrun' }}-${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -293,7 +292,7 @@ jobs:
       - name: Package
         run: |
           tar -xf gamedata.tar
-          bash scripts/package_full.sh --package "pkg/$PACKAGE.${{ matrix.ext }}" --data gamedata \
+          bash scripts/package_full.sh --package "pkg/mc2-$VERSION-${{ matrix.platform }}.${{ matrix.ext }}" --data gamedata \
             --data-version "${{ needs.gamedata.outputs.srcdata }}" --prefs ${{ matrix.prefs }} --out full
       - name: Install what a player installs
         if: matrix.libs
@@ -305,8 +304,8 @@ jobs:
         if: matrix.libs
         run: |
           mkdir unpacked
-          tar -xzf "full/$PACKAGE-full.tar.gz" -C unpacked
-          scripts/smoke.sh --game-dir "unpacked/$PACKAGE" --missions "mc2_01 mc2_03" \
+          tar -xzf "full/mc2-$VERSION-${{ matrix.platform }}-full.tar.gz" -C unpacked
+          scripts/smoke.sh --game-dir "unpacked/mc2-$VERSION-${{ matrix.platform }}" --missions "mc2_01 mc2_03" \
             --timeout 900 --log-dir smoke-logs
       - uses: actions/upload-artifact@v7
         if: always() && matrix.libs
@@ -343,5 +342,9 @@ jobs:
         run: |
           pre=""
           case "$VERSION" in *-*) pre="--prerelease" ;; esac
-          gh release create "$VERSION" dist/* --repo "$GITHUB_REPOSITORY" \
-            --draft $pre --title "MechCommander 2 $VERSION" --generate-notes
+          # a rerun finishes the uploads of a draft that a failure left behind
+          if ! gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" \
+              --draft $pre --title "MechCommander 2 $VERSION" --generate-notes
+          fi
+          gh release upload "$VERSION" dist/* --repo "$GITHUB_REPOSITORY" --clobber

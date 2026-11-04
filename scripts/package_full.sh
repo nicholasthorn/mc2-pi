@@ -49,10 +49,10 @@ STAGE="$TMP/$NAME"
 
 cp -r "$DATA/." "$STAGE/"
 # The game takes a missing options.cfg as its first run: it only "sniffs" the
-# hardware and exits. It also resets options.cfg when orgprefs.cfg is missing
-# (code/mechcmd2.cpp), so both go in
+# hardware and exits. It also resets options.cfg when orgprefs.cfg is missing,
+# and sets the two alike when it picks settings (code/mechcmd2.cpp)
 cp "$STAGE/$PREFS.cfg" "$STAGE/options.cfg"
-cp "$STAGE/minprefs.cfg" "$STAGE/orgprefs.cfg"
+cp "$STAGE/$PREFS.cfg" "$STAGE/orgprefs.cfg"
 # the licence the game data is distributed under
 cp "$SRC/EULA.txt" "$STAGE/"
 echo "alariq/mc2srcdata $DATA_VERSION" > "$STAGE/DATA-VERSION"

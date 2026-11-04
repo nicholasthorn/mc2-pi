@@ -88,10 +88,13 @@ shaders from the same release as the APK: others can run with wrong lighting.
 adb install -r mc2-<version>-quest-arm64.apk
 D=/sdcard/Android/data/com.nicholasthorn.mc2/files
 adb shell mkdir -p $D
-adb push --sync <game data folder>/. $D/
+adb push --sync <game data folder>/. $D/      # for an update, see below
 adb push --sync mc2-<version>-quest-arm64-files/shaders/. $D/shaders/
-adb shell cp $D/minprefs.cfg $D/options.cfg    # first install only: it resets your settings
+adb shell cp $D/minprefs.cfg $D/options.cfg    # the Quest's settings
 ```
+
+To update only the game, install the new APK and push its `shaders/`: pushing the
+game data again and the `cp` reset your settings.
 
 On Windows in Git Bash, run `export MSYS_NO_PATHCONV=1` first. Start "MC2 test"
 from the headset's Unknown Sources list. If `adb install` reports a signature
