@@ -7,7 +7,20 @@ for 64-bit Linux and Windows: current compilers, crash and undefined-behaviour
 fixes, mod support (MechCommander Omnitech), and a test, sanitizer and CI setup
 around the original code. On top of the usual desktop builds it also runs on
 the **Raspberry Pi 4/400**, through an OpenGL ES 3.1 renderer and an arm64
-build, and **Meta Quest 2 VR** support is in development.
+build, and it is **playable in VR on a Meta Quest 2**, standalone, with the
+Touch controllers.
+
+![An artillery strike landing on a battle in mission 17](media/battle.webp)
+
+| | |
+|---|---|
+| ![Mechs and vehicles under artillery fire in mission 1](media/strike.jpg) | ![Laser and missile fire across a mission 17 battlefield](media/lasers.jpg) |
+| *Artillery on the first campaign mission* | *Lasers and missiles, with shadows and detail textures on* |
+| ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | |
+| *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | |
+
+Scripted battles from the desktop build (`scripts/bench.sh --scenario`). The
+game data, and Omnitech's, are not in this repository.
 
 The main branch is called `pi-port` and the repository `mc2-pi` for
 historical reasons: the Pi port is where this started.
@@ -36,7 +49,7 @@ historical reasons: the Pi port is where this started.
 | Stereo panning for positional sound | Done |
 | CI: four build configurations, unit tests (also under ASan + UBSan), shader validation, smoke missions, cppcheck | Done; the cppcheck baseline is empty (every finding fixed or suppressed with a reason) |
 | Benchmarks: deterministic `-bench` runs, scripted battle scenarios with screenshots, `perf` profiles of gameplay frames | Done |
-| Downloadable builds (Pi, Linux, Windows) | First release candidate, `v0.2.0-rc1`, being tested before it is published ([planning/RELEASES.md](planning/RELEASES.md)); until then, build from source |
+| Downloadable builds (Pi, Linux, Windows, Quest) | Release candidates on the [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page ([planning/RELEASES.md](planning/RELEASES.md)); engine only for now, with the game data built by you ([one-download plan](planning/future-features/EASY-INSTALL.md)) |
 
 **Raspberry Pi 4/400**
 
@@ -51,10 +64,12 @@ historical reasons: the Pi port is where this started.
 
 | Area | Status |
 |---|---|
-| Phase 0: per-stage frame timings and a wide-FOV bench mode (`-benchfov`), to size the work | Done on PC; Pi runs pending |
-| Phase 1: side-by-side stereo debug view (`-stereo <separation>`) on PC | Three slices done: the world, shadows and world-anchored overlays per eye |
-| Quest test build: a flat Android APK that runs the bench, for the go/no-go | Built; not yet run on a headset |
-| Head tracking, Quest Link, standalone Quest build | Planned; nothing runs in a headset yet |
+| Standalone Quest build: Android APK with OpenXR, sideloaded | Playable on a Quest 2, and now built by the release workflow |
+| Head-tracked view, with the game camera covering the headset's field of view | Done |
+| Touch controllers: aim, click and order units, pan, turn and zoom | Done; a full mission can be played without keyboard or mouse |
+| Frame rate | About 70 fps at the headset's 72 Hz on the `mc2_19` battle bench |
+| Still rough | Open checks are in [planning/HARDWARE-TESTS.md](planning/HARDWARE-TESTS.md); only a Quest 2 has been tried, so a Quest 3 or Pro is untested |
+| Tabletop mode, battlefield at miniatures scale | Planned, as an option |
 
 ## Platforms
 
@@ -64,7 +79,7 @@ historical reasons: the Pi port is where this started.
 | Linux arm64 / Raspberry Pi OS 64-bit (GCC) | OpenGL ES 3.1 | Yes |
 | Windows x64 (MSVC, VS 2022) | Desktop GL 4.x | Yes |
 | WSL2 / no GPU | Either, via Mesa llvmpipe (`LIBGL_ALWAYS_SOFTWARE=1`) | Smoke runs |
-| Meta Quest 2 (standalone, Android) | OpenGL ES 3.1 + OpenXR | Not yet: in development |
+| Meta Quest 2 (standalone, Android) | OpenGL ES 3.1 + OpenXR | Release workflow, nightly and on tags; run by hand on a headset |
 
 ## Quick start
 
@@ -72,7 +87,9 @@ historical reasons: the Pi port is where this started.
 [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page): unpack
 the one for your platform and follow its `INSTALL.md`
 ([dist/INSTALL.md](dist/INSTALL.md)): install a few packages, build the game
-data with the bundled tools, start the game. No compiler needed.
+data with the bundled tools, start the game. No compiler needed. For the
+Quest, sideload the `.apk` and push the data and shaders with `adb`; the steps
+are in the same file.
 
 **From source:** full instructions in [BUILD-LINUX.md](BUILD-LINUX.md),
 [BUILD-PI.md](BUILD-PI.md), [BUILD-WIN.md](BUILD-WIN.md).
@@ -162,19 +179,18 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
   ([planning/RELEASES.md](planning/RELEASES.md)): the packaging and the
   release workflow are built (a Pi 4/400 tarball, a Linux x64 tarball and a
   Windows zip; engine only, the Linux and Pi packages with the tools to build
-  the game data). Next: `v0.2.0-rc1` checked by hand on Windows, Linux and a
-  Pi 400 and published, then Linux AppImages (x64 and arm64) and smoke tests
-  of the packages themselves.
+  the game data; and a Quest APK). Next: release candidates checked by hand
+  on Windows, Linux, a Pi 400 and a Quest 2 and published, then one-download
+  packages with the game data
+  ([planning/future-features/EASY-INSTALL.md](planning/future-features/EASY-INSTALL.md)),
+  Linux AppImages and smoke tests of the packages themselves.
 - **Quality** ([planning/QUALITY-ROADMAP.md](planning/QUALITY-ROADMAP.md)): more
   unit tests, sanitized smoke on arm64, smoke runs that reach the save/load
   screens, a reproducible data build, and a Pi as a self-hosted CI runner.
 - **VR on Meta Quest 2**
   ([planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md)):
-  first the game's own view in stereo, with the head moving the camera and
-  the 2D interface on a floating panel, over Quest Link on PC and then as a
-  standalone Quest build; later, as an option, a tabletop mode with the
-  battlefield at miniatures scale. Phase 0 and three slices of phase 1 are
-  in (see the table above).
+  polish from playtesting the standalone build (see the table above); later,
+  as an option, a tabletop mode with the battlefield at miniatures scale.
 
 ## Repository layout
 
@@ -188,6 +204,8 @@ data_tools/  makefst, pak, aseconv, makersp (build the game data)
 tests/unit/  doctest unit tests
 scripts/     smoke runs, data build, shader validation, cppcheck gate
 planning/    progress log, roadmap, future features
+android/     Quest app: manifest, activity, build notes
+media/       images for this page
 ```
 
 ## Licensing

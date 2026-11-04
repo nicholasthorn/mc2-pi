@@ -115,6 +115,10 @@ then the release notes say it is untested on hardware.
    name (`git push pi refs/tags/v0.2.0-rc1`), never with `--tags`, which
    would push upstream's tags too and start a release run for each.
 
+One-download packages with the game data are proposed in
+`future-features/EASY-INSTALL.md`, which would change this page's rule that
+game data is never included.
+
 ## Licensing checklist
 
 - No game data, art or movies in any package.

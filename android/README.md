@@ -1,7 +1,7 @@
 # Meta Quest test build
 
-A flat Android app (no OpenXR yet) that runs MechCommander 2 on a Quest 2 or
-3 with the GLES 3.1 renderer. Its job is measurement: run the `-bench`
+An Android app that runs MechCommander 2 in VR through OpenXR on a Quest 2,
+with the GLES 3.1 renderer. It began as a measurement tool: run the `-bench`
 scenario on the headset's own CPU and GPU driver, mono and `-stereo`, and pull
 the numbers back (the VR plan's Phase 0 go/no-go,
 `planning/future-features/VR-TABLETOP.md`). It is also the first part of
@@ -80,4 +80,5 @@ crash.
 
 ## Status
 
-Built, not yet run on a headset. To do: sideload it and run the bench.
+Played on a Quest 2, with the bench results in
+`planning/future-features/VR-TABLETOP.md`. Not yet tried on a Quest 3 or Pro.
