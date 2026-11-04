@@ -6069,7 +6069,8 @@ long BattleMech::update (void)
 		if (inView)
 			windowsVisible = turn;
 			
-		if (withdrawing && !inView && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
+		// A multiplayer host's view must not change the game: it waits for the map edge (setPosition).
+		if (withdrawing && !inView && !(MPlayer && MPlayer->isServer()) && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
 			ObjectManager->getObjectType(typeHandle)->handleDestruction(this, NULL);
 
 		MovePathPtr path = pilot->getMovePath();

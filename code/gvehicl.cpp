@@ -3486,11 +3486,13 @@ long GroundVehicle::update (void)
 		velMag = velocityMag;
 
 
-	if (withdrawing && !inView && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
+	// A multiplayer host's view must not change the game: it waits for the map edge (setPosition).
+	const bool hostGame = MPlayer && MPlayer->isServer();
+	if (withdrawing && !inView && !hostGame && (pilot->getStatus() != WARRIOR_STATUS_WITHDRAWN))
 		getObjectType()->handleDestruction(this, NULL);
 
 	//We are a vehicle pilot.  Whack us when we are no longer in view.
-	if (isVehiclePilot && !inView)
+	if (isVehiclePilot && (!inView || hostGame))
 		setExists(false);
 
 	//We are a Vehicle Pilot. Check If I have nothing to do.  If not, move 'em out!
