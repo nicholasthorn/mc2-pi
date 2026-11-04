@@ -70,8 +70,11 @@ add_library(gameos_main ${MAIN_SRC})
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
     utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/args_file.cpp
-    utils/log_file.cpp gos_logfile.cpp gos_net.cpp gos_net_gns.cpp
+    utils/log_file.cpp gos_logfile.cpp gos_net.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+if(MC2_NET)
+    set_source_files_properties(gos_net_gns.cpp PROPERTIES COMPILE_OPTIONS "${MC2_GNS_CALLER_OPTIONS}")
+endif()
 
 # The version the log file names. release.yml passes its tag; otherwise the
 # checkout's, as of the last configure.

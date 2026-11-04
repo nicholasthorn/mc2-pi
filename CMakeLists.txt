@@ -340,6 +340,8 @@ if(MC2_NET)
     if(MC2_STRICT_WARNINGS)
         target_compile_options(net_ping PRIVATE ${MC2_STRICT_WARNINGS})
     endif()
+    set_source_files_properties(GameOS/gameos/gos_net_gns.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_GNS_CALLER_OPTIONS}")
 endif()
 
 add_subdirectory("./res" "./out/res")

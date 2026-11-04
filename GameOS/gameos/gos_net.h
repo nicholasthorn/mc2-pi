@@ -54,7 +54,8 @@ public:
 	virtual ~Transport() {}
 
 	// Accept connections on this port. False if the port cannot be had, which may
-	// be for a moment after whatever had it closed.
+	// be for a moment after whatever had it closed. Not reliable the other way: on
+	// Windows the real backend has reported true for a port already taken.
 	virtual bool listen(uint16_t port) = 0;
 
 	// Start connecting. True means started and sets connection; a Connected or

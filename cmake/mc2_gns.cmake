@@ -127,6 +127,13 @@ ExternalProject_Add(mc2_gns_library
     INSTALL_COMMAND ${_gns_install}
     BUILD_BYPRODUCTS "${_gns_library}")
 
+# For the one file that calls into the library. UBSan's vptr check cannot follow a
+# call into code built without it, and reports every one as a bad object.
+set(MC2_GNS_CALLER_OPTIONS ${MC2_STRICT_WARNINGS})
+if(MC2_SANITIZE MATCHES "undefined")
+    list(APPEND MC2_GNS_CALLER_OPTIONS -fno-sanitize=vptr)
+endif()
+
 add_library(mc2_gns INTERFACE)
 add_dependencies(mc2_gns mc2_gns_library)
 target_include_directories(mc2_gns SYSTEM INTERFACE "${_gns_include}")

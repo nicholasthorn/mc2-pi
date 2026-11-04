@@ -151,7 +151,7 @@ add_test(NAME mc2_tests COMMAND mc2_tests WORKING_DIRECTORY ${CMAKE_CURRENT_BINA
 if(MC2_NET)
     target_sources(mc2_tests PRIVATE ${MC2_SRC}/GameOS/gameos/gos_net_gns.cpp)
     set_source_files_properties(${MC2_SRC}/GameOS/gameos/gos_net_gns.cpp
-        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+        PROPERTIES COMPILE_OPTIONS "${MC2_GNS_CALLER_OPTIONS}")
     target_link_libraries(mc2_tests PRIVATE mc2_gns)
     # built with the tests, since CI asks for mc2 and mc2_tests by name
     add_dependencies(mc2_tests net_ping)
