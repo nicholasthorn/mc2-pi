@@ -611,7 +611,8 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
 In: load and play Omnitech-era single-player campaigns on stock-format data,
 on desktop GL and the Pi.
 
-Out: MCO's editor, its DX11 work, multiplayer, MC2X content (no source).
+Out: MCO's editor, its DX11 work, multiplayer. MC2X is a separate step: see
+"To do: MC2X missions" below.
 
 ## Approach
 
@@ -631,8 +632,91 @@ public, and its EULA terms differ from ours.
 The chosen campaign's first missions load and finish under `-autoexit` on
 desktop GL and the Pi; stock missions still pass the 5-mission smoke.
 
-Test loads: Clan Wars (Omnitech) is the first. For MC2X, use Dark Gray:
-Borderworlds (MC2X r20): it is the campaign that fits MC2X best.
+Test loads: Clan Wars (Omnitech) is the first. For MC2X, MC2X-CVE-G first,
+then Dark Gray: Borderworlds (see "To do: MC2X missions").
+
+## To do: MC2X missions
+
+Status: not started, written 2026-11-04. No MC2X data has been run on this
+port, and this machine has none. The gaps below come from reading the
+remaster (`HANDOFF-mc2x-importer.md`, `tools/mc2x_import/`, its engine
+comments, `docs/STARTER-GUIDE.md`), so they are leads to confirm, not results.
+Its notes say DarkRain, Pictures of a Rebellion and TangoMaster pass smoke
+runs there, on its `mods/` overlay, which this port does not have.
+
+MC2X having no public source matters less than this file used to say: the
+work is reading its data, not porting its engine. It looks smaller than
+Omnitech, because the shared formats are already handled.
+
+### Get the data
+
+MC2X's terms say non-commercial use only. Its data stays local, out of the
+repo and out of releases, as with Omnitech.
+
+- [ ] Get `MC2X-CVE-G`, the 24-mission Carver V package
+      ([Gamepressure](https://www.gamepressure.com/download/mech-commander-2-mc2x-cve-g-mod/z2f3de),
+      [ModDB](https://www.moddb.com/company/wolfman-x/downloads)). Record its
+      size and MD5 here, and unpack it without running the installer.
+- [ ] Find Dark Gray: Borderworlds, which targets MC2X r20. Its
+      [ModDB page](https://www.moddb.com/mods/dark-gray-borderworlds) showed
+      no direct download in a search, and the commenters there point to asking
+      Wolfman. It comes after CVE-G, not first.
+- [ ] Find the add-on campaigns (DarkRain, Pictures of a Rebellion,
+      TangoMaster), which depend on the MC2X base.
+
+### First run
+
+- [ ] Use the MC2X install as its own game folder, as `~/gd-mco` does for
+      Omnitech: paths lowercased, nothing picked by hand. The remaster lost
+      about 4 hours to importing only the files that differed from its base,
+      which dropped 8382 files the game needed. A whole-folder install should
+      avoid that, but it has not been tried.
+- [ ] Run one CVE-G mission with `scripts/smoke.sh --game-dir <folder>
+      --missions <name>` under ASan + UBSan, and list what fails. That list
+      replaces the leads below.
+
+### Leads from the remaster
+
+- [ ] **Strings:** MC2X ships `mc2xres.dll`; our fallback in
+      `gos_GetResourceString` only looks for `mc2res.dll`. A few remaster
+      campaigns still show missing labels.
+- [ ] **Core mission scripts:** the remaster loads `mc2xcore.abx` beside
+      `corebrain` when a mod provides one. It reports `torrin` (DarkRain) as
+      missing `noAttackCode`, `wxmCode` and `coreRepair`, leaving 13 escort
+      units with no working brain; its notes do not show this resolved.
+- [ ] **Models:** `.tgl` files with out-of-range vertex indices (`tgl.cpp`) and
+      node types beyond the stock enum (`msl.cpp`).
+- [ ] **Briefing:** packet 3 of a mission `.pak` is sometimes not a TGA
+      (`missionbriefingscreen.cpp`).
+- [ ] **Crashes:** mechs with no sensor system reaching `Mech::update`
+      (`mech.cpp`), and non-mech units in the player's force (`mission.cpp`).
+- [ ] **Compiled scripts:** some old `.abx` have stack frames that land on the
+      wrong slot (`ablexec.cpp`, campaign `area46`).
+- [ ] **Older campaigns:** DWE, HPE and DEE ship old-format front-end art that
+      jumbles the UI and hides the cursor; the remaster takes the newer art
+      from its compat layer. Also missing high-resolution layouts and loading
+      screens (`controlgui.cpp`, `loadscreen.cpp`).
+- [ ] **Objects:** MC2X has its own `object2.pak`, and object numbers past 1188
+      appear in some missions. Check them against `openTypeProfile` and the
+      `movobj.fit` lookup, which were written for Omnitech.
+- [ ] **Front-end size:** check whether MC2X's layouts need more than 800x600,
+      as Omnitech's did. Not known yet.
+
+Expected to work already, also unconfirmed: the Microsoft LZ FST decoder
+(step 4 above). The remaster describes MC2X's move maps as the narrow stock
+layout, so the wide pathing work should not come into it.
+
+### Done when
+
+- [ ] Every CVE-G mission passes a 300-frame smoke on desktop GL, also under
+      ASan + UBSan, and on GLES.
+- [ ] The UI walks pass on MC2X data, and the main screens are checked by eye:
+      walks press buttons by ID and do not notice wrong pictures.
+- [ ] The five stock missions and the Omnitech walks still pass.
+- [ ] When data breaks an assumption, the other campaigns are swept for it, as
+      `.claude/rules/code-conventions.md` asks.
+- [ ] Hand checks that only a person can do are in `planning/HARDWARE-TESTS.md`,
+      and the README's support table says what was run.
 
 ## Open questions
 
@@ -640,3 +724,5 @@ Borderworlds (MC2X r20): it is the campaign that fits MC2X best.
   probably cannot; test locally only).
 - How much of 424-628 a given campaign relies on; only a test load tells us.
 - Whether to ask magicX for the later source.
+- Whether MC2X runs as its own game folder, or needs something like the
+  remaster's `mods/` overlay for campaigns that sit on top of it.
