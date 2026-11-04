@@ -331,4 +331,69 @@ TEST_CASE("an FST with no entries still opens")
 	remove(fstPath.c_str());
 }
 
+// Where there is no dialog (Linux, Pi), MessageBox answers neither OK nor Cancel,
+// so the retry loops must give up instead of spinning. On Windows these paths
+// open a real dialog, which would block the tests.
+#ifndef PLATFORM_WINDOWS
+TEST_CASE("a missing FST is refused, not retried for ever")
+{
+	const std::string fstPath = scratchPath("not_there.fst");
+	remove(fstPath.c_str());
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == FILE_NOT_FOUND_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+}
+
+TEST_CASE("a file on no CD is not found, not retried for ever")
+{
+	Environment.checkCDForFiles = true;
+	File f;
+	CHECK(f.open(scratchPath("not_on_any_cd.txt").c_str()) == 2);
+	Environment.checkCDForFiles = false;
+}
+
+TEST_CASE("an FST cut off before its data reads nothing, not retried for ever")
+{
+	const std::string fstPath = scratchPath("no_data.fst");
+	authorFst(fstPath, kFstEntryName, kFstPayload, (int)strlen(kFstPayload));
+
+	// keep the version, the count and the one entry; drop the data after them
+	std::string head(8 + sizeof(FILEENTRY), '\0');
+	FILE *in = fopen(fstPath.c_str(), "rb");
+	REQUIRE(in != nullptr);
+	REQUIRE(fread(&head[0], 1, head.size(), in) == head.size());
+	fclose(in);
+	FILE *out = fopen(fstPath.c_str(), "wb");
+	REQUIRE(out != nullptr);
+	fwrite(head.data(), 1, head.size(), out);
+	fclose(out);
+
+	{
+		FastFile ff;
+		REQUIRE(ff.open(fstPath.c_str()) == NO_ERR);
+		const long entry = ff.openFast(elfHash(kFstEntryName), kFstEntryName);
+		REQUIRE(entry >= 0);
+		char buf[256];
+		CHECK(ff.readFast(entry, buf, sizeof(buf)) == 0);
+		CHECK(ff.readFastRAW(entry, buf, sizeof(buf)) == 0);
+	}
+	{
+		// File::open reads the whole entry: no data must not look like a file
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		remove(kFstEntryName);
+		File f;
+		CHECK(f.open(kFstEntryName) == READ_PAST_EOF_ERR);
+	}
+	remove(fstPath.c_str());
+}
+#endif
+
 } // TEST_SUITE("FstRoundtrip")

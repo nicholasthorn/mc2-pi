@@ -171,6 +171,13 @@ long FastFile::open (const char* fName)
 					ExitGameOS();
 					return (2);		//File not found.  Never returns though!
 				}
+				// no dialog was shown (Linux has none), so nobody can fix this and press OK
+				if (result1 != IDOK)
+				{
+					if (alreadyFullScreen)
+						EnterFullScreenMode();
+					return FILE_NOT_FOUND_ERR;
+				}
 
 				handle = fopen(actualPath,"r");
 			}
@@ -542,6 +549,14 @@ long FastFile::readFast (DWORD fastFileHandle, void *bfr, DWORD size)
 							ExitGameOS();
 							return (2);		//File not found.  Never returns though!
 						}
+						// no dialog was shown (Linux has none), so nobody can fix this and press OK
+						if (result1 != IDOK)
+						{
+							PAUSE(("Cannot read %s from %s",files[fastFileHandle].pfe->name,fileName));
+							if (alreadyFullScreen)
+								EnterFullScreenMode();
+							return 0;
+						}
 		
 						logicalPosition = fseek(handle,files[fastFileHandle].pos + files[fastFileHandle].pfe->offset,SEEK_SET);
 						result = fread(LZPacketBuffer,1,files[fastFileHandle].pfe->size,handle);
@@ -736,6 +751,14 @@ long FastFile::readFastRAW (DWORD fastFileHandle, void *bfr, DWORD size)
 				{
 					ExitGameOS();
 					return (2);		//File not found.  Never returns though!
+				}
+				// no dialog was shown (Linux has none), so nobody can fix this and press OK
+				if (result1 != IDOK)
+				{
+					PAUSE(("Cannot read %s from %s",files[fastFileHandle].pfe->name,fileName));
+					if (alreadyFullScreen)
+						EnterFullScreenMode();
+					return 0;
 				}
 
 				logicalPosition = fseek(handle,files[fastFileHandle].pos + files[fastFileHandle].pfe->offset,SEEK_SET);
