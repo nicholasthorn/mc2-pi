@@ -270,4 +270,52 @@ TEST_CASE("tgaPixelsFit goes by the size it is given, not the header's")
 	CHECK_FALSE(tgaPixelsFit(whole.data(), (long)whole.size(), 3, 2, 32));
 }
 
+TEST_CASE("texture: a type the reader does not copy is refused, not left as it was")
+{
+	CHECK(allZero(loadTexture("tga_gray.tga", tgaFile(tgaHeader(3, 2, 2, 8), { 1,2,3,4 }), 2, 2)));
+	CHECK(allZero(loadTexture("tga_pal.tga", tgaFile(tgaHeader(1, 2, 2, 8), { 1,2,3,4 }), 2, 2)));
+}
+
+TEST_CASE("tgaReadSquareHeader: whole square maps pass, the rest come back as NO_IMAGE")
+{
+	TGAFileHeader info;
+
+	const std::vector<uint8_t> good = tgaFile(tgaHeader(2, 2, 2, 24), std::vector<uint8_t>(12, 1));
+	CHECK(tgaReadSquareHeader(info, good.data(), (long)good.size()));
+	CHECK(info.image_type == UNC_TRUE);
+	CHECK(info.width == 2);
+
+	CHECK_FALSE(tgaReadSquareHeader(info, good.data(), (long)good.size() - 1));
+	CHECK(info.image_type == NO_IMAGE);
+
+	const std::vector<uint8_t> wide = tgaFile(tgaHeader(2, 2, 1, 32), std::vector<uint8_t>(64, 1));
+	CHECK_FALSE(tgaReadSquareHeader(info, wide.data(), (long)wide.size()));
+	CHECK(info.image_type == NO_IMAGE);
+
+	const std::vector<uint8_t> gray = tgaFile(tgaHeader(2, 2, 2, 8), std::vector<uint8_t>(64, 1));
+	CHECK_FALSE(tgaReadSquareHeader(info, gray.data(), (long)gray.size()));
+
+	CHECK_FALSE(tgaReadSquareHeader(info, good.data(), 17));
+	CHECK(info.image_type == NO_IMAGE);
+	CHECK(info.width == 0);
+}
+
+TEST_CASE("tgaReadSquareHeader: other image types are not its business")
+{
+	TGAFileHeader info;
+	const std::vector<uint8_t> rle = tgaHeader(10, 512, 512, 32);
+	CHECK(tgaReadSquareHeader(info, rle.data(), (long)rle.size()));
+	CHECK(info.image_type == RLE_TRUE);
+}
+
+TEST_CASE("tgaWidthIsPlausible")
+{
+	CHECK(tgaWidthIsPlausible(64, 18 + 64 * 64 * 4));		// uncompressed
+	CHECK(tgaWidthIsPlausible(64, 18 + 64 * 64 / 128 * 4));	// run-length at its best
+	CHECK_FALSE(tgaWidthIsPlausible(32767, 18 + 64 * 64 * 4));
+	CHECK_FALSE(tgaWidthIsPlausible(0, 1000));
+	CHECK_FALSE(tgaWidthIsPlausible(-64, 1000));
+	CHECK_FALSE(tgaWidthIsPlausible(64, 0));
+}
+
 } // TEST_SUITE("TgaReaders")

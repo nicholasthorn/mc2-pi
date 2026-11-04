@@ -454,6 +454,7 @@ TGAFileHeader* loadIconSheet( const char* fileName )
 	file.read( reinterpret_cast<BYTE*>( sheet ), size );
 	if ( !tgaHeaderFits( sheet, size ) )
 	{
+		PAUSE(( "%s does not hold the image its header claims. Not loaded", path ));
 		delete [] reinterpret_cast<char*>( sheet );
 		return NULL;
 	}
@@ -513,9 +514,10 @@ bool MechIcon::initTextures()
 
 		s_MechTextures = (TGAFileHeader*)new char[size];
 		file.read( (BYTE*)s_MechTextures, size );
-		if ( !tgaHeaderFits( s_MechTextures, size ) )
+		// the icons are copied out of it as DWORDs
+		if ( !tgaHeaderFits( s_MechTextures, size ) || s_MechTextures->pixel_depth != 32 )
 		{
-			Assert( 0, 0, "The mech parts sheet does not hold the image its header claims" );
+			Assert( 0, 0, "The mech parts sheet does not hold the 32 bit image it should" );
 			delete [] reinterpret_cast<char*>( s_MechTextures );
 			s_MechTextures = NULL;
 			return false;
@@ -1199,9 +1201,10 @@ bool VehicleIcon::init( Mover* pMover )
 
 		s_VehicleTextures = (TGAFileHeader*)new char[size];
 		file.read( (BYTE*)s_VehicleTextures, size );
-		if ( !tgaHeaderFits( s_VehicleTextures, size ) )
+		// the icons are copied out of it as DWORDs
+		if ( !tgaHeaderFits( s_VehicleTextures, size ) || s_VehicleTextures->pixel_depth != 32 )
 		{
-			Assert( 0, 0, "The vehicle parts sheet does not hold the image its header claims" );
+			Assert( 0, 0, "The vehicle parts sheet does not hold the 32 bit image it should" );
 			delete [] reinterpret_cast<char*>( s_VehicleTextures );
 			s_VehicleTextures = NULL;
 			return false;

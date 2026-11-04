@@ -618,7 +618,8 @@ long TerrainTextures::initTexture (long typeNum)
 
 			tgaFile.read((MemoryPtr)&header,sizeof(TGAFileHeader));
 
-			if (header.width > 0 && mipSize != header.width)
+			// the buffer below is sized by this, before anything reads the file
+			if (tgaWidthIsPlausible(header.width,tgaFile.fileSize()) && mipSize != header.width)
 				mipSize = header.width;
 	
 			tgaFile.seek(0);

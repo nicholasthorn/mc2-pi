@@ -61,6 +61,31 @@ bool tgaHeaderFits (const void *fileImage, long fileSize)
 }
 
 //---------------------------------------------------------------------------
+bool tgaReadSquareHeader (TGAFileHeader &info, const void *fileImage, long fileSize)
+{
+	memset(&info,0,sizeof(TGAFileHeader));
+	if (fileSize < (long)sizeof(TGAFileHeader))
+		return false;
+
+	memcpy(&info,fileImage,sizeof(TGAFileHeader));
+	if (info.image_type != UNC_TRUE)
+		return true;
+
+	if (info.width == info.height && (info.pixel_depth == 24 || info.pixel_depth == 32) &&
+		tgaPixelsFit(fileImage,fileSize,info.width,info.width,info.pixel_depth))
+		return true;
+
+	info.image_type = NO_IMAGE;
+	return false;
+}
+
+//---------------------------------------------------------------------------
+bool tgaWidthIsPlausible (long width, long fileSize)
+{
+	return width > 0 && fileSize > 0 && (int64_t)width * width <= (int64_t)fileSize * 32;
+}
+
+//---------------------------------------------------------------------------
 bool tgaDecomp(MemoryPtr dest, MemoryPtr source, long sourceSize, TGAFileHeader *tga_header)
 {
 	//---------------------------------------------------------------------
@@ -256,8 +281,9 @@ void tgaCopy (MemoryPtr dest, MemoryPtr src, long size)
 
 //---------------------------------------------------------------------------
 // Can this file fill a width x height buffer of DWORDs?  True colour only: the
-// other types copy nothing.  The copy reads 3 or 4 bytes a pixel, whatever the
-// header says, and the decoder goes by the header's size, not the caller's.
+// switch below copies nothing for the other types.  The copy reads 3 or 4 bytes
+// a pixel, whatever the header says, and the decoder goes by the header's size,
+// not the caller's.
 static bool tgaTextureFits (MemoryPtr tgaBuffer, long fileSize, long width, long height)
 {
 	if (fileSize < (long)sizeof(TGAFileHeader) || width <= 0 || height <= 0)
@@ -267,7 +293,7 @@ static bool tgaTextureFits (MemoryPtr tgaBuffer, long fileSize, long width, long
 	memcpy(&header,tgaBuffer,sizeof(TGAFileHeader));
 
 	if (header.image_type != UNC_TRUE && header.image_type != RLE_TRUE)
-		return true;
+		return false;
 	if (header.pixel_depth != 24 && header.pixel_depth != 32)
 		return false;
 	if (header.image_type == RLE_TRUE)
