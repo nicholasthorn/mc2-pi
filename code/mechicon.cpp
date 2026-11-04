@@ -7,7 +7,7 @@ MechIcon.cpp			: Implementation of the MechIcon component.
 \*************************************************************************************************/
 
 #include"mechicon.h"
-#include<climits>
+#include"iconsheet.h"
 #include"mover.h"
 #include"utilities.h"
 #include"mech.h"
@@ -457,44 +457,21 @@ TGAFileHeader* loadIconSheet( const char* fileName )
 }
 
 // Omnitech's strips for 640 and 800 wide stop short of its high one (101 mechs of
-// 127, 25 vehicles of 27): add the rest from there, at this width's cell size. By
-// nearest pixel, as damage recolours an icon by its exact colours.
+// 127, 25 vehicles of 27): add the rest from there
 static void addHighSheetCells( TGAFileHeader*& sheet, const char* highName, int cellX, int cellY )
 {
-	const int highX = 40;
-	const int highY = 48;
 	TGAFileHeader* high = loadIconSheet( highName );
 	if ( !high )
 		return;
 
-	const int cells = sheet->width / cellX;
-	const int highCells = high->width / highX;
-	const int rows = sheet->height / cellY;
-	const int width = highCells * cellX;
-	if ( highCells > cells && high->height / highY == rows && width <= SHRT_MAX
-		&& sheet->pixel_depth == 32 && high->pixel_depth == 32 )
+	const int width = extendedStripWidth( sheet->width, sheet->height, cellX, cellY, high->width, high->height );
+	if ( width && sheet->pixel_depth == 32 && high->pixel_depth == 32 )
 	{
 		TGAFileHeader* grown = reinterpret_cast<TGAFileHeader*>( new char[sizeof(TGAFileHeader) + width * sheet->height * 4] );
 		*grown = *sheet;
 		grown->width = (short)width;
-
-		const char* oldPixels = reinterpret_cast<const char*>( sheet + 1 );
-		const char* highPixels = reinterpret_cast<const char*>( high + 1 );
-		char* pixels = reinterpret_cast<char*>( grown + 1 );
-		for ( int y = 0; y < sheet->height; y++ )
-		{
-			char* row = pixels + y * width * 4;
-			memcpy( row, oldPixels + y * sheet->width * 4, sheet->width * 4 );
-			memset( row + sheet->width * 4, 0, (width - sheet->width) * 4 );
-
-			const int highRow = ( y / cellY ) * highY + ( y % cellY ) * highY / cellY;
-			for ( int x = cells * cellX; x < width; x++ )
-			{
-				const int highColumn = ( x / cellX ) * highX + ( x % cellX ) * highX / cellX;
-				memcpy( row + x * 4, highPixels + ( highRow * high->width + highColumn ) * 4, 4 );
-			}
-		}
-
+		extendStrip( reinterpret_cast<const uint8_t*>( sheet + 1 ), sheet->width, sheet->height, cellX, cellY,
+			reinterpret_cast<const uint8_t*>( high + 1 ), high->width, reinterpret_cast<uint8_t*>( grown + 1 ), width );
 		delete [] reinterpret_cast<char*>( sheet );
 		sheet = grown;
 	}
@@ -535,7 +512,7 @@ bool MechIcon::initTextures()
 
 		flipTopToBottom (pTmp, s_MechTextures->pixel_depth, s_MechTextures->width, s_MechTextures->height );
 
-		if ( unitIconX != 40 )
+		if ( unitIconX != HIGH_MECH_ICON_X )
 			addHighSheetCells( s_MechTextures, "mcui_high7.tga", unitIconX, unitIconY );
 	}
 
@@ -1213,7 +1190,7 @@ bool VehicleIcon::init( Mover* pMover )
 
 		flipTopToBottom (pTmp, s_VehicleTextures->pixel_depth, s_VehicleTextures->width, s_VehicleTextures->height );
 
-		if ( unitIconX != 40 )
+		if ( unitIconX != HIGH_MECH_ICON_X )
 			addHighSheetCells( s_VehicleTextures, "mcui_high8.tga", unitIconX, unitIconY );
 
 	}
@@ -1687,8 +1664,8 @@ void PilotIcon::render( float left, float top, float right, float bottom )
 	pilotLocation[1].y = pilotLocation[2].y = bottom;
 	pilotLocation[4] = pilotLocation[0];
 
-	const float cellX = s_highCellsAtThisWidth ? 33.f : pilotIconX;
-	const float cellY = s_highCellsAtThisWidth ? 46.f : pilotIconY;
+	const float cellX = s_highCellsAtThisWidth ? HIGH_PILOT_ICON_X : pilotIconX;
+	const float cellY = s_highCellsAtThisWidth ? HIGH_PILOT_ICON_Y : pilotIconY;
 	int iconsPerRow = s_pilotTextureWidth / cellX;
 	int xIndex = pilotTextureIndex % iconsPerRow;
 	int yIndex = pilotTextureIndex / iconsPerRow;
