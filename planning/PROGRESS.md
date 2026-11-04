@@ -37,7 +37,8 @@ belongs in commit messages and PRs.
 
 **Next** (see `planning/QUALITY-ROADMAP.md` for the full list)
 
-- [ ] More tests: on-disk struct sizes (`static_assert`), legacy `mclib/stuff` `TestClass()` self-checks
+- [x] On-disk struct sizes pinned at compile time (`code/ondisksizes.cpp`, 2026-11-04)
+- [ ] More tests: legacy `mclib/stuff` `TestClass()` self-checks
 - [x] cppcheck: baseline empty since 2026-11-01 (#68); see "Work through the cppcheck baseline" below
 - [ ] Sanitized smoke on arm64 too
 - [x] Deterministic smoke runs (seed the RNG): `-deterministic` and `smoke.sh --deterministic` (2026-11-01); opt-in, since it turns sound off
@@ -532,6 +533,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: on-disk struct sizes pinned at compile time (branch `test/struct-sizes`, `code/ondisksizes.cpp`): 18 save-game structs per data model (Linux/arm64 and Windows differ, `long`), 6 game-data structs to one size everywhere (they match on MSVC too, so game data really is portable), and the 11 object save structs must have distinct sizes, because `ObjectManager::load` tells types apart by size alone.
 - 2026-11-02: Omnitech front end (branch `omnitech-frontend-labels-mech`): no `undefined_string_sebi` (id 0 is no text), the mission map in pilot ready's white box, its mech view covers the right area, and in VR an interface camera's mech takes the CPU path (it drew as a solid colour in the wrong place, on stock data too). `pilotready+mech` walk step, `MC2_UISMOKE_HOLD`. Checked flat on GL and GLES and with `MC2_VR_PATHS=1`; headset check in `HARDWARE-TESTS.md`.
 - 2026-11-03: Omnitech keeps a pilot once a mission has offered them (branch `omnitech-keep-pilots`): Exodus and MW2 Mercs name a pilot in one mission's purchase file and not the next, so from Exodus' second mission the pilot list was empty. On Omnitech data `updateAvailability` also marks the pilots of the missions played, worked out from the campaign, so a load gets the same list. The other eight campaigns repeat their roster and do not change; stock does not take this path. That pilots stay is inferred from the data: the public source is older and clears them, and hire pilots may be what the later releases do.
 - 2026-11-03: UI walks of MechCommander Omnitech's campaigns (branch `uismoke-pack-campaigns`): `campaign+pick` picks a campaign by file name (`MC2_UISMOKE_CAMPAIGN`); `scripts/walk_campaigns.sh` walks the first mission of all 11 add-on campaigns from the new campaign dialog through purchase, the mech lab, launch, a win and the results, plain and under ASan + UBSan. Found: Clan Wars could not be started (empty shop, no mechs): on Omnitech data a purchase file now sells one variant whatever it holds (variant 0 or its `MechVariantN`); stock keeps its component check. The mech lab always lists the mech's own variant. Accepting the mech lab with no change left the lab holding a freed variant, on stock too (it only crashed from the walk's driver; no player route found): fixed, and in default walk 2. A new slide between logistics screens now stops one still running (a fast second move read past `screens`). Walks can repeat a screen for another action.

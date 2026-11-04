@@ -54,26 +54,26 @@ namespace {
 #endif
 
 // Save games: objects (ObjectManager::load in objmgr.cpp)
-MC2_PIN_SAVE_SIZE(GameObjectData, 372, 0);
-MC2_PIN_SAVE_SIZE(MoverData, 3128, 0);
-MC2_PIN_SAVE_SIZE(TerrainObjectData, 720, 0);
-MC2_PIN_SAVE_SIZE(BuildingData, 756, 0);
-MC2_PIN_SAVE_SIZE(TurretData, 820, 0);
-MC2_PIN_SAVE_SIZE(GateData, 768, 0);
-MC2_PIN_SAVE_SIZE(ArtilleryData, 432, 0);
-MC2_PIN_SAVE_SIZE(CarnageData, 396, 0);
-MC2_PIN_SAVE_SIZE(MechData, 3928, 0);
-MC2_PIN_SAVE_SIZE(GroundVehicleData, 3264, 0);
-MC2_PIN_SAVE_SIZE(WeaponBoltData, 600, 0);
+MC2_PIN_SAVE_SIZE(GameObjectData, 372, 372);
+MC2_PIN_SAVE_SIZE(MoverData, 3128, 3000);
+MC2_PIN_SAVE_SIZE(TerrainObjectData, 720, 720);
+MC2_PIN_SAVE_SIZE(BuildingData, 756, 756);
+MC2_PIN_SAVE_SIZE(TurretData, 820, 820);
+MC2_PIN_SAVE_SIZE(GateData, 768, 760);
+MC2_PIN_SAVE_SIZE(ArtilleryData, 432, 432);
+MC2_PIN_SAVE_SIZE(CarnageData, 396, 396);
+MC2_PIN_SAVE_SIZE(MechData, 3928, 3704);
+MC2_PIN_SAVE_SIZE(GroundVehicleData, 3264, 3136);
+MC2_PIN_SAVE_SIZE(WeaponBoltData, 600, 580);
 
 // Save games: everything else written raw
-MC2_PIN_SAVE_SIZE(ObjectManagerData, 60, 0);
-MC2_PIN_SAVE_SIZE(TeamData, 496, 0);
-MC2_PIN_SAVE_SIZE(TeamStaticData, 88, 0);
-MC2_PIN_SAVE_SIZE(CommanderData, 1424, 0);
-MC2_PIN_SAVE_SIZE(StaticCommanderData, 16, 0);
-MC2_PIN_SAVE_SIZE(MechWarriorData, 20936, 0);
-MC2_PIN_SAVE_SIZE(StaticMechWarriorData, 40, 0);
+MC2_PIN_SAVE_SIZE(ObjectManagerData, 60, 60);
+MC2_PIN_SAVE_SIZE(TeamData, 496, 488);
+MC2_PIN_SAVE_SIZE(TeamStaticData, 88, 80);
+MC2_PIN_SAVE_SIZE(CommanderData, 1424, 1288);
+MC2_PIN_SAVE_SIZE(StaticCommanderData, 16, 8);
+MC2_PIN_SAVE_SIZE(MechWarriorData, 20936, 19864);
+MC2_PIN_SAVE_SIZE(StaticMechWarriorData, 40, 40);
 
 // Game data files: one size on every platform. (GlobalMapArea, DoorLink and the
 // other pathing records are pinned in mclib/move.cpp.)
