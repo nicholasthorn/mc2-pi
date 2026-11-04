@@ -1,6 +1,8 @@
 # Easy install: game, game data and Omnitech
 
-Status: proposed, nothing built. The aim is a player going from the Releases
+Status: bundling approved by the owner (2026-11-04). Full Windows, Linux and Pi
+packages are built (`release.yml`); the Quest APK and the Omnitech helper are
+not. The aim is a player going from the Releases
 page to a running game in one download on each platform, with no compiler, no
 data build and no command line where that can be avoided.
 
@@ -17,7 +19,7 @@ This sets the design. It is a reading of the licences, not legal advice.
 
 | Content | Terms | Consequence |
 |---|---|---|
-| Stock game data (`mc2srcdata`) | `EULA.txt` 3(A): "use, reproduce and distribute the Art Assets on a non-commercial basis only"; 3(D) keep notices; 3(E) include the licence with source; 3(B) no trademark licence | A built data pack may go on a free release with `EULA.txt` in it. `RELEASES.md`'s "never included" is stricter than the licence requires; this would change that decision |
+| Stock game data (`mc2srcdata`) | `EULA.txt` 3(A): "use, reproduce and distribute the Art Assets on a non-commercial basis only"; 3(D) keep notices; 3(E) include the licence with source; 3(B) no trademark licence | A built data pack may go on a free release with `EULA.txt` in it. This replaced `RELEASES.md`'s earlier "never included" |
 | Omnitech and its campaign packs | `MCO EULA.txt`: no commercial use, keep notices. It grants no right to redistribute, and the packs contain the team's own work | Do not mirror or bundle without the team's permission. Fetch from ModDB, or ask |
 
 The data pack stays a separate work beside the GPL engine, under its own

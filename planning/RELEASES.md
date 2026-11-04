@@ -18,9 +18,10 @@ Two audiences, one release:
 2. **Everyone else:** ready-to-run builds for ordinary Linux and Windows PCs, so
    anyone can play without compiling anything.
 
-Game data is never included (original Microsoft EULA). Every package ships the
-data tools so players can build the data themselves without a compiler (see
-"Game data" below).
+Each platform has a `-full` package with the game data, so one download is
+enough; this is allowed non-commercially by Microsoft's EULA 3(A), and nothing
+about a release may charge for it. Engine-only packages stay, and the Linux ones
+ship the data tools (see "Game data" below).
 
 ## Packages
 
@@ -31,6 +32,7 @@ data tools so players can build the data themselves without a compiler (see
 | `mc2-<ver>-linux-arm64.AppImage` | Other arm64 Linux machines (SBCs, ARM laptops) | GLES 3.1 | `debian:bookworm` on the arm64 runner | AppImage, as above |
 | `mc2-<ver>-windows-x64.zip` | Windows 10 / 11 | Desktop GL | `windows-2022`, MSVC | Zip: unpack and run |
 | `mc2-<ver>-quest-arm64.apk`, with `-files.tar.gz` (shaders, licences) and `-symbols.tar.gz` | Meta Quest 2 / 3 / Pro, sideloaded (test build) | GLES 3.1, OpenXR | `ubuntu-24.04`, Android NDK | APK; job `quest` in `release.yml`, setup in `android/README.md` |
+| `mc2-<ver>-<platform>-full.tar.gz` or `.zip` | The Pi, Linux x64 and Windows packages above, plus game data, `options.cfg` and `EULA.txt`: unpack and play | As the package | Job `full` in `release.yml`, added to the package | Tarball or zip, no movies |
 | `mc2-<ver>-debug-symbols.tar.gz` | Crash reports | | All of the above | Separate, so the game packages stay small |
 | `SHA256SUMS` | Checking downloads | | | |
 
@@ -87,7 +89,9 @@ then the release notes say it is untested on hardware.
 
 ## Game data
 
-- Players build the data from [alariq/mc2srcdata](https://github.com/alariq/mc2srcdata)
+- The `-full` packages have it, from job `gamedata` (shared cache with `smoke.yml`,
+  no movies, so no Git LFS traffic on the upstream repo).
+- Otherwise players build the data from [alariq/mc2srcdata](https://github.com/alariq/mc2srcdata)
   once; the result is platform independent, so it can be built on a PC and
   copied to a Pi.
 - `scripts/build_gamedata.sh` needs a `--tools-dir` option so it can use the
@@ -115,13 +119,14 @@ then the release notes say it is untested on hardware.
    name (`git push pi refs/tags/v0.2.0-rc1`), never with `--tags`, which
    would push upstream's tags too and start a release run for each.
 
-One-download packages with the game data are proposed in
-`future-features/EASY-INSTALL.md`, which would change this page's rule that
-game data is never included.
+The rest of the one-download plan (a single Quest APK, an Omnitech helper) is in
+`future-features/EASY-INSTALL.md`.
 
 ## Licensing checklist
 
-- No game data, art or movies in any package.
+- Game data only in `-full` packages, with `EULA.txt`, keeping its notices; no
+  charge for any download. No Omnitech data in any package: its licence grants
+  no right to redistribute it.
 - `license.txt` (GPL v3); the source for each release is the tagged commit,
   which GitHub attaches automatically.
 - Third-party licenses for bundled libraries: SDL2, SDL2_mixer (and the codec

@@ -201,6 +201,11 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
 
 ## Releases (`RELEASES.md`)
 
+- [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing
+      extra installed: unzip the `-full` zip, double-click `mc2.exe`, no first
+      run exit, the main menu and a mission work. GL. CI cannot run this one.
+- [ ] **Full package on a Pi 400** (`release-full`). Unpack, the `apt` line,
+      `./mc2`: the settings suit the Pi. CI runs it only under llvmpipe. GLES.
 - [ ] **Quest APK from CI** (`release-apk`). Follow `dist/INSTALL.md` with the
       release's APK and shaders on a Quest 2: the app starts in VR, a mission
       loads, and `mc2.log` has a `[LOG] MechCommander 2 <version>` line naming the
