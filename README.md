@@ -16,8 +16,8 @@ Touch controllers.
 |---|---|
 | ![Mechs and vehicles under artillery fire in mission 1](media/strike.jpg) | ![Laser and missile fire across a mission 17 battlefield](media/lasers.jpg) |
 | *Artillery on the first campaign mission* | *Lasers and missiles, with shadows and detail textures on* |
-| ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | |
-| *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | |
+| ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | ![Mechs standing among temple-like buildings and banners in mission 22](media/town.jpg) |
+| *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | *A quieter moment: mechs among the buildings of mission 22* |
 
 Scripted battles from the desktop build (`scripts/bench.sh --scenario`). The
 game data, and Omnitech's, are not in this repository.
