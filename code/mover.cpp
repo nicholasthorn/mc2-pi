@@ -7150,7 +7150,7 @@ void Mover::removeFromUnitGroup( int id )
 }
 void Mover::addToUnitGroup( int id )
 {
-	unitGroup = (1 << id); // now you only get to be in one at a time
+	unitGroup = (id < 0) ? -1 : (1 << id); // now you only get to be in one at a time
 }
 bool Mover::isInUnitGroup( int id )
 {
