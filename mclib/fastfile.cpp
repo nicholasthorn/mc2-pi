@@ -27,7 +27,9 @@ bool FastFileInit (const char *fname)
 	//-- Open this fast file, add it to the list O pointers and return TRUE if OK!
 	fastFiles[numFastFiles] = new FastFile;
 	long result = fastFiles[numFastFiles]->open(fname);
-	if (result != NO_ERR)
+	// 2: Cancel on the missing-file dialog. ExitGameOS has been asked for, so
+	// this is a quiet exit, not an error to report.
+	if (result != NO_ERR && result != 2)
 	{
 		ffLastError = result;
 		delete fastFiles[numFastFiles];

@@ -147,6 +147,8 @@ int pack(const char* in_path, const char* fst_file, const char* mount, const cha
     FastFile out_ff;
     if(NO_ERR != out_ff.create(fst_file, b_compress)) {
         SPEW(("pack: ", "Failed to create fast file %s\n", fst_file));
+        if(fh)
+            fclose(fh);
         return -1;
     }
 
