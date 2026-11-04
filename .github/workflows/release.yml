@@ -182,6 +182,8 @@ jobs:
         # Android only installs an update signed with the same key, and
         # uninstalling deletes the game data on the headset. Without this
         # secret build.sh makes a new key, so each APK needs a clean install.
+        # Tags only: dry runs have no need of the real key.
+        if: github.ref_type == 'tag'
         env:
           QUEST_KEYSTORE: ${{ secrets.QUEST_KEYSTORE }}
         run: |

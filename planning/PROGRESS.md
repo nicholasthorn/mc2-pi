@@ -438,6 +438,9 @@ each ships the data tools instead.
       (`debian:bookworm` container), Windows zip (DLLs and C++ runtime
       included), Linux x64 tarball (2026-11-01; dry runs on the PR, no test
       tag pushed yet)
+- [x] Quest APK in `release.yml`, with its shaders and licences in a tarball
+      (2026-11-04, branch `release-apk`; built in the dry runs on the PR, not
+      yet run on a headset from a CI build)
 - [x] Before the first release: replace zlib 1.2.3 in `3rdparty.zip` with a
       current zlib (2026-11-01: 1.3.1, built from the official tag on a
       GitHub Windows runner; it is linked statically into `mc2.exe`)
