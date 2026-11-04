@@ -47,6 +47,7 @@ namespace MidLevelRenderer {
 		);
 
 		MLRTexture(const MLRTexture&) = delete;	// would share (and double-free) image
+		MLRTexture& operator=(const MLRTexture&) = delete;
 		~MLRTexture();
 
 		static MLRTexture*

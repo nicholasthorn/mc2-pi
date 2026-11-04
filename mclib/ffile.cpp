@@ -171,6 +171,13 @@ long FastFile::open (const char* fName)
 					ExitGameOS();
 					return (2);		//File not found.  Never returns though!
 				}
+				// no dialog was shown (Linux has none), so nobody can fix this and press OK
+				if (result1 != IDOK)
+				{
+					if (alreadyFullScreen)
+						EnterFullScreenMode();
+					return FILE_NOT_FOUND_ERR;
+				}
 
 				handle = fopen(actualPath,"r");
 			}
@@ -204,10 +211,7 @@ long FastFile::open (const char* fName)
     logicalPosition += FASTFILE_VERSION_BYTESIZE;
 
 	if (result != FASTFILE_VERSION_BYTESIZE)
-	{
-		long lastError = errno;
-		return lastError;
-	}
+		return READ_PAST_EOF_ERR;	// errno is not set by a short read
 
 	if (version != FASTFILE_VERSION && version != FASTFILE_VERSION_LZ)
 		return FASTFILE_VERSION;
@@ -223,8 +227,20 @@ long FastFile::open (const char* fName)
 
 	if (result != 4)
 	{
-		long lastError = errno;
-		return lastError;
+		numFiles = 0;	// the short read may have filled part of it
+		return READ_PAST_EOF_ERR;
+	}
+
+	//---------------------------------------------
+	//-- The count comes from the file: a corrupt one must not size the allocation.
+	long entriesStart = ftell(handle);
+	fseek(handle,0,SEEK_END);
+	long archiveEnd = ftell(handle);
+	fseek(handle,entriesStart,SEEK_SET);
+	if (numFiles > (archiveEnd - entriesStart) / sizeof(FILEENTRY))
+	{
+		numFiles = 0;
+		return READ_PAST_EOF_ERR;
 	}
 
 	files = (FILE_HANDLE*)malloc(sizeof(FILE_HANDLE) * numFiles);
@@ -313,16 +329,24 @@ long FastFile::create(const char* fName, bool compressed)
 		logicalPosition = 0;
 		fileSize();				//Sets Length
 	}
+	else
+	{
+		delete[] fileName;
+		fileName = NULL;
+		return FILE_NOT_OPEN;
+	}
 
 	useLZCompress = compressed;
 
 	long res = writeVersion(handle);
 	if(NO_ERR != res) {
-        delete[] fileName;
-		return res;
+		return res;	// close() frees fileName and the handle
     }
 
 	res = writeNumFiles(handle, 0);
+	if(NO_ERR != res) {
+		return res;
+    }
 
 	logicalPosition = ftell(handle);
 		
@@ -525,6 +549,14 @@ long FastFile::readFast (DWORD fastFileHandle, void *bfr, DWORD size)
 							ExitGameOS();
 							return (2);		//File not found.  Never returns though!
 						}
+						// no dialog was shown (Linux has none), so nobody can fix this and press OK
+						if (result1 != IDOK)
+						{
+							PAUSE(("Cannot read %s from %s",files[fastFileHandle].pfe->name,fileName));
+							if (alreadyFullScreen)
+								EnterFullScreenMode();
+							return 0;
+						}
 		
 						logicalPosition = fseek(handle,files[fastFileHandle].pos + files[fastFileHandle].pfe->offset,SEEK_SET);
 						result = fread(LZPacketBuffer,1,files[fastFileHandle].pfe->size,handle);
@@ -719,6 +751,14 @@ long FastFile::readFastRAW (DWORD fastFileHandle, void *bfr, DWORD size)
 				{
 					ExitGameOS();
 					return (2);		//File not found.  Never returns though!
+				}
+				// no dialog was shown (Linux has none), so nobody can fix this and press OK
+				if (result1 != IDOK)
+				{
+					PAUSE(("Cannot read %s from %s",files[fastFileHandle].pfe->name,fileName));
+					if (alreadyFullScreen)
+						EnterFullScreenMode();
+					return 0;
 				}
 
 				logicalPosition = fseek(handle,files[fastFileHandle].pos + files[fastFileHandle].pfe->offset,SEEK_SET);

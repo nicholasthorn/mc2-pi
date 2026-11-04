@@ -25,6 +25,7 @@
 #include "inifile.h"
 #include "lz.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -105,6 +106,17 @@ void authorFst (const std::string &fstPath, const char *entryName,
 	std::string buf(payload, payload + payloadLen);
 	REQUIRE(ff.writeFast(entryName, (void *)buf.data(), payloadLen) == NO_ERR);
 	ff.close();
+}
+
+// An archive that is only a header: version, then a claimed entry count.
+void authorHeaderOnlyFst (const std::string &fstPath, uint32_t numEntries)
+{
+	FILE *f = fopen(fstPath.c_str(), "wb");
+	REQUIRE(f != nullptr);
+	const uint32_t version = FASTFILE_VERSION;
+	fwrite(&version, 1, sizeof(version), f);
+	fwrite(&numEntries, 1, sizeof(numEntries), f);
+	fclose(f);
 }
 
 } // namespace
@@ -260,5 +272,128 @@ TEST_CASE("LZDecomp stops at destLen instead of overflowing")
 	// no limit given: the old behaviour
 	CHECK(LZDecomp((MemoryPtr)&out[0], (MemoryPtr)&packed[0], packedLen) == src.size());
 }
+
+TEST_CASE("an FST claiming more entries than it holds is refused")
+{
+	const std::string fstPath = scratchPath("corrupt.fst");
+	uint32_t claimed = 3;
+	SUBCASE("a few") { claimed = 3; }
+	SUBCASE("too many to allocate") { claimed = 0xFFFFFFFFu; }
+	authorHeaderOnlyFst(fstPath, claimed);
+
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == READ_PAST_EOF_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+	remove(fstPath.c_str());
+}
+
+TEST_CASE("an FST cut off inside its header is refused")
+{
+	const std::string fstPath = scratchPath("truncated.fst");
+	size_t bytes = 6;
+	SUBCASE("in the entry count") { bytes = 6; }
+	SUBCASE("in the version") { bytes = 2; }
+	FILE *f = fopen(fstPath.c_str(), "wb");
+	REQUIRE(f != nullptr);
+	const uint32_t header[2] = { FASTFILE_VERSION, 0x01010101u };
+	fwrite(header, 1, bytes, f);
+	fclose(f);
+
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == READ_PAST_EOF_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+	remove(fstPath.c_str());
+}
+
+TEST_CASE("an FST with no entries still opens")
+{
+	const std::string fstPath = scratchPath("empty.fst");
+	authorHeaderOnlyFst(fstPath, 0);
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == NO_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	remove(fstPath.c_str());
+}
+
+// Where there is no dialog (Linux, Pi), MessageBox answers neither OK nor Cancel,
+// so the retry loops must give up instead of spinning. On Windows these paths
+// open a real dialog, which would block the tests.
+#ifndef PLATFORM_WINDOWS
+TEST_CASE("a missing FST is refused, not retried for ever")
+{
+	const std::string fstPath = scratchPath("not_there.fst");
+	remove(fstPath.c_str());
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == FILE_NOT_FOUND_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+}
+
+TEST_CASE("a file on no CD is not found, not retried for ever")
+{
+	Environment.checkCDForFiles = true;
+	File f;
+	CHECK(f.open(scratchPath("not_on_any_cd.txt").c_str()) == 2);
+	Environment.checkCDForFiles = false;
+}
+
+TEST_CASE("an FST cut off before its data reads nothing, not retried for ever")
+{
+	const std::string fstPath = scratchPath("no_data.fst");
+	authorFst(fstPath, kFstEntryName, kFstPayload, (int)strlen(kFstPayload));
+
+	// keep the version, the count and the one entry; drop the data after them
+	std::string head(8 + sizeof(FILEENTRY), '\0');
+	FILE *in = fopen(fstPath.c_str(), "rb");
+	REQUIRE(in != nullptr);
+	REQUIRE(fread(&head[0], 1, head.size(), in) == head.size());
+	fclose(in);
+	FILE *out = fopen(fstPath.c_str(), "wb");
+	REQUIRE(out != nullptr);
+	fwrite(head.data(), 1, head.size(), out);
+	fclose(out);
+
+	{
+		FastFile ff;
+		REQUIRE(ff.open(fstPath.c_str()) == NO_ERR);
+		const long entry = ff.openFast(elfHash(kFstEntryName), kFstEntryName);
+		REQUIRE(entry >= 0);
+		char buf[256];
+		CHECK(ff.readFast(entry, buf, sizeof(buf)) == 0);
+		CHECK(ff.readFastRAW(entry, buf, sizeof(buf)) == 0);
+	}
+	{
+		// File::open reads the whole entry: no data must not look like a file
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		remove(kFstEntryName);
+		File f;
+		CHECK(f.open(kFstEntryName) == READ_PAST_EOF_ERR);
+	}
+	remove(fstPath.c_str());
+}
+#endif
 
 } // TEST_SUITE("FstRoundtrip")

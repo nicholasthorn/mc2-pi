@@ -188,6 +188,10 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
 - [ ] **KIA box on Omnitech:** lose a pilot and open the pilot review; the box
       shows the pilot's face and an empty dead-picture box, not a second face. No
       UI walk reaches this box, so it has only been built.
+- [ ] **Mechlopedia on Omnitech, by hand:** clicks land where they should now it
+      is centred: its tabs, list rows, scroll bars and Close. Also salvage and pilot
+      review after a mission, then back to mission selection at full size. UI walks
+      press buttons by id, not by position.
 - [ ] **HUD size on Omnitech:** play several missions in a row; the HUD stays
       full size and does not go small to the lower left. The fix follows a real
       change of frame size, logged as `[XR] the window's frame is now`; a menu

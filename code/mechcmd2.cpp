@@ -1131,13 +1131,18 @@ void __stdcall InitializeGameEngine()
 			gosASSERT(fastFileResult == NO_ERR);
 			{
 				long result = systemFile->readIdLong("NumFastFiles",maxFastFiles);
-				if (result != NO_ERR)
+				if (result != NO_ERR || maxFastFiles < 0)
 					maxFastFiles = 0;
 	
 				if (maxFastFiles)
 				{
-					fastFiles = (FastFile **)malloc(maxFastFiles*sizeof(FastFile *));
-					memset(fastFiles,0,maxFastFiles*sizeof(FastFile *));
+					// from system.cfg, which anyone can edit
+					fastFiles = (FastFile **)calloc(maxFastFiles,sizeof(FastFile *));
+					if (!fastFiles)
+					{
+						STOP(("NumFastFiles %ld in system.cfg is too many",maxFastFiles));
+						maxFastFiles = 0;
+					}
 	
 					int fileNum = 0;
 					char fastFileId[10];
@@ -1148,7 +1153,7 @@ void __stdcall InitializeGameEngine()
 					{
 						bool result = FastFileInit(fileName);
 						if (!result)
-							STOP(("Unable to startup fastfiles.  Probably an old one in the directory!!"));
+							STOP(("Unable to startup fastfile %s.  It is missing, old or corrupt.",fileName));
 	
 						fileNum++;
 						sprintf(fastFileId,"File%d",fileNum);

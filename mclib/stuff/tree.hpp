@@ -169,6 +169,8 @@ namespace Stuff {
 			Node *node,
 			bool has_unique_entries
 		);
+		Tree(const Tree&) = delete;
+		Tree& operator=(const Tree&) = delete;
 		~Tree();
 
 		void
