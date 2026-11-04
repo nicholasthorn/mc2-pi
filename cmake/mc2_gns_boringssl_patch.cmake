@@ -11,7 +11,9 @@
 
 function(mc2_patch file)
     file(READ "${file}" text)
-    if(text MATCHES "OPENSSL_IS_BORINGSSL")
+    set(marker "// patched by cmake/mc2_gns_boringssl_patch.cmake\n")
+    string(FIND "${text}" "${marker}" patched)
+    if(NOT patched EQUAL -1)
         return()	# already done
     endif()
     list(LENGTH ARGN count)
@@ -26,7 +28,7 @@ function(mc2_patch file)
         endif()
         string(REPLACE "${old}" "${new}" text "${text}")
     endforeach()
-    file(WRITE "${file}" "${text}")
+    file(WRITE "${file}" "${marker}${text}")
 endfunction()
 
 mc2_patch(src/common/crypto_digest_opensslevp.cpp

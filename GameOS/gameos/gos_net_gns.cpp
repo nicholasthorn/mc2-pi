@@ -114,6 +114,7 @@ public:
 	{
 		if (!connections_.erase(connection))
 			return;
+		incoming_.erase(connection);
 		g_connections.erase(connection);
 		// linger: what was already sent still gets there
 		SteamNetworkingSockets()->CloseConnection(connection, 0, nullptr, true);
@@ -140,10 +141,12 @@ public:
 			return;
 		}
 		adopt(connection);
+		incoming_.insert(connection);
 	}
 
 	void onConnected(HSteamNetConnection connection)
 	{
+		incoming_.erase(connection);
 		pushState(EventType::Connected, connection);
 	}
 
@@ -154,7 +157,9 @@ public:
 		connections_.erase(connection);
 		g_connections.erase(connection);
 		SteamNetworkingSockets()->CloseConnection(connection, 0, nullptr, false);
-		pushState(EventType::Disconnected, connection);
+		// one that never finished connecting to us was never announced to the caller
+		if (!incoming_.erase(connection))
+			pushState(EventType::Disconnected, connection);
 	}
 
 private:
@@ -202,6 +207,7 @@ private:
 	HSteamNetPollGroup group_ = k_HSteamNetPollGroup_Invalid;
 	std::set<HSteamListenSocket> listeners_;
 	std::set<ConnectionId> connections_;
+	std::set<ConnectionId> incoming_;	// accepted, and not yet Connected
 	std::deque<Event> events_;
 };
 
@@ -241,13 +247,13 @@ void onStatusChanged(SteamNetConnectionStatusChangedCallback_t* info)
 std::unique_ptr<Transport> createGnsTransport(std::string* error, int connectTimeoutMs)
 {
 	if (g_transports == 0) {
+		SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Error, logMessage);
 		SteamNetworkingErrMsg message;
 		if (!GameNetworkingSockets_Init(nullptr, message)) {
 			if (error)
 				*error = message;
 			return nullptr;
 		}
-		SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Error, logMessage);
 		SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(onStatusChanged);
 	}
 	g_transports++;

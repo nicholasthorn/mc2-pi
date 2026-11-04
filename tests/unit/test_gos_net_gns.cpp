@@ -14,6 +14,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <random>
 #include <thread>
 #include <vector>
 
@@ -21,7 +22,9 @@ using namespace gos_net;
 
 namespace {
 
-const uint16_t TEST_PORT = 28100;
+// A port of this run's own: WSL is one machine shared by every session, and another
+// run's client could otherwise reach this run's server.
+const uint16_t TEST_PORT = static_cast<uint16_t>(20000u + std::random_device()() % 20000u);
 const char* const LOCALHOST = "127.0.0.1";
 
 std::unique_ptr<Transport> create()

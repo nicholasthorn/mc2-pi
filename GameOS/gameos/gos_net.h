@@ -89,7 +89,9 @@ private:
 	std::shared_ptr<State> state_;
 };
 
-// The real network, over UDP: an IPv4 or IPv6 address, not a name. Returns null, with
+// The real network, over UDP: an IPv4 or IPv6 address, not a name. Anyone who can
+// reach a listening port can connect, in any number: encrypted, but not authenticated,
+// so limits and identity are the caller's until internet play. Returns null, with
 // the reason in error if given, when the library will not start. connectTimeoutMs
 // over 0 sets how long a connection may take to start, for every transport in the
 // process. Built only with MC2_NET.

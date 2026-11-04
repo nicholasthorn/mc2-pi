@@ -46,10 +46,13 @@ set(_gns_build ${CMAKE_COMMAND} --build <BINARY_DIR> --config Release)
 set(_gns_install ${CMAKE_COMMAND} --install <BINARY_DIR> --config Release)
 
 if(MSVC)
-    set(_gns_libs "${_gns_lib}/GameNetworkingSockets_s.lib" "${_gns_lib}/libprotobuf.lib")
+    set(_gns_library "${_gns_lib}/GameNetworkingSockets_s.lib")
+    set(_gns_protobuf "${_gns_lib}/libprotobuf.lib")
 else()
-    set(_gns_libs "${_gns_lib}/libGameNetworkingSockets_s.a" "${_gns_lib}/libprotobuf.a")
+    set(_gns_library "${_gns_lib}/libGameNetworkingSockets_s.a")
+    set(_gns_protobuf "${_gns_lib}/libprotobuf.a")
 endif()
+set(_gns_libs "${_gns_library}" "${_gns_protobuf}")
 
 # protobuf 21.12: the last before Abseil. Cross-compiling needs a protoc for the
 # machine doing the build, which comes prebuilt.
@@ -84,7 +87,7 @@ ExternalProject_Add(mc2_gns_protobuf
     CMAKE_ARGS ${_gns_args} ${_gns_protobuf_args}
     BUILD_COMMAND ${_gns_build}
     INSTALL_COMMAND ${_gns_install}
-    BUILD_BYPRODUCTS ${_gns_libs})
+    BUILD_BYPRODUCTS "${_gns_protobuf}")
 
 if(MSVC)
     set(_gns_crypto -DUSE_CRYPTO=BCrypt)
@@ -121,7 +124,8 @@ ExternalProject_Add(mc2_gns_library
         -DBUILD_STATIC_LIB=ON -DBUILD_SHARED_LIB=OFF -DENABLE_ICE=ON
         -DProtobuf_USE_STATIC_LIBS=ON
     BUILD_COMMAND ${_gns_build}
-    INSTALL_COMMAND ${_gns_install})
+    INSTALL_COMMAND ${_gns_install}
+    BUILD_BYPRODUCTS "${_gns_library}")
 
 add_library(mc2_gns INTERFACE)
 add_dependencies(mc2_gns mc2_gns_library)
