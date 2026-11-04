@@ -538,15 +538,28 @@ five seconds compares each live unit on the client with the host's.
   their type as the wrong class, also in single player. Only the mouse-over check for rock clumps
   and a debug string use it on them, so play does not change.
 
+### Phase 3, begun
+
+World events go from the host to clients in order, as two words each in a `ChunkKind::World` batch
+(`netwire::WorldEvent`): artillery, mines, terrain fire, a building captured, and kills and losses. A
+repair is `Mover::refit` run again on the client from the same state. A client calls a strike by
+asking the host, and the host applies it for that client's commander.
+
+`NetEventsEvery` in a scenario stages what a short battle is not sure to do. In `bench/net_m08.fit` a
+client saw artillery, mines, captures and repairs, armour never differed, and both ends finish with
+the same kills, losses, buildings and mines (`[NETSCORE]`). The repairs and captures are staged by the
+director, not ordered through a repair truck or a capturing mech, and no run has lit a tree. The
+strike requests are not checked against resource points.
+
 Not settled by phase 2, against its exit criterion:
 
 - **The Quest client step is not measured,** and the game has not run a network game on a Quest.
 - **Only on one machine.** Real Wi-Fi, two machines, x64 with arm64 and a Windows peer are not run.
 - **Sound, effects and movement on the client have not been looked at.** The check covers armour,
   status and position.
-- Not sent yet, all phase 3: buildings, gates and turrets changing state beyond the hits on them,
-  mines, artillery, capture, repair and recovery (a client ignores a refit chunk, so its armour
-  differs after a repair), reinforcements, turret targets. World chunks are still stubs.
+- Not sent yet, for phase 3: gates and turrets changing state beyond the hits on them, a captured
+  vehicle, recovery (the host still `STOP`s on it), reinforcements, turret targets, mission script
+  messages, scores, pilot kill stats. Hold position and move groups are still empty on a client.
 - The host checks one win condition, the last team standing, and a mission script's result is not
   sent. Ending goes straight to quitting: there is no results screen or lobby to return to.
 - A client that leaves is not replaced, and a host that leaves ends the game for the client.
