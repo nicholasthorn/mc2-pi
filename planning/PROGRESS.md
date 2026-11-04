@@ -535,6 +535,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: Omnitech's splash on its larger front end (branch `omnitech-splash-size`): the 800x600 art is centred on black, where the screen behind it showed round the edges. Stock's draw calls are unchanged.
 - 2026-11-04: README: fourth screenshot, idle mechs among mission 22's buildings (branch `readme-town-shot`).
 - 2026-11-04: README: Quest 2 as playable, screenshots and a clip in `media/` (scripted battles on the CI-built Linux package, llvmpipe, 1080p; Omnitech at 1280x1024). `future-features/EASY-INSTALL.md`: proposed one-download packages with the game data, and a helper for Omnitech, whose EULA grants no redistribution (branch `release-apk`).
 - 2026-11-04: Quest APK on releases (branch `release-apk`): job `quest` in `release.yml` builds the APK on Linux with `scripts/android/build.sh`, and `scripts/android/package.sh` adds the shaders and licences (`-files.tar.gz`) and unstripped libraries (`-symbols.tar.gz`). `MC2_VERSION` sets `mc2.log`'s version and the APK's versionName. Signed with the optional `QUEST_KEYSTORE` secret, so updates can install over each other. Quest steps in `dist/INSTALL.md`; headset check in `HARDWARE-TESTS.md`.
