@@ -27,9 +27,11 @@ bool FastFileInit (const char *fname)
 	//-- Open this fast file, add it to the list O pointers and return TRUE if OK!
 	fastFiles[numFastFiles] = new FastFile;
 	long result = fastFiles[numFastFiles]->open(fname);
-	if (result == FASTFILE_VERSION)
+	if (result == FASTFILE_VERSION || result == READ_PAST_EOF_ERR)
 	{
 		ffLastError = result;
+		delete fastFiles[numFastFiles];
+		fastFiles[numFastFiles] = NULL;
 		return FALSE;
 	}
 

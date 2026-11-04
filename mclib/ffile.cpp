@@ -227,6 +227,18 @@ long FastFile::open (const char* fName)
 		return lastError;
 	}
 
+	//---------------------------------------------
+	//-- The count comes from the file: a corrupt one must not size the allocation.
+	long entriesStart = ftell(handle);
+	fseek(handle,0,SEEK_END);
+	long archiveEnd = ftell(handle);
+	fseek(handle,entriesStart,SEEK_SET);
+	if (numFiles > (archiveEnd - entriesStart) / sizeof(FILEENTRY))
+	{
+		numFiles = 0;
+		return READ_PAST_EOF_ERR;
+	}
+
 	files = (FILE_HANDLE*)malloc(sizeof(FILE_HANDLE) * numFiles);
 
 	for (DWORD i=0;i<numFiles;i++)
