@@ -780,9 +780,24 @@ void MainMenu::render()
 
 		if ( bDrawBackground )
 		{
-			background.render();
-			intro.render();
-			if ( !intro.animObjects[0].isDone() && !introOver && !bHostLeftDlg )
+			const bool bIntroPlaying = !intro.animObjects[0].isDone() && !introOver && !bHostLeftDlg;
+			// the splash art is 800x600: on a larger front end (Omnitech's) it goes in
+			// the middle, on black, or the screen behind it shows round the edges
+			if ( bIntroPlaying && frontEndWidth() != 800 )
+			{
+				GUI_RECT wholeScreen = { 0, 0, Environment.screenWidth, Environment.screenHeight };
+				drawRect( wholeScreen, 0xff000000 );
+				const int xSplash = (Environment.screenWidth - 800) / 2;
+				const int ySplash = (Environment.screenHeight - 600) / 2;
+				background.render( xSplash, ySplash );
+				intro.render( xSplash, ySplash );
+			}
+			else
+			{
+				background.render();
+				intro.render();
+			}
+			if ( bIntroPlaying )
 				return;
 
 
