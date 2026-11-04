@@ -8254,6 +8254,17 @@ void MechWarrior::copyToData (MechWarriorData &data)
 }
 
 //---------------------------------------------------------------------------
+static void dropBadSavedWayPath (TacticalOrder &order, const char *name)
+{
+	if (!savedCountValid(order.moveParams.wayPath.numPoints,MAX_WAYPTS))
+	{
+		PAUSE(("Saved order of %s has %ld way points. Dropped",name,order.moveParams.wayPath.numPoints));
+		order.moveParams.wayPath.numPoints = 0;
+	}
+}
+
+//---------------------------------------------------------------------------
+
 void MechWarrior::copyFromData (MechWarriorData &data)
 {
 	used = data.used;
@@ -8373,8 +8384,7 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 
 	// a bad save must not index past these arrays: drop the path, and the
 	// unit works out a new one, as pathType undefined always does
-	bool movePathsValid = savedStepsValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,MAX_GLOBAL_PATH) &&
-		savedStepsValid(moveOrders.numWayPts,moveOrders.curWayPt,MAX_WAYPTS);
+	bool movePathsValid = savedStepsValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,MAX_GLOBAL_PATH);
 	for (long i = 0; i < 2; i++)
 	{
 		const MovePath* movePath = moveOrders.path[i];
@@ -8388,12 +8398,21 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 		PAUSE(("Saved move orders of %s are out of range. Path dropped",name));
 		moveOrders.numGlobalSteps = 0;
 		moveOrders.curGlobalStep = 0;
-		moveOrders.numWayPts = 0;
-		moveOrders.curWayPt = 0;
 		moveOrders.pathType = MOVEPATH_UNDEFINED;
 		for (long i = 0; i < 2; i++)
 			moveOrders.path[i]->init();
 	}
+	if (!savedStepsValid(moveOrders.numWayPts,moveOrders.curWayPt,MAX_WAYPTS))
+	{
+		PAUSE(("Saved way points of %s are out of range. Dropped",name));
+		moveOrders.numWayPts = 0;
+		moveOrders.curWayPt = 0;
+	}
+	// setMoveWayPath copies numPoints points into moveOrders.wayPath
+	for (long i = 0; i < NUM_ORDERSTATES; i++)
+		dropBadSavedWayPath(tacOrder[i],name);
+	dropBadSavedWayPath(lastTacOrder,name);
+	dropBadSavedWayPath(curTacOrder,name);
 
 	attackOrders = data.attackOrders;
 	situationOrders = data.situationOrders;
