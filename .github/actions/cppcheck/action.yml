@@ -1,0 +1,40 @@
+# The cppcheck the gate runs with. Ubuntu's package is too old (2.13 on 24.04),
+# so the pinned release is built from source once and cached: the build takes
+# minutes, a cache hit seconds. Needs git, CMake, Ninja and a compiler. Changing
+# the version means regenerating the baseline (static.yml, update_baseline).
+name: Install cppcheck
+description: Puts the pinned cppcheck on PATH, building it on a cache miss
+inputs:
+  version:
+    description: cppcheck release
+    default: "2.19.0"
+  commit:
+    description: the commit that release's tag points at
+    default: 9730a448fb7e9c205b7ec47b7ba88c5406954538
+runs:
+  using: composite
+  steps:
+    - id: cache
+      uses: actions/cache@v6
+      with:
+        path: ~/cppcheck-${{ inputs.version }}
+        key: cppcheck-${{ runner.os }}-${{ runner.arch }}-${{ inputs.commit }}
+    - if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v7
+      with:
+        repository: danmar/cppcheck
+        ref: ${{ inputs.commit }}
+        path: .cppcheck-src
+        lfs: false
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        cmake -S .cppcheck-src -B .cppcheck-build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/cppcheck-${{ inputs.version }}"
+        cmake --build .cppcheck-build
+        cmake --install .cppcheck-build
+        rm -rf .cppcheck-src .cppcheck-build
+    - shell: bash
+      run: |
+        echo "$HOME/cppcheck-${{ inputs.version }}/bin" >> "$GITHUB_PATH"
+        "$HOME/cppcheck-${{ inputs.version }}/bin/cppcheck" --version
