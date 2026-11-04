@@ -556,6 +556,31 @@ and ranks, the winners first and then by team score. Mission script messages and
 A `TACTICAL_ORDER_RECOVER` is refused: executing one is a `STOP`, in single player too, so a client
 could have ended the host's game with it.
 
+### Game modes
+
+Every stock multiplayer map declares a mode, in `MissionSettings`, so a game now plays the map's. The
+original rules went with the code Microsoft removed, so `code/netrules.*` rebuilds them from what the
+maps hold, and these are **our rules, not necessarily the shipped game's**:
+
+| Mode | Maps | HQs on the map | Ends when | At the time limit |
+|---|---|---|---|---|
+| Elimination | m01, m02, m02a, m03 | None | One team has units | Highest score (kills) |
+| King of the Hill | m05 | One, at the centre | One team has units | Highest score, a point a second on the hill |
+| Capture Base | m02b, m08 | One per possible team | One base is left | Highest score |
+| Territories | m07 | Six in a ring | One team has units | Highest score, a point a second for each held |
+| Last Man Standing | m04 | None | One team has units | Most units |
+| Last Man on the Hill | m06 | One, at the centre | One team has units | Whoever holds the hill |
+| Other | m09 | None | As Elimination, for now | As Elimination |
+
+A level result at the time limit is a draw. On a capture base map each team takes the free HQ nearest
+where its units start, in team order, so both ends agree without being told. HQs nobody took stop being
+capturable. A map's resource points stay out until reinforcements are sent. m10 and later have not been
+looked at for what they declare.
+
+Run between two processes on x64 desktop GL: each mode on a map of that mode reached the expected result,
+and both ends finished with the same buildings. The HQ is taken by the test, not by a unit under orders.
+King of the Hill, Territories, Last Man on the Hill and Last Man Standing run with a shortened time limit.
+
 Not settled by phase 2, against its exit criterion:
 
 - **The Quest client step is not measured,** and the game has not run a network game on a Quest.
