@@ -1,6 +1,9 @@
 # Multiplayer: proposal
 
-Status: proposal; phase 0 built (see "Phase 0 results"), no networking yet.
+Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 has begun: the
+wire format (`code/netwire.*`) and the transport interface with a test loopback
+(`GameOS/gameos/gos_net.*`) exist, and nothing calls them yet. No real transport:
+the library spike has not run, so Decision 4 is still open.
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are

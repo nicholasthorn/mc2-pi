@@ -1,0 +1,87 @@
+// GameOS/gameos/gos_net.h
+//
+// The network transport, behind a small interface so the choice of library can
+// change (planning/future-features/NETWORKING.md, Decision 4): listen, connect,
+// send with a delivery type, poll. It moves opaque messages; their format is
+// code/netwire.h. Not thread-safe: use a transport from one thread.
+//
+// The only backend so far is a loopback for tests. It delivers within one
+// process, and can drop unreliable messages to exercise the code above it.
+
+#ifndef GOS_NET_H
+#define GOS_NET_H
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+namespace gos_net {
+
+typedef uint32_t ConnectionId;
+constexpr ConnectionId INVALID_CONNECTION = 0;
+
+// Anything larger needs splitting by the caller. Every backend must carry this
+// much in one message, for all delivery types.
+constexpr size_t MAX_MESSAGE_SIZE = 8192;
+
+enum class Delivery {
+	ReliableOrdered,	// orders, hits, world events, the lobby
+	ReliableUnordered,	// weapon fire, radio
+	Unreliable			// mover updates, newest wins
+};
+
+enum class EventType {
+	Connected,		// on both ends
+	Disconnected,	// the other end went away, or never answered
+	Message
+};
+
+struct Event {
+	EventType type = EventType::Message;
+	ConnectionId connection = INVALID_CONNECTION;
+	Delivery delivery = Delivery::ReliableOrdered;	// of a Message
+	std::vector<uint8_t> data;						// of a Message
+};
+
+class Transport {
+public:
+	virtual ~Transport() {}
+
+	// Accept connections on this port. False if the port cannot be had.
+	virtual bool listen(uint16_t port) = 0;
+
+	// Start connecting. True means started and sets connection; a Connected or
+	// Disconnected event for it says how it went.
+	virtual bool connect(const char* address, uint16_t port, ConnectionId& connection) = 0;
+
+	// False if the message cannot be queued: unknown connection, or too large. A
+	// true does not promise an Unreliable message arrives.
+	virtual bool send(ConnectionId connection, Delivery delivery, const void* data, size_t size) = 0;
+
+	// Close from this end. The other end gets Disconnected; this end gets nothing.
+	virtual void disconnect(ConnectionId connection) = 0;
+
+	// The next event, oldest first. False when there are none.
+	virtual bool poll(Event& event) = 0;
+};
+
+// A little network in one process: its transports reach each other by port, and
+// any address is accepted. The network and its transports may be destroyed in
+// any order.
+class LoopbackNetwork {
+public:
+	// dropPercent of Unreliable messages are lost, repeatably for a given seed.
+	explicit LoopbackNetwork(unsigned dropPercent = 0, uint32_t seed = 1);
+	~LoopbackNetwork();
+	std::unique_ptr<Transport> createTransport();
+
+	struct State;
+
+private:
+	std::shared_ptr<State> state_;
+};
+
+}
+
+#endif

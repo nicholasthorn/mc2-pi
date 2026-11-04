@@ -1,0 +1,128 @@
+// code/netwire.h
+//
+// The multiplayer wire format (planning/future-features/NETWORKING.md): fixed
+// width little-endian fields, the same on every platform, whatever long is.
+// No GL, SDL or game dependency. Everything received is untrusted, so a decoder
+// checks every field and refuses the whole message rather than end the game.
+//
+// A message is one type byte and its body. What the words of a chunk mean is
+// the game's business (MoveChunk::pack and so on), and the game must range-check
+// them too when it unpacks them.
+
+#ifndef NETWIRE_H
+#define NETWIRE_H
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+namespace netwire {
+
+// Raise on any change to a message's layout.
+constexpr uint16_t PROTOCOL_VERSION = 1;
+
+constexpr size_t MAX_NAME_LENGTH = 31;
+constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
+constexpr size_t MAX_MESSAGE_SIZE = 8192;
+constexpr uint8_t MAX_PLAYERS = 8;			// MAX_MC_PLAYERS
+constexpr uint16_t NO_SUBJECT = 0xFFFF;
+
+enum class MessageType : uint8_t {
+	Hello = 1,
+	Welcome = 2,
+	ChunkBatch = 3
+};
+
+enum class RejectReason : uint8_t {
+	None = 0,
+	WrongVersion = 1,
+	WrongData = 2,
+	GameFull = 3
+};
+
+enum class ChunkKind : uint8_t {
+	Move = 1,
+	Status = 2,
+	WeaponFire = 3,
+	WeaponHit = 4,
+	CriticalHit = 5,
+	Radio = 6,
+	World = 7,
+	Order = 8
+};
+
+// client to host, first thing on a connection
+struct Hello {
+	uint16_t protocol = PROTOCOL_VERSION;
+	uint32_t dataHash = 0;		// of the mission and object data and the mod set
+	std::string name;
+};
+
+// host to client, the answer to Hello
+struct Welcome {
+	RejectReason reject = RejectReason::None;
+	uint8_t commanderId = 0;	// below numPlayers, when not rejected
+	uint8_t numPlayers = 0;		// 1 to MAX_PLAYERS, when not rejected
+};
+
+// A run of packed game chunks of one kind, for one mover or turret (its index
+// in subject) or for nobody in particular (NO_SUBJECT).
+struct ChunkBatch {
+	ChunkKind kind = ChunkKind::Move;
+	uint16_t subject = NO_SUBJECT;
+	std::vector<uint32_t> words;
+};
+
+// Appends little-endian fields to a buffer.
+class Writer {
+public:
+	explicit Writer(std::vector<uint8_t>& out) : out_(out) {}
+	void u8(uint8_t v);
+	void u16(uint16_t v);
+	void u32(uint32_t v);
+	void bytes(const void* data, size_t size);
+
+private:
+	std::vector<uint8_t>& out_;
+};
+
+// Reads little-endian fields from a buffer. Reading past the end sets a sticky
+// failure and yields zeros, so a decoder can read first and check once.
+class Reader {
+public:
+	Reader(const void* data, size_t size) : data_(static_cast<const uint8_t*>(data)), size_(size) {}
+	uint8_t u8();
+	uint16_t u16();
+	uint32_t u32();
+	bool bytes(void* out, size_t size);
+	size_t remaining() const { return size_ - pos_; }
+	bool ok() const { return ok_; }
+	// All of the message was read, and nothing past it.
+	bool finished() const { return ok_ && pos_ == size_; }
+
+private:
+	bool take(size_t size);
+	const uint8_t* data_;
+	size_t size_;
+	size_t pos_ = 0;
+	bool ok_ = true;
+};
+
+// The type of a message, without checking its body.
+bool peekType(const void* data, size_t size, MessageType& type);
+
+// Each encoder replaces out, and refuses a value its decoder would refuse.
+bool encode(const Hello& message, std::vector<uint8_t>& out);
+bool encode(const Welcome& message, std::vector<uint8_t>& out);
+bool encode(const ChunkBatch& message, std::vector<uint8_t>& out);
+
+// Each decoder returns false, and leaves message unusable, unless the whole of
+// data is one valid message of that type.
+bool decode(const void* data, size_t size, Hello& message);
+bool decode(const void* data, size_t size, Welcome& message);
+bool decode(const void* data, size_t size, ChunkBatch& message);
+
+}
+
+#endif
