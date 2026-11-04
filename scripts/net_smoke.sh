@@ -94,6 +94,14 @@ grep -q 'orders from clients [1-9]' "$LOG_DIR/host.log" || reasons+=("no orders 
 hostwin=$(grep -m1 '^\[NET\] game over' "$LOG_DIR/host.log")
 clientwin=$(grep -m1 '^\[NET\] game over' "$LOG_DIR/client.log")
 [ "$hostwin" = "$clientwin" ] || reasons+=("host and client disagree: '$hostwin', '$clientwin'")
+if ! diff <(grep '^\[NETSCORE\]' "$LOG_DIR/host.log") <(grep '^\[NETSCORE\]' "$LOG_DIR/client.log") > "$LOG_DIR/score.diff" \
+    || ! grep -q '^\[NETSCORE\]' "$LOG_DIR/host.log"; then
+    reasons+=("host and client ended with other scores, buildings or mines ($LOG_DIR/score.diff)")
+fi
+world=$(grep '^\[NETWORLD\]' "$LOG_DIR/client.log" | tail -1)
+for what in 'artillery' 'mines' 'kills and losses' 'repairs'; do
+    echo "$world" | grep -Eq "$what [1-9]" || reasons+=("no $what reached the client: $world")
+done
 last=$(grep '^\[NETCHECK\] [0-9]* units' "$LOG_DIR/client.log" | tail -1)
 if [ -z "$last" ]; then
     reasons+=("no convergence check reached the client")

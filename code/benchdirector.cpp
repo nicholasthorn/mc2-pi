@@ -21,6 +21,8 @@
 #include "tacordr.h"
 #include "terrain.h"
 #include "multplyr.h"
+#include "bldng.h"
+#include "move.h"
 
 #include <gameos.hpp>
 
@@ -297,7 +299,52 @@ void strike (void) {
 		return;
 	float dx, dy;
 	BenchScenario::strikeOffset(strikes++, scenario.strikeRadius, dx, dy);
-	CallArtillery(Commander::home->getId(), ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3, false);
+	// a client asks the host for it, as the interface does
+	if (MPlayer && MPlayer->isNetworked() && !MPlayer->isServer())
+		MPlayer->sendPlayerArtillery(ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3);
+	else
+		CallArtillery(Commander::home->getId(), ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3, false);
+}
+
+// On the host, what nothing else in a two-minute battle is sure to do, to test that
+// it reaches a client: a mine between the lines, a repair, and a building changing hands.
+void netEvents (void) {
+
+	if (!MPlayer || !MPlayer->isNetworked() || !MPlayer->isServer())
+		return;
+
+	int row = 0, col = 0;
+	land->worldToCell(onGround(arena.x, arena.y + scenario.spacing * (float)(strikes++ % 8 - 4)), row, col);
+	GameMap->setMine(row, col, 1);
+	MPlayer->addMineChunk(row, col, 1, 1, 0);
+
+	for (size_t i = 0; i < fighters.size(); i++) {
+		MoverPtr m = fighters[i];
+		if (!canFight(m))
+			continue;
+		float missing = 0.0f;
+		for (long j = 0; j < m->numArmorLocations; j++)
+			missing += m->armor[j].maxArmor - m->armor[j].curArmor;
+		if (missing < 1.0f)
+			continue;
+		float used = 0.0f;
+		const float points = 16.0f;
+		m->refit(points, used);
+		WeaponShotInfo info;
+		info.init(0, -5, points, 0, 0.0f);
+		MPlayer->addWeaponHitChunk(m, &info, true);
+		break;
+	}
+
+	for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
+		BuildingPtr building = ObjectManager->getBuilding(i);
+		if (!building || !building->getExists() || building->isDisabled() || (building->getCommanderId() == Commander::home->getId()))
+			continue;
+		MPlayer->addCaptureBuildingChunk(building, building->getCommanderId(), Commander::home->getId());
+		building->setCommanderId(Commander::home->getId());
+		building->setTeamId(Team::home->getId(), false);
+		break;
+	}
 }
 
 void moveCamera (void) {
@@ -414,6 +461,8 @@ void BenchDirector::update (const char* missionName) {
 	const BenchSegment& s = scenario.segments[seg];
 	if ((s.strikeEvery > 0) && ((frame - s.start) % s.strikeEvery == 0))
 		strike();
+	if ((scenario.netEventsEvery > 0) && (frame > 2) && (frame % scenario.netEventsEvery == 0))
+		netEvents();
 	for (long i = 0; i < scenario.numSegments; i++)
 		if (scenario.segments[i].shot == frame)
 			gos_BenchScreenshot(scenario.segments[i].name);

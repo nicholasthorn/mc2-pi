@@ -11,12 +11,16 @@ l Gather = 12
 f LineGap = 500.0
 f Spacing = 90.0
 b Pain = TRUE
+f ArenaX = 4416.0
+f ArenaY = 5483.0
 l ReorderEvery = 150
+l NetEventsEvery = 300
 l NumSegments = 1
 
 [Segment0]
 st Name = "battle"
 l Start = 0
+l StrikeEvery = 300
 l NumKeys = 1
 f[6] Key0 = 0, 0, 0, 50, 0, 1400
 FITend
