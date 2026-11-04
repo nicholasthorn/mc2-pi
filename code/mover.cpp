@@ -915,6 +915,13 @@ void MoveChunk::unpack (MoverPtr mover) {
 		}
 	}
 
+	// from the network: the unit would walk there
+	for (long i = 0; i < numSteps; i++)
+		if (!GameMap->inBounds(stepPos[i][0], stepPos[i][1])) {
+			err = 4;
+			return;
+		}
+
 #ifdef DEBUG_MOVECHUNK
 	//-------------------------
 	// Lots'a error checking...

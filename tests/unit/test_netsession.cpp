@@ -154,6 +154,31 @@ TEST_CASE("a full game is refused, and a place opens when someone leaves before 
 	CHECK(c.commander() == 1);
 }
 
+TEST_CASE("a client can finish loading before the host has")
+{
+	Game game;
+	REQUIRE(game.host.host(PORT, 3, HASH));
+	Session& a = game.addClient();
+	game.pump();
+	CHECK(a.sendReady(ROSTER));
+	game.pump();	// the host is still waiting for the third player
+	CHECK(game.host.connectedClients() == 1);
+
+	Session& b = game.addClient();
+	game.pump();
+	CHECK(b.sendReady(ROSTER + 1));
+	game.pump();
+	CHECK(game.host.allJoined());
+	CHECK_FALSE(game.host.allReady());
+
+	// only now does the host know what it loaded: a is right, and b is not
+	game.host.setRosterHash(ROSTER);
+	game.pump();
+	CHECK(b.rejected() == RejectReason::WrongRoster);
+	CHECK(game.host.connectedClients() == 1);
+	CHECK(a.rejected() == RejectReason::None);
+}
+
 TEST_CASE("other units are refused at the barrier")
 {
 	Game game;

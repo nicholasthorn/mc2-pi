@@ -155,16 +155,15 @@ void Session::handleHost(const Event& event)
 		}
 		if (type == MessageType::Ready) {
 			Ready ready;
-			if (!decode(event.data.data(), event.data.size(), ready) || client->ready || !haveRosterHash_) {
+			if (!decode(event.data.data(), event.data.size(), ready) || client->sentReady) {
 				drop(event.connection, "bad Ready");
 				break;
 			}
-			if (ready.rosterHash != rosterHash_) {
-				printf("[NET] commander %d loaded other units: %08x, here %08x\n", client->commander, ready.rosterHash, rosterHash_);
-				reject(event.connection, RejectReason::WrongRoster);
-				break;
-			}
-			client->ready = true;
+			client->sentReady = true;
+			client->rosterHash = ready.rosterHash;
+			// with three players one can finish loading while the host waits for another
+			if (haveRosterHash_)
+				judgeReady(event.connection);
 		}
 		else if (type == MessageType::ChunkBatch) {
 			Received received;
@@ -182,6 +181,19 @@ void Session::handleHost(const Event& event)
 		break;
 	}
 	}
+}
+
+void Session::judgeReady(ConnectionId connection)
+{
+	Client* client = findClient(connection);
+	if (!client)
+		return;
+	if (client->rosterHash != rosterHash_) {
+		printf("[NET] commander %d loaded other units: %08x, here %08x\n", client->commander, client->rosterHash, rosterHash_);
+		reject(connection, RejectReason::WrongRoster);
+		return;
+	}
+	client->ready = true;
 }
 
 void Session::handleClient(const Event& event)
@@ -275,6 +287,13 @@ void Session::setRosterHash(uint32_t hash)
 {
 	rosterHash_ = hash;
 	haveRosterHash_ = true;
+	// judging one can remove it from the list
+	std::vector<ConnectionId> waiting;
+	for (const Client& client : clients_)
+		if (client.sentReady && !client.ready)
+			waiting.push_back(client.connection);
+	for (ConnectionId connection : waiting)
+		judgeReady(connection);
 }
 
 bool Session::sendAll(Delivery delivery, const std::vector<uint8_t>& message)

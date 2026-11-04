@@ -545,8 +545,8 @@ Not settled by phase 2, against its exit criterion:
 - **Sound, effects and movement on the client have not been looked at.** The check covers armour,
   status and position.
 - Not sent yet, all phase 3: buildings, gates and turrets changing state beyond the hits on them,
-  mines, artillery, capture, repair and recovery (a refit chunk is wrongly applied as a hit),
-  reinforcements, turret targets. World chunks are still stubs.
+  mines, artillery, capture, repair and recovery (a client ignores a refit chunk, so its armour
+  differs after a repair), reinforcements, turret targets. World chunks are still stubs.
 - The host checks one win condition, the last team standing, and a mission script's result is not
   sent. Ending goes straight to quitting: there is no results screen or lobby to return to.
 - A client that leaves is not replaced, and a host that leaves ends the game for the client.

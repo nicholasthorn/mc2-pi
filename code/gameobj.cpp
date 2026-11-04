@@ -741,14 +741,23 @@ void WeaponFireChunk::unpack (GameObjectPtr attacker) {
 	hit = ((tempData & WEAPONFIRECHUNK_HIT_MASK) != 0) ? true : false;
 	tempData >>= WEAPONFIRECHUNK_HIT_BITS;
 
+	// from the network, so a weapon it does not have is skipped by the callers
 	bool isMissileWeapon = false;
 	if (attacker->isMover()) {
 		long itemIndex = ((MoverPtr)attacker)->numOther + weaponIndex;
+		if (!((MoverPtr)attacker)->isWeaponIndex(itemIndex)) {
+			targetType = -1;
+			return;
+		}
 		isMissileWeapon = ((MoverPtr)attacker)->isWeaponMissile(itemIndex);
 		}
 	else if (attacker->getObjectClass() == TURRET) {
 		//----------------------
 		// Attacker is turret...
+		if ((weaponIndex >= MAX_TURRET_WEAPONS) || (((TurretTypePtr)attacker->getObjectType())->weaponMasterId[weaponIndex] == -1)) {
+			targetType = -1;
+			return;
+		}
 		isMissileWeapon = ((Turret*)attacker)->isWeaponMissile(weaponIndex);
 	}
 

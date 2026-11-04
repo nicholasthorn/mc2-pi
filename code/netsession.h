@@ -83,6 +83,8 @@ private:
 		gos_net::ConnectionId connection = gos_net::INVALID_CONNECTION;
 		bool hello = false;
 		bool ready = false;
+		bool sentReady = false;		// and its hash, until the host has its own to compare
+		uint32_t rosterHash = 0;
 		uint8_t commander = 0;
 	};
 
@@ -91,6 +93,7 @@ private:
 	void handleHello(Client& client, const gos_net::Event& event);
 	void reject(gos_net::ConnectionId connection, netwire::RejectReason reason);
 	void drop(gos_net::ConnectionId connection, const char* why);
+	void judgeReady(gos_net::ConnectionId connection);
 	Client* findClient(gos_net::ConnectionId connection);
 	bool sendAll(gos_net::Delivery delivery, const std::vector<uint8_t>& message);
 

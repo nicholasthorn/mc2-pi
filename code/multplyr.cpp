@@ -410,6 +410,7 @@ static void netClose (void) {
 
 static const float NET_WAIT_SECONDS = 300.0f;
 static long netOrdersApplied = 0;
+static const uint32_t NET_SWEEP_AWAKE = 0x10000u;	// on a unit's index in a sweep
 static const long NET_TURRET_SUBJECT = MAX_MULTIPLAYER_MOVERS;	// a WeaponFire batch's subject from here is a turret
 
 static double netNow (void) {
@@ -1114,14 +1115,16 @@ void MultiPlayer::sendMoverUpdate (void) {
 	// newest wins, so a sweep carries its number, and all of it fits in one packet
 	netwire::ChunkBatch batch;
 	batch.kind = netwire::ChunkKind::Move;
-	batch.words.push_back(++moverUpdateId);
+	static uint32_t sweep = 0;	// moverUpdateId is 16 bits: it would wrap in hours, and look old
+	batch.words.push_back(++sweep);
 	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
 		MoverPtr mover = moverRoster[i];
 		if (!mover || !mover->getExists() || !mover->getPilot())
 			continue;
 		mover->buildMoveChunk();
 		mover->buildStatusChunk();
-		batch.words.push_back((uint32_t)i);
+		// a unit that sleeps on a client neither moves nor fires there
+		batch.words.push_back((uint32_t)i | (mover->getAwake() ? NET_SWEEP_AWAKE : 0u));
 		batch.words.push_back((uint32_t)mover->moveChunk.data);
 		batch.words.push_back((uint32_t)mover->statusChunk.data);
 	}
@@ -1481,8 +1484,10 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 		const unsigned long index = (data >> WEAPONHITCHUNK_TARGETTYPE_BITS) & WEAPONHITCHUNK_MOVERINDEX_MASK;
 		const unsigned long critical = (data >> (WEAPONHITCHUNK_TARGETTYPE_BITS + WEAPONHITCHUNK_MOVERINDEX_BITS)) & 0xFF;
 		MoverPtr mover = (index < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[index] : NULL;
-		if (mover && (mover->getObjectClass() == BATTLEMECH) && ((critical >> 4) < (unsigned long)mover->numBodyLocations))
-			((BattleMechPtr)mover)->handleCriticalHit(critical >> 4, critical & 0x0F);
+		const unsigned long space = critical & 0x0F;	// 15 is the whole location
+		if (mover && (mover->getObjectClass() == BATTLEMECH) && ((critical >> 4) < (unsigned long)mover->numBodyLocations)
+			&& ((space < MAX_CRITSPACES_PER_BODYLOCATION) || (space == 15)))
+			((BattleMechPtr)mover)->handleCriticalHit(critical >> 4, space);
 		return;
 	}
 	if (!validWeaponHitData(data))
@@ -1491,6 +1496,9 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 	chunk.init();
 	chunk.data = data;
 	chunk.unpack();
+	// a repair: phase 3. As a hit it would take armour off.
+	if (chunk.refit)
+		return;
 	GameObjectPtr target = NULL;
 	if (chunk.targetType == WEAPONHITCHUNK_TARGET_MOVER)
 		target = (GameObjectPtr)player->moverRoster[chunk.targetId];
@@ -1524,9 +1532,12 @@ static void applyHostBatch (MultiPlayer* player, const netwire::ChunkBatch& batc
 				break;
 			lastSweep = batch.words[0];
 			for (size_t i = 1; (i + 3) <= batch.words.size(); i += 3) {
-				MoverPtr unit = (batch.words[i] < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[batch.words[i]] : NULL;
+				const uint32_t index = batch.words[i] & ~NET_SWEEP_AWAKE;
+				MoverPtr unit = (index < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[index] : NULL;
 				if (!unit || !unit->getPilot())
 					continue;
+				// GameObject's: Mover's also orders a power up, which is the host's to send
+				unit->GameObject::setAwake((batch.words[i] & NET_SWEEP_AWAKE) != 0);
 				unit->handleMoveChunk(batch.words[i + 1]);
 				unit->handleStatusChunk(0, batch.words[i + 2]);
 			}
@@ -1553,7 +1564,8 @@ static void applyHostBatch (MultiPlayer* player, const netwire::ChunkBatch& batc
 			if (!mover)
 				break;
 			for (size_t i = 0; i < batch.words.size(); i++)
-				mover->addRadioChunk(CHUNK_RECEIVE, (unsigned char)batch.words[i]);
+				if (batch.words[i] < RADIO_MESSAGE_COUNT)
+					mover->addRadioChunk(CHUNK_RECEIVE, (unsigned char)batch.words[i]);
 			break;
 		}
 		case netwire::ChunkKind::WeaponHit:

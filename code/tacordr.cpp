@@ -564,6 +564,11 @@ bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
 	fields >>= TACORDERCHUNK_ATTACKTYPE_BITS;
 	if ((fields & TACORDERCHUNK_ATTACKMETHOD_MASK) >= NUM_ATTACKMETHODS)
 		return(false);
+	fields >>= TACORDERCHUNK_ATTACKMETHOD_BITS;
+	// a hit location later: -1 is none
+	const long aimLocation = (long)(fields & TACORDERCHUNK_AIMLOCATION_MASK) - 2;
+	if ((aimLocation < -1) || (aimLocation >= MAX_MOVER_ARMOR_LOCATIONS))
+		return(false);
 
 	unsigned long target = data1 >> (TACORDERCHUNK_ATTACKRANGE_BITS + TACORDERCHUNK_PURSUE_BITS + TACORDERCHUNK_OBLITERATE_BITS
 		+ TACORDERCHUNK_FACEOBJECT_BITS + TACORDERCHUNK_WAIT_BITS + TACORDERCHUNK_MODE_BITS + TACORDERCHUNK_RUN_BITS);
