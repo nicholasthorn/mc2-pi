@@ -66,7 +66,7 @@ historical reasons: the Pi port is where this started.
 |---|---|
 | Standalone Quest build: Android APK with OpenXR, sideloaded | Playable on a Quest 2, and now built by the release workflow |
 | Head-tracked view, with the game camera covering the headset's field of view | Done |
-| Touch controllers: aim, click and order units, pan, turn and zoom | Done; a full mission can be played without keyboard or mouse |
+| Touch controllers: aim, click and order units, pan, turn and zoom | Done |
 | Frame rate | About 70 fps at the headset's 72 Hz on the `mc2_19` battle bench |
 | Still rough | Open checks are in [planning/HARDWARE-TESTS.md](planning/HARDWARE-TESTS.md); only a Quest 2 has been tried, so a Quest 3 or Pro is untested |
 | Tabletop mode, battlefield at miniatures scale | Planned, as an option |
