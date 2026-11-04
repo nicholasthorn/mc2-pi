@@ -274,6 +274,98 @@ MercContract mercRollContract(const MercState& state, const MercWorld& world, lo
 	return c;
 }
 
+bool mercRivalDue(const MercState& state, const MercRival& rival)
+{
+	return !rival.name.empty() && !rival.mechs.empty() && state.rivalLosses < MERC_RIVAL_FIGHTS_TO_END
+		&& state.contractsDone >= state.rivalNextFight;
+}
+
+const char* mercRivalRankName(long rank)
+{
+	static const char* const kRanks[] = {"Upstart", "Hunter", "Veteran", "Legend"};
+	const long last = static_cast<long>(sizeof(kRanks) / sizeof(kRanks[0])) - 1;
+	return kRanks[std::max(0L, std::min(rank, last))];
+}
+
+MercContract mercRollRivalContract(const MercState& state, const std::vector<MercWorld>& worlds,
+	const MercRival& rival, long slot)
+{
+	static const char* const kProfiles[] = {"PMWRegular", "PMWVeteran", "PMWElite"};
+
+	const MercWorld& world = worlds[static_cast<size_t>(state.world)];
+	const std::string lastWorld = state.rivalLastWorld >= 0 && state.rivalLastWorld < static_cast<long>(worlds.size())
+		? worlds[static_cast<size_t>(state.rivalLastWorld)].name : "";
+
+	Rng rng(state.seed, static_cast<uint32_t>(state.rivalRank) * 977u + static_cast<uint32_t>(state.contractsDone),
+		static_cast<uint32_t>(slot) + 17u);
+
+	MercContract c;
+	c.rival = true;
+	if (!world.maps.empty())
+		c.map = world.maps[rng.pick(world.maps.size())];
+	c.fileName = std::string(kContractPrefix) + std::to_string(slot) + "_" + c.map;
+	c.title = "Rival: " + rival.name;
+
+	const long rank = std::max(0L, state.rivalRank);
+	const long ride = std::min(rank, static_cast<long>(rival.mechs.size()) - 1);
+	c.lance.push_back(rival.mechs[static_cast<size_t>(ride)]);
+	const long escorts = std::min(1 + rank, 3L);
+	for (long i = 0; i < escorts && !world.enemies.empty(); i++)
+		c.lance.push_back(world.enemies[rng.pick(world.enemies.size())]);
+	c.pilotProfile = kProfiles[std::min(rank, 2L)];
+
+	const long tier = std::max(1L, world.tier);
+	const bool lastFight = state.rivalLosses >= MERC_RIVAL_FIGHTS_TO_END - 1;
+	c.pay = (40000 + 20000 * std::min(rank, 3L)) * tier * (lastFight ? 2 : 1);
+	c.dropWeight = 180 + 50 * tier;
+	c.resourcePoints = 14000 + 4000 * tier;
+
+	if (lastWorld.empty()) {
+		c.blurb = "\"So you are the new company taking my contracts. Meet me on " + world.name
+			+ " and we will see who keeps them.\" " + rival.name + " of " + rival.unit + " has called you out.";
+	} else if (state.world != state.rivalLastWorld) {
+		c.blurb = "\"Did you think a jump would shake me? I followed you from " + lastWorld + ".\" "
+			+ rival.name + " is here, and has not forgotten.";
+	} else if (state.rivalWonLast) {
+		c.blurb = "\"You ran on " + lastWorld + ". Bring more friends this time.\" " + rival.name
+			+ " is telling the whole bar how it went.";
+	} else {
+		c.blurb = "\"You got lucky on " + lastWorld + ". I walked out of that wreck, and I kept the scars.\" "
+			+ rival.name + " is back, in a better mech.";
+	}
+	if (lastFight)
+		c.blurb += " Beat " + rival.name + " once more and this is the last you will hear of " + rival.unit + ".";
+	return c;
+}
+
+void mercRivalBeaten(MercState& state)
+{
+	state.rivalLosses++;
+	state.rivalRank++;
+	state.rivalWonLast = false;
+	state.rivalLastWorld = state.world;
+	state.rivalNextFight = state.contractsDone + MERC_RIVAL_COOLDOWN;
+}
+
+void mercRivalWon(MercState& state)
+{
+	state.rivalWins++;
+	state.rivalRank++;
+	state.rivalWonLast = true;
+	state.rivalLastWorld = state.world;
+	state.rivalNextFight = state.contractsDone + MERC_RIVAL_COOLDOWN;
+}
+
+std::string mercRivalNews(const MercState& state, const MercRival& rival)
+{
+	if (rival.name.empty() || state.rivalLastWorld < 0)
+		return "";
+	if (state.rivalLosses >= MERC_RIVAL_FIGHTS_TO_END)
+		return "Word is that " + rival.name + " has retired, and " + rival.unit + " have gone quiet.";
+	return "Rival: " + rival.name + ", " + mercRivalRankName(state.rivalRank) + ". You have won "
+		+ std::to_string(state.rivalLosses) + ", lost " + std::to_string(state.rivalWins) + ".";
+}
+
 bool mercIsContractName(const std::string& name)
 {
 	return !mercContractMap(name).empty();

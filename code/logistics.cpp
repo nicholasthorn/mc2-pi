@@ -11,6 +11,7 @@
 // Include Files
 #ifndef LOGISTICS_H
 #include"logistics.h"
+#include"logisticsmissioninfo.h"
 #endif
 
 #ifndef TEST_SHELL
@@ -173,6 +174,7 @@ void Logistics::start (long startMode)
 			}
 			else if ( !justStartMission )
 			{
+				LogisticsData::instance->getMissionInfo()->mercMissionLost();
 				missionResults->bDone = true;
 				logisticsState = log_RESULTS;
 			}

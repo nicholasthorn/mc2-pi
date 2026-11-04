@@ -101,9 +101,11 @@ class LogisticsMissionInfo
 		bool				isMercenary() const { return merc != NULL; }
 		bool				mercJumpSelected() const;
 		bool				mercChampionSelected() const;
+		bool				mercRivalSelected() const;
 		bool				mercJump();
 		void				mercAddRepairBill( float damageFraction, long tons );
 		void				mercMissionDone( bool hasMechs );
+		void				mercMissionLost();
 
 		bool				canHaveSalavageCraft();
 		bool				canHaveRepairTruck();

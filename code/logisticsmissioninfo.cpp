@@ -318,6 +318,12 @@ void LogisticsMissionInfo::mercRebuildBoard()
 				sprintf( report, "\n\nLast job: paid %ld, repairs %ld.", merc->lastPay, merc->lastRepairs );
 				pInfo->description += report;
 			}
+			const std::string news = mercRivalNews( merc->state, merc->rival );
+			if ( !news.empty() )
+			{
+				pInfo->description += "\n\n";
+				pInfo->description += news.c_str();
+			}
 		}
 		pGroup->infos.Append( pInfo );
 	}
@@ -342,6 +348,14 @@ bool LogisticsMissionInfo::mercChampionSelected() const
 	return entry && entry->champion;
 }
 
+bool LogisticsMissionInfo::mercRivalSelected() const
+{
+	if ( !merc )
+		return false;
+	const MercMode::Entry* entry = merc->entry( currentMissionName );
+	return entry && entry->rival;
+}
+
 bool LogisticsMissionInfo::mercJump()
 {
 	const MercMode::Entry* entry = merc ? merc->entry( currentMissionName ) : NULL;
@@ -362,6 +376,19 @@ void LogisticsMissionInfo::mercAddRepairBill( float damageFraction, long tons )
 		merc->lastRepairs += mercRepairBill( damageFraction, tons );
 }
 
+void LogisticsMissionInfo::mercMissionLost()
+{
+	// only the rival remembers a loss: any other job can simply be tried again
+	const MercMode::Entry* entry = merc ? merc->entry( currentMissionName ) : NULL;
+	if ( !entry || !entry->rival )
+		return;
+	mercRivalWon( merc->state );
+	merc->state.contractsDone++;
+	merc->lastPay = merc->lastRepairs = 0;
+	mercRebuildBoard();
+	printf( "[MERC] rival won: rank %ld, wins %ld, losses %ld\n", merc->state.rivalRank, merc->state.rivalWins, merc->state.rivalLosses );
+}
+
 void LogisticsMissionInfo::mercMissionDone( bool hasMechs )
 {
 	if ( !merc )
@@ -370,13 +397,16 @@ void LogisticsMissionInfo::mercMissionDone( bool hasMechs )
 	const MercMode::Entry* entry = merc->entry( lastMissionName );
 	if ( entry && entry->champion )
 		mercChampionBeaten( merc->state, merc->world() );
+	if ( entry && entry->rival )
+		mercRivalBeaten( merc->state );
 	merc->state.contractsDone++;
 	merc->lastPay = CBills - mercCBillsBefore;
 	CBills = mercCBillsAfterJob( CBills, merc->lastRepairs, hasMechs );
 	mercRebuildBoard();
 	merc->lastRepairs = 0;
 	// what a smoke run checks
-	printf( "[MERC] world %ld licences %ld C-Bills %ld paid %ld\n", merc->state.world, merc->state.licences, CBills, merc->lastPay );
+	printf( "[MERC] world %ld licences %ld C-Bills %ld paid %ld rival rank %ld wins %ld losses %ld\n", merc->state.world, merc->state.licences, CBills, merc->lastPay,
+		merc->state.rivalRank, merc->state.rivalWins, merc->state.rivalLosses );
 }
 
 void LogisticsMissionInfo::readMissionInfo( FitIniFile& file, LogisticsMissionInfo::MissionInfo* pInfo )
@@ -497,6 +527,12 @@ long LogisticsMissionInfo::load( FitIniFile& file )
 		file.readIdLong( "MercLicences", merc->state.licences );
 		file.readIdLong( "MercContractsDone", merc->state.contractsDone );
 		file.readIdLong( "MercSeed", seed );
+		file.readIdLong( "MercRivalRank", merc->state.rivalRank );
+		file.readIdLong( "MercRivalWins", merc->state.rivalWins );
+		file.readIdLong( "MercRivalLosses", merc->state.rivalLosses );
+		file.readIdLong( "MercRivalNextFight", merc->state.rivalNextFight );
+		file.readIdLong( "MercRivalLastWorld", merc->state.rivalLastWorld );
+		file.readIdBoolean( "MercRivalWonLast", merc->state.rivalWonLast );
 		merc->state.seed = (uint32_t)seed;
 		mercRebuildBoard();
 	}
@@ -606,6 +642,12 @@ void LogisticsMissionInfo::save( FitIniFile& file )
 		file.writeIdLong( "MercLicences", merc->state.licences );
 		file.writeIdLong( "MercContractsDone", merc->state.contractsDone );
 		file.writeIdLong( "MercSeed", (long)merc->state.seed );
+		file.writeIdLong( "MercRivalRank", merc->state.rivalRank );
+		file.writeIdLong( "MercRivalWins", merc->state.rivalWins );
+		file.writeIdLong( "MercRivalLosses", merc->state.rivalLosses );
+		file.writeIdLong( "MercRivalNextFight", merc->state.rivalNextFight );
+		file.writeIdLong( "MercRivalLastWorld", merc->state.rivalLastWorld );
+		file.writeIdBoolean( "MercRivalWonLast", merc->state.rivalWonLast );
 	}
 
 	// save the current mission group

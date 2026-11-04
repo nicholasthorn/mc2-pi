@@ -174,9 +174,10 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 		break;
 	case UiScreen::Mission:
 		// the mission's data can skip either results screen (the tutorials
-		// skip both), and a promotion opens over pilot review as it comes up
+		// skip both), and a promotion opens over pilot review as it comes up;
+		// mission+lose goes back to the briefing
 		if (to == UiScreen::Salvage || to == UiScreen::PilotReview || to == UiScreen::Promotion
-				|| to == UiScreen::MissionSelection)
+				|| to == UiScreen::MissionSelection || to == UiScreen::Briefing)
 			return UiAction::WinMission;
 		if (to == UiScreen::OptionsGraphics)
 			return UiAction::MissionOptions;
@@ -225,6 +226,8 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::CampaignSelect, "merc", UiAction::PickMercenary },
 	{ UiScreen::MissionSelection, "champion", UiAction::MercChampion },
 	{ UiScreen::MissionSelection, "jump", UiAction::MercJump },
+	{ UiScreen::MissionSelection, "rival", UiAction::MercRival },
+	{ UiScreen::Mission, "lose", UiAction::LoseMission },
 };
 
 } // namespace

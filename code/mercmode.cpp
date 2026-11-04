@@ -79,6 +79,9 @@ bool MercMode::init(FitIniFile& campaign)
 	state = MercState();
 	state.world = readLong(campaign, "StartWorld", 0);
 	state.seed = static_cast<uint32_t>(readLong(campaign, "Seed", 1));
+	rival.name = readString(campaign, "RivalName");
+	rival.unit = readString(campaign, "RivalUnit");
+	rival.mechs = mercParseUnits(readString(campaign, "RivalMechs"));
 
 	worlds.clear();
 	for (long i = 0; i < count; i++) {
@@ -120,12 +123,16 @@ const std::vector<MercMode::Entry>& MercMode::rebuild(long cBills)
 
 	// three contracts then the worlds: the star map's buttons are in this order
 	for (long slot = 0; slot < 3; slot++) {
-		const MercContract contract = mercRollContract(state, world(), slot);
+		// the rival takes the middle slot: the champion's stays open
+		const MercContract contract = slot == 1 && mercRivalDue(state, rival)
+			? mercRollRivalContract(state, worlds, rival, slot)
+			: mercRollContract(state, world(), slot);
 		if (!writeContract(contract))
 			continue;
 		Entry e;
 		e.fileName = contract.fileName;
 		e.champion = contract.champion;
+		e.rival = contract.rival;
 		board.push_back(e);
 	}
 

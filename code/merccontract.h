@@ -35,7 +35,26 @@ struct MercState {
 	long licences = 0;				// champions beaten, each opens the next world
 	uint32_t seed = 1;
 	long contractsDone = 0;			// changes what the board offers
+
+	// the rival's memory of you
+	long rivalRank = 0;				// rises after every fight, whoever wins
+	long rivalWins = 0;				// fights the rival won
+	long rivalLosses = 0;			// fights you won: MERC_RIVAL_FIGHTS_TO_END ends it
+	long rivalNextFight = 2;		// on the board once contractsDone reaches this
+	long rivalLastWorld = -1;		// where you last fought, -1 before the first fight
+	bool rivalWonLast = false;
 };
+
+// The rival of a campaign: the same person for the whole game, with one ride per rank.
+struct MercRival {
+	std::string name;
+	std::string unit;
+	std::vector<MercUnit> mechs;
+};
+
+const long MERC_RIVAL_FIGHTS_TO_END = 3;
+// jobs and jumps before the rival comes back
+const long MERC_RIVAL_COOLDOWN = 3;
 
 struct MercContract {
 	std::string fileName;			// merc_c<slot>_<map>: see mercContractMap
@@ -48,6 +67,7 @@ struct MercContract {
 	long dropWeight = 0;
 	long resourcePoints = 0;
 	bool champion = false;
+	bool rival = false;
 };
 
 // parses "48:Raven,46:Wolfhound"; entries without a number are dropped
@@ -61,6 +81,16 @@ void mercChampionBeaten(MercState& state, const MercWorld& world);
 
 // the same state and slot always give the same contract, so a save holds only the state
 MercContract mercRollContract(const MercState& state, const MercWorld& world, long slot);
+
+bool mercRivalDue(const MercState& state, const MercRival& rival);
+const char* mercRivalRankName(long rank);
+// the rival's fight on the current world: the taunt remembers the last one
+MercContract mercRollRivalContract(const MercState& state, const std::vector<MercWorld>& worlds,
+	const MercRival& rival, long slot);
+void mercRivalBeaten(MercState& state);		// you won the fight
+void mercRivalWon(MercState& state);		// the rival won it
+// one line for the board about where things stand with the rival, "" before the first fight
+std::string mercRivalNews(const MercState& state, const MercRival& rival);
 
 bool mercIsContractName(const std::string& name);
 // the stock mission whose terrain a contract uses, "" if name is not a contract

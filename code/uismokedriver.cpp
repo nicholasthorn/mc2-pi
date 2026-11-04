@@ -49,6 +49,7 @@ bool g_over = false;
 long g_frames = 0;
 std::chrono::steady_clock::time_point g_last;	// previous update()
 UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
+bool g_loseMission = false;	// mission+lose: the next step loses it
 bool g_labAccept = false;	// mechlab+accept: leave the mech lab by Accept
 
 void finish(const char* line, bool failed)
@@ -375,7 +376,9 @@ const char* UiSmokeDriver::press(UiAction action)
 		// (campaignOver() only turns true once the win is counted)
 		if (LogisticsData::instance->isLastMission())
 			return "the campaign's last mission shows no results";
-		scenarioResult = mis_PLAYER_WIN_BIG;	// what Mission::update's win cheat sets
+		// what Mission::update's win and lose cheats set
+		scenarioResult = g_loseMission ? mis_PLAYER_LOST_BIG : mis_PLAYER_WIN_BIG;
+		g_loseMission = false;
 		return NULL;
 	case UiAction::SalvageDone:
 		return pressButton(results() ? results()->pSalvageScreen : NULL, SALVAGE_DONE);
@@ -502,6 +505,13 @@ const char* UiSmokeDriver::press(UiAction action)
 	case UiAction::LabAccept:
 		g_labAccept = true;
 		return NULL;
+	case UiAction::LoseMission:
+		g_loseMission = true;
+		return NULL;
+	case UiAction::MercRival:
+		if (MissionSelectionScreen* selection = dynamic_cast<MissionSelectionScreen*>(screen))
+			return selection->mercPickRival() ? NULL : "the rival is not on the board";
+		return "screen is gone";
 	case UiAction::PickMercenary:
 		return pickCampaign("merc");
 	case UiAction::MercChampion:

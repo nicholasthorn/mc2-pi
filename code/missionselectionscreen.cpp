@@ -423,6 +423,17 @@ bool MissionSelectionScreen::mercPickChampion()
 	return false;
 }
 
+bool MissionSelectionScreen::mercPickRival()
+{
+	for ( int i = 0; i < missionCount; i++ )
+	{
+		setMission( i );
+		if ( LogisticsData::instance->getMissionInfo()->mercRivalSelected() )
+			return true;
+	}
+	return false;
+}
+
 bool MissionSelectionScreen::mercJumpToOpenWorld()
 {
 	for ( int i = 0; i < missionCount; i++ )

@@ -21,6 +21,15 @@ MercWorld testWorld()
 	return w;
 }
 
+MercRival testRival()
+{
+	MercRival r;
+	r.name = "Tessa Vane";
+	r.unit = "the Black Lanterns";
+	r.mechs = mercParseUnits("46:Wolfhound,16:Hunchback,58:Zeus,52:Madcat");
+	return r;
+}
+
 const char* const kSource =
 	"FITini \n\n"
 	"[Water]\nf Elevation = -100.000000\n\n"
@@ -181,6 +190,135 @@ TEST_SUITE("Merc")
 		CHECK(b.pay > a.pay);
 		CHECK(b.lance.size() > a.lance.size());
 		CHECK(b.dropWeight > a.dropWeight);
+	}
+
+	TEST_CASE("the rival comes when due, and stops after three defeats")
+	{
+		const MercRival r = testRival();
+		MercState s;
+		CHECK_FALSE(mercRivalDue(s, r));
+		s.contractsDone = 2;
+		CHECK(mercRivalDue(s, r));
+
+		mercRivalBeaten(s);
+		CHECK_FALSE(mercRivalDue(s, r));
+		s.contractsDone = s.rivalNextFight;
+		CHECK(mercRivalDue(s, r));
+
+		mercRivalBeaten(s);
+		s.contractsDone = s.rivalNextFight;
+		mercRivalBeaten(s);
+		s.contractsDone = s.rivalNextFight + 100;
+		CHECK(s.rivalLosses == MERC_RIVAL_FIGHTS_TO_END);
+		CHECK_FALSE(mercRivalDue(s, r));
+
+		// a campaign file with no rival
+		MercState t;
+		t.contractsDone = 50;
+		CHECK_FALSE(mercRivalDue(t, MercRival()));
+	}
+
+	TEST_CASE("the rival rises whoever wins, and remembers where")
+	{
+		MercState s;
+		s.world = 1;
+		mercRivalBeaten(s);
+		CHECK(s.rivalRank == 1);
+		CHECK(s.rivalLosses == 1);
+		CHECK(s.rivalWins == 0);
+		CHECK(s.rivalLastWorld == 1);
+
+		s.world = 0;
+		mercRivalWon(s);
+		CHECK(s.rivalRank == 2);
+		CHECK(s.rivalWins == 1);
+		CHECK(s.rivalLosses == 1);	// their win does not bring the end closer
+		CHECK(s.rivalLastWorld == 0);
+		CHECK(s.rivalNextFight == s.contractsDone + MERC_RIVAL_COOLDOWN);
+	}
+
+	TEST_CASE("the rival's fight grows with rank and is the same for the same state")
+	{
+		const std::vector<MercWorld> worlds = {testWorld()};
+		const MercRival r = testRival();
+		MercState s;
+		const MercContract first = mercRollRivalContract(s, worlds, r, 1);
+		CHECK(first.rival);
+		CHECK_FALSE(first.champion);
+		CHECK(first.fileName.rfind("merc_c1_", 0) == 0);
+		CHECK(has(first.title, "Vane"));
+		REQUIRE_FALSE(first.lance.empty());
+		CHECK(first.lance[0].csvFile == "Wolfhound");
+
+		const MercContract again = mercRollRivalContract(s, worlds, r, 1);
+		CHECK(again.map == first.map);
+		CHECK(again.lance.size() == first.lance.size());
+
+		s.rivalRank = 2;
+		const MercContract later = mercRollRivalContract(s, worlds, r, 1);
+		CHECK(later.lance[0].csvFile == "Zeus");
+		CHECK(later.lance.size() > first.lance.size());
+		CHECK(later.pay > first.pay);
+		CHECK(later.pilotProfile != first.pilotProfile);
+
+		// past the end of the rides: the last one
+		s.rivalRank = 40;
+		CHECK(mercRollRivalContract(s, worlds, r, 1).lance[0].csvFile == "Madcat");
+	}
+
+	TEST_CASE("the rival's taunt remembers the last fight")
+	{
+		std::vector<MercWorld> worlds = {testWorld(), testWorld()};
+		worlds[1].name = "Galatea";
+		const MercRival r = testRival();
+
+		MercState s;
+		const std::string introduction = mercRollRivalContract(s, worlds, r, 1).blurb;
+		CHECK(has(introduction, "Black Lanterns"));
+
+		mercRivalBeaten(s);		// on world 0, Tarsus
+		const std::string lost = mercRollRivalContract(s, worlds, r, 1).blurb;
+		CHECK(has(lost, "Tarsus"));
+		CHECK(lost != introduction);
+
+		MercState t;
+		mercRivalWon(t);
+		const std::string won = mercRollRivalContract(t, worlds, r, 1).blurb;
+		CHECK(has(won, "Tarsus"));
+		CHECK(won != lost);
+
+		// you jumped: the rival followed you
+		s.world = 1;
+		CHECK(has(mercRollRivalContract(s, worlds, r, 1).blurb, "followed"));
+	}
+
+	TEST_CASE("the last fight says so and pays best")
+	{
+		const std::vector<MercWorld> worlds = {testWorld()};
+		const MercRival r = testRival();
+		MercState s;
+		s.rivalRank = 2;
+		s.rivalLosses = 1;
+		s.rivalLastWorld = 0;
+		const MercContract before = mercRollRivalContract(s, worlds, r, 1);
+		s.rivalLosses = MERC_RIVAL_FIGHTS_TO_END - 1;
+		const MercContract last = mercRollRivalContract(s, worlds, r, 1);
+		CHECK(last.pay > before.pay);
+		CHECK(has(last.blurb, "last"));
+	}
+
+	TEST_CASE("the board's news line tracks the rivalry")
+	{
+		const MercRival r = testRival();
+		MercState s;
+		CHECK(mercRivalNews(s, r).empty());
+		CHECK(mercRivalNews(s, MercRival()).empty());
+		mercRivalBeaten(s);
+		const std::string news = mercRivalNews(s, r);
+		CHECK(has(news, "Vane"));
+		CHECK(has(news, mercRivalRankName(1)));
+		s.rivalLosses = MERC_RIVAL_FIGHTS_TO_END;
+		CHECK(has(mercRivalNews(s, r), "retired"));
 	}
 
 	TEST_CASE("a contract names its terrain")

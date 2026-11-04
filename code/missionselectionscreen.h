@@ -40,6 +40,7 @@ public:
 	void	init( FitIniFile* file );
 	virtual int			handleMessage( unsigned long, unsigned long );
 	bool				mercPickChampion();
+	bool				mercPickRival();
 	bool				mercJumpToOpenWorld();
 
 

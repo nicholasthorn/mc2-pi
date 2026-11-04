@@ -95,7 +95,9 @@ enum class UiAction {
 	LabAccept,			// mechlab+accept: leave by Accept, not Cancel, at the next step
 	PickMercenary,		// campaign+merc: pick the mercenary campaign
 	MercChampion,		// missionselection+champion: select the licence fight on the board
-	MercJump			// missionselection+jump: jump to the first world that is open
+	MercJump,			// missionselection+jump: jump to the first world that is open
+	MercRival,			// missionselection+rival: select the rival's fight on the board
+	LoseMission			// mission+lose: the walk's next step loses the mission, not wins it
 };
 
 const char* uiScreenName(UiScreen s);

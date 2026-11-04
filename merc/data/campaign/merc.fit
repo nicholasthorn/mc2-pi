@@ -23,6 +23,9 @@ l Tune = 22
 l NumWorlds = 3
 l StartWorld = 0
 l Seed = 3062
+st RivalName = "Tessa Vane"
+st RivalUnit = "the Black Lanterns"
+st RivalMechs = "46:Wolfhound,16:Hunchback,58:Zeus,52:Madcat"
 
 [MercWorld0]
 

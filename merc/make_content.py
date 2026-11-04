@@ -174,7 +174,9 @@ l Tune = 22
 [Merc]
 
 """
-out += f"l NumWorlds = {len(WORLDS)}\nl StartWorld = 0\nl Seed = 3062\n\n"
+out += f"l NumWorlds = {len(WORLDS)}\nl StartWorld = 0\nl Seed = 3062\n"
+out += 'st RivalName = "Tessa Vane"\nst RivalUnit = "the Black Lanterns"\n'
+out += 'st RivalMechs = "46:Wolfhound,16:Hunchback,58:Zeus,52:Madcat"\n\n'
 for n, w in enumerate(WORLDS):
     out += f"""[MercWorld{n}]
 

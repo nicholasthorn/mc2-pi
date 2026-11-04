@@ -21,6 +21,7 @@ public:
 		long jumpWorld = -1;		// -1: a contract
 		bool jumpOpen = false;
 		bool champion = false;
+		bool rival = false;
 	};
 
 	// false if this campaign file is not a mercenary one
@@ -35,6 +36,7 @@ public:
 	long worldCount() const { return static_cast<long>(worlds.size()); }
 
 	MercState state;
+	MercRival rival;
 	long lastPay = 0;
 	long lastRepairs = 0;
 

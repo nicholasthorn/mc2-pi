@@ -84,10 +84,12 @@ UI_TUTORIAL="mainmenu,campaign+tutorial,missionselection"
 UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection"
 UI_TUTORIAL="$UI_TUTORIAL,mission,missionselection,mission,missionselection,mission"
 # 4: the mercenary mode (planning/future-features/OPEN-WORLD.md): buy a mech, a
-#    generated contract, the licence fight, the jump it opens, then save and load.
+#    generated contract, the licence fight, the jump it opens, the rival who has
+#    come due, a loss to the rival, then save and load.
 UI_MERC="mainmenu,campaign+merc,missionselection,briefing,mechbay,mechpurchase+buy,mechbay+add"
 UI_MERC="$UI_MERC,pilotready+pilot,mission,salvage,pilotreview,missionselection+champion"
 UI_MERC="$UI_MERC,briefing,mechbay,pilotready,mission,salvage,pilotreview,missionselection+jump"
+UI_MERC="$UI_MERC,missionselection+rival,briefing,mechbay,pilotready,mission+lose,briefing,missionselection"
 UI_MERC="$UI_MERC,mainmenu,save+name,missionselection,mainmenu,load+pick,missionselection"
 
 GAME_DIR=""
