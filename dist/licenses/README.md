@@ -4,8 +4,10 @@ MechCommander 2 (this engine) is under the GNU General Public License v3:
 `license.txt` next to the game. The source of each release is the tagged
 commit at https://github.com/nicholasthorn/mc2-pi.
 
-No game data is included: it is built from
-https://github.com/alariq/mc2srcdata under its own terms (see `INSTALL.md`).
+Game data is included only in `-full` packages. It is built from
+https://github.com/alariq/mc2srcdata (the commit is in `DATA-VERSION`) and is
+Microsoft's, distributed on a non-commercial basis under `EULA.txt` beside the
+game. No other package contains it.
 
 ## Compiled into the game (every package)
 

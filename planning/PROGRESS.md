@@ -461,7 +461,8 @@ each ships the data tools instead.
       uninitialised padding written into the binary shapes. Both data
       builds smoke-run. (2026-11-01)
 - [ ] Phase 3: Linux x64 and arm64 AppImages on old bases
-- [ ] Phase 4: smoke tests against the unpacked packages
+- [x] Phase 4: smoke tests against the unpacked packages (2026-11-04: the full
+      Linux x64 and Pi ones, job `full`)
 - [ ] Phase 5: `v0.2.0-rc1`, run by hand on Windows, Linux x64 and a Pi 400
       (tag pushed 2026-11-01 on `80f38884`; draft release made, not published)
 - [ ] Phase 6: `v0.2.0`, with Pi hardware results in the notes
@@ -546,6 +547,8 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: Mission HUD centred at any width (branch `hud-centre`). `buttonlayout1920.fit` has 1600's `xOffset`, so at 1920x1080 the HUD sat 163 pixels left of centre, and worse on wider screens; other widths took that file too. `mclib/hud_layout.h` (unit tested): the largest layout that fits, centred from 1024 up, the pilot video window kept on the right edge. Omnitech, with no 1920 layout, stopped at 1920x1080; it now steps down to 1600. 1280x720 and 1600x900 are pixel-identical to before. Checked on GL at 1366, 1920 and 2560 and on GLES at 1920; clicks and the video window by hand (`HARDWARE-TESTS.md`). README images reshot at 1920x1080. Scaling the HUD for 1440p and 4K is not done.
+- 2026-11-04: Full release packages, game data included (branch `release-full`), as approved by the owner: jobs `gamedata` (cache shared with `smoke.yml`, no movies) and `full` in `release.yml`, `scripts/package_full.sh`. The Linux x64 and Pi packages are smoke-tested unpacked with only the runtime libraries; first time a test runs what players download. The Windows zip needs a hand check (`HARDWARE-TESTS.md`). The new test found `INSTALL.md` missing `libopengl0`, so the Linux package would not start on a clean machine; fixed.
 - 2026-11-04: Multiplayer phase 0 (branch `mp-phase0`): `-nethost <players>` runs the host's side of the multiplayer code with no network and no clients; `smoke.sh --nethost`, `bench/nethost_m08.fit` (a battle with damage on). `mc2_m01` to `mc2_m10` and the battle clean under ASan + UBSan on desktop GL, single-player state hashes match `pi-port`. Fixed: mission ended on its first frame, full weapon fire queue was Fatal, turret with a neutral parent, `1 << -1` from the force group icons; a host's camera no longer decides withdrawals, building and turret updates, or turret and vehicle gestures. Open: the same battle from two camera positions still differs from frame 282 (positions match until one hit outcome, consistent with cosmetic code sharing the RNG, not proven); no run has had a turret fire; withdrawing units can stop short of the map edge on a host; `Team::home` is not audited. No network yet.
 - 2026-11-04: CI moved to cppcheck 2.19.0 (built from source and cached, `.github/actions/cppcheck`), with 2.13 kept in the nightly run. Of 2.19's 1,201 findings, 1,165 are two checks turned off in the gate with the reason (`dangerousTypeCast`, `nullPointerOutOfMemory`); the rest fixed: `FastFile::create` and makefst no longer use a failed `fopen`, 12 owning classes have copies deleted, ignored `readIdULong` results in gate and turret, `move.cpp` cast rewritten because 2.19 could not parse the file. Baseline empty under both versions. `nullPointerOutOfMemory` triaged: a corrupt FST entry count no longer crashes (#112).
 - 2026-11-04: Plan for macOS on Apple silicon: `future-features/MACOS.md` (branch `macos-plan`); nothing built.
