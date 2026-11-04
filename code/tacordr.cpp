@@ -549,6 +549,24 @@ long TacticalOrder::pack (MoverGroupPtr group, MoverPtr point) {
 
 //---------------------------------------------------------------------------
 
+bool TacticalOrder::targetIsGone (void) {
+
+	switch (code) {
+		case TACTICAL_ORDER_ATTACK_OBJECT:
+		case TACTICAL_ORDER_MOVETO_OBJECT:
+		case TACTICAL_ORDER_JUMPTO_OBJECT:
+		case TACTICAL_ORDER_CAPTURE:
+		case TACTICAL_ORDER_REFIT:
+		case TACTICAL_ORDER_RECOVER:
+		case TACTICAL_ORDER_GETFIXED:
+			return(ObjectManager->getByWatchID(targetWID) == NULL);
+		default:
+			return(false);
+	}
+}
+
+//---------------------------------------------------------------------------
+
 bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
 
 	long code = (data0 & TACORDERCHUNK_CODE_MASK);
