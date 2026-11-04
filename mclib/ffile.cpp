@@ -313,6 +313,12 @@ long FastFile::create(const char* fName, bool compressed)
 		logicalPosition = 0;
 		fileSize();				//Sets Length
 	}
+	else
+	{
+		delete[] fileName;
+		fileName = NULL;
+		return FILE_NOT_OPEN;
+	}
 
 	useLZCompress = compressed;
 

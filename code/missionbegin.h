@@ -33,6 +33,8 @@ class MissionBegin
 		static bool					FirstTimeMechLab;
 
 		MissionBegin();
+		MissionBegin(const MissionBegin&) = delete;
+		MissionBegin& operator=(const MissionBegin&) = delete;
 		~MissionBegin();
 
 		void init();

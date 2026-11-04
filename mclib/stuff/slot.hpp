@@ -77,6 +77,8 @@ namespace Stuff {
 		//--------------------------------------------------------------------
 		//
 		explicit Slot(Node *node);
+		Slot(const Slot&) = delete;
+		Slot& operator=(const Slot&) = delete;
 		~Slot();
 
 		void

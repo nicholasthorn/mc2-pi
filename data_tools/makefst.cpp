@@ -214,6 +214,10 @@ int pack(const char* in_path, const char* fst_file, const char* mount, const cha
     } else {
 
         FILE* fh = fopen(rsp_file, "r");
+        if(!fh) {
+            printf("Failed to open response file: %s\n", rsp_file);
+            return -1;
+        }
         char* line = new char[1024];
         while(fgets(line, 1024, fh)) {
             size_t linelen = strlen(line);

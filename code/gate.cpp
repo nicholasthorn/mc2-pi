@@ -107,15 +107,15 @@ long GateType::init (FilePtr objFile, unsigned long fileSize)
 	if (result != NO_ERR)
 		return(result);
 
-	bldgFile.readIdULong("BlownEffectId",blownEffectId);
+	result = bldgFile.readIdULong("BlownEffectId",blownEffectId);
 	if (result != NO_ERR)
 		blownEffectId = -1;
 		
-	bldgFile.readIdULong("NormalEffectId",normalEffectId);
+	result = bldgFile.readIdULong("NormalEffectId",normalEffectId);
 	if (result != NO_ERR)
 		normalEffectId = -1;
 		
-	bldgFile.readIdULong("DamageEffectId",damageEffectId);
+	result = bldgFile.readIdULong("DamageEffectId",damageEffectId);
 	if (result != NO_ERR)
 		damageEffectId = -1;
 

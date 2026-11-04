@@ -150,6 +150,8 @@ namespace Stuff {
 			Node *node,
 			bool has_unique_entries
 		);
+		Table(const Table&) = delete;
+		Table& operator=(const Table&) = delete;
 		~Table();
 
 		void
