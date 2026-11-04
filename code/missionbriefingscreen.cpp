@@ -673,6 +673,15 @@ void MissionBriefingScreen::end()
 
 }
 
+// not in end(): the screen still draws while it slides away. The mission flushes
+// textures and this screen outlives it: a handle kept could by then be another
+// screen's, and setting the next map would free it
+void MissionBriefingScreen::releaseMap()
+{
+	statics[mapIndex].setTexture( (unsigned long)0 );
+	statics[mapIndex].setColor( 0 );
+}
+
 int MissionBriefingScreen::handleMessage( unsigned long msg, unsigned long who )
 {
 	switch( who )
