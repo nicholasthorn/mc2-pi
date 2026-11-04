@@ -1,10 +1,16 @@
 # MechCommander 2: installing a release
 
-This package is the game engine only. MechCommander 2's game data (maps,
-art, sounds) is not included: you build it once from
-[alariq/mc2srcdata](https://github.com/alariq/mc2srcdata) into this folder.
-The data is the same on every platform, so you can build it on one machine
-and copy it to another (a Pi, a Windows PC).
+**`-full` packages have everything.** Unpack, do step 1 if your platform lists
+anything to install, and go to step 3. They have the game's maps, art and
+sounds, built from
+[alariq/mc2srcdata](https://github.com/alariq/mc2srcdata), under Microsoft's
+licence in `EULA.txt` (non-commercial use). The briefing and story videos are
+not included; missions run without them.
+
+**Other packages are the game engine only:** for people who build the data
+themselves, want the videos, or already have the data and only need the update.
+The data is the same on every platform, so you can build it on one machine and
+copy it to another (a Pi, a Windows PC).
 
 `VERSION` says which release this is; `licenses/` lists the licences of the
 code it contains.
@@ -23,7 +29,7 @@ sudo apt install libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libgles2 li
 On Debian or Ubuntu:
 
 ```bash
-sudo apt install libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libglew2.2 libgl1 zlib1g
+sudo apt install libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libglew2.2 libgl1 libopengl0 zlib1g
 ```
 
 **Windows 10 / 11 (`windows-x64`):** nothing to install; everything the game
@@ -31,9 +37,9 @@ needs is in the folder. An OpenGL 4.0 GPU driver is required. The build is
 not code-signed, so Windows SmartScreen may warn the first time: choose
 "More info", then "Run anyway".
 
-## 2. Build the game data
+## 2. Build the game data (engine-only packages)
 
-You need a Linux machine for this step: the Pi itself, any Linux PC, or WSL on
+Skip this with a `-full` package. You need a Linux machine for this step: the Pi itself, any Linux PC, or WSL on
 Windows. The data tools come with the Linux and Pi packages (`tools/`).
 
 ```bash
@@ -62,9 +68,10 @@ cd mc2-<version>-<platform>
 
 On Windows, double-click `mc2.exe`.
 
-The first start finds no `options.cfg`, writes one with low settings, and may
-end straight after; start the game again. Change the settings in the game's
-Options screen.
+A `-full` package starts with settings ready. With an engine-only package, the
+first start finds no `options.cfg`, writes one with low settings, and may end
+straight after; start the game again. Change the settings in the game's Options
+screen.
 
 To jump straight into a mission: `./mc2 -mission mc2_01`.
 
@@ -72,8 +79,8 @@ To jump straight into a mission: `./mc2 -mission mc2_01`.
 
 A test build, sideloaded over USB. It has been played on a Quest 2; Quest 3,
 3S and Pro should work but are untested. You need developer
-mode on the headset, `adb` on a PC, the game data from step 2 (`--no-movies`
-is fine; about 700 MB), and two downloads: `mc2-<version>-quest-arm64.apk`,
+mode on the headset, `adb` on a PC, the game data (an unpacked `-full` package
+of any platform, or step 2 with `--no-movies`; about 700 MB), and two downloads: `mc2-<version>-quest-arm64.apk`,
 and `mc2-<version>-quest-arm64-files.tar.gz`, unpacked, for `shaders/`. Use the
 shaders from the same release as the APK: others can run with wrong lighting.
 
@@ -81,10 +88,13 @@ shaders from the same release as the APK: others can run with wrong lighting.
 adb install -r mc2-<version>-quest-arm64.apk
 D=/sdcard/Android/data/com.nicholasthorn.mc2/files
 adb shell mkdir -p $D
-adb push --sync <game data folder>/. $D/
+adb push --sync <game data folder>/. $D/      # for an update, see below
 adb push --sync mc2-<version>-quest-arm64-files/shaders/. $D/shaders/
-adb shell cp $D/minprefs.cfg $D/options.cfg    # first install only: it resets your settings
+adb shell cp $D/minprefs.cfg $D/options.cfg    # the Quest's settings
 ```
+
+To update only the game, install the new APK and push its `shaders/`: pushing the
+game data again and the `cp` reset your settings.
 
 On Windows in Git Bash, run `export MSYS_NO_PATHCONV=1` first. Start "MC2 test"
 from the headset's Unknown Sources list. If `adb install` reports a signature

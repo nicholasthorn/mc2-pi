@@ -15,6 +15,14 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click
+      the force icons, minimap and command buttons: each reacts where it is
+      drawn. A pilot video shows at the top right, framed, not off-screen. GL or
+      GLES. CI and screenshots show the position, not the clicks or the video. The
+      video's caption now sits under it, on screen; at 1920 it is off to the left.
+      The win or lose banner is centred, also with Omnitech at 1920.
+- [ ] **Omnitech at 1920x1080** (`hud-centre`). A mission plays, on its 1600 layout,
+      with the same checks.
 - [ ] **Multiplayer host in a window** (#110). `./mc2 -mission mc2_m08 -nethost 2`:
       the mission loads and plays, units fight, and moving the camera away
       changes nothing visible when you come back. Do not expect a clean quit:
@@ -196,6 +204,11 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
 
 ## Releases (`RELEASES.md`)
 
+- [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing
+      extra installed: unzip the `-full` zip, double-click `mc2.exe`, no first
+      run exit, the main menu and a mission work. GL. CI cannot run this one.
+- [ ] **Full package on a Pi 400** (`release-full`). Unpack, the `apt` line,
+      `./mc2`: the settings suit the Pi. CI runs it only under llvmpipe. GLES.
 - [ ] **Quest APK from CI** (`release-apk`). Follow `dist/INSTALL.md` with the
       release's APK and shaders on a Quest 2: the app starts in VR, a mission
       loads, and `mc2.log` has a `[LOG] MechCommander 2 <version>` line naming the
