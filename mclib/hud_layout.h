@@ -35,7 +35,8 @@ inline long hudRightEdgeShift(int screenWidth, int layoutWidth)
 	return screenWidth - layoutWidth;
 }
 
-// How tall the screen a layout's yOffset is measured against, less that offset.
+// The HUD's coordinates end this far down, so the screen's height less this is
+// where they start: it sits on the bottom edge at any height.
 inline long hudBaseHeight(int layoutWidth)
 {
 	return layoutWidth == 640 ? 480 : layoutWidth == 800 ? 600 : 768;

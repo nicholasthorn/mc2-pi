@@ -2505,8 +2505,9 @@ void ControlGui::initStatics( FitIniFile& file )
 	file.readIdLong( "right", 	videoTextRect.right );
 	file.readIdLong( "top", 	videoTextRect.top );
 	file.readIdLong( "bottom", 	videoTextRect.bottom );
-	videoTextRect.left += videoOffsetX;
-	videoTextRect.right += videoOffsetX;
+	// absolute in the file, like the frame around the video
+	videoTextRect.left += videoStaticShift;
+	videoTextRect.right += videoStaticShift;
 
 
 	if ( videoInfoCount )
@@ -2547,7 +2548,7 @@ void ControlGui::initStatics( FitIniFile& file )
 		for ( i = 0; i < missionStatusInfoCount; i++ )
 		{
 			sprintf( blockName, "ResultsStatic%d", i );
-			missionStatusInfos[i].init( file, blockName );
+			missionStatusInfos[i].init( file, blockName, videoStaticShift / 2 );
 
 		}
 	}
@@ -2558,6 +2559,9 @@ void ControlGui::initStatics( FitIniFile& file )
 	file.readIdLong( "top", missionStatusRect.rect.top );	
 	file.readIdLong( "bottom", missionStatusRect.rect.bottom );	
 	file.readIdLong( "ResultsTextColor", missionStatusRect.color );	
+	// centred on the layout's width, which may be narrower than the screen
+	missionStatusRect.rect.left += videoStaticShift / 2;
+	missionStatusRect.rect.right += videoStaticShift / 2;
 
 	file.seekBlock( "ChatPlayerNameRect" );
 	long left, top, width, height;

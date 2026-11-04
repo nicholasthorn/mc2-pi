@@ -19,7 +19,8 @@ Touch controllers.
 | ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | ![Mechs standing among temple-like buildings and banners in mission 22](media/town.jpg) |
 | *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | *A quieter moment: mechs among the buildings of mission 22* |
 
-Scripted battles from the desktop build (`scripts/bench.sh --scenario`). The
+Scripted battles from the desktop build at 1920x1080
+(`scripts/bench.sh --scenario`). The
 game data, and Omnitech's, are not in this repository.
 
 The main branch is called `pi-port` and the repository `mc2-pi` for

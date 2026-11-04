@@ -18,7 +18,9 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click
       the force icons, minimap and command buttons: each reacts where it is
       drawn. A pilot video shows at the top right, framed, not off-screen. GL or
-      GLES. CI and screenshots show the position, not the clicks or the video.
+      GLES. CI and screenshots show the position, not the clicks or the video. The
+      video's caption now sits under it, on screen; at 1920 it is off to the left.
+      The win or lose banner is centred, also with Omnitech at 1920.
 - [ ] **Omnitech at 1920x1080** (`hud-centre`). A mission plays, on its 1600 layout,
       with the same checks.
 - [ ] **Dragging a mech out of the force group** (`fix/noticed-bugs`). In the
