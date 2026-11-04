@@ -29,6 +29,8 @@ class MissionResults
 	public:
 
 		MissionResults();
+		MissionResults(const MissionResults&) = delete;
+		MissionResults& operator=(const MissionResults&) = delete;
 		~MissionResults();
 
 		void init();

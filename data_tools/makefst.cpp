@@ -134,9 +134,21 @@ int pack(const char* in_path, const char* fst_file, const char* mount, const cha
     if(!in_path || !fst_file)
         return -1;
 
+    // before create(), which truncates an existing archive
+    FILE* fh = nullptr;
+    if(rsp_file) {
+        fh = fopen(rsp_file, "r");
+        if(!fh) {
+            printf("Failed to open response file: %s\n", rsp_file);
+            return -1;
+        }
+    }
+
     FastFile out_ff;
     if(NO_ERR != out_ff.create(fst_file, b_compress)) {
         SPEW(("pack: ", "Failed to create fast file %s\n", fst_file));
+        if(fh)
+            fclose(fh);
         return -1;
     }
 
@@ -213,7 +225,6 @@ int pack(const char* in_path, const char* fst_file, const char* mount, const cha
         }
     } else {
 
-        FILE* fh = fopen(rsp_file, "r");
         char* line = new char[1024];
         while(fgets(line, 1024, fh)) {
             size_t linelen = strlen(line);

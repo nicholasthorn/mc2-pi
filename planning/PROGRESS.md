@@ -149,9 +149,19 @@ Added 2026-10-31.
     `operatorEqVarError` (12), `objectIndex` (10), then the copy /
     assignment group (`noOperatorEq`, `noCopyConstructor`, 8 each) and
     the rest.
-  - Version gap: CI runs cppcheck 2.13 (ubuntu-24.04), local runs 2.19
-    (Ubuntu 26.04), and 2.7 found the `GVAppearance` one that bit us. Consider
-    a second cppcheck version in the nightly run, or clang-tidy's init checks.
+  - Versions: the gate runs 2.19.0 (built from source, cached, same as local
+    on Ubuntu 26.04); the nightly run also runs Ubuntu 24.04's 2.13. 2.7 found
+    the `GVAppearance` one that bit us, so clang-tidy's init checks are still
+    worth a look.
+  - `nullPointerOutOfMemory` stays off in the gate after reading all 68 sites
+    (2026-11-04). Fixed 7: the entry count in an FST header (crashed on a corrupt
+    archive) and `NumFastFiles` in `system.cfg`. Small fixed or bounded sizes 28,
+    buffers of a file's real length 16, dead code 13 (`refractalizeBaseMesh` and
+    `rescaleMap`, nothing calls them).
+  - [ ] The last 4 are sized by a TGA header's width and height (`flipTopToBottom`,
+    `burnInShadows`), and a NULL check would not help: a header that lies about
+    its size overruns the buffer in the caller's `memcpy` first. The TGA readers
+    need the header checked against the file's length.
   - Regenerate the baseline from CI (`static.yml` `update_baseline`) after
     each batch, so the count only goes down.
 - [x] **Make `STOP` / `Fatal()` stop again** (decided 2026-10-31, replacing
@@ -542,6 +552,7 @@ Newest first. `YYYY-MM-DD: what (commit or PR)`.
 - 2026-11-04: Mission HUD centred at any width (branch `hud-centre`). `buttonlayout1920.fit` has 1600's `xOffset`, so at 1920x1080 the HUD sat 163 pixels left of centre, and worse on wider screens; other widths took that file too. `mclib/hud_layout.h` (unit tested): the largest layout that fits, centred from 1024 up, the pilot video window kept on the right edge. Omnitech, with no 1920 layout, stopped at 1920x1080; it now steps down to 1600. 1280x720 and 1600x900 are pixel-identical to before. Checked on GL at 1366, 1920 and 2560 and on GLES at 1920; clicks and the video window by hand (`HARDWARE-TESTS.md`). README images reshot at 1920x1080. Scaling the HUD for 1440p and 4K is not done.
 - 2026-11-04: Full release packages, game data included (branch `release-full`), as approved by the owner: jobs `gamedata` (cache shared with `smoke.yml`, no movies) and `full` in `release.yml`, `scripts/package_full.sh`. The Linux x64 and Pi packages are smoke-tested unpacked with only the runtime libraries; first time a test runs what players download. The Windows zip needs a hand check (`HARDWARE-TESTS.md`). The new test found `INSTALL.md` missing `libopengl0`, so the Linux package would not start on a clean machine; fixed.
 - 2026-11-04: Multiplayer phase 0 (branch `mp-phase0`): `-nethost <players>` runs the host's side of the multiplayer code with no network and no clients; `smoke.sh --nethost`, `bench/nethost_m08.fit` (a battle with damage on). `mc2_m01` to `mc2_m10` and the battle clean under ASan + UBSan on desktop GL, single-player state hashes match `pi-port`. Fixed: mission ended on its first frame, full weapon fire queue was Fatal, turret with a neutral parent, `1 << -1` from the force group icons; a host's camera no longer decides withdrawals, building and turret updates, or turret and vehicle gestures. Open: the same battle from two camera positions still differs from frame 282 (positions match until one hit outcome, consistent with cosmetic code sharing the RNG, not proven); no run has had a turret fire; withdrawing units can stop short of the map edge on a host; `Team::home` is not audited. No network yet.
+- 2026-11-04: CI moved to cppcheck 2.19.0 (built from source and cached, `.github/actions/cppcheck`), with 2.13 kept in the nightly run. Of 2.19's 1,201 findings, 1,165 are two checks turned off in the gate with the reason (`dangerousTypeCast`, `nullPointerOutOfMemory`); the rest fixed: `FastFile::create` and makefst no longer use a failed `fopen`, 12 owning classes have copies deleted, ignored `readIdULong` results in gate and turret, `move.cpp` cast rewritten because 2.19 could not parse the file. Baseline empty under both versions. `nullPointerOutOfMemory` triaged: a corrupt FST entry count no longer crashes (#112).
 - 2026-11-04: Plan for macOS on Apple silicon: `future-features/MACOS.md` (branch `macos-plan`); nothing built.
 - 2026-11-04: Multiplayer proposal (`future-features/NETWORKING.md`, replaces the feasibility study; branch `docs/multiplayer-proposal`): host-authoritative, keeping the legacy gameplay branches and chunks, GameNetworkingSockets subject to an Android spike, same-room Quest play needing no alignment until a shared table, head-to-head and co-op on one mechanism. Nothing built or run.
 - 2026-11-04: on-disk struct sizes pinned at compile time (branch `test/struct-sizes`, `code/ondisksizes.cpp`): 19 save-game structs per data model (Linux/arm64 and Windows differ, `long`), 10 game-data structs to one size everywhere (they match on MSVC too, so game data really is portable), and the 11 object save structs must have distinct sizes, because `ObjectManager::load` tells types apart by size alone. `check.sh` no longer fails a new `.cpp` on findings in headers it did not change: it lists them as a warning.

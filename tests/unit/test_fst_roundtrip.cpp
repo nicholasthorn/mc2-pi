@@ -25,6 +25,7 @@
 #include "inifile.h"
 #include "lz.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -105,6 +106,17 @@ void authorFst (const std::string &fstPath, const char *entryName,
 	std::string buf(payload, payload + payloadLen);
 	REQUIRE(ff.writeFast(entryName, (void *)buf.data(), payloadLen) == NO_ERR);
 	ff.close();
+}
+
+// An archive that is only a header: version, then a claimed entry count.
+void authorHeaderOnlyFst (const std::string &fstPath, uint32_t numEntries)
+{
+	FILE *f = fopen(fstPath.c_str(), "wb");
+	REQUIRE(f != nullptr);
+	const uint32_t version = FASTFILE_VERSION;
+	fwrite(&version, 1, sizeof(version), f);
+	fwrite(&numEntries, 1, sizeof(numEntries), f);
+	fclose(f);
 }
 
 } // namespace
@@ -259,6 +271,64 @@ TEST_CASE("LZDecomp stops at destLen instead of overflowing")
 
 	// no limit given: the old behaviour
 	CHECK(LZDecomp((MemoryPtr)&out[0], (MemoryPtr)&packed[0], packedLen) == src.size());
+}
+
+TEST_CASE("an FST claiming more entries than it holds is refused")
+{
+	const std::string fstPath = scratchPath("corrupt.fst");
+	uint32_t claimed = 3;
+	SUBCASE("a few") { claimed = 3; }
+	SUBCASE("too many to allocate") { claimed = 0xFFFFFFFFu; }
+	authorHeaderOnlyFst(fstPath, claimed);
+
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == READ_PAST_EOF_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+	remove(fstPath.c_str());
+}
+
+TEST_CASE("an FST cut off inside its header is refused")
+{
+	const std::string fstPath = scratchPath("truncated.fst");
+	size_t bytes = 6;
+	SUBCASE("in the entry count") { bytes = 6; }
+	SUBCASE("in the version") { bytes = 2; }
+	FILE *f = fopen(fstPath.c_str(), "wb");
+	REQUIRE(f != nullptr);
+	const uint32_t header[2] = { FASTFILE_VERSION, 0x01010101u };
+	fwrite(header, 1, bytes, f);
+	fclose(f);
+
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == READ_PAST_EOF_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	{
+		FstRegistry reg(fstPath.c_str());
+		CHECK_FALSE(reg.ok);
+		CHECK(numFastFiles == 0);
+	}
+	remove(fstPath.c_str());
+}
+
+TEST_CASE("an FST with no entries still opens")
+{
+	const std::string fstPath = scratchPath("empty.fst");
+	authorHeaderOnlyFst(fstPath, 0);
+	{
+		FastFile ff;
+		CHECK(ff.open(fstPath.c_str()) == NO_ERR);
+		CHECK(ff.getNumFiles() == 0);
+	}
+	remove(fstPath.c_str());
 }
 
 } // TEST_SUITE("FstRoundtrip")

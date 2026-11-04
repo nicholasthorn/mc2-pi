@@ -4941,7 +4941,7 @@ int MissionInterfaceManager::toggleDebugWins() {
 	static long debugWinsState = 0;
 	static double lastTime = 0.0;
 	if ((lastTime + 0.5) < gos_GetElapsedTime()) {
-		debugWinsState = (++debugWinsState % 6);
+		debugWinsState = (debugWinsState + 1) % 6;
 		bool debugStateFlags[6][7] = {
 			{false, false, false, false, false, false, false},
 			{false, false, false, false, false, true, false},

@@ -71,6 +71,8 @@ namespace Stuff {
 
 	public:
 		ObjectNameList();
+		ObjectNameList(const ObjectNameList&) = delete;
+		ObjectNameList& operator=(const ObjectNameList&) = delete;
 		virtual
 			~ObjectNameList();
 

@@ -34,8 +34,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cmake ninja-build pkg-config cppcheck \
+          sudo apt-get install -y -qq cmake ninja-build pkg-config \
             libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      - uses: ./.github/actions/cppcheck
       # compile_commands.json is all cppcheck needs: configure, no build
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -50,3 +51,24 @@ jobs:
         with:
           name: cppcheck-baseline
           path: scripts/cppcheck-baseline.txt
+
+  # Ubuntu's older cppcheck as well: each version finds things the other misses
+  # (2.13 caught the uninitialised vertices.rhw, which 2.19 does not report).
+  # It is held to the same baseline, so it fails on anything it alone reports.
+  cppcheck-ubuntu:
+    name: cppcheck 2.13 (full tree)
+    if: ${{ !inputs.update_baseline }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config cppcheck \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Check against baseline
+        run: python3 scripts/cppcheck_gate.py --build-dir build -j "$(nproc)"

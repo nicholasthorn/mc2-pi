@@ -27,6 +27,8 @@ public:
 	struct Building;
 
 	LogisticsData();
+	LogisticsData(const LogisticsData&) = delete;
+	LogisticsData& operator=(const LogisticsData&) = delete;
 	~LogisticsData();
 	void			init();
 
