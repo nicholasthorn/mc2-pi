@@ -188,6 +188,10 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
 
 ## Releases (`RELEASES.md`)
 
+- [ ] **Quest APK from CI** (`release-apk`). Follow `dist/INSTALL.md` with the
+      release's APK and shaders on a Quest 2: the app starts in VR, a mission
+      loads, and `mc2.log` has a `[LOG] MechCommander 2 <version>` line naming the
+      release. GLES.
 - [ ] **Player log on Windows and the Quest** (`log-file`): double-click
       `mc2.exe`: `mc2.log` appears in the game folder (or the config folder if
       `HOME` is set), the console still shows the output, and a second start

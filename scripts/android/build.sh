@@ -9,6 +9,8 @@
 # Environment:
 #   ANDROID_HOME  SDK (default: %LOCALAPPDATA%\Android\Sdk, or ~/Android/Sdk)
 #   JAVA_HOME     a JDK 17 or newer (Android Studio's jbr is one)
+#   MC2_VERSION   version for mc2.log and the APK's versionName (default:
+#                 git describe, and the manifest's versionName)
 #   NDK_VERSION, CMAKE_VERSION, BUILD_TOOLS, PLATFORM  override the defaults below
 set -e
 . "$(dirname "$0")/env.sh"
@@ -60,6 +62,7 @@ build_deps() {
 
 build_game() {
     "$CMAKE" -S "$ROOT" -B "$BUILD/game" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF \
+        "-DMC2_VERSION=${MC2_VERSION:-}" \
         "-DOPENXR_PREFAB=$DEPS/$OPENXR_DIR/prefab/modules"
     "$CMAKE" --build "$BUILD/game"
 }
@@ -80,8 +83,10 @@ build_apk() {
     # manifest, then dex and native libraries: stripped copies (the unstripped
     # ones stay in android/build for reading crash stacks), stored uncompressed
     # and page-aligned so they load straight from the APK (extractNativeLibs false)
+    local version=()
+    [ -z "$MC2_VERSION" ] || version=(--version-name "$MC2_VERSION" --replace-version)
     "$BT/aapt2" link -o "$A/base.apk" --manifest "$ROOT/android/AndroidManifest.xml" \
-        -I "$ANDROID_JAR" --min-sdk-version $MIN_SDK --target-sdk-version $TARGET_SDK
+        -I "$ANDROID_JAR" --min-sdk-version $MIN_SDK --target-sdk-version $TARGET_SDK "${version[@]}"
     cp "$A/dex/classes.dex" "$A/stage/"
     local lib
     for lib in "$PREFIX/lib/libSDL2.so" "$PREFIX/lib/libSDL2_mixer.so" \
