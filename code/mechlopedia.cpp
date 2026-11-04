@@ -421,7 +421,21 @@ void Mechlopedia::MechScreen::select( aTextListItem* pItem )
 		name += " Prime";
 
 		LogisticsVariant* pChassis  = LogisticsData::instance->getVariant( name );
-		setMech( pChassis, 1 );
+		if ( !pChassis )
+		{
+			// a chassis name need not be how its variants are spelled (Omnitech's
+			// Kitfox has a "Kit Fox Prime"): find the row's own variant
+			const LogisticsVariant* pPrimes[256];
+			int count = 256;
+			LogisticsData::instance->getEncyclopediaMechs( pPrimes, count );
+			for ( int i = 0; i < count && i < 256 && !pChassis; i++ )
+			{
+				if ( S_stricmp( pPrimes[i]->getChassisNameText(), pText ) == 0 )
+					pChassis = const_cast<LogisticsVariant*>( pPrimes[i] );
+			}
+		}
+		if ( pChassis )
+			setMech( pChassis, 1 );
 	}
 	else
 	{
