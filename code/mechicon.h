@@ -38,6 +38,7 @@ public:
 	PilotIcon();
 
 	static void swapResolutions(bool bForce = 0);
+	static bool hasDeadPicture();
 
 	void setPilot( MechWarrior* pWarrior );
 	void setTextureIndex(  int newIndex ) { pilotTextureIndex = newIndex; }
