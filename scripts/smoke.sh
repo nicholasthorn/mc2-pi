@@ -235,6 +235,14 @@ mission_checks() {
     if [ -n "$started" ] && [ "${started,,}" != "${name,,}" ]; then
         reasons+=("started mission '$started'")
     fi
+    # a scenario is there to stage a battle: fail if it did not
+    if [ -n "${SCENARIO:-}" ]; then
+        grep -q '^\[BENCH\] ERROR' "$log" && reasons+=("scenario error: $(grep -m1 '^\[BENCH\] ERROR' "$log")")
+        grep -q '^\[BENCH\] gathered' "$log" || reasons+=("scenario gathered no units")
+        if [ -n "${NETHOST:-}" ] && ! grep -q '^\[NETHOST\].* weapon hit [1-9]' "$log"; then
+            reasons+=("no weapon hits: the battle did not happen")
+        fi
+    fi
 }
 
 # Mission names with spaces (some fan campaigns: "azure sea"): --missions

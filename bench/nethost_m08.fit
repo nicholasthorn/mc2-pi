@@ -11,7 +11,6 @@ l Frames = 3000
 l Gather = 12
 f LineGap = 500.0
 f Spacing = 90.0
-l ReorderEvery = 90
 b Pain = TRUE
 l NumSegments = 1
 

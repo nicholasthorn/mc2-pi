@@ -1495,7 +1495,7 @@ void ForceGroupIcon::drawDeathEffect()
 	if ( bFinished )
 	{
 		drawRect( selectionRect[locationIndex], animationInfos[i].color );
-		unit->addToUnitGroup( -1 );
+		unit->removeFromUnitGroup( -1 );
 		//------------------------------------------------------------
 		// This tells all machines to drop this mover from the team...
 		if (MPlayer)

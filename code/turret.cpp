@@ -810,6 +810,8 @@ long Turret::update (void)
 		windowsVisible = turn;
 		didReveal = true;
 	}
+	else if (isNetHost())
+		appearance->update();	// canFire waits for the gesture, whatever the host looks at
 
 	//-------------------------------------
 	// Are we a spotlight?

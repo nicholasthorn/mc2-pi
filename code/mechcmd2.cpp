@@ -1699,7 +1699,7 @@ void __stdcall InitializeGameEngine()
 				// a team per commander, and only as many as there are players
 				for (long i = 0; i < MAX_MC_PLAYERS; i++)
 					for (long j = 0; j < 3; j++)
-						commandersToLoad[i][j] = (i < netHostPlayers) ? (char)i : (char)-1;
+						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
 				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(netHostPlayers));
 			}
 			else
@@ -1710,6 +1710,8 @@ void __stdcall InitializeGameEngine()
 		}
 		else
 		{
+			if (netHostPlayers > 0)
+				PAUSE(("-nethost: ignored without -mission"));
 			int param = log_SPLASH;
 			if ( MPlayer && MPlayer->launchedFromLobby )
 				param = log_ZONE;
@@ -2562,15 +2564,13 @@ void ParseCommandLine(const char *command_line)
 		}
 		else if (S_stricmp(argv[i],"-nethost") == 0)
 		{
-			i++;
-			if (i < n_args)
+			// Leave the next argument alone unless it is the number
+			if (((i + 1) < n_args) && isdigit((unsigned char)argv[i + 1][0]))
+				netHostPlayers = textToLong(argv[++i]);
+			if (netHostPlayers < 1 || netHostPlayers > MAX_MC_PLAYERS)
 			{
-				netHostPlayers = textToLong(argv[i]);
-				if (netHostPlayers < 1 || netHostPlayers > MAX_MC_PLAYERS)
-				{
-					PAUSE(("-nethost: players must be 1 to %d", MAX_MC_PLAYERS));
-					netHostPlayers = 0;
-				}
+				PAUSE(("-nethost: needs a number of players, 1 to %d", MAX_MC_PLAYERS));
+				netHostPlayers = 0;
 			}
 		}
 		else if (S_stricmp(argv[i],"-nodialog") == 0)
