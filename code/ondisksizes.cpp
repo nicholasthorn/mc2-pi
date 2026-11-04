@@ -12,7 +12,7 @@
 //   structs must have one size everywhere.
 //
 // The compiler error names the actual and the expected size, as the arguments
-// of SizeIs<actual, expected>.
+// of SizeOf_<struct><actual, expected>.
 
 #include <cstddef>
 
@@ -38,14 +38,14 @@
 
 namespace {
 
-template <std::size_t Actual, std::size_t Expected>
-struct SizeIs
-{
-	static_assert(Actual == Expected, "an on-disk struct changed size: see code/ondisksizes.cpp");
-};
-
+// One template per struct: MSVC reports a static_assert once per source location,
+// and this way every failure names its struct and sizes.
 #define MC2_PIN_SIZE(Type, Expected) \
-	static_assert(sizeof(SizeIs<sizeof(Type), (Expected)>) != 0, #Type)
+	template <std::size_t Actual, std::size_t Want> struct SizeOf_##Type \
+	{ \
+		static_assert(Actual == Want, #Type " changed size: see code/ondisksizes.cpp"); \
+	}; \
+	static_assert(sizeof(SizeOf_##Type<sizeof(Type), (Expected)>) != 0, #Type)
 
 #ifdef PLATFORM_WINDOWS
 #define MC2_PIN_SAVE_SIZE(Type, Lp64, Llp64) MC2_PIN_SIZE(Type, Llp64)
