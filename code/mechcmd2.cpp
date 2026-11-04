@@ -1531,7 +1531,9 @@ void __stdcall InitializeGameEngine()
 	
 		/* load and apply options from "options.cfg" */
 		prefs.load();
-		prefs.applyPrefs();
+		// nothing below can run with no window or renderer (no display, or GL too old)
+		if ( prefs.applyPrefs() < 0 )
+			gos_FatalExit( "Could not create the game window or its renderer" );
 	
 	
 		//--------------------------------------------------
