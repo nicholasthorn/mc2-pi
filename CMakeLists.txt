@@ -170,6 +170,14 @@ if(ANDROID)
 endif()
 set(THIRDPARTY_INTREE_DIR "./thirdparty")
 
+# MC2_NET: the network transport, GameNetworkingSockets. Off builds the game without
+# it and without downloading it.
+option(MC2_NET "Build the network transport (downloads GameNetworkingSockets)" ON)
+if(MC2_NET)
+    include(mc2_gns)
+    add_definitions(-DMC2_NET)
+endif()
+
 add_subdirectory("./mclib/" "./out/mclib")
 add_subdirectory("./mclib/mlr" "./out/mclib/mlr")
 add_subdirectory("./mclib/gosfx" "./out/mclib/gosfx")
@@ -324,6 +332,15 @@ if(MC2_STRICT_WARNINGS)
         "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas;${_mc2_legacy_isystem}")
 endif()
 target_link_libraries(mc2 mclib gosfx mlr stuff gui gameos gameos_main windows ZLIB::ZLIB ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer ${ADDITIONAL_LIBS} ${MC2_GL_LIBS})
+if(MC2_NET)
+    # two processes over the real transport: CTest on the desktop, by hand on a Quest
+    add_executable(net_ping tests/net/net_ping.cpp GameOS/gameos/gos_net_gns.cpp)
+    target_include_directories(net_ping PRIVATE GameOS/gameos)
+    target_link_libraries(net_ping PRIVATE mc2_gns)
+    if(MC2_STRICT_WARNINGS)
+        target_compile_options(net_ping PRIVATE ${MC2_STRICT_WARNINGS})
+    endif()
+endif()
 
 add_subdirectory("./res" "./out/res")
 # Android builds the game only; the data is built on a PC and pushed

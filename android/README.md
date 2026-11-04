@@ -23,6 +23,14 @@ The result is `android/mc2-quest-test.apk`, signed with a debug key made on
 the first build (`android/debug.keystore`, not committed). Steps can be run
 alone: `scripts/android/build.sh deps|game|apk`.
 
+The `game` step also downloads and compiles the network transport's libraries
+(`cmake/mc2_gns.cmake`). To check the transport between this machine and the headset
+over Wi-Fi, given a desktop build's `net_ping`:
+
+```bash
+scripts/android/net_ping.sh <path to a desktop net_ping>
+```
+
 How it differs from the desktop build:
 
 - The game is `libmain.so`; SDL's Java activity (`MC2Activity`) loads it with

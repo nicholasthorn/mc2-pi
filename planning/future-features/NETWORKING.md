@@ -3,8 +3,8 @@
 Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 has begun: the
 wire format (`code/netwire.*`) and the transport interface with a test loopback
 (`GameOS/gameos/gos_net.*`) exist, and nothing calls them yet. No real transport:
-the library has run on a Quest in a test program but is not in the game or the
-build (see "Android spike").
+and `gos_net` has a real backend on GameNetworkingSockets, built by every configuration
+(`cmake/mc2_gns.cmake`), but nothing in the game calls it yet.
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are
@@ -268,12 +268,21 @@ power states may change Wi-Fi), a Quest as the client, two Quests, or a long run
   `3rdparty`) and arm64 Linux. Ubuntu 26.04 offers `libprotobuf-dev` 3.21.12; older
   distributions in the CI list need checking.
 
-**Recommendation: GNS, not yet final.** The risk most likely to send this to ENet, Android,
-did not appear, but the test above is that it builds cleanly on all targets, and Windows
-MSVC and arm64 Linux are still to come. Next: a `gos_net` backend, and the dependencies in
-the build on every target, which settles it. The cost to accept is those dependencies, about
-7 MB on a Quest, and a real OpenSSL build for Android. GNS's reliable messages are ordered
-within a lane, so `Delivery::ReliableUnordered` should map to a lane of its own.
+**GNS, built with BoringSSL.** A real OpenSSL for Android needs a complete Perl, which Git
+Bash lacks, so the build uses BoringSSL on Linux and Quest and BCrypt on Windows, from pinned
+sources and with no new packages (`cmake/mc2_gns.cmake`). GNS does not support BoringSSL as
+shipped: `cmake/mc2_gns_boringssl_patch.cmake` makes three small changes, so a new GNS version
+means checking that again. `Delivery::ReliableUnordered` is a lane of its own, since GNS's
+reliable messages are ordered within a lane.
+
+With all that, `net_ping` over the real backend between a PC (Linux x64) and the Quest over
+home Wi-Fi, 20 s, sending with no batching: 100 of 100 reliable ordered, 100 of 100 reliable
+unordered, 400 of 400 unreliable, none out of order, round trip p50 8 ms, p95 15 ms, max 25 ms.
+
+Still open: a BCrypt peer talking to a BoringSSL one (Windows to Quest) has not been run, and
+the handshake depends on them agreeing; a sleeping headset and a shell are not the app; and
+`libmain.so` does not contain any of this until the game calls it, so the roughly 7 MB
+on a Quest is still to come.
 
 Rejected: VPNs such as Tailscale as the remote answer (fine for PC players, but a
 poor request for a headset), TCP (a lost packet delays every later update), and

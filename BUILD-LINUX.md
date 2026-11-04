@@ -6,6 +6,11 @@ sudo apt install libsdl2-dev, libsdl2-mixer-dev, libsdl2-ttf-dev, libsdl2-mixer-
 ```
 
 
+The first build also downloads and compiles the network transport's libraries
+(GameNetworkingSockets, protobuf, BoringSSL: pinned versions, `cmake/mc2_gns.cmake`),
+which takes a few minutes and needs no packages. For a build with no network, or
+without them, configure with `-DMC2_NET=OFF`.
+
 # Directory Setup
 
 This guide assumes you have the following directory structure:

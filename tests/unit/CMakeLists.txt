@@ -46,6 +46,7 @@ add_executable(mc2_tests
     test_pqueue.cpp
     test_netwire.cpp
     test_gos_net.cpp
+    test_gos_net_gns.cpp
 
     # Real engine TUs: the file / ini / packet / FST / CSV stack. This is the
     # whole link frontier; nothing else from mclib or GameOS is needed.
@@ -108,7 +109,7 @@ set_source_files_properties(
     test_fst_roundtrip.cpp test_lzdecomp.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp
-    test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_netwire.cpp test_gos_net.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_netwire.cpp test_gos_net.cpp test_gos_net_gns.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
@@ -146,3 +147,15 @@ target_compile_definitions(mc2_tests PRIVATE MC2_TEST_FIXTURE_DIR="fixtures")
 target_link_libraries(mc2_tests PRIVATE windows ZLIB::ZLIB ${ADDITIONAL_LIBS})
 
 add_test(NAME mc2_tests COMMAND mc2_tests WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+if(MC2_NET)
+    target_sources(mc2_tests PRIVATE ${MC2_SRC}/GameOS/gameos/gos_net_gns.cpp)
+    set_source_files_properties(${MC2_SRC}/GameOS/gameos/gos_net_gns.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+    target_link_libraries(mc2_tests PRIVATE mc2_gns)
+    # built with the tests, since CI asks for mc2 and mc2_tests by name
+    add_dependencies(mc2_tests net_ping)
+    add_test(NAME net_two_process
+        COMMAND ${CMAKE_COMMAND} -DNET_PING=$<TARGET_FILE:net_ping> -P ${MC2_SRC}/tests/net/two_process.cmake)
+    set_tests_properties(net_two_process PROPERTIES TIMEOUT 90)
+endif()
