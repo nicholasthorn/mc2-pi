@@ -1508,6 +1508,18 @@ class MultiPlayer : public MultiPlayerState {
 		// host's side of the multiplayer code in one process.
 		void startLocalHost (long numPlayers);
 
+		// A real game (-nethost <players> -netlisten [port], -netjoin <address>[:port]).
+		// Each waits until everyone has joined, and ends the game if it cannot be had.
+		void hostNetGame (long numPlayers, unsigned short port, const char* missionName);
+
+		void joinNetGame (const char* address, unsigned short port, const char* missionName);
+
+		// After the mission has loaded, before it starts: waits for everyone else's.
+		void waitForNetStart (void);
+
+		// True with connections to other players, false for -nethost alone.
+		bool isNetworked (void);
+
 		// How many movers each commander brings, by the number of players.
 		static long moversPerCommander (long numPlayers) {
 			static const long movers[MAX_MC_PLAYERS] = {12, 12, 12, 9, 7, 6, 5, 4};
@@ -1709,6 +1721,9 @@ class MultiPlayer : public MultiPlayerState {
 		long addWeaponHitChunk (WeaponHitChunkPtr chunk);
 
 		long addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr shotInfo, bool isRefit = false);
+
+		// In the weapon hit stream, in order. The chunk's own format is Mover::addCriticalHitChunk's.
+		void addCriticalHitToStream (MoverPtr mover, unsigned char chunkData);
 
 		void grabWeaponHitChunks (unsigned long* packedChunkBuffer, long numChunks);
 

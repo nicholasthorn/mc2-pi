@@ -798,7 +798,9 @@ void WeaponFireChunk::unpack (GameObjectPtr attacker) {
 					targetId = MIN_CAMERA_DRONE_ID + specialId;
 					break;
 				default:
-					Fatal(specialType, " WeaponFireChunk.unpack: bad specialType ");
+					// from the network, so not the end of the game: callers skip it
+					targetType = -1;
+					return;
 			}
 
 			entryAngle = (tempData & WEAPONFIRECHUNK_ENTRYQUAD_MASK);

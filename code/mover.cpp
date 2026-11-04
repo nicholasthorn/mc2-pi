@@ -3758,7 +3758,8 @@ long Mover::updateWeaponFireChunks (long which) {
 
 		TargetRolo = chunk.targetType;
 		if (chunk.targetType == 0 /*WEAPONFIRECHUNK_TARGET_MOVER*/) {
-			GameObjectPtr target = (GameObjectPtr)MPlayer->moverRoster[chunk.targetId];
+			// the field can hold more than the roster does
+			GameObjectPtr target = (chunk.targetId < MAX_MULTIPLAYER_MOVERS) ? (GameObjectPtr)MPlayer->moverRoster[chunk.targetId] : NULL;
 			//----------------------------------------------------------------------------
 			// Mover targets could be NULL now, since we free them when they're destroyed.
 			if (target)
@@ -3772,10 +3773,8 @@ long Mover::updateWeaponFireChunks (long which) {
 			}
 		else if (chunk.targetType == 1 /*WEAPONFIRECHUNK_TARGET_TERRAIN*/) {
 			GameObjectPtr target = ObjectManager->findByPartId(chunk.targetId);
-			if (target == NULL) {
-				DebugWeaponFireChunk (&chunk, NULL, this);
-				Assert(false, 0, " Mover.updateWeaponFireChunks: NULL Terrain Target (save wfchunk.dbg file) ");
-			}
+			if (target == NULL)
+				continue;
 			handleWeaponFire(weaponIndex,
 							 target,
 							 NULL,
@@ -3786,10 +3785,8 @@ long Mover::updateWeaponFireChunks (long which) {
 			}
 		else if (chunk.targetType == 2 /*WEAPONFIRECHUNK_TARGET_TRAIN*/) {
 			GameObjectPtr target = ObjectManager->findByPartId(chunk.targetId);
-			if (target == NULL) {
-				DebugWeaponFireChunk (&chunk, NULL, this);
-				Assert(false, 0, " Mover.updateWeaponFireChunks: NULL Special Target (save wfchunk.dbg file) ");
-			}
+			if (target == NULL)
+				continue;
 			handleWeaponFire(weaponIndex,
 							 target,
 							 NULL,
@@ -3805,8 +3802,6 @@ long Mover::updateWeaponFireChunks (long which) {
 			targetPoint.z = (float)land->getTerrainElevation(targetPoint);
 			handleWeaponFire(weaponIndex, NULL, &targetPoint, chunk.hit, 0.0, chunk.numMissiles, 0);
 			}
-		else
-			Fatal(0, " Mover.updateWeaponFireChunks: bad targetType ");
 	}
 
 	numWeaponFireChunks[which] = 0;
@@ -3833,6 +3828,12 @@ long Mover::addCriticalHitChunk (long which, long bodyLocation, long criticalSpa
 	//-----------------------------------------------------------
 	// Since the "chunk" is so simple, we'll just make it here...
 	unsigned char chunkData = (unsigned char)((bodyLocation << 4) + criticalSpace);
+	// Over a network it goes with the weapon hits: what a critical hit destroys decides
+	// where the next hit lands, so the client must see them in the host's order.
+	if ((which == CHUNK_SEND) && MPlayer && MPlayer->isNetworked()) {
+		MPlayer->addCriticalHitToStream(this, chunkData);
+		return(0);
+	}
 	criticalHitChunks[which][numCriticalHitChunks[which]++] = chunkData;
 	return(numCriticalHitChunks[which]);
 }

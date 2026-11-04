@@ -36,6 +36,8 @@
 #include"multplyr.h"
 #endif
 
+#include"netsession.h"
+
 #ifndef TEAM_H
 #include"team.h"
 #endif
@@ -102,6 +104,9 @@ long FilterState = gos_FilterNone;
 bool quitGame = FALSE;
 bool justStartMission = FALSE;
 static long netHostPlayers = 0;		// -nethost <players>: multiplayer host, no network
+static unsigned short netListenPort = 0;	// -netlisten [port]: and clients may join it
+static char netJoinAddress[64] = "";	// -netjoin <address>[:port]: join a host's game
+static unsigned short netJoinPort = netsession::DEFAULT_PORT;
 bool gamePaused = FALSE;
 bool hasGuardBand = false;
 bool canMultiTextureDetail = false;
@@ -1696,18 +1701,28 @@ void __stdcall InitializeGameEngine()
 		{
 			logistics->setLogisticsState(log_STARTMISSIONFROMCMDLINE);
 			char commandersToLoad[MAX_MC_PLAYERS][3] = {{0, 0, 0}, {1, 1, 1}, {2, 0, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}, {6, 6, 6}, {7, 7, 7}};
-			if (netHostPlayers > 0)
+			if ((netHostPlayers > 0) || netJoinAddress[0])
 			{
 				MPlayer = new MultiPlayer;
 				MPlayer->setup();
-				MPlayer->startLocalHost(netHostPlayers);
-				MultiPlayTeamId = 0;
-				MultiPlayCommanderId = 0;
+				if (netJoinAddress[0])
+					MPlayer->joinNetGame(netJoinAddress, netJoinPort, missionName);
+				else if (netListenPort)
+					MPlayer->hostNetGame(netHostPlayers, netListenPort, missionName);
+				else
+					MPlayer->startLocalHost(netHostPlayers);
+				MultiPlayTeamId = MPlayer->commanderID;
+				MultiPlayCommanderId = MPlayer->commanderID;
+				long players = 0;
 				// a team per commander, and only as many as there are players
-				for (long i = 0; i < MAX_MC_PLAYERS; i++)
+				for (long i = 0; i < MAX_MC_PLAYERS; i++) {
+					if (MPlayer->playerInfo[i].commanderID > -1)
+						players++;
 					for (long j = 0; j < 3; j++)
 						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
-				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(netHostPlayers));
+				}
+				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(players));
+				MPlayer->waitForNetStart();
 			}
 			else
 				mission->init(missionName, MISSION_LOAD_SP_QUICKSTART, 0, NULL, commandersToLoad, 2);
@@ -1717,8 +1732,8 @@ void __stdcall InitializeGameEngine()
 		}
 		else
 		{
-			if (netHostPlayers > 0)
-				PAUSE(("-nethost: ignored without -mission"));
+			if ((netHostPlayers > 0) || netJoinAddress[0])
+				PAUSE(("-nethost, -netjoin: ignored without -mission"));
 			int param = log_SPLASH;
 			if ( MPlayer && MPlayer->launchedFromLobby )
 				param = log_ZONE;
@@ -2193,6 +2208,14 @@ void __stdcall DoGameLogic()
 						MPlayer->sendEndMission(1);
 					quitGame = true;
 				}
+				else if (MPlayer && MPlayer->isNetworked() && (result != mis_PLAYING))
+				{
+					// no lobby to go back to yet
+					printf("[NET] mission over, result %ld\n", result);
+					fflush(stdout);
+					mission->destroy();
+					quitGame = true;
+				}
 				else if (result != mis_PLAYING)
 				{
 					//if (MPlayer && MPlayer->isServer())
@@ -2574,6 +2597,26 @@ void ParseCommandLine(const char *command_line)
 			{
 				PAUSE(("-nethost: needs a number of players, 1 to %d", MAX_MC_PLAYERS));
 				netHostPlayers = 0;
+			}
+		}
+		else if (S_stricmp(argv[i],"-netlisten") == 0)
+		{
+			netListenPort = netsession::DEFAULT_PORT;
+			if (((i + 1) < n_args) && isdigit((unsigned char)argv[i + 1][0]))
+				netListenPort = (unsigned short)textToLong(argv[++i]);
+		}
+		else if (S_stricmp(argv[i],"-netjoin") == 0)
+		{
+			if ((i + 1) < n_args)
+			{
+				// address, then a port after the last colon if it is IPv4
+				strncpy(netJoinAddress, argv[++i], sizeof(netJoinAddress) - 1);
+				char* colon = strrchr(netJoinAddress, ':');
+				if (colon && (colon == strchr(netJoinAddress, ':')))
+				{
+					netJoinPort = (unsigned short)textToLong(colon + 1);
+					*colon = 0;
+				}
 			}
 		}
 		else if (S_stricmp(argv[i],"-nodialog") == 0)

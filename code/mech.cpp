@@ -6025,10 +6025,9 @@ long BattleMech::update (void)
 				curPos.z = 0.0;
 				curPos.Subtract(curPos, correctPos);
 				float posDelta = curPos.GetLength();
-				if (posDelta > MPlayer->warpFactor)
+				// a bad cell from the network is ignored, not the end of the game
+				if ((posDelta > MPlayer->warpFactor) && GameMap->inBounds(moveChunk.stepPos[0][0], moveChunk.stepPos[0][1]))
 					newPosition = correctPos;
-				if (!GameMap->inBounds(moveChunk.stepPos[0][0], moveChunk.stepPos[0][1]))
-					Fatal(0, " mech.update: newMoveChunk stepPos not on map! ");
 			}
 			newMoveChunk = false;
 		}
@@ -7269,7 +7268,8 @@ long BattleMech::handleStatusChunk (long updateAge, unsigned long chunk) {
 		if (statusChunk.targetType > STATUSCHUNK_TARGET_NONE) {
 			switch (statusChunk.targetType) {
 				case STATUSCHUNK_TARGET_MOVER:
-					if (MPlayer->moverRoster[statusChunk.targetId])
+					// the field can hold more than the roster does
+					if ((statusChunk.targetId < MAX_MULTIPLAYER_MOVERS) && MPlayer->moverRoster[statusChunk.targetId])
 						lastTargetId = MPlayer->moverRoster[statusChunk.targetId]->getPartId();
 					break;
 				case STATUSCHUNK_TARGET_TERRAIN:
