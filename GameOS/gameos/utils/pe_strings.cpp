@@ -1,5 +1,7 @@
 #include "utils/pe_strings.h"
 
+#include <cctype>
+
 #include <vector>
 
 namespace {
@@ -140,4 +142,15 @@ bool readPeStringTable(const uint8_t* data, size_t size,
         }
     }
     return true;
+}
+
+bool isPlaceholderString(const char* text)
+{
+    if (!text)
+        return false;
+    const char* word = "undefined";
+    for (; *word; ++word, ++text)
+        if (std::tolower((unsigned char)*text) != *word)
+            return false;
+    return *text == '\0' || *text == '_';
 }
