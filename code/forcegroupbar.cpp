@@ -506,6 +506,9 @@ bool ForceGroupBar::setPilotVideo( const char* pVideo, MechWarrior* pPilot )
 								ExitGameOS();
 								return 1; 
 							}
+							// no dialog was shown (Linux has none), so nobody can fix this and press OK
+							if (result != IDOK)
+								break;
 
 							fileThere = fileExists(actualPath);
 							if (fileThere)

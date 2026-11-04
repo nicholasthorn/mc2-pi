@@ -313,6 +313,13 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 							ExitGameOS();
 							return (2);		//File not found.  Never returns though!
 						}
+						// no dialog was shown (Linux has none), so nobody can fix this and press OK
+						if (result1 != IDOK)
+						{
+							if (alreadyFullScreen)
+								EnterFullScreenMode();
+							return (2);
+						}
 		
 						handle = _open(actualPath,_O_RDONLY);
 					}
