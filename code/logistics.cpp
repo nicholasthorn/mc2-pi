@@ -569,7 +569,6 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 	long numPlayers = 1;
 	if ( MPlayer )
 		MPlayer->getPlayers(numPlayers);
-	long numMoversPerCommander[MAX_MC_PLAYERS] = {12, 12, 12, 9, 7, 6, 5, 4};
 	Stuff::Vector3D dropZoneList[255]; // ubsurdly large, but sometimes we overrun this.
 	long dropZoneID = 0;
 	if (MPlayer) {
@@ -582,7 +581,7 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 		useUnlimitedAmmo = MPlayer->missionSettings.unlimitedAmmo;
 	}
 
-	mission->init((char*)(const char*)LogisticsData::instance->getCurrentMission(), missionLoadType, dropZoneID, dropZoneList, commandersToLoad, numMoversPerCommander[numPlayers - 1]);
+	mission->init((char*)(const char*)LogisticsData::instance->getCurrentMission(), missionLoadType, dropZoneID, dropZoneList, commandersToLoad, MultiPlayer::moversPerCommander(numPlayers));
 
 	LogisticsData::instance->rpJustAdded = 0;
 

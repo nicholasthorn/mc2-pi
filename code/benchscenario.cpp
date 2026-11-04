@@ -79,6 +79,7 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 	readOptional(fit, "ReorderEvery", reorderEvery);
 	readOptional(fit, "StrikeRadius", strikeRadius);
 	readOptional(fit, "Follow", follow);
+	readOptional(fit, "Pain", pain);
 	readOptional(fit, "ScreenX", screenX);
 	readOptional(fit, "ScreenY", screenY);
 	if (gather < 0)
