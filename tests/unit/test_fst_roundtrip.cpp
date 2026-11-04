@@ -384,6 +384,14 @@ TEST_CASE("an FST cut off before its data reads nothing, not retried for ever")
 		CHECK(ff.readFast(entry, buf, sizeof(buf)) == 0);
 		CHECK(ff.readFastRAW(entry, buf, sizeof(buf)) == 0);
 	}
+	{
+		// File::open reads the whole entry: no data must not look like a file
+		FstRegistry reg(fstPath.c_str());
+		REQUIRE(reg.ok);
+		remove(kFstEntryName);
+		File f;
+		CHECK(f.open(kFstEntryName) == READ_PAST_EOF_ERR);
+	}
 	remove(fstPath.c_str());
 }
 #endif

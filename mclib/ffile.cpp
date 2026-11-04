@@ -174,6 +174,8 @@ long FastFile::open (const char* fName)
 				// no dialog was shown (Linux has none), so nobody can fix this and press OK
 				if (result1 != IDOK)
 				{
+					if (alreadyFullScreen)
+						EnterFullScreenMode();
 					return FILE_NOT_FOUND_ERR;
 				}
 

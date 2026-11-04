@@ -393,7 +393,12 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 			fileImage = (unsigned char *)malloc(fileSize());
 			if (fileImage)
 			{
-				fastFile->readFast(fastFileHandle,fileImage,fileSize());
+				// no data must not look like a file (readFast has logged it)
+				if (fastFile->readFast(fastFileHandle,fileImage,fileSize()) == 0 && fileSize() > 0)
+				{
+					close();
+					return READ_PAST_EOF_ERR;
+				}
 
 				physicalLength = getLength();
 				//------------------------------------
