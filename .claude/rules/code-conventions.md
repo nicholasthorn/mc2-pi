@@ -7,8 +7,18 @@ Most of the tree is 2001 Microsoft code plus alariq's port. Treat it as legacy:
 - **Match the surrounding style** (tabs, Hungarian-ish names, `long`/`DWORD`,
   comment density). Do not reformat, rename or reorder legacy code you are not
   changing: it wrecks `git blame` and makes merges from `alariq/mc2` conflict.
-- **Fix narrowly.** A bug fix touches the lines that are wrong, plus a short
-  comment when the reason is not obvious (why a null check, why `memcpy`).
+- **Fix the cause, and keep the diff focused.** Find the assumption behind a bug
+  and where else it is made, and prefer one fix or helper over a patch per case.
+  Every changed line should serve that fix: no unrelated cleanup or reformatting.
+  Add a short comment when the reason is not obvious (why a null check, why
+  `memcpy`). In gameplay code without tests, pin the current behaviour first, or
+  fix only the case you found and say so.
+- **When data broke an assumption, sweep the data.** If the cause is a sheet's
+  size, a row count, a layout index, a list limit or a name's spelling, check
+  every row and every related file, on stock and Omnitech, not just the one that
+  showed the bug: temporary logging over the whole set, a script, or a sanitizer
+  run on the UI walks. Do this as part of the fix, before anyone asks. Say in the
+  PR what you checked and what you left.
 - **`STOP(...)` ends the game** (log, message box, exit 1), but
   `MC2_STOP_EXITS=0` makes it log and carry on, and `gosASSERT` compiles to
   nothing unless `_ARMOR` is defined. So a null check that only calls `STOP`

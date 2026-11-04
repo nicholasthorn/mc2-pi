@@ -112,10 +112,11 @@ void __stdcall gos_CloseResourceDLL(HSTRRES handle)
     delete pstrres;
 }
 
-// Strings the game's own table lacks, from a Windows resource DLL named
-// mc2res.dll in the game folder (MechCommander Omnitech keeps the names and
-// descriptions of its new units there). Read on the first miss; the game's
-// table always wins, so stock text is never replaced.
+// Strings the game's own table lacks or only has a placeholder for, from a
+// Windows resource DLL named mc2res.dll in the game folder (MechCommander
+// Omnitech keeps the names and descriptions of its new units there). Read on
+// the first miss; real text in the game's table always wins, so stock text is
+// never replaced.
 static const char* getExtraString(DWORD id)
 {
     static std::map<uint32_t, std::string>* extra = NULL;
@@ -148,8 +149,11 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
         return "";
     gos_StringRes* pstrres = (gos_StringRes*)(handle);
     const char* str = pstrres->getStringByIdFptr(id);
-    if(NULL == str)
-        str = getExtraString(id);
+    if(NULL == str || isPlaceholderString(str)) {
+        const char* extra = getExtraString(id);
+        if(extra && (NULL == str || !isPlaceholderString(extra)))
+            str = extra;
+    }
 
     if(NULL == str) {
         fprintf(stderr, "Requested string id: %u not found, return dummy string\n", id);
