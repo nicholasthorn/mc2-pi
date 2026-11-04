@@ -136,6 +136,7 @@ long cLoadString (HINSTANCE hInstance,  UINT uID, LPTSTR lpBuffer, int nBufferMa
 #include"gamesound.h"
 
 #include"netsession.h"
+#include"netrules.h"
 
 #include<algorithm>
 #include<cctype>
@@ -449,6 +450,29 @@ static unsigned long netHash (unsigned long hash, const char* text) {
 	return(hash);
 }
 
+// No lobby to set these in yet, so they are the map's. A map's resource points stay
+// out: reinforcements are not sent yet, and buying one would do nothing on a client.
+static void netReadMissionSettings (MultiPlayer* player, const char* missionName) {
+
+	player->missionSettings.timeLimit = -1.0f;
+	player->missionSettings.missionType = MISSION_TYPE_ELIMINATION;
+	FullPathFileName path;
+	path.init(missionPath, missionName, ".fit");
+	FitIniFile file;
+	if (file.open(path) != NO_ERR)
+		return;
+	if (file.seekBlock("MissionSettings") == NO_ERR) {
+		float limit = 0.0f;
+		if (file.readIdFloat("TimeLimit", limit) == NO_ERR)
+			player->missionSettings.timeLimit = limit;
+		unsigned long type = 0;
+		if ((file.readIdULong("MissionType", type) == NO_ERR) && (type <= MISSION_TYPE_OTHER))
+			player->missionSettings.missionType = (char)type;
+	}
+	file.close();
+	printf("[NET] mode %d, time limit %.0f\n", (int)player->missionSettings.missionType, player->missionSettings.timeLimit);
+}
+
 // No lobby to choose one in yet: the results and the units' labels show these.
 static void netNamePlayers (MultiPlayer* player) {
 
@@ -481,6 +505,7 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 		Fatal(port, " -netlisten: cannot listen on this port ");
 	startLocalHost(numPlayers);
 	inSession = true;
+	netReadMissionSettings(this, missionName);
 	netNamePlayers(this);
 	initUpdateFrequencies();
 	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
@@ -511,6 +536,7 @@ void MultiPlayer::joinNetGame (const char* address, unsigned short port, const c
 		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
 	startLocalHost(netSession->numPlayers());
 	inSession = true;
+	netReadMissionSettings(this, missionName);
 	netNamePlayers(this);
 	iAmHost = false;
 	commanderID = netSession->commander();
@@ -854,8 +880,84 @@ void MultiPlayer::addToTurretRoster (TurretPtr turret) {
 
 //---------------------------------------------------------------------------
 
+// Generic HQs: a base each on a capture base map, the hill or the territories otherwise.
+static std::vector<BuildingPtr> netHqs;
+
+static float netDistanceSquared (const Stuff::Vector3D& a, float x, float y) {
+
+	return((a.x - x) * (a.x - x) + (a.y - y) * (a.y - y));
+}
+
 void MultiPlayer::initSpecialBuildings (char commandersToLoad[8][3]) {
 
+	if (!netSession)
+		return;
+
+	netHqs.clear();
+	memset(mainHqBuildings, 0, sizeof(mainHqBuildings));
+	for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
+		BuildingPtr building = ObjectManager->getBuilding(i);
+		if (building && (building->getObjectType()->getObjTypeNum() == GENERIC_HQ_BUILDING_OBJNUM))
+			netHqs.push_back(building);
+	}
+
+	if (missionSettings.missionType == MISSION_TYPE_CAPTURE_BASE) {
+		// Each team takes the free HQ nearest where its units start, in team order, so
+		// that both ends come to the same answer. HQs nobody took are out of the game.
+		std::vector<BuildingPtr> freeHqs = netHqs;
+		for (long team = 0; team < numTeams; team++) {
+			float x = 0.0f, y = 0.0f;
+			long units = 0;
+			for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
+				if (moverRoster[i] && (moverRoster[i]->getTeamId() == team)) {
+					x += moverRoster[i]->getPosition().x;
+					y += moverRoster[i]->getPosition().y;
+					units++;
+				}
+			if ((units == 0) || freeHqs.empty())
+				continue;
+			x /= units;
+			y /= units;
+			size_t best = 0;
+			for (size_t i = 1; i < freeHqs.size(); i++)
+				if (netDistanceSquared(freeHqs[i]->getPosition(), x, y) < netDistanceSquared(freeHqs[best]->getPosition(), x, y))
+					best = i;
+			BuildingPtr hq = freeHqs[best];
+			freeHqs.erase(freeHqs.begin() + best);
+			mainHqBuildings[team] = hq;
+			hq->setCommanderId(team);
+			hq->setTeamId(team, true);
+			printf("[NET] team %ld's base is at %.0f, %.0f\n", team, hq->getPosition().x, hq->getPosition().y);
+		}
+		for (size_t i = 0; i < freeHqs.size(); i++)
+			freeHqs[i]->setFlag(OBJECT_FLAG_CAPTURABLE, false);
+	}
+}
+
+//---------------------------------------------------------------------------
+
+void MultiPlayer::stageHqCapture (void) {
+
+	if (!netSession || !iAmHost)
+		return;
+	BuildingPtr target = NULL;
+	if (missionSettings.missionType == MISSION_TYPE_CAPTURE_BASE) {
+		for (long team = 0; (team < numTeams) && !target; team++)
+			if ((team != commanderID) && mainHqBuildings[team])
+				target = mainHqBuildings[team];
+		}
+	else if (!netHqs.empty())
+		target = netHqs[0];
+	if (!target) {
+		printf("[NET] no HQ to take on this map\n");
+		return;
+	}
+	addCaptureBuildingChunk(target, target->getCommanderId(), commanderID);
+	if (missionSettings.missionType == MISSION_TYPE_CAPTURE_BASE)
+		target->setFlag(OBJECT_FLAG_CAPTURABLE, false);
+	target->setCommanderId(commanderID);
+	target->setTeamId(playerInfo[commanderID].team, false);
+	printf("[NET] the host's team takes the HQ at %.0f, %.0f\n", target->getPosition().x, target->getPosition().y);
 }
 
 //***************************************************************************
@@ -1143,6 +1245,8 @@ void MultiPlayer::sendPlayerOrder (TacticalOrderPtr tacOrder,
 		if (!mover || (mover->getNetRosterIndex() < 0))
 			continue;
 		TacticalOrder order = *tacOrder;
+		if (order.targetIsGone())
+			continue;
 		order.attackParams.range = (FireRangeType)mover->attackRange;
 		order.pack(NULL, NULL);
 		netwire::ChunkBatch batch;
@@ -1830,7 +1934,7 @@ static void applyClientOrder (MultiPlayer* player, const netsession::Received& r
 		mover->attackRange = range;
 		netHoldsApplied++;
 		TacticalOrderPtr current = mover->getPilot()->getCurTacOrder();
-		if (current->code != TACTICAL_ORDER_NONE) {
+		if ((current->code != TACTICAL_ORDER_NONE) && !current->targetIsGone()) {
 			current->attackParams.range = (FireRangeType)range;
 			current->attackParams.pursue = (batch.words[0] & 0x100u) != 0;
 			current->pack(NULL, NULL);
@@ -1962,7 +2066,7 @@ long MultiPlayer::updateClients (bool forceIt) {
 bool MultiPlayer::calcMissionStatus (void) {
 
 	// With no network: no win conditions yet, and true would end the mission on its
-	// first frame. Phase 3 has the game modes; for now the last team standing wins.
+	// first frame.
 	if (!netSession)
 		return(false);
 
@@ -1971,22 +2075,54 @@ bool MultiPlayer::calcMissionStatus (void) {
 		// not before anyone has had time to arrive
 		if (scenarioTime < 10.0f)
 			return(false);
-		bool alive[MAX_TEAMS] = {false};
-		long teamsAlive = 0;
+
+		netrules::GameState state;
+		state.mode = missionSettings.missionType;
+		state.timeUp = (missionSettings.timeLimit > 0.0f) && (scenarioTime >= missionSettings.timeLimit);
+		for (long i = 0; i < MAX_MC_PLAYERS; i++) {
+			const long team = playerInfo[i].team;
+			if ((playerInfo[i].commanderID > -1) && (team >= 0) && (team < netrules::NUM_TEAMS))
+				state.teams[team].playing = true;
+		}
 		for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
 			MoverPtr mover = moverRoster[i];
-			if (!mover || !mover->getExists() || mover->isDisabled() || mover->isDestroyed() || (mover->getTeamId() < 0))
-				continue;
-			if (!alive[mover->getTeamId()]) {
-				alive[mover->getTeamId()] = true;
-				teamsAlive++;
-				winner = mover->getTeamId();
+			const long team = mover ? mover->getTeamId() : -1;
+			if (mover && (team >= 0) && (team < netrules::NUM_TEAMS) && mover->getExists() && !mover->isDisabled() && !mover->isDestroyed())
+				state.teams[team].liveUnits++;
+		}
+		for (long team = 0; team < MAX_TEAMS; team++) {
+			state.teams[team].score = teamScore[team];
+			if (mainHqBuildings[team]) {
+				state.teams[team].hasBase = true;
+				state.teams[team].lostBase = (mainHqBuildings[team]->getTeamId() != team);
 			}
 		}
-		if (teamsAlive > 1)
+		for (size_t i = 0; i < netHqs.size(); i++) {
+			const long team = netHqs[i]->getTeamId();
+			if ((team >= 0) && (team < netrules::NUM_TEAMS))
+				state.teams[team].held++;
+		}
+		if (!netHqs.empty())
+			state.hillTeam = netHqs[0]->getTeamId();
+
+		// holding is worth a point a second, to one clock on the host
+		static long lastPointsAt = 0;
+		const long second = (long)scenarioTime;
+		if (second != lastPointsAt) {
+			lastPointsAt = second;
+			for (long team = 0; team < MAX_TEAMS; team++) {
+				const long points = netrules::pointsPerSecond(state.mode, state.teams[team]);
+				if (points > 0) {
+					addTeamScore(team, points);
+					state.teams[team].score += points;
+				}
+			}
+		}
+
+		const netrules::Result result = netrules::decide(state);
+		if (!result.over)
 			return(false);
-		if (teamsAlive == 0)
-			winner = netwire::NO_WINNER;
+		winner = (result.winner == netrules::NO_TEAM) ? (long)netwire::NO_WINNER : result.winner;
 		updateClients(true);
 		netSession->endGame((uint8_t)winner);
 		}

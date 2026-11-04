@@ -1709,6 +1709,9 @@ class MultiPlayer : public MultiPlayerState {
 		// Over the network, what addArtilleryChunk and the like have queued.
 		void flushWorldEvents (void);
 
+		// For a test: the host's team takes the HQ that decides this mode, as a capture would.
+		void stageHqCapture (void);
+
 		long addEndMissionChunk (void);
 
 		long grabWorldChunks (unsigned long* packedChunkBuffer);
