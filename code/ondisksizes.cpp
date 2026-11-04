@@ -37,6 +37,8 @@
 #include <tgl.h>
 #include <tgainfo.h>
 #include <move.h>
+#include <vertex.h>
+#include <ffile.h>
 #include <ablexec.h>
 
 namespace {
@@ -56,7 +58,8 @@ namespace {
 #define MC2_PIN_SAVE_SIZE(Type, Lp64, Llp64) MC2_PIN_SIZE(Type, Lp64)
 #endif
 
-// Save games: objects (ObjectManager::load in objmgr.cpp)
+// Save games: objects (GameObjectManager::load in objmgr.cpp). GameObjectData and
+// MoverData are never saved on their own: load refuses a packet of their size.
 MC2_PIN_SAVE_SIZE(GameObjectData, 372, 372);
 MC2_PIN_SAVE_SIZE(MoverData, 3128, 3000);
 MC2_PIN_SAVE_SIZE(TerrainObjectData, 720, 720);
@@ -87,6 +90,8 @@ MC2_PIN_SIZE(TG_Texture, 268);
 MC2_PIN_SIZE(TG_TinyTexture, 12);
 MC2_PIN_SIZE(TGAFileHeader, 18);
 MC2_PIN_SIZE(MapCell, 4);
+MC2_PIN_SIZE(PostcompVertex, 32);	// terrain (MapData::newInit, MapData::save)
+MC2_PIN_SIZE(FILEENTRY, 266);		// FST archive table (mclib/ffile.cpp)
 // animation frames (mclib/msl.cpp); aliased because the macro pastes the name
 typedef Stuff::Point3D AnimPosition;
 typedef Stuff::UnitQuaternion AnimRotation;
