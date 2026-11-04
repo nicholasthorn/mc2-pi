@@ -787,6 +787,11 @@ void MainMenu::render()
 			{
 				GUI_RECT wholeScreen = { 0, 0, Environment.screenWidth, Environment.screenHeight };
 				drawRect( wholeScreen, 0xff000000 );
+			}
+			// and Omnitech's menu, at rest, is on black: the art would show beside it
+			const bool bMenuAtRest = !xDelta && !yDelta && !bSave && !bLoad && !bLoadSingle && !bLoadCampaign;
+			if ( frontEndWidth() != 800 && ( bIntroPlaying || !bMenuAtRest ) )
+			{
 				const int xSplash = (Environment.screenWidth - 800) / 2;
 				const int ySplash = (Environment.screenHeight - 600) / 2;
 				background.render( xSplash, ySplash );
@@ -801,7 +806,7 @@ void MainMenu::render()
 				drawRect( left, 0xff000000 );
 				drawRect( right, 0xff000000 );
 			}
-			else
+			else if ( frontEndWidth() == 800 )
 			{
 				background.render();
 				intro.render();
