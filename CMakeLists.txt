@@ -211,6 +211,7 @@ set(SOURCES
     "code/mission2.cpp"
     "code/benchscenario.cpp"
     "code/benchdirector.cpp"
+    "code/ondisksizes.cpp"
     "code/uismokewalk.cpp"
     "code/uismokedriver.cpp"
     "code/objective.cpp"
@@ -308,7 +309,8 @@ if(MC2_STRICT_WARNINGS)
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
     set_source_files_properties(code/uismokewalk.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
-    # uismokedriver.cpp is game glue (like benchdirector.cpp) but new code:
+    # uismokedriver.cpp is game glue (like benchdirector.cpp) but new code, as is
+    # ondisksizes.cpp (compile-time size checks over the game's structs):
     # the engine's include directories are passed again as -isystem (GCC and
     # Clang then drop the -I), so the strict set reports the driver, not the
     # 2001 headers it includes.
@@ -316,7 +318,7 @@ if(MC2_STRICT_WARNINGS)
     foreach(_dir GameOS/include GameOS/gameos mclib gui code netlib thirdparty)
         list(APPEND _mc2_legacy_isystem "-isystem" "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}")
     endforeach()
-    set_source_files_properties(code/uismokedriver.cpp
+    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp
         PROPERTIES COMPILE_OPTIONS
         "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas;${_mc2_legacy_isystem}")
 endif()
