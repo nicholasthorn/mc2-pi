@@ -34,6 +34,11 @@
 #                     in a different game state ([STATEHASH] lines differ).
 #                     Off by default: it drops sound, which the plain runs
 #                     cover.
+#   --nethost N       run each mission with -nethost N (multiplayer host code
+#                     for N players, no network, no clients); for the mc2_m*
+#                     multiplayer maps.
+#   --scenario FILE   play this scenario (bench/README.md) in each mission: an
+#                     absolute path, for runs that need a battle.
 #
 # Exit status: 0 if every run passed, 1 otherwise.
 
@@ -102,6 +107,8 @@ while [ $# -gt 0 ]; do
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
         --display)   USE_DISPLAY=1; shift ;;
         --deterministic) DETERMINISTIC=1; shift ;;
+        --nethost) NETHOST="$2"; shift 2 ;;
+        --scenario) SCENARIO="$2"; shift 2 ;;
         -h|--help)   sed -n '2,/^$/p' "$0"; exit 0 ;;
         *) echo "smoke: unknown option $1" >&2; exit 2 ;;
     esac
@@ -206,6 +213,8 @@ report() {
 
 EXTRA=()
 [ "$DETERMINISTIC" = 1 ] && EXTRA=(-deterministic)
+[ -n "${NETHOST:-}" ] && EXTRA+=(-nethost "$NETHOST")
+[ -n "${SCENARIO:-}" ] && EXTRA+=(-bench "$LOG_DIR/frames.csv" -benchscenario "$SCENARIO")
 
 # mission_checks LOG NAME: add to reasons when the run never reached
 # [AUTOEXIT], spent its frames before the mission started, or started another

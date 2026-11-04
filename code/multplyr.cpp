@@ -193,6 +193,7 @@ extern DebuggerPtr debugger;
 //------------
 // GLOBAL vars
 MultiPlayer* MPlayer = NULL;
+static long localHostWeaponHits = 0;	// counted for the [NETHOST] log line
 //extern long NumMissionScriptMessages;
 
 ///extern Scenario* scenario;
@@ -358,6 +359,19 @@ long MultiPlayer:: setup (void) {
 
 //---------------------------------------------------------------------------
 
+void MultiPlayer::startLocalHost (long numPlayers) {
+
+	iAmHost = true;
+	commanderID = 0;
+	// Every commander is on a team of their own. Mission::init reads these.
+	for (long i = 0; i < MAX_MC_PLAYERS; i++) {
+		playerInfo[i].commanderID = (i < numPlayers) ? (char)i : (char)-1;
+		playerInfo[i].team = (i < numPlayers) ? (char)i : (char)-1;
+	}
+}
+
+//---------------------------------------------------------------------------
+
 void MultiPlayer::initUpdateFrequencies() {
 
 }
@@ -366,6 +380,23 @@ void MultiPlayer::initUpdateFrequencies() {
 
 long MultiPlayer::update (void) {
 
+	// The host has nobody to send to yet, so empty the queues the game fills
+	// for clients (a full weapon fire queue is Fatal), and log what they held.
+	if (iAmHost && mission && mission->isActive()) {
+		static long frames = 0;
+		static long numFire = 0, numCrits = 0, numRadio = 0;
+		for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
+			MoverPtr mover = ObjectManager->getMover(i);
+			numFire += mover->clearWeaponFireChunks(CHUNK_SEND);
+			numCrits += mover->clearCriticalHitChunks(CHUNK_SEND);
+			numRadio += mover->clearRadioChunks(CHUNK_SEND);
+		}
+		for (long i = 0; i < ObjectManager->getNumTurrets(); i++)
+			numFire += ObjectManager->getTurret(i)->clearWeaponFireChunks(CHUNK_SEND);
+		if ((++frames % 600) == 0)
+			printf("[NETHOST] frame %ld: chunks queued so far: weapon fire %ld, weapon hit %ld, critical hit %ld, radio %ld\n",
+				frames, numFire, localHostWeaponHits, numCrits, numRadio);
+	}
 	return(MPLAYER_NO_ERR);
 }
 
@@ -730,6 +761,7 @@ long MultiPlayer::grabWorldChunks (unsigned long* packedChunkBuffer) {
 
 long MultiPlayer::addWeaponHitChunk (WeaponHitChunkPtr chunk) {
 
+	localHostWeaponHits++;
 	return(0);
 }
 
@@ -737,6 +769,7 @@ long MultiPlayer::addWeaponHitChunk (WeaponHitChunkPtr chunk) {
 
 long MultiPlayer::addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr shotInfo, bool isRefit) {
 
+	localHostWeaponHits++;
 	return(0);
 }
 
@@ -1125,7 +1158,8 @@ long MultiPlayer::updateClients (bool forceIt) {
 
 bool MultiPlayer::calcMissionStatus (void) {
 
-	return(true);
+	// No win conditions yet, and true would end the mission on its first frame.
+	return(false);
 }
 
 //-----------------------------------------------------------------------------

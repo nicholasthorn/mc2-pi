@@ -1501,7 +1501,17 @@ class MultiPlayer : public MultiPlayerState {
 		}
 
 		bool isServer (void) {
-				return(false);
+				return(iAmHost);
+		}
+
+		// Host a game with no network and no clients (-nethost). Runs the
+		// host's side of the multiplayer code in one process.
+		void startLocalHost (long numPlayers);
+
+		// How many movers each commander brings, by the number of players.
+		static long moversPerCommander (long numPlayers) {
+			static const long movers[MAX_MC_PLAYERS] = {12, 12, 12, 9, 7, 6, 5, 4};
+			return(movers[numPlayers - 1]);
 		}
 
 		void setServer (NETPLAYER player, char playerIPAddress[16]);
