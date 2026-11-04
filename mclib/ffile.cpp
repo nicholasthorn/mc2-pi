@@ -324,11 +324,13 @@ long FastFile::create(const char* fName, bool compressed)
 
 	long res = writeVersion(handle);
 	if(NO_ERR != res) {
-        delete[] fileName;
-		return res;
+		return res;	// close() frees fileName and the handle
     }
 
 	res = writeNumFiles(handle, 0);
+	if(NO_ERR != res) {
+		return res;
+    }
 
 	logicalPosition = ftell(handle);
 		

@@ -62,8 +62,9 @@ ZERO_FILL_MEMSET = re.compile(r"\bmemset\s*\([^,]+,\s*(0+|0[xX]0+|'\\0')\s*,")
 # defect. dangerousTypeCast: every old-style pointer cast between class types
 # (about 1,100), all through the object and list code. nullPointerOutOfMemory:
 # using an allocation with no NULL check (about 70); running out of memory ends
-# the game anyway, so the check would ask for handling nothing can do anything
-# with.
+# the game anyway. Not every site is true exhaustion: mclib/tgainfo.cpp sizes one
+# from a file's header, so a corrupt file can reach it. The check cannot tell
+# them apart, so size checks on read data have to be found by reading.
 NOISE = {"dangerousTypeCast", "nullPointerOutOfMemory"}
 # some messages name a line ("called from constructor 'Camera()' at line
 # 389"); keys must not move when unrelated edits shift the code

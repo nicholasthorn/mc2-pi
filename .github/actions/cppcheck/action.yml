@@ -15,7 +15,7 @@ runs:
   using: composite
   steps:
     - id: cache
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v6
       with:
         path: ~/cppcheck-${{ inputs.version }}
         key: cppcheck-${{ runner.os }}-${{ runner.arch }}-${{ inputs.commit }}
@@ -34,6 +34,12 @@ runs:
         cmake --build .cppcheck-build
         cmake --install .cppcheck-build
         rm -rf .cppcheck-src .cppcheck-build
+    # saved here, not at the end of the job: a red gate must not lose the build
+    - if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ~/cppcheck-${{ inputs.version }}
+        key: cppcheck-${{ runner.os }}-${{ runner.arch }}-${{ inputs.commit }}
     - shell: bash
       run: |
         echo "$HOME/cppcheck-${{ inputs.version }}/bin" >> "$GITHUB_PATH"
