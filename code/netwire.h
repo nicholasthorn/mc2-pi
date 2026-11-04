@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 1;
+constexpr uint16_t PROTOCOL_VERSION = 2;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -35,14 +35,18 @@ constexpr uint16_t NO_SUBJECT = 0xFFFF;
 enum class MessageType : uint8_t {
 	Hello = 1,
 	Welcome = 2,
-	ChunkBatch = 3
+	ChunkBatch = 3,
+	Ready = 4,
+	Start = 5,
+	EndGame = 6
 };
 
 enum class RejectReason : uint8_t {
 	None = 0,
 	WrongVersion = 1,
 	WrongData = 2,
-	GameFull = 3
+	GameFull = 3,
+	WrongRoster = 4		// the mission loaded with other units than the host's
 };
 
 enum class ChunkKind : uint8_t {
@@ -53,7 +57,8 @@ enum class ChunkKind : uint8_t {
 	CriticalHit = 5,
 	Radio = 6,
 	World = 7,
-	Order = 8
+	Order = 8,
+	Check = 9
 };
 
 // client to host, first thing on a connection
@@ -68,6 +73,22 @@ struct Welcome {
 	RejectReason reject = RejectReason::None;
 	uint8_t commanderId = 0;	// below numPlayers, when not rejected
 	uint8_t numPlayers = 0;		// 1 to MAX_PLAYERS, when not rejected
+};
+
+// client to host, once the mission has loaded
+struct Ready {
+	uint32_t rosterHash = 0;	// of the units it loaded, in order
+};
+
+// host to clients, once all are ready: no body
+struct Start {
+};
+
+constexpr uint8_t NO_WINNER = 0xFF;
+
+// host to clients: the mission is over
+struct EndGame {
+	uint8_t winningTeam = NO_WINNER;	// below MAX_PLAYERS, or NO_WINNER
 };
 
 // A run of packed game chunks of one kind, for one mover or turret (its index
@@ -124,12 +145,18 @@ bool peekProtocol(const void* data, size_t size, uint16_t& protocol);
 bool encode(const Hello& message, std::vector<uint8_t>& out);
 bool encode(const Welcome& message, std::vector<uint8_t>& out);
 bool encode(const ChunkBatch& message, std::vector<uint8_t>& out);
+bool encode(const Ready& message, std::vector<uint8_t>& out);
+bool encode(const Start& message, std::vector<uint8_t>& out);
+bool encode(const EndGame& message, std::vector<uint8_t>& out);
 
 // Each decoder returns false, and leaves message unusable, unless the whole of
 // data is one valid message of that type.
 bool decode(const void* data, size_t size, Hello& message);
 bool decode(const void* data, size_t size, Welcome& message);
 bool decode(const void* data, size_t size, ChunkBatch& message);
+bool decode(const void* data, size_t size, Ready& message);
+bool decode(const void* data, size_t size, Start& message);
+bool decode(const void* data, size_t size, EndGame& message);
 
 }
 
