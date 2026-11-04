@@ -3,7 +3,8 @@
 Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 has begun: the
 wire format (`code/netwire.*`) and the transport interface with a test loopback
 (`GameOS/gameos/gos_net.*`) exist, and nothing calls them yet. No real transport:
-the library spike has not run, so Decision 4 is still open.
+the library builds for Quest but has not run there (see "Android spike"), so
+Decision 4 is not final.
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are
@@ -216,8 +217,8 @@ shaped like DirectPlay and is not worth implementing.
 | NAT traversal | Built-in ICE client; you supply signaling, STUN, TURN | Not built in (to confirm) |
 | Lag and loss simulation | Built in | No |
 | Dependencies | Protobuf, plus libsodium or OpenSSL | None |
-| Android arm64 | **Not mentioned in its docs**; iOS is | Plain C, expected to be easy |
-| State | v1.5.1, May 2026, after a gap from 2022 | Stable and small |
+| Android arm64 | **Not in its docs or its CI**, but it builds (see "Android spike"); not run yet | Plain C, expected to be easy |
+| State | v1.6.1, October 2026, after a gap from 2022 | Stable and small |
 | Licence | BSD-3-Clause | MIT |
 | Steam | Not needed; relay and signaling services are Steam-only | Not applicable |
 
@@ -228,6 +229,33 @@ Protobuf cross-compiled with NDK r28c, alongside the Windows `3rdparty` story an
 the apt lists. Phase 1 opens with a time-boxed spike. If GNS does not build
 cleanly on all targets, use ENet for LAN, and pair it with an ICE library for
 the internet.
+
+### Android spike (2026-11-04)
+
+GNS v1.6.1 with its native ICE client, OpenSSL 3.0.15 and protobuf 21.12 (the last
+version without Abseil) compile for Android arm64 with NDK r28c, API 29, with no
+source changes to any of them. It has not been loaded or run on a headset.
+
+- **Size:** `libGameNetworkingSockets.so` is 7.0 MB stripped, built with `MinSizeRel`
+  (2.5 MB gzipped), with OpenSSL and protobuf linked in. The APK stores native
+  libraries uncompressed, so it grows by about the 7 MB. The `.proto` files
+  ask for `optimize_for = SPEED`, so the full protobuf runtime is linked; moving them
+  to the lite runtime might shrink this, but would mean patching the library.
+- **It depends on** only `liblog`, `libm`, `libdl` and `libc`, and exports the flat C
+  API (`GameNetworkingSockets_Init`, `CreateListenSocketIP`, `ConnectByIPAddress`).
+- **The friction is OpenSSL on Windows, not GNS.** `scripts/android/build.sh` runs in
+  Git Bash, whose Perl lacks modules OpenSSL's `Configure` needs (three were missing
+  before the attempt stopped). The spike compiled OpenSSL in WSL instead, with Ubuntu's
+  clang 21 against the NDK's headers. That is not a build to ship: a real one uses the
+  NDK's own compiler, on Linux, or from Windows with a full Perl.
+- **Not settled by the spike:** whether it works on a Quest (sockets, permissions,
+  threads), Windows MSVC (OpenSSL and protobuf, or `BCrypt`, into `3rdparty`), Pi and
+  Linux. Ubuntu 26.04 offers `libprotobuf-dev` 3.21.12 and `libssl-dev`, neither
+  built against here. Older distributions in the CI list need checking.
+
+**Recommendation so far: keep GNS.** The risk this spike was for did not stop it. Next:
+load it on a Quest and send messages over Wi-Fi between it and a PC, which is what
+would still send this to ENet.
 
 Rejected: VPNs such as Tailscale as the remote answer (fine for PC players, but a
 poor request for a headset), TCP (a lost packet delays every later update), and
@@ -481,7 +509,7 @@ For you:
 
 For the work:
 
-- Does GNS build for Android with NDK r28c, and at what APK size?
+- Does GNS run on a Quest? (It builds, and adds about 7 MB: "Android spike".)
 - How much cheaper is a client's step than single-player's on a Quest?
 - Is legacy step-following acceptable at 100 to 250 ms with loss?
 - What does the game do today when the OpenXR session loses focus, and can a
