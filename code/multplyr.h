@@ -1560,8 +1560,10 @@ class MultiPlayer : public MultiPlayerState {
 		// for write purposes....
 		MC2Player* getPlayerInfo( long commanderID )
 		{
-			// Networking is stubbed: the multiplayer screens read and write
-			// player info unchecked, so hand them a blank record, not NULL.
+			// With no network: the multiplayer screens read and write player
+			// info unchecked, so hand them a blank record, not NULL.
+			if (inSession && (commanderID >= 0) && (commanderID < MAX_MC_PLAYERS))
+				return &playerInfo[commanderID];
 			static MC2Player blankPlayer;
 			memset(&blankPlayer, 0, sizeof(blankPlayer));
 			return &blankPlayer;

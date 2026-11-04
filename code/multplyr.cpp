@@ -404,6 +404,8 @@ void MultiPlayer::initUpdateFrequencies() {
 static std::unique_ptr<gos_net::Transport> netTransport;
 static std::unique_ptr<netsession::Session> netSession;
 
+static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, long a, long b, unsigned long value);
+
 static void netClose (void) {
 
 	netSession.reset();
@@ -413,7 +415,8 @@ static void netClose (void) {
 static const float NET_WAIT_SECONDS = 300.0f;
 static long netOrdersApplied = 0;
 static long netRepairsApplied = 0;
-static long netWorldApplied[5] = {0};	// by event type: artillery, mine, fire, capture, kill or loss
+static long netHoldsApplied = 0;
+static long netWorldApplied[7] = {0};	// by event type: artillery, mine, fire, capture, kill or loss, script, score
 static const long NET_CAUSE_REFIT_POINTS = -5;	// a weapon hit chunk's cause: a repair spending its points
 static const uint32_t NET_SWEEP_AWAKE = 0x10000u;	// on a unit's index in a sweep
 static const long NET_TURRET_SUBJECT = MAX_MULTIPLAYER_MOVERS;	// a WeaponFire batch's subject from here is a turret
@@ -446,6 +449,14 @@ static unsigned long netHash (unsigned long hash, const char* text) {
 	return(hash);
 }
 
+// No lobby to choose one in yet: the results and the units' labels show these.
+static void netNamePlayers (MultiPlayer* player) {
+
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if (player->playerInfo[i].commanderID > -1)
+			sprintf(player->playerInfo[i].name, "Player %ld", i + 1);
+}
+
 static const char* netRejectName (netwire::RejectReason reason) {
 
 	switch (reason) {
@@ -469,6 +480,8 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 	if (!netSession->host(port, (uint8_t)numPlayers, (uint32_t)netHash(2166136261u, missionName)))
 		Fatal(port, " -netlisten: cannot listen on this port ");
 	startLocalHost(numPlayers);
+	inSession = true;
+	netNamePlayers(this);
 	initUpdateFrequencies();
 	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
 	fflush(stdout);
@@ -497,6 +510,8 @@ void MultiPlayer::joinNetGame (const char* address, unsigned short port, const c
 	if (netSession->rejected() != netwire::RejectReason::None)
 		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
 	startLocalHost(netSession->numPlayers());
+	inSession = true;
+	netNamePlayers(this);
 	iAmHost = false;
 	commanderID = netSession->commander();
 	initUpdateFrequencies();
@@ -613,6 +628,10 @@ void MultiPlayer::setCancelled (bool set) {
 
 void MultiPlayer::addTeamScore (int teamID, int score) {
 
+	if (!netSession || (teamID < 0) || (teamID >= MAX_TEAMS))
+		return;
+	teamScore[teamID] += score;
+	addWorldEvent(this, netwire::WorldEventType::Score, teamID, 0, (unsigned long)(uint32_t)score);
 }
 
 //---------------------------------------------------------------------------
@@ -744,9 +763,14 @@ MC2Player GetPlayersList[MAX_MC_PLAYERS];
 
 const MC2Player* MultiPlayer::getPlayers (long& playerCount) {
 
-	// networking is stubbed: no players (callers loop to playerCount)
+	// with no network: no players (callers loop to playerCount)
 	playerCount = 0;
-	return(NULL);
+	if (!netSession)
+		return(NULL);
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if (playerInfo[i].commanderID > -1)
+			GetPlayersList[playerCount++] = playerInfo[i];
+	return(GetPlayersList);
 }
 
 //-----------------------------------------------------------------------------
@@ -868,6 +892,10 @@ static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, lo
 
 long MultiPlayer::addMissionScriptMessageChunk (long code, long param) {
 
+	if ((param < 0) || (param > 0xFFFFFF))
+		printf("[NET] mission script message %ld: parameter %ld does not fit, not sent\n", code, param);
+	else
+		addWorldEvent(this, netwire::WorldEventType::ScriptMessage, param & netwire::MAX_WORLD_FIELD, param >> 12, (unsigned long)code);
 	return(0);
 }
 
@@ -1131,6 +1159,21 @@ void MultiPlayer::sendPlayerOrder (TacticalOrderPtr tacOrder,
 
 void MultiPlayer::sendHoldPosition (void) {
 
+	if (!netSession || iAmHost || !Team::home || !Commander::home)
+		return;
+	const bool fromCurrentPos = ControlGui::instance && ControlGui::instance->getFireFromCurrentPos();
+	for (long i = 0; i < Team::home->getRosterSize(); i++) {
+		MoverPtr mover = Team::home->getMover(i);
+		if (!mover || !mover->isSelected() || (mover->getCommander() != Commander::home) || (mover->getNetRosterIndex() < 0))
+			continue;
+		// one word: an order with only a range and whether to pursue
+		netwire::ChunkBatch batch;
+		batch.kind = netwire::ChunkKind::Order;
+		batch.subject = (uint16_t)mover->getNetRosterIndex();
+		const bool pursue = (mover->attackRange != FIRERANGE_CURRENT) && !fromCurrentPos;
+		batch.words.push_back((uint32_t)(mover->attackRange - FIRERANGE_DEFAULT) | (pursue ? 0x100u : 0u));
+		netSession->sendToHost(gos_net::Delivery::ReliableOrdered, batch);
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -1357,8 +1400,8 @@ static void applyNetCheck (MultiPlayer* player, const netwire::ChunkBatch& batch
 			farthest = distance;
 	}
 	printf("[NETCHECK] %ld units: status differs %ld, armour differs %ld, farthest %.0f\n", units, statusDiffers, armorDiffers, farthest);
-	printf("[NETWORLD] artillery %ld, mines %ld, fires %ld, captures %ld, kills and losses %ld, repairs %ld\n",
-		netWorldApplied[0], netWorldApplied[1], netWorldApplied[2], netWorldApplied[3], netWorldApplied[4], netRepairsApplied);
+	printf("[NETWORLD] artillery %ld, mines %ld, fires %ld, captures %ld, kills and losses %ld, repairs %ld, script messages %ld, scores %ld\n",
+		netWorldApplied[0], netWorldApplied[1], netWorldApplied[2], netWorldApplied[3], netWorldApplied[4], netRepairsApplied, netWorldApplied[5], netWorldApplied[6]);
 	fflush(stdout);
 }
 
@@ -1667,6 +1710,16 @@ static void applyWorldEvent (MultiPlayer* player, const netwire::WorldEvent& eve
 				player->playerInfo[event.b].losses++;
 			netWorldApplied[4]++;
 			break;
+		case netwire::WorldEventType::ScriptMessage:
+			if (mission)
+				mission->handleMultiplayMessage((long)(int32_t)event.value, (long)event.a | ((long)event.b << 12));
+			netWorldApplied[5]++;
+			break;
+		case netwire::WorldEventType::Score:
+			if (event.a < MAX_TEAMS)
+				player->teamScore[event.a] += (int32_t)event.value;
+			netWorldApplied[6]++;
+			break;
 	}
 }
 
@@ -1764,11 +1817,27 @@ static void applyClientOrder (MultiPlayer* player, const netsession::Received& r
 		netOrdersApplied++;
 		return;
 	}
-	if ((batch.subject >= MAX_MULTIPLAYER_MOVERS) || (batch.words.size() != 3))
+	if ((batch.subject >= MAX_MULTIPLAYER_MOVERS) || ((batch.words.size() != 3) && (batch.words.size() != 1)))
 		return;
 	MoverPtr mover = player->moverRoster[batch.subject];
 	if (!mover || !mover->getPilot() || (mover->getCommanderId() != received.commander))
 		return;
+	if (batch.words.size() == 1) {
+		// hold position: as ControlGui::toggleHoldPosition does on a host
+		const long range = (long)(batch.words[0] & 0xFF) + FIRERANGE_DEFAULT;
+		if (range >= NUM_FIRERANGES)
+			return;
+		mover->attackRange = range;
+		netHoldsApplied++;
+		TacticalOrderPtr current = mover->getPilot()->getCurTacOrder();
+		if (current->code != TACTICAL_ORDER_NONE) {
+			current->attackParams.range = (FireRangeType)range;
+			current->attackParams.pursue = (batch.words[0] & 0x100u) != 0;
+			current->pack(NULL, NULL);
+			mover->handleTacticalOrder(*current);
+		}
+		return;
+	}
 	if (!TacticalOrder::validPacked(batch.words[0], batch.words[1]))
 		return;
 	TacticalOrder order;
@@ -1867,8 +1936,8 @@ long MultiPlayer::updateClients (bool forceIt) {
 			sendNetCheck(this);
 		}
 		if ((turn % 600) == 0)
-			printf("[NET] turn %ld: sent weapon fire %ld (turrets %ld), weapon hit %ld, critical hit %ld; orders from clients %ld; %d clients\n",
-				(long)turn, moverWeaponFireLoad + turretWeaponFireLoad, turretWeaponFireLoad, weaponHitLoad, moverCriticalLoad, netOrdersApplied, netSession->connectedClients());
+			printf("[NET] turn %ld: sent weapon fire %ld (turrets %ld), weapon hit %ld, critical hit %ld; orders from clients %ld, holds %ld; %d clients\n",
+				(long)turn, moverWeaponFireLoad + turretWeaponFireLoad, turretWeaponFireLoad, weaponHitLoad, moverCriticalLoad, netOrdersApplied, netHoldsApplied, netSession->connectedClients());
 		return(MPLAYER_NO_ERR);
 	}
 
@@ -1944,7 +2013,7 @@ bool MultiPlayer::calcMissionStatus (void) {
 	}
 	for (long i = 0; i < MAX_MC_PLAYERS; i++)
 		if (playerInfo[i].commanderID > -1)
-			printf("[NETSCORE] commander %ld: kills %d, losses %d, team's buildings %ld\n", i, playerInfo[i].kills, playerInfo[i].losses, buildings[playerInfo[i].team]);
+			printf("[NETSCORE] commander %ld: kills %d, losses %d, team's buildings %ld, team's score %d\n", i, playerInfo[i].kills, playerInfo[i].losses, buildings[playerInfo[i].team], teamScore[playerInfo[i].team]);
 	printf("[NETSCORE] mines %ld\n", mines);
 	fflush(stdout);
 	return(true);
@@ -1961,6 +2030,22 @@ int __cdecl sortPlayerRanks (const void* player1, const void* player2) {
 
 void MultiPlayer::calcPlayerRanks (void) {
 
+	if (!netSession)
+		return;
+	// the winners first, then each team's score
+	long standings[MAX_MC_PLAYERS] = {0};
+	long ranks[MAX_MC_PLAYERS] = {0};
+	long ids[MAX_MC_PLAYERS] = {0};
+	int count = 0;
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if ((playerInfo[i].commanderID > -1) && (playerInfo[i].team >= 0)) {
+			playerInfo[i].score = teamScore[playerInfo[i].team];
+			standings[count] = playerInfo[i].score + (playerInfo[i].winner ? 100000000L : 0L);
+			ids[count++] = i;
+		}
+	netsession::rankPlayers(standings, count, ranks);
+	for (int i = 0; i < count; i++)
+		playerInfo[ids[i]].rank = ranks[i];
 }
 
 //-----------------------------------------------------------------------------

@@ -172,7 +172,9 @@ void MPStats::render( int xOffset, int yOffset )
 		entries[i].render( 0, 0 );
 	}
 
-	ChatWindow::instance()->render(xOffset, yOffset);
+	// none until the lobby makes one
+	if ( ChatWindow::instance() )
+		ChatWindow::instance()->render(xOffset, yOffset);
 
 	if ( bSavingStats )
 	{
@@ -269,7 +271,7 @@ void MPStats::update()
 			bHostLeftDlg = 0;
 		}
 	}
-	else if ( !ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
+	else if ( !ChatWindow::instance() || !ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
 			LogisticsScreen::update();
 
 	if ( ChatWindow::instance() )
