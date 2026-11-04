@@ -385,9 +385,9 @@ In VR, the star map could be a holotable, which fits the tabletop direction in
 - Existing five-mission smoke stays green: the stock campaign must not change.
 - New smoke: start sandbox, take a generated contract, finish, confirm the save.
   This depends on the UI smoke work in `planning/future-features/UI-SMOKE.md`.
-- For big maps: ASan + UBSan on a long route across a 240 map, which is the case
-  that would catch the path overflow; `scripts/bench.sh` on the Pi before anything
-  ships, on request.
+- For big maps: ASan + UBSan on a long route across a 240 map, which also shows
+  whether units refuse moves past `MAX_GLOBAL_PATH`; `scripts/bench.sh` on the Pi
+  before anything ships, on request.
 - "Is it fun" cannot be automated. Play the phase 1 slice before committing to
   later phases.
 
