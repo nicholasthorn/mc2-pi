@@ -29,7 +29,7 @@ sudo apt install libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libgles2 li
 On Debian or Ubuntu:
 
 ```bash
-sudo apt install libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libglew2.2 libgl1 zlib1g
+sudo apt install libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libglew2.2 libgl1 libopengl0 zlib1g
 ```
 
 **Windows 10 / 11 (`windows-x64`):** nothing to install; everything the game

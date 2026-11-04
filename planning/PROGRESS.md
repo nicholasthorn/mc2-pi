@@ -536,7 +536,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
-- 2026-11-04: Full release packages, game data included (branch `release-full`), as approved by the owner: jobs `gamedata` (cache shared with `smoke.yml`, no movies) and `full` in `release.yml`, `scripts/package_full.sh`. The Linux x64 and Pi packages are smoke-tested unpacked with only the runtime libraries; first time a test runs what players download. The Windows zip needs a hand check (`HARDWARE-TESTS.md`).
+- 2026-11-04: Full release packages, game data included (branch `release-full`), as approved by the owner: jobs `gamedata` (cache shared with `smoke.yml`, no movies) and `full` in `release.yml`, `scripts/package_full.sh`. The Linux x64 and Pi packages are smoke-tested unpacked with only the runtime libraries; first time a test runs what players download. The Windows zip needs a hand check (`HARDWARE-TESTS.md`). The new test found `INSTALL.md` missing `libopengl0`, so the Linux package would not start on a clean machine; fixed.
 - 2026-11-04: Omnitech's splash on its larger front end (branch `omnitech-splash-size`): the 800x600 art is centred on black, where the screen behind it showed round the edges. Stock's draw calls are unchanged.
 - 2026-11-04: README: fourth screenshot, idle mechs among mission 22's buildings (branch `readme-town-shot`).
 - 2026-11-04: README: Quest 2 as playable, screenshots and a clip in `media/` (scripted battles on the CI-built Linux package, llvmpipe, 1080p; Omnitech at 1280x1024). `future-features/EASY-INSTALL.md`: proposed one-download packages with the game data, and a helper for Omnitech, whose EULA grants no redistribution (branch `release-apk`).

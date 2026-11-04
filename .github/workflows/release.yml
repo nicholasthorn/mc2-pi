@@ -273,7 +273,7 @@ jobs:
             os: ubuntu-22.04
             ext: tar.gz
             prefs: hiprefs
-            libs: libglew2.2 libgl1
+            libs: libglew2.2 libgl1 libopengl0
           - platform: windows-x64
             os: ubuntu-24.04
             ext: zip
