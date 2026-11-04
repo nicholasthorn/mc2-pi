@@ -266,6 +266,14 @@ void LoadScreen::changeRes( FitIniFile& outFile )
 		waitingForPlayersMemory = (TGAFileHeader*)new char[size];
 		tgaFile.read( (unsigned char*)waitingForPlayersMemory, tgaFile.fileSize() );
 
+		if ( !tgaHeaderFits( waitingForPlayersMemory, size ) )
+		{
+			PAUSE(( "%s does not hold the image its header claims. Not loaded", (const char*)path ));
+			delete [] waitingForPlayersMemory;
+			waitingForPlayersMemory = NULL;
+			return;
+		}
+
 		flipTopToBottom( (BYTE*)(waitingForPlayersMemory + 1), waitingForPlayersMemory->pixel_depth, 
 			waitingForPlayersMemory->width, waitingForPlayersMemory->height );
 	}
@@ -592,7 +600,7 @@ void ProgressTimer(	RECT& WinRect,DDSURFACEDESC2& mouseSurfaceDesc )
 		srcWidth = LoadScreen::progressBackground->width;
 		srcDepth = LoadScreen::progressBackground->pixel_depth/8;
 	}
-	else if ( loadProgress == 1000 )
+	else if ( loadProgress == 1000 && LoadScreen::waitingForPlayersMemory )
 	{
 		destX = WinRect.left + LoadScreen::xWaitLoc;
 		destY = WinRect.top + LoadScreen::yWaitLoc;

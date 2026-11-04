@@ -17,7 +17,7 @@ When a feature is built, delete its file here and record it in `planning/PROGRES
 
 Studies written so far: `VR-TABLETOP.md`, `SOUND-POSITIONAL.md`,
 `NETWORKING.md`, `MOD-COMPAT.md`, `GPU-BENCHMARK.md`, `PI-RENDER-PERF.md`,
-`UI-SMOKE.md`.
+`UI-SMOKE.md`, `OPEN-WORLD.md`.
 
 Candidates mentioned so far (no files yet): movie playback and compressed TGA
 loading (alariq `TODO` item 4).
