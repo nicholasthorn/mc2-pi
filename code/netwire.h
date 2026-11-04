@@ -12,6 +12,8 @@
 #ifndef NETWIRE_H
 #define NETWIRE_H
 
+#include "gos_net.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -19,12 +21,14 @@
 
 namespace netwire {
 
-// Raise on any change to a message's layout.
+// Raise on any change to a message's layout. Two things must never change, so
+// that a host can refuse a client of any version: Hello opens with the type byte
+// and the protocol (peekProtocol), and Welcome's layout stays as it is.
 constexpr uint16_t PROTOCOL_VERSION = 1;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
-constexpr size_t MAX_MESSAGE_SIZE = 8192;
+constexpr size_t MAX_MESSAGE_SIZE = gos_net::MAX_MESSAGE_SIZE;
 constexpr uint8_t MAX_PLAYERS = 8;			// MAX_MC_PLAYERS
 constexpr uint16_t NO_SUBJECT = 0xFFFF;
 
@@ -111,6 +115,10 @@ private:
 
 // The type of a message, without checking its body.
 bool peekType(const void* data, size_t size, MessageType& type);
+
+// The protocol of a Hello, readable even when the rest of it is from a version
+// this build cannot decode. Check it first, and answer RejectReason::WrongVersion.
+bool peekProtocol(const void* data, size_t size, uint16_t& protocol);
 
 // Each encoder replaces out, and refuses a value its decoder would refuse.
 bool encode(const Hello& message, std::vector<uint8_t>& out);

@@ -22,13 +22,16 @@ typedef uint32_t ConnectionId;
 constexpr ConnectionId INVALID_CONNECTION = 0;
 
 // Anything larger needs splitting by the caller. Every backend must carry this
-// much in one message, for all delivery types.
+// much in one message, for all delivery types. An Unreliable message over about
+// 1200 bytes goes out in fragments and is lost if any one is, so keep those small.
 constexpr size_t MAX_MESSAGE_SIZE = 8192;
 
 enum class Delivery {
 	ReliableOrdered,	// orders, hits, world events, the lobby
-	ReliableUnordered,	// weapon fire, radio
-	Unreliable			// mover updates, newest wins
+	// Weapon fire, radio. Not held up by ReliableOrdered traffic, and may not
+	// assume any order: a backend is free to deliver these in order among themselves.
+	ReliableUnordered,
+	Unreliable			// mover updates, newest wins; may arrive out of order
 };
 
 enum class EventType {
@@ -59,7 +62,8 @@ public:
 	// true does not promise an Unreliable message arrives.
 	virtual bool send(ConnectionId connection, Delivery delivery, const void* data, size_t size) = 0;
 
-	// Close from this end. The other end gets Disconnected; this end gets nothing.
+	// Close from this end. The other end gets Disconnected; this end gets nothing
+	// more for this connection, not even messages that had already arrived.
 	virtual void disconnect(ConnectionId connection) = 0;
 
 	// The next event, oldest first. False when there are none.
@@ -73,7 +77,6 @@ class LoopbackNetwork {
 public:
 	// dropPercent of Unreliable messages are lost, repeatably for a given seed.
 	explicit LoopbackNetwork(unsigned dropPercent = 0, uint32_t seed = 1);
-	~LoopbackNetwork();
 	std::unique_ptr<Transport> createTransport();
 
 	struct State;

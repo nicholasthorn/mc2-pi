@@ -238,7 +238,8 @@ source changes to any of them, and carry messages between a Quest 2 and a PC.
 
 **Run on a Quest 2 (Android 14), by a small test program started from `adb shell`.**
 A client sends 100-byte messages at 30 Hz, one in six reliable, and a server echoes
-them. A connection joins in about 20 ms, encrypted by default. Round trips include about
+them. A connection joins in about 20 ms. (GNS's docs say connections are encrypted by
+default; this test did not check that.) Round trips include about
 12 ms from GNS's send batching and the test's own loop, seen on loopback too.
 
 | Path | Reliable | Unreliable | Round trip p50 / p95 / max |
@@ -267,9 +268,12 @@ power states may change Wi-Fi), a Quest as the client, two Quests, or a long run
   `3rdparty`) and arm64 Linux. Ubuntu 26.04 offers `libprotobuf-dev` 3.21.12; older
   distributions in the CI list need checking.
 
-**Decision: GNS.** The risk that could have sent this to ENet did not appear. Next: a
-`gos_net` backend, and the dependencies in the build on every target. The cost to accept is
-those dependencies, about 7 MB on a Quest, and a real OpenSSL build for Android.
+**Recommendation: GNS, not yet final.** The risk most likely to send this to ENet, Android,
+did not appear, but the test above is that it builds cleanly on all targets, and Windows
+MSVC and arm64 Linux are still to come. Next: a `gos_net` backend, and the dependencies in
+the build on every target, which settles it. The cost to accept is those dependencies, about
+7 MB on a Quest, and a real OpenSSL build for Android. GNS's reliable messages are ordered
+within a lane, so `Delivery::ReliableUnordered` should map to a lane of its own.
 
 Rejected: VPNs such as Tailscale as the remote answer (fine for PC players, but a
 poor request for a headset), TCP (a lost packet delays every later update), and

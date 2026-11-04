@@ -101,6 +101,55 @@ TEST_CASE("Hello: bad names are refused both ways")
 	REQUIRE(encode(m, out));
 	out[7] = 200;				// a length past the end of the message
 	CHECK_FALSE(decode(out.data(), out.size(), back));
+
+	// these reach 2001 UI code: signed char tables, and maybe a format string
+	m.name = "100%s";
+	CHECK_FALSE(encode(m, out));
+	m.name = "caf\xC3\xA9";
+	CHECK_FALSE(encode(m, out));
+	const uint8_t highByte[] = { 1, 1, 0, 0, 0, 0, 0, 1, 0xFF };
+	CHECK_FALSE(decode(highByte, sizeof(highByte), back));
+	const uint8_t percent[] = { 1, 1, 0, 0, 0, 0, 0, 1, '%' };
+	CHECK_FALSE(decode(percent, sizeof(percent), back));
+	m.name = "A-z 0~9";
+	CHECK(encode(m, out));
+}
+
+TEST_CASE("Hello: the protocol can be read from a version this build cannot decode")
+{
+	// a future Hello: a higher protocol, and a body laid out some other way
+	const uint8_t future[] = { 1, 0x09, 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF };
+	Hello back;
+	CHECK_FALSE(decode(future, sizeof(future), back));
+	uint16_t protocol = 0;
+	REQUIRE(peekProtocol(future, sizeof(future), protocol));
+	CHECK(protocol == 9);
+
+	CHECK_FALSE(peekProtocol(future, 2, protocol));		// too short to hold it
+	const uint8_t welcome[] = { 2, 1, 0, 0 };
+	CHECK_FALSE(peekProtocol(welcome, sizeof(welcome), protocol));
+}
+
+TEST_CASE("a message over the size limit is refused, whatever it holds")
+{
+	std::vector<uint8_t> out;
+	ChunkBatch b;
+	REQUIRE(encode(b, out));
+	out.resize(MAX_MESSAGE_SIZE + 1);
+	ChunkBatch batch;
+	CHECK_FALSE(decode(out.data(), out.size(), batch));
+
+	REQUIRE(encode(Hello(), out));
+	out.resize(MAX_MESSAGE_SIZE + 1);
+	Hello hello;
+	CHECK_FALSE(decode(out.data(), out.size(), hello));
+
+	Welcome w;
+	w.numPlayers = 1;
+	REQUIRE(encode(w, out));
+	out.resize(MAX_MESSAGE_SIZE + 1);
+	Welcome welcome;
+	CHECK_FALSE(decode(out.data(), out.size(), welcome));
 }
 
 TEST_CASE("Welcome: round trip and exact bytes")
@@ -278,7 +327,8 @@ TEST_CASE("garbage never crashes a decoder")
 	uint32_t seed = 12345u;
 	std::vector<uint8_t> bytes;
 	for (int i = 0; i < 20000; i++) {
-		bytes.resize(nextRandom(seed) % 64u);
+		// mostly short, now and then past the largest message
+		bytes.resize((i % 200 == 0) ? nextRandom(seed) % (MAX_MESSAGE_SIZE + 64u) : nextRandom(seed) % 64u);
 		for (uint8_t& b : bytes)
 			b = static_cast<uint8_t>(nextRandom(seed));
 		// a valid type byte half the time, to get past the first check

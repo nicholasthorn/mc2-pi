@@ -78,14 +78,17 @@ bool Reader::bytes(void* out, size_t size)
 
 namespace {
 
-// The name goes into the game's chat and player lists: no control characters.
+// The name goes into the game's chat and player lists, which are 2001 code with
+// signed char: printable ASCII only, and no % in case one reaches a format string.
 bool validName(const std::string& name)
 {
 	if (name.size() > MAX_NAME_LENGTH)
 		return false;
-	for (char c : name)
-		if (static_cast<uint8_t>(c) < 0x20u || static_cast<uint8_t>(c) == 0x7Fu)
+	for (char c : name) {
+		const uint8_t b = static_cast<uint8_t>(c);
+		if (b < 0x20u || b > 0x7Eu || b == '%')
 			return false;
+	}
 	return true;
 }
 
@@ -119,6 +122,15 @@ bool peekType(const void* data, size_t size, MessageType& type)
 		return false;
 	type = static_cast<MessageType>(t);
 	return true;
+}
+
+bool peekProtocol(const void* data, size_t size, uint16_t& protocol)
+{
+	Reader in(data, size);
+	if (!expectType(in, MessageType::Hello))
+		return false;
+	protocol = in.u16();
+	return in.ok();
 }
 
 bool encode(const Hello& m, std::vector<uint8_t>& out)

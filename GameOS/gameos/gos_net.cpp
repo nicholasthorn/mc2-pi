@@ -2,9 +2,11 @@
 
 #include "gos_net.h"
 
+#include <algorithm>
 #include <cstring>
 #include <deque>
 #include <map>
+#include <utility>
 
 namespace gos_net {
 
@@ -116,6 +118,8 @@ public:
 		LoopbackTransport* other = (link.ends[0] == this) ? link.ends[1] : link.ends[0];
 		other->pushState(EventType::Disconnected, connection);
 		state_->links.erase(it);
+		events_.erase(std::remove_if(events_.begin(), events_.end(),
+			[connection](const Event& e) { return e.connection == connection; }), events_.end());
 	}
 
 	bool poll(Event& event) override
@@ -146,10 +150,6 @@ LoopbackNetwork::LoopbackNetwork(unsigned dropPercent, uint32_t seed) : state_(s
 {
 	state_->dropPercent = dropPercent;
 	state_->random = seed;
-}
-
-LoopbackNetwork::~LoopbackNetwork()
-{
 }
 
 std::unique_ptr<Transport> LoopbackNetwork::createTransport()

@@ -147,20 +147,47 @@ TEST_CASE("disconnect tells the other end only")
 	CHECK_FALSE(host->poll(event));
 }
 
-TEST_CASE("a transport going away disconnects its peers, in either order")
+TEST_CASE("nothing more arrives for a connection this end closed")
 {
 	LoopbackNetwork net;
 	std::unique_ptr<Transport> host = net.createTransport();
-	std::unique_ptr<Transport> client = net.createTransport();
+	std::unique_ptr<Transport> a = net.createTransport();
+	std::unique_ptr<Transport> b = net.createTransport();
 	REQUIRE(host->listen(TEST_PORT));
-	const ConnectionId id = connectPair(*host, *client);
+	const ConnectionId idA = connectPair(*host, *a);
+	const ConnectionId idB = connectPair(*host, *b);
 
-	host.reset();
+	const uint8_t data = 9;
+	REQUIRE(a->send(idA, Delivery::ReliableOrdered, &data, 1));
+	REQUIRE(b->send(idB, Delivery::ReliableOrdered, &data, 1));
+	host->disconnect(idA);
+
+	// the other client's message is still there, and is the only one
 	Event event;
-	REQUIRE(client->poll(event));
-	CHECK(event.type == EventType::Disconnected);
-	CHECK(event.connection == id);
-	client.reset();
+	REQUIRE(host->poll(event));
+	CHECK(event.connection == idB);
+	CHECK_FALSE(host->poll(event));
+}
+
+TEST_CASE("a transport going away disconnects its peers, in either order")
+{
+	for (int hostFirst = 0; hostFirst < 2; hostFirst++) {
+		CAPTURE(hostFirst);
+		LoopbackNetwork net;
+		std::unique_ptr<Transport> host = net.createTransport();
+		std::unique_ptr<Transport> client = net.createTransport();
+		REQUIRE(host->listen(TEST_PORT));
+		const ConnectionId id = connectPair(*host, *client);
+
+		std::unique_ptr<Transport>& leaving = hostFirst ? host : client;
+		std::unique_ptr<Transport>& staying = hostFirst ? client : host;
+		leaving.reset();
+		Event event;
+		REQUIRE(staying->poll(event));
+		CHECK(event.type == EventType::Disconnected);
+		CHECK(event.connection == id);
+		staying.reset();
+	}
 }
 
 TEST_CASE("a transport outlives its network object")
