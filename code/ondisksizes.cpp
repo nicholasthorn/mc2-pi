@@ -3,7 +3,7 @@
 // Nothing here runs: the file only has to compile. A failure means a struct's
 // layout changed, and what breaks depends on the group below.
 //
-// - Save games write these structs raw, so changing one breaks existing saves
+// - Save games write these structs whole, so changing one breaks existing saves
 //   on that platform. If the change is intended, update the number and accept
 //   that older saves stop loading. `long` is 8 bytes on LP64 (Linux, arm64) and
 //   4 on LLP64 (Windows), so each has two numbers, and saves do not move between
@@ -13,6 +13,9 @@
 //
 // The compiler error names the actual and the expected size, as the arguments
 // of SizeOf_<struct><actual, expected>.
+//
+// These pins catch a change of size, not of layout: reordering a struct's fields,
+// or swapping two types of the same size, still passes and still breaks files.
 
 #include <cstddef>
 
@@ -74,6 +77,7 @@ MC2_PIN_SAVE_SIZE(CommanderData, 1424, 1288);
 MC2_PIN_SAVE_SIZE(StaticCommanderData, 16, 8);
 MC2_PIN_SAVE_SIZE(MechWarriorData, 20936, 19864);
 MC2_PIN_SAVE_SIZE(StaticMechWarriorData, 40, 40);
+MC2_PIN_SAVE_SIZE(StackItem, 8, 8);	// ABL static data (mclib/ablenv.cpp)
 
 // Game data files: one size on every platform. (GlobalMapArea, DoorLink and the
 // other pathing records are pinned in mclib/move.cpp.)
@@ -83,6 +87,11 @@ MC2_PIN_SIZE(TG_Texture, 268);
 MC2_PIN_SIZE(TG_TinyTexture, 12);
 MC2_PIN_SIZE(TGAFileHeader, 18);
 MC2_PIN_SIZE(MapCell, 4);
+// animation frames (mclib/msl.cpp); aliased because the macro pastes the name
+typedef Stuff::Point3D AnimPosition;
+typedef Stuff::UnitQuaternion AnimRotation;
+MC2_PIN_SIZE(AnimPosition, 12);
+MC2_PIN_SIZE(AnimRotation, 16);
 
 // ObjectManager::load tells an object's type by its packet size alone, so two
 // of these with one size would load as the wrong type.
