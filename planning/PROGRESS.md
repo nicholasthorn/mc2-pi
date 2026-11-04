@@ -438,6 +438,9 @@ each ships the data tools instead.
       (`debian:bookworm` container), Windows zip (DLLs and C++ runtime
       included), Linux x64 tarball (2026-11-01; dry runs on the PR, no test
       tag pushed yet)
+- [x] Quest APK in `release.yml`, with its shaders and licences in a tarball
+      (2026-11-04, branch `release-apk`; built in the dry runs on the PR, not
+      yet run on a headset from a CI build)
 - [x] Before the first release: replace zlib 1.2.3 in `3rdparty.zip` with a
       current zlib (2026-11-01: 1.3.1, built from the official tag on a
       GitHub Windows runner; it is linked statically into `mc2.exe`)
@@ -533,6 +536,8 @@ change, not as a bug fix.
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
 - 2026-11-04: Omnitech's splash on its larger front end (branch `omnitech-splash-size`): the 800x600 art is centred on black, where the screen behind it showed round the edges. Stock's draw calls are unchanged.
+- 2026-11-04: README: Quest 2 as playable, screenshots and a clip in `media/` (scripted battles on the CI-built Linux package, llvmpipe, 1080p; Omnitech at 1280x1024). `future-features/EASY-INSTALL.md`: proposed one-download packages with the game data, and a helper for Omnitech, whose EULA grants no redistribution (branch `release-apk`).
+- 2026-11-04: Quest APK on releases (branch `release-apk`): job `quest` in `release.yml` builds the APK on Linux with `scripts/android/build.sh`, and `scripts/android/package.sh` adds the shaders and licences (`-files.tar.gz`) and unstripped libraries (`-symbols.tar.gz`). `MC2_VERSION` sets `mc2.log`'s version and the APK's versionName. Signed with the optional `QUEST_KEYSTORE` secret, so updates can install over each other. Quest steps in `dist/INSTALL.md`; headset check in `HARDWARE-TESTS.md`.
 - 2026-11-04: Android prefers SDL's AAudio driver (branch `android-aaudio-default`), then OpenSL, then the Java one; `SDL_AUDIODRIVER` still chooses. A steady buzz at about 1 Hz came in late in long Quest sessions on OpenSL. A capture of the game's own mix from such a session was clean by ear and showed no 1 Hz pattern, so the fault is after the mixer. One session of about 31 minutes on AAudio had no buzz, where the buzz had been heard about that far in on OpenSL. Not proof: the cause on OpenSL was not found, and longer sessions are in `HARDWARE-TESTS.md`.
 - 2026-11-02: Omnitech front end (branch `omnitech-frontend-labels-mech`): no `undefined_string_sebi` (id 0 is no text), the mission map in pilot ready's white box, its mech view covers the right area, and in VR an interface camera's mech takes the CPU path (it drew as a solid colour in the wrong place, on stock data too). `pilotready+mech` walk step, `MC2_UISMOKE_HOLD`. Checked flat on GL and GLES and with `MC2_VR_PATHS=1`; headset check in `HARDWARE-TESTS.md`.
 - 2026-11-03: Omnitech keeps a pilot once a mission has offered them (branch `omnitech-keep-pilots`): Exodus and MW2 Mercs name a pilot in one mission's purchase file and not the next, so from Exodus' second mission the pilot list was empty. On Omnitech data `updateAvailability` also marks the pilots of the missions played, worked out from the campaign, so a load gets the same list. The other eight campaigns repeat their roster and do not change; stock does not take this path. That pilots stay is inferred from the data: the public source is older and clears them, and hire pilots may be what the later releases do.

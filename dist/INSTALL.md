@@ -68,6 +68,30 @@ Options screen.
 
 To jump straight into a mission: `./mc2 -mission mc2_01`.
 
+## Meta Quest (`quest-arm64`)
+
+A test build, sideloaded over USB. It has been played on a Quest 2; Quest 3,
+3S and Pro should work but are untested. You need developer
+mode on the headset, `adb` on a PC, the game data from step 2 (`--no-movies`
+is fine; about 700 MB), and two downloads: `mc2-<version>-quest-arm64.apk`,
+and `mc2-<version>-quest-arm64-files.tar.gz`, unpacked, for `shaders/`. Use the
+shaders from the same release as the APK: others can run with wrong lighting.
+
+```bash
+adb install -r mc2-<version>-quest-arm64.apk
+D=/sdcard/Android/data/com.nicholasthorn.mc2/files
+adb shell mkdir -p $D
+adb push --sync <game data folder>/. $D/
+adb push --sync mc2-<version>-quest-arm64-files/shaders/. $D/shaders/
+adb shell cp $D/minprefs.cfg $D/options.cfg    # first install only: it resets your settings
+```
+
+On Windows in Git Bash, run `export MSYS_NO_PATHCONV=1` first. Start "MC2 test"
+from the headset's Unknown Sources list. If `adb install` reports a signature
+mismatch, the installed copy was signed with another key: `adb uninstall
+com.nicholasthorn.mc2`, install again and push the game data again, since
+uninstalling deletes it. `mc2.log` is in the `$D` folder (`adb pull $D/mc2.log`).
+
 ## When something goes wrong
 
 Each run writes everything it prints to `mc2.log`, and keeps the run before as
