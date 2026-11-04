@@ -536,6 +536,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-04: Plan for macOS on Apple silicon: `future-features/MACOS.md` (branch `macos-plan`); nothing built.
 - 2026-11-04: Multiplayer proposal (`future-features/NETWORKING.md`, replaces the feasibility study; branch `docs/multiplayer-proposal`): host-authoritative, keeping the legacy gameplay branches and chunks, GameNetworkingSockets subject to an Android spike, same-room Quest play needing no alignment until a shared table, head-to-head and co-op on one mechanism. Nothing built or run.
 - 2026-11-04: on-disk struct sizes pinned at compile time (branch `test/struct-sizes`, `code/ondisksizes.cpp`): 19 save-game structs per data model (Linux/arm64 and Windows differ, `long`), 10 game-data structs to one size everywhere (they match on MSVC too, so game data really is portable), and the 11 object save structs must have distinct sizes, because `ObjectManager::load` tells types apart by size alone. `check.sh` no longer fails a new `.cpp` on findings in headers it did not change: it lists them as a warning.
 - 2026-11-04: Omnitech's splash on its larger front end (branch `omnitech-splash-size`): the 800x600 art is centred on black, where the screen behind it showed round the edges. Stock's draw calls are unchanged.
