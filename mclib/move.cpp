@@ -3812,6 +3812,7 @@ long GlobalMap::calcPath (long startArea,
 	if (areas[goalArea].offMap)
 		closeArea(goalArea);
 
+	long numPathDoors = 0;
 	if (goalFound) {
 		//-------------------------------------------
 		// First, let's count how long the path is...
@@ -3825,12 +3826,27 @@ long GlobalMap::calcPath (long startArea,
 		//-----------------------------------------------------------------------
 		// Number of doors to travel to, including the "goal door". We don't care
 		// about the "start door" in the path...
-		long numDoors = numSteps - 1;
-		gosASSERT((numDoors < MAX_GLOBAL_PATH));
+		numPathDoors = numSteps - 1;
+
+		//-----------------------------------------------------------------------
+		// Callers' path arrays hold MAX_GLOBAL_PATH steps. A longer route is
+		// treated as no route, which they all handle, rather than overrun them.
+		if (numPathDoors > MAX_GLOBAL_PATH) {
+			static bool warned = false;
+			if (!warned) {
+				warned = true;
+				PAUSE(("Global path of %ld doors is longer than %d. Treated as no path",numPathDoors,MAX_GLOBAL_PATH));
+			}
+			goalFound = false;
+		}
+	}
+
+	if (goalFound) {
+		long curDoor = goalDoor;
+		long numDoors = numPathDoors;
 
 		//-----------------------------
 		// Now, let's build the path...
-		curDoor = goalDoor;
 		long curPathDoor = numDoors;
 
 		//--------------------------------
