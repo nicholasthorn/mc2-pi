@@ -780,9 +780,33 @@ void MainMenu::render()
 
 		if ( bDrawBackground )
 		{
-			background.render();
-			intro.render();
-			if ( !intro.animObjects[0].isDone() && !introOver && !bHostLeftDlg )
+			const bool bIntroPlaying = !intro.animObjects[0].isDone() && !introOver && !bHostLeftDlg;
+			// the splash art is 800x600: on a larger front end (Omnitech's) it goes in
+			// the middle, on black, or the screen behind it shows round the edges
+			if ( bIntroPlaying && frontEndWidth() != 800 )
+			{
+				GUI_RECT wholeScreen = { 0, 0, Environment.screenWidth, Environment.screenHeight };
+				drawRect( wholeScreen, 0xff000000 );
+				const int xSplash = (Environment.screenWidth - 800) / 2;
+				const int ySplash = (Environment.screenHeight - 600) / 2;
+				background.render( xSplash, ySplash );
+				intro.render( xSplash, ySplash );
+				// the art runs past 800x600, where stock's screen ends
+				GUI_RECT above = { 0, 0, Environment.screenWidth, ySplash };
+				GUI_RECT below = { 0, ySplash + 600, Environment.screenWidth, Environment.screenHeight };
+				GUI_RECT left = { 0, 0, xSplash, Environment.screenHeight };
+				GUI_RECT right = { xSplash + 800, 0, Environment.screenWidth, Environment.screenHeight };
+				drawRect( above, 0xff000000 );
+				drawRect( below, 0xff000000 );
+				drawRect( left, 0xff000000 );
+				drawRect( right, 0xff000000 );
+			}
+			else
+			{
+				background.render();
+				intro.render();
+			}
+			if ( bIntroPlaying )
 				return;
 
 

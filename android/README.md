@@ -1,7 +1,7 @@
 # Meta Quest test build
 
-A flat Android app (no OpenXR yet) that runs MechCommander 2 on a Quest 2 or
-3 with the GLES 3.1 renderer. Its job is measurement: run the `-bench`
+An Android app that runs MechCommander 2 in VR through OpenXR on a Quest 2,
+with the GLES 3.1 renderer. It began as a measurement tool: run the `-bench`
 scenario on the headset's own CPU and GPU driver, mono and `-stereo`, and pull
 the numbers back (the VR plan's Phase 0 go/no-go,
 `planning/future-features/VR-TABLETOP.md`). It is also the first part of
@@ -32,6 +32,20 @@ How it differs from the desktop build:
   from `mc2args.txt` and writes stdout and stderr to `mc2.log`, keeping the
   run before as `mc2.previous.log`. Outside a bench, a crash adds `CRASH:` lines.
 - `libmc2res_64.so` is loaded by name from the APK, not from the data folder.
+
+## Release builds
+
+`.github/workflows/release.yml` builds the same APK on every `v*` tag and in
+its dry runs, and `scripts/android/package.sh` packages it as
+`mc2-<ver>-quest-arm64.apk` with `-files.tar.gz` (the shaders, which the APK
+does not hold, and the licences) and `-symbols.tar.gz`. Players follow
+`dist/INSTALL.md`.
+
+Updating an installed app needs the same signing key, and uninstalling deletes
+the game data in its folder. So releases sign with the keystore in the
+`QUEST_KEYSTORE` repository secret (base64; store and key password `android`,
+alias `androiddebugkey`, as `build.sh` makes). Without the secret each build
+gets a new key and needs a clean install.
 
 ## On the headset
 
@@ -66,4 +80,5 @@ crash.
 
 ## Status
 
-Built, not yet run on a headset. To do: sideload it and run the bench.
+Played on a Quest 2, with the bench results in
+`planning/future-features/VR-TABLETOP.md`. Not yet tried on a Quest 3 or Pro.

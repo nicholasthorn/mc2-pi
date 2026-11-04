@@ -32,5 +32,15 @@ statically, so its licence is listed although there is no zlib DLL.
 | (in `mc2.exe`) | zlib 1.3.1 | zlib | `zlib.txt` |
 | `vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll` | Microsoft Visual C++ runtime | Distributable code under the Visual Studio licence terms | |
 
+## Bundled with the Meta Quest APK
+
+| File | Library, version | Licence | File here |
+|---|---|---|---|
+| `libSDL2.so` | SDL 2.30.11 | zlib | `SDL2.txt` |
+| `libSDL2_mixer.so` | SDL_mixer 2.8.0 | zlib | `SDL2_mixer.txt` |
+| | minimp3 (MP3), built in | CC0 | `SDL2_mixer-minimp3.txt` |
+| | stb_vorbis (Ogg Vorbis), built in | MIT or public domain | `SDL2_mixer-stb_vorbis.txt` |
+| `libopenxr_loader.so` | OpenXR loader 1.1.65 | Apache 2.0 | `OpenXR-loader.txt` |
+
 SDL_mixer's optional codecs (libxmp, Opus, WavPack, GME, FluidSynth) are
 separate DLLs in upstream builds and are not shipped, so they are not listed.
