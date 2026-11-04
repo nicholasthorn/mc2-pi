@@ -14,6 +14,7 @@
 
 #include"estring.h"
 
+#include<cstdint>
 #include<string.h>
 #include<gameos.hpp>
 //---------------------------------------------------------------------------
@@ -25,7 +26,67 @@ typedef struct _RGB
 } RGB;
 
 //---------------------------------------------------------------------------
-void tgaDecomp(MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header)
+bool tgaPixelsFit (const void *fileImage, long fileSize, long width, long height, long depth)
+{
+	if (fileSize < (long)sizeof(TGAFileHeader) || width <= 0 || height <= 0)
+		return false;
+	if (depth <= 0 || depth > 32 || (depth % 8) != 0)
+		return false;
+
+	TGAFileHeader header;
+	memcpy(&header,fileImage,sizeof(TGAFileHeader));
+
+	int64_t needed = (int64_t)sizeof(TGAFileHeader) + header.image_id_len;
+	if (header.color_map)
+	{
+		if (header.cm_length < 0)
+			return false;
+		needed += (int64_t)header.cm_length * (header.cm_entry_size>>3);
+	}
+	needed += (int64_t)width * height * (depth>>3);
+
+	return needed <= fileSize;
+}
+
+//---------------------------------------------------------------------------
+bool tgaHeaderFits (const void *fileImage, long fileSize)
+{
+	if (fileSize < (long)sizeof(TGAFileHeader))
+		return false;
+
+	TGAFileHeader header;
+	memcpy(&header,fileImage,sizeof(TGAFileHeader));
+
+	return tgaPixelsFit(fileImage,fileSize,header.width,header.height,header.pixel_depth);
+}
+
+//---------------------------------------------------------------------------
+bool tgaReadSquareHeader (TGAFileHeader &info, const void *fileImage, long fileSize)
+{
+	memset(&info,0,sizeof(TGAFileHeader));
+	if (fileSize < (long)sizeof(TGAFileHeader))
+		return false;
+
+	memcpy(&info,fileImage,sizeof(TGAFileHeader));
+	if (info.image_type != UNC_TRUE)
+		return true;
+
+	if (info.width == info.height && (info.pixel_depth == 24 || info.pixel_depth == 32) &&
+		tgaPixelsFit(fileImage,fileSize,info.width,info.width,info.pixel_depth))
+		return true;
+
+	info.image_type = NO_IMAGE;
+	return false;
+}
+
+//---------------------------------------------------------------------------
+bool tgaWidthIsPlausible (long width, long fileSize)
+{
+	return width > 0 && fileSize > 0 && (int64_t)width * width <= (int64_t)fileSize * 32;
+}
+
+//---------------------------------------------------------------------------
+bool tgaDecomp(MemoryPtr dest, MemoryPtr source, long sourceSize, TGAFileHeader *tga_header)
 {
 	//---------------------------------------------------------------------
 	// Display Image based on Format 10 (0x0a).  RLE true color.
@@ -33,12 +94,17 @@ void tgaDecomp(MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header)
 	//----------------------------------------------
 	// Parse RLE data -- Check for RLE/RAW byte
 	MemoryPtr data_offset = source;
+	MemoryPtr source_end = source + sourceSize;
+	const long pixelBytes = (tga_header->pixel_depth == 32) ? 4 : 3;
 	long currentHeight = 0;
 	long currentWidth = 0;
 	while (currentHeight != tga_header->height)
 	{
 		while (currentWidth != tga_header->width)
 		{
+			if (data_offset >= source_end)
+				return false;
+
 			byte rep_count = *data_offset;
 			data_offset++;
 			RGB rgb;
@@ -48,6 +114,10 @@ void tgaDecomp(MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header)
 			if (rep_count >= 128)
 			{
 				rep_count ^= 0x80;
+
+				// one pixel to read, rep_count+1 to write
+				if ((source_end - data_offset) < pixelBytes || (currentWidth + rep_count + 1) > tga_header->width)
+					return false;
 
 				rgb.b = *data_offset;
 				data_offset++;
@@ -99,6 +169,9 @@ void tgaDecomp(MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header)
 			}
 			else
 			{
+				if ((source_end - data_offset) < (rep_count + 1) * pixelBytes || (currentWidth + rep_count + 1) > tga_header->width)
+					return false;
+
 				for (int i=0;i<rep_count+1;i++)
 				{
 					rgb.b = *data_offset;
@@ -152,6 +225,8 @@ void tgaDecomp(MemoryPtr dest, MemoryPtr source, TGAFileHeader *tga_header)
 		currentWidth = 0;
 		currentHeight++;
 	}
+
+	return true;
 }	
 
 //---------------------------------------------------------------------------
@@ -205,6 +280,29 @@ void tgaCopy (MemoryPtr dest, MemoryPtr src, long size)
 }
 
 //---------------------------------------------------------------------------
+// Can this file fill a width x height buffer of DWORDs?  True colour only: the
+// switch below copies nothing for the other types.  The copy reads 3 or 4 bytes
+// a pixel, whatever the header says, and the decoder goes by the header's size,
+// not the caller's.
+static bool tgaTextureFits (MemoryPtr tgaBuffer, long fileSize, long width, long height)
+{
+	if (fileSize < (long)sizeof(TGAFileHeader) || width <= 0 || height <= 0)
+		return false;
+
+	TGAFileHeader header;
+	memcpy(&header,tgaBuffer,sizeof(TGAFileHeader));
+
+	if (header.image_type != UNC_TRUE && header.image_type != RLE_TRUE)
+		return false;
+	if (header.pixel_depth != 24 && header.pixel_depth != 32)
+		return false;
+	if (header.image_type == RLE_TRUE)
+		return (header.width == width) && (header.height == height);
+
+	return tgaPixelsFit(tgaBuffer,fileSize,width,height,header.pixel_depth);
+}
+
+//---------------------------------------------------------------------------
 static const int g_textureCache_BufferSize = 16384/*64*64*sizeof(DWORD)*/;
 static BYTE g_textureCache_Buffer[g_textureCache_BufferSize];
 EString *g_textureCache_FilenameOfLastLoadedTexture = NULL;/*This is an (EString *) instead of an EString because apparently gos memory management has a problem with global static allocation of EStrings.*/
@@ -238,6 +336,15 @@ void loadTGATexture (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height)
 	MemoryPtr tgaBuffer = (MemoryPtr)malloc(tgaFile->fileSize());
 
 	tgaFile->read(tgaBuffer,tgaFile->fileSize());
+
+	// a header that lies about its size must not drive the copies below
+	if (!tgaTextureFits(tgaBuffer,tgaFile->fileSize(),width,height))
+	{
+		PAUSE(("TGA %s does not hold the %dx%d image it should. Not loaded",tgaFile->getFilename(),(int)width,(int)height));
+		memset(ourRAM,0,width * height * sizeof(DWORD));
+		free(tgaBuffer);
+		return;
+	}
 
 	//---------------------------------------
 	// Parse out TGAHeader.
@@ -299,7 +406,13 @@ void loadTGATexture (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height)
 		case RLE_TRUE:
 		{
 			MemoryPtr image = tgaBuffer + sizeof(TGAFileHeader);
-			tgaDecomp(ourRAM,image,header);
+			if (!tgaDecomp(ourRAM,image,tgaFile->fileSize() - (long)sizeof(TGAFileHeader),header))
+			{
+				PAUSE(("TGA %s has bad run-length data. Not loaded",tgaFile->getFilename()));
+				memset(ourRAM,0,width * height * sizeof(DWORD));
+				free(tgaBuffer);
+				return;
+			}
 
 			//------------------------------------------------------------------------
 			// Must check image_descriptor to see if we need to un upside down image.
@@ -361,6 +474,21 @@ void loadTGAMask (FilePtr tgaFile, MemoryPtr ourRAM, long width, long height)
 	MemoryPtr tgaBuffer = (MemoryPtr)malloc(tgaFile->fileSize());
 
 	tgaFile->read(tgaBuffer,tgaFile->fileSize());
+
+	// the copy goes by the caller's size and the flip by the header's depth
+	bool fits = tgaPixelsFit(tgaBuffer,tgaFile->fileSize(),width,height,8);
+	if (fits)
+	{
+		const TGAFileHeader *checked = (const TGAFileHeader *)tgaBuffer;
+		fits = (checked->pixel_depth == 8) || (checked->image_type != UNC_PAL && checked->image_type != UNC_GRAY);
+	}
+	if (!fits)
+	{
+		PAUSE(("TGA mask %s does not hold the %dx%d image it should. Not loaded",tgaFile->getFilename(),(int)width,(int)height));
+		memset(ourRAM,0,width * height);
+		free(tgaBuffer);
+		return;
+	}
 
 	//---------------------------------------
 	// Parse out TGAHeader.

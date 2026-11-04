@@ -654,7 +654,7 @@ int aBmpListItem::setBmp( const char* pFileName )
 	FullPathFileName path;
 	path.init(path2insignia, pFileName, ".tga" );
 
-	TGAFileHeader header;
+	TGAFileHeader header = {};
 	File file;
 	if ( NO_ERR == file.open( path ) )
 	{

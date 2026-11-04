@@ -55,8 +55,11 @@ void GameTacMap::init( unsigned char* bitmapData, int dataSize )
 	EllipseElement::init();
 	TGAFileHeader* pHeader = (TGAFileHeader*)bitmapData;
 
-	bmpWidth = pHeader->width;
-	bmpHeight = pHeader->height;
+	if ( dataSize >= (int)sizeof(TGAFileHeader) )	// a short packet (mod data)
+	{
+		bmpWidth = pHeader->width;
+		bmpHeight = pHeader->height;
+	}
 
 	textureHandle = gos_NewTextureFromMemory(gos_Texture_Solid,".tga",bitmapData,dataSize,0);
 	char path[256];
