@@ -49,7 +49,7 @@ historical reasons: the Pi port is where this started.
 | Stereo panning for positional sound | Done |
 | CI: four build configurations, unit tests (also under ASan + UBSan), shader validation, smoke missions, cppcheck | Done; the cppcheck baseline is empty (every finding fixed or suppressed with a reason) |
 | Benchmarks: deterministic `-bench` runs, scripted battle scenarios with screenshots, `perf` profiles of gameplay frames | Done |
-| Downloadable builds (Pi, Linux, Windows, Quest) | Release candidates on the [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page ([planning/RELEASES.md](planning/RELEASES.md)); engine only for now, with the game data built by you ([one-download plan](planning/future-features/EASY-INSTALL.md)) |
+| Downloadable builds (Pi, Linux, Windows, Quest) | Release candidates on the [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page ([planning/RELEASES.md](planning/RELEASES.md)); `-full` packages include the game data, the Quest still needs a PC to install ([plan](planning/future-features/EASY-INSTALL.md)) |
 
 **Raspberry Pi 4/400**
 
@@ -83,11 +83,11 @@ historical reasons: the Pi port is where this started.
 
 ## Quick start
 
-**Release packages** (from the first published release, on the
-[Releases](https://github.com/nicholasthorn/mc2-pi/releases) page): unpack
-the one for your platform and follow its `INSTALL.md`
-([dist/INSTALL.md](dist/INSTALL.md)): install a few packages, build the game
-data with the bundled tools, start the game. No compiler needed. For the
+**Release packages** (on the
+[Releases](https://github.com/nicholasthorn/mc2-pi/releases) page): download
+the `-full` one for your platform, unpack and play. On Windows that is all; on
+Linux and the Pi install a few libraries first ([dist/INSTALL.md](dist/INSTALL.md)).
+Engine-only packages, without the game data, are there too. For the
 Quest, sideload the `.apk` and push the data and shaders with `adb`; the steps
 are in the same file.
 
@@ -179,11 +179,11 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
   ([planning/RELEASES.md](planning/RELEASES.md)): the packaging and the
   release workflow are built (a Pi 4/400 tarball, a Linux x64 tarball and a
   Windows zip; engine only, the Linux and Pi packages with the tools to build
-  the game data; and a Quest APK). Next: release candidates checked by hand
-  on Windows, Linux, a Pi 400 and a Quest 2 and published, then one-download
-  packages with the game data
-  ([planning/future-features/EASY-INSTALL.md](planning/future-features/EASY-INSTALL.md)),
-  Linux AppImages and smoke tests of the packages themselves.
+  the game data; `-full` versions with the data in; and a Quest APK). Next:
+  release candidates checked by hand on Windows, Linux, a Pi 400 and a Quest 2
+  and published, then a one-file Quest install and an Omnitech helper
+  ([planning/future-features/EASY-INSTALL.md](planning/future-features/EASY-INSTALL.md))
+  and Linux AppImages.
 - **Quality** ([planning/QUALITY-ROADMAP.md](planning/QUALITY-ROADMAP.md)): more
   unit tests, sanitized smoke on arm64, smoke runs that reach the save/load
   screens, a reproducible data build, and a Pi as a self-hosted CI runner.
@@ -211,8 +211,8 @@ media/       images for this page
 ## Licensing
 
 - The original game is released under the Shared Source Limited Permission
-  License (see [EULA.txt](EULA.txt)). Game data is not distributed with this
-  repository.
+  License (see [EULA.txt](EULA.txt)). Game data is not in this repository;
+  the `-full` release packages include it, non-commercially, under that licence.
 - alariq's code is licensed under GPL v3 (see [license.txt](license.txt)), and
   so are the changes in this fork.
 - Third-party libraries use their own licenses; release packages list them
