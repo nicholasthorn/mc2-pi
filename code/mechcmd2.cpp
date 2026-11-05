@@ -752,9 +752,13 @@ void __stdcall UpdateRenderers()
 
 		//------------------------------------------------------------
 		gos_SetRenderState( gos_State_Filter, gos_FilterNone );
-		userInput->render();
+		// the interface's image in the headset stays as it is (gos_VRHudResting)
+		if (!gos_VRHudResting())
+		{
+			userInput->render();
 
-		DEBUGWINS_render();
+			DEBUGWINS_render();
+		}
 
 		#ifdef LAB_ONLY
 		if (currentLineElement)
