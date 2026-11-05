@@ -34,6 +34,7 @@ const char* const SCREEN_NAMES[(int)UiScreen::Count] = {
 	"mp-connection",
 	"mp-browser",
 	"mp-params",
+	"mp-prefs",
 };
 
 bool isOptions(UiScreen s)
@@ -132,6 +133,13 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::MpLeave;
 		if (to == UiScreen::MainMenu)
 			return UiAction::MpAwaitHostGone;
+		if (to == UiScreen::MpPrefs)
+			return UiAction::MpOpenPrefs;
+		break;
+	case UiScreen::MpPrefs:
+		// Accept, which sends the name; the colour has gone as it was picked
+		if (to == UiScreen::MpParams)
+			return UiAction::Next;
 		break;
 	case UiScreen::Save:
 		// saving (and Cancel) goes back to the logistics screen the main menu
@@ -254,6 +262,8 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MpParams, "map", UiAction::MpPickMap },
 	{ UiScreen::MpBrowser, "pause", UiAction::MpPause },
 	{ UiScreen::MpParams, "pause", UiAction::MpPause },
+	{ UiScreen::MpPrefs, "name", UiAction::MpPrefsName },
+	{ UiScreen::MpPrefs, "colour", UiAction::MpPrefsColour },
 	{ UiScreen::MpParams, "others", UiAction::MpOthers },
 	{ UiScreen::MpParams, "alone", UiAction::MpAlone },
 };

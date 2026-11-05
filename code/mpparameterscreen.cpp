@@ -1135,13 +1135,11 @@ void MPParameterScreen::update()
 
 			getButton( MP_QUICKSTART )->disable( 0 );
 
-			// not in a network game yet, nor is choosing colours: the lobby gives each a colour of their own
+			// not in a network game yet
 			getButton( MP_LOCKGAME )->showGUIWindow( false );
 			getButton( MP_BOOTPLAYER )->showGUIWindow( false );
 			if ( getButton( 102/*add ai player*/ ) )
 				getButton( 102/*add ai player*/ )->showGUIWindow( false );
-			if ( getButton( MP_PLAYER_PREFS ) )
-				getButton( MP_PLAYER_PREFS )->disable( true );
 
 
 

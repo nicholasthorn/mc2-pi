@@ -378,7 +378,7 @@ bool decode(const void* data, size_t size, LobbyState& m)
 
 static bool validLobbyChoice(const LobbyChoice& m)
 {
-	return m.team < MAX_PLAYERS && m.baseColor < MAX_LOBBY_COLORS && m.stripeColor < MAX_LOBBY_COLORS;
+	return m.team < MAX_PLAYERS && m.baseColor < MAX_LOBBY_COLORS && m.stripeColor < MAX_LOBBY_COLORS && validName(m.name);
 }
 
 bool encode(const LobbyChoice& m, std::vector<uint8_t>& out)
@@ -394,6 +394,8 @@ bool encode(const LobbyChoice& m, std::vector<uint8_t>& out)
 	w.u8(m.stripeColor);
 	w.u8(m.ready ? 1 : 0);
 	w.u32(m.mapHash);
+	w.u8(static_cast<uint8_t>(m.name.size()));
+	w.bytes(m.name.data(), m.name.size());
 	return true;
 }
 
@@ -410,7 +412,7 @@ bool decode(const void* data, size_t size, LobbyChoice& m)
 	m.stripeColor = in.u8();
 	const uint8_t ready = in.u8();
 	m.mapHash = in.u32();
-	if (!in.finished() || ready > 1)
+	if (!readShortText(in, m.name) || !in.finished() || ready > 1)
 		return false;
 	m.ready = (ready != 0);
 	return validLobbyChoice(m);

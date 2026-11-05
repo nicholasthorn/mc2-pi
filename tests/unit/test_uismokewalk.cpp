@@ -136,6 +136,9 @@ TEST_CASE("multiplayer: into a lobby by hosting or joining, and from it to the m
 	// and out again: by leaving, because the host left, or because the game ended
 	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpConnection) == UiAction::MpLeave);
 	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpBrowser) == UiAction::MpLeave);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpPrefs) == UiAction::MpOpenPrefs);
+	CHECK(uiRoute(UiScreen::MpPrefs, UiScreen::MpParams) == UiAction::Next);
+	CHECK(uiScreenAction(UiScreen::MpPrefs, "name", 4) == UiAction::MpPrefsName);
 	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MainMenu) == UiAction::MpAwaitHostGone);
 	CHECK(uiRoute(UiScreen::Mission, UiScreen::MpConnection) == UiAction::MpAwaitGameEnd);
 }

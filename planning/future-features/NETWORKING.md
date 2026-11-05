@@ -646,10 +646,9 @@ In slices, as it is large: finding a game and the data check first, then the lob
   lobby as `-netlobby`, and `MultiPlayer::update` runs it each frame until the host launches, a local choice standing for a second while the host answers.
   `beginMission` then loads as a game from the command line does, with no stage messages. At the end of a game each goes back to the connection screen with a
   new `MultiPlayer`, as a session cannot go back to being a lobby. `net_smoke --screens` walks all this with `-uismoke`: no person has yet.
-- **Off for now on the parameters screen:** mech selection (quickstart stays on), choosing colours and a name (the prefs screen; every player without a name
-  in their prefs is "Unnamed Player"), locking a game, booting a player, adding an AI, and chat. The direct IP panel is not connected.
+- **Off for now on the parameters screen:** mech selection (quickstart stays on), locking a game, booting a player, adding an AI, and chat. The direct IP panel
+  is not connected. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
 - **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
-  A bad texture handle is logged at the end of a second game in a process.
 - **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
   look on the units. A client with another copy of a map stops with a message naming it, which no run has reached, as a game directory's maps are in its FST.
 - **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.

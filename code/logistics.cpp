@@ -379,6 +379,9 @@ long Logistics::update (void)
 					MPlayer->closeSession();
 					delete MPlayer;
 					MPlayer = NULL;
+					// and new results: the textures MPStats loads once went with the mission
+					delete missionResults;
+					missionResults = NULL;
 					logisticsState = log_SPLASH;
 					missionBegin->beginAtConnectionScreen();
 				}

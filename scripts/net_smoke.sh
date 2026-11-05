@@ -115,8 +115,9 @@ CLIENT_NET=("${CLIENT_ARGS[@]}")
 if [ "$SCREENS" = 1 ]; then
     export MC2_UISMOKE_MAP="$MISSION" MC2_UISMOKE_TIMEOUT=$((TIMEOUT / 2))
     HOST_MISSION=(); CLIENT_MISSION=()
-    HOST_GAME="mp-params,mp-params+map,mission,mp-connection"
-    CLIENT_GAME="mp-browser,mp-params,mission,mp-connection"
+    PREFS="mp-prefs,mp-prefs+name,mp-prefs+colour,mp-params"
+    HOST_GAME="mp-params,$PREFS,mp-params+map,mission,mp-connection"
+    CLIENT_GAME="mp-browser,mp-params,$PREFS,mission,mp-connection"
     HOST_WALK="mainmenu,mp-connection,$HOST_GAME"
     CLIENT_WALK="mainmenu,mp-connection,$CLIENT_GAME"
     if [ "$AGAIN" = 1 ]; then
@@ -171,6 +172,8 @@ for side in host client; do
     grep -q '^\[NET\] results closed' "$log" || reasons+=("$side: the results screen never finished")
     if [ "$AGAIN" = 1 ]; then
         [ "$(grep -c '^\[NET\] results closed' "$log")" -eq 2 ] || reasons+=("$side: did not play two games")
+        # what the first game's results loaded went with its mission
+        grep -q 'Bad texture handle' "$log" && reasons+=("$side: a texture from the first game was used in the second")
     fi
 done
 if [ "$WORLD_EVENTS" = yes ]; then
@@ -228,6 +231,11 @@ if [ "$LOBBY" = 1 ]; then
         reasons+=("host and client came out of the lobby differently ($LOG_DIR/lobby.diff)")
     fi
     grep -q "^\[NET\] launched as commander 1 of 2, on $MISSION" "$LOG_DIR/client.log" || reasons+=("the client did not launch on $MISSION")
+    if [ "$SCREENS" = 1 ]; then
+        # what each chose on the prefs screen reached the game
+        grep -q '^\[NETLOBBY\] commander 0: WalkHost, team [0-9]*, colours 5 ' "$LOG_DIR/client.log" || reasons+=("the host's name and colour did not reach the client")
+        grep -q '^\[NETLOBBY\] commander 1: WalkClient, team [0-9]*, colours 9 ' "$LOG_DIR/host.log" || reasons+=("the client's name and colour did not reach the host")
+    fi
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then
     reasons+=("expected team $EXPECT_WINNER to win: $hostwin")

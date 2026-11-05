@@ -1023,11 +1023,11 @@ static void netShowLobbyPlayers (MultiPlayer* player, const netwire::LobbyState&
 		here[lobbyPlayer.slot] = true;
 		MC2Player& info = player->playerInfo[lobbyPlayer.slot];
 		info.commanderID = (char)lobbyPlayer.slot;
-		strncpy(info.name, lobbyPlayer.name.c_str(), MAXLEN_PLAYER_NAME - 1);
-		info.name[MAXLEN_PLAYER_NAME - 1] = 0;
 		// what was just clicked is not undone while the host answers
 		if ((lobbyPlayer.slot == player->commanderID) && (netNow() < netChoiceUntil))
 			continue;
+		strncpy(info.name, lobbyPlayer.name.c_str(), MAXLEN_PLAYER_NAME - 1);
+		info.name[MAXLEN_PLAYER_NAME - 1] = 0;
 		info.team = (char)lobbyPlayer.team;
 		info.teamSelected = info.team;
 		for (long i = 0; i < 3; i++)
@@ -2032,19 +2032,28 @@ void MultiPlayer::sendPlayerCID (NETPLAYER receiver, unsigned char subType, char
 
 void MultiPlayer::sendPlayerUpdate (NETPLAYER receiver, long stage, long newCommanderID) {
 
-	// a client's own place on the parameters screen
-	if (!netLobbyOpen || iAmHost || (newCommanderID != commanderID) || (commanderID < 0))
+	// This player's own place, from the parameters screen or the prefs screen (which says -1).
+	if (!netLobbyOpen || (commanderID < 0) || ((newCommanderID != commanderID) && (newCommanderID != -1)))
 		return;
 	const MC2Player& me = playerInfo[commanderID];
-	if ((me.team < 0) || (me.baseColor[BASECOLOR_TEAM] < 0) || (me.stripeColor < 0))
+	if ((me.team < 0) || (me.baseColor[BASECOLOR_PREFERENCE] < 0) || (me.stripeColor < 0))
 		return;
 	netwire::LobbyChoice choice;
-	choice.revision = netSession->lobbyState().revision;
 	choice.team = (uint8_t)me.team;
-	choice.baseColor = (uint8_t)me.baseColor[BASECOLOR_TEAM];
+	choice.baseColor = (uint8_t)me.baseColor[BASECOLOR_PREFERENCE];
 	choice.stripeColor = (uint8_t)me.stripeColor;
 	choice.ready = (me.ready != 0);
 	choice.mapHash = netLobbyMapHash;
+	choice.name = netCleanName(me.name, "");
+	if (iAmHost) {
+		// the next frame shows what the rules made of it
+		if (netRules) {
+			choice.revision = netRules->state().revision;
+			netRules->applyChoice((uint8_t)commanderID, choice);
+		}
+		return;
+	}
+	choice.revision = netSession->lobbyState().revision;
 	netChoiceUntil = netNow() + 1.0;
 	netSession->sendLobbyChoice(choice);
 }

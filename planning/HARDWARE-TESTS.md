@@ -50,9 +50,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       parameters screen: is everything readable, do hidden buttons leave odd gaps, does each player's
       team list work, does the client's Ready press and show on the host, does Launch count down and
       stop if someone un-readies? Are the two sides in different colours in the mission? Then leave a
-      lobby each way, and play a second game after the results. A test walks all this by calling
-      the screens' handlers, and sets a client's ready itself, so the mouse is not covered. Does anything
-      look wrong on the results of a second game (a texture handle is logged as bad there)?
+      lobby each way, and play a second game after the results. On the prefs screen: a name, base and
+      stripe colours, the mech turning in them, a colour someone has being refused, Cancel; does the
+      insignia list work (each player's insignia is not sent to the others yet)? A test walks all this
+      by calling the screens' handlers, and sets a client's ready itself, so the mouse is not covered.
 - [ ] **The same on a Quest, by controller** (phase 4). Whether the screens can be used at all.
       The Quest's multicast lock is still held for the app's whole life.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's

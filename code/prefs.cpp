@@ -316,6 +316,10 @@ int CPrefs::load( const char* pFileName ) {
 }
 
 int CPrefs::save() {
+	// a walk through the screens for a test leaves the player's options alone
+	if ( gos_GetUiSmokeWalk() )
+		return NO_ERR;
+
 	char backupPath[256];
 	char originalPath[256];
 	

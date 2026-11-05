@@ -29,6 +29,7 @@
 #include <mpconnectiontype.h>
 #include <mpgamebrowser.h>
 #include <mpparameterscreen.h>
+#include <mpprefs.h>
 #include <multplyr.h>
 #include <abutton.h>
 #include <aedit.h>
@@ -289,6 +290,8 @@ UiScreen UiSmokeDriver::currentScreen()
 		return UiScreen::MpBrowser;
 	if (dynamic_cast<MPParameterScreen*>(screen))
 		return UiScreen::MpParams;
+	if (dynamic_cast<MPPrefs*>(screen))
+		return UiScreen::MpPrefs;
 	return UiScreen::Unknown;
 }
 
@@ -355,6 +358,21 @@ const char* UiSmokeDriver::press(UiAction action)
 			return NOT_YET;
 		}
 		return NULL;
+	case UiAction::MpOpenPrefs:
+		return pressButton(screen, 120);	// MP_PLAYER_PREFS, in mpparameterscreen.cpp
+	case UiAction::MpPrefsName:
+		if (MPPrefs* prefsScreen = dynamic_cast<MPPrefs*>(screen)) {
+			prefsScreen->comboBox[0].EditBox().setEntry(MPlayer->isHost() ? "WalkHost" : "WalkClient");
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::MpPrefsColour:
+		if (MPPrefs* prefsScreen = dynamic_cast<MPPrefs*>(screen)) {
+			// colour rectangles start at 3 (FIRST_COLOR_RECT in mpprefs.cpp), as a click on one
+			prefsScreen->setColor(prefsScreen->rects[3 + (MPlayer->isHost() ? 5 : 9)].getColor());
+			return NULL;
+		}
+		return "screen is gone";
 	case UiAction::MpPause:
 		// by the clock, where a hold counts frames: for another player to see what changed
 		return (g_retryWaited >= 10.0f) ? NULL : NOT_YET;
