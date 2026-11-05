@@ -126,6 +126,7 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 	else
 	{
 		quickLoad = true;
+		listHasPlainNames = false;
 
 		//Check for the magic list and then for all of the textures on the magic list.
 		FullPathFileName listPath;
@@ -139,6 +140,8 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 			{
 				char listName[1024];
 				listFile.readString((MemoryPtr)listName);
+				if (!txmCacheNameIsOld(listName))
+					listHasPlainNames = true;
 				if (!fileExists(listName) || !txmCacheMatchesSize(listName))
 				{
 					quickLoad = false;
@@ -1188,17 +1191,11 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 		if (quickLoad)
 		{
 			char nameData[256];
-			txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap);
-
 			FullPathFileName testPath;
-			testPath.init(texturePath,nameData,"");
-
 			File txmFile;
-			long fr = txmFile.open(testPath);
-			if ((fr != NO_ERR) && !hasColorMap)
+			long fr = -1;
+			if (txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,txmCacheUsesPlainName(hasColorMap,listHasPlainNames)))
 			{
-				// Caches an old-universe mod shipped under the plain name
-				txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,true);
 				testPath.init(texturePath,nameData,"");
 				fr = txmFile.open(testPath);
 			}
@@ -1429,7 +1426,8 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			// for all of the textures...
 			//
 			char nameData[256];
-			txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap);
+			if (!txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap))
+				nameData[0] = 0;
 
 			FullPathFileName testPath;
 			testPath.init(texturePath,nameData,"");

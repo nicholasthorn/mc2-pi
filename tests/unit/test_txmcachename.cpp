@@ -31,6 +31,24 @@ TEST_CASE("no colour map: a different name for the same types and overlay")
 	CHECK(std::strcmp(old, "235012610.00065535.old.txm") == 0);
 }
 
+TEST_CASE("an .lst name is recognised as old or plain")
+{
+	CHECK(txmCacheNameIsOld("data/textures/235012610.00065535.old.txm"));
+	CHECK_FALSE(txmCacheNameIsOld("data/textures/235012610.00065535.txm"));
+	CHECK_FALSE(txmCacheNameIsOld(""));
+	CHECK_FALSE(txmCacheNameIsOld(".txm"));
+}
+
+TEST_CASE("which name a quick load reads")
+{
+	// colour map: always plain
+	CHECK(txmCacheUsesPlainName(true, false));
+	CHECK(txmCacheUsesPlainName(true, true));
+	// no colour map: .old, unless its .lst names plain caches (mod or old build)
+	CHECK_FALSE(txmCacheUsesPlainName(false, false));
+	CHECK(txmCacheUsesPlainName(false, true));
+}
+
 TEST_CASE("a buffer too small is reported, not overrun")
 {
 	char tiny[8];
