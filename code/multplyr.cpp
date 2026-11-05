@@ -1491,7 +1491,8 @@ static void netHostRequest (MultiPlayer* player, long commander, long vehicleId,
 		allowed = netSeenPlace(commander, pos);
 	if (allowed && recovery) {
 		MoverPtr mech = ((rosterIndex >= 0) && (rosterIndex < MAX_MULTIPLAYER_MOVERS)) ? player->moverRoster[rosterIndex] : NULL;
-		allowed = mech && (mech->getObjectClass() == BATTLEMECH) && mech->isDisabled() && !mech->isDestroyed();
+		// a unit with no pilot has been released, and is not a wreck to recover
+		allowed = mech && mech->getPilot() && (mech->getObjectClass() == BATTLEMECH) && mech->isDisabled() && !mech->isDestroyed();
 		// one wreck, one Karnov: a second would take it from whoever recovered it first
 		for (long i = 0; i < MAX_MC_PLAYERS; i++)
 			if (player->reinforcements[i][1] == rosterIndex)
@@ -1567,7 +1568,7 @@ void MultiPlayer::sendReinforcement (long vehicleID, long rosterIndex, const cha
 			break;
 		}
 		case (unsigned char)netwire::SupportStage::DropVehicle: {
-			if (!iAmHost || (rosterIndex < 0) || (rosterIndex >= MAX_MULTIPLAYER_MOVERS) || !moverRoster[rosterIndex])
+			if (!iAmHost || (rosterIndex < 0) || (rosterIndex >= MAX_MULTIPLAYER_MOVERS) || !moverRoster[rosterIndex] || !moverRoster[rosterIndex]->getPilot())
 				break;
 			moverRoster[rosterIndex]->setExists(true);
 			netSupportCounts[1]++;
@@ -2290,7 +2291,7 @@ static void applySupport (MultiPlayer* player, const netwire::ChunkBatch& batch)
 			break;
 		}
 		case netwire::SupportStage::DropVehicle:
-			if (!mover)
+			if (!mover || !mover->getPilot())
 				return;
 			mover->setExists(true);
 			netSupportCounts[1]++;

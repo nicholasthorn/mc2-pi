@@ -1056,8 +1056,9 @@ void MissionInterfaceManager::updateVTol()
 						// a second vehicle begun by now has taken the slot: not a reason to stop
 						const long index = MPlayer->reinforcements[vtolNum][0];
 						MoverPtr mover = ((index >= 0) && (index < MAX_MULTIPLAYER_MOVERS)) ? MPlayer->moverRoster[index] : NULL;
-						// the host's to order: every machine's VTOL lands here
-						if (mover && MPlayer->isServer()) {
+						// the host's to order: every machine's VTOL lands here. The battle may have
+						// destroyed the unit since the drop, and taken its pilot with it.
+						if (mover && mover->getPilot() && MPlayer->isServer()) {
 							TacticalOrder tacOrder;
 							tacOrder.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_POWERUP, true);
 							tacOrder.pack(NULL, NULL);
@@ -1067,7 +1068,9 @@ void MissionInterfaceManager::updateVTol()
 						}
 					else if (reinforcement)
 					{
-						reinforcement->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
+						// as above: it may be gone already
+						if (reinforcement->getPilot())
+							reinforcement->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
 						reinforcement = NULL;
 					}
 
