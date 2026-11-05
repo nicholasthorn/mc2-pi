@@ -140,6 +140,8 @@ void MissionResults::update()
 		mpStats.update();
 		if ( mpStats.getStatus() != LogisticsScreen::RUNNING )
 			bDone = true;
+		if ( MPlayer->resultsFrameDone() )
+			bDone = true;
 	}
 
 	else if ( !pSalvageScreen && !pPilotScreen )

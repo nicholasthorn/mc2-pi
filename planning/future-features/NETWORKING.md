@@ -3,7 +3,9 @@
 Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 nearly built: the
 wire format (`code/netwire.*`), the transport interface (`GameOS/gameos/gos_net.*`) and
 a real backend on GameNetworkingSockets, in every configuration (`cmake/mc2_gns.cmake`).
-Nothing in the game calls them yet, and a Windows peer has not met another platform's.
+A Windows peer has not met another platform's. Phase 2's vertical slice runs on one PC
+(see "Phase 2 results"): two processes play a battle to its result. It has not been on
+a real network or a headset, and nobody has watched it.
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are
@@ -496,6 +498,180 @@ Not settled by phase 0:
 - Host cost off camera: buildings update everywhere, and at night their lights can
   fill the world light table. Measure on a Quest in phase 2.
 
+### Phase 2 results
+
+`mc2 -mission <map> -nethost 2 -netlisten [port]` hosts and waits for the other player,
+`mc2 -mission <map> -netjoin <address>[:port]` joins. No UI. `code/netsession.*` is the
+join, the load barrier and the start, without the game, so tests run it on a loopback.
+`scripts/net_smoke.sh` is the test: a host and a client on one machine, under Xvfb and
+llvmpipe, fight `bench/net_m08.fit` (12 units a side, damage on) until one team is left.
+Each side orders its own units, so the client's go by the network to the host.
+
+Run on Linux x64 with GCC, desktop GL, on one machine, the lag and loss from GNS's own
+simulator on what each end sends:
+
+| Each way | Result | Weapon hits | Client orders | Armour differs | Position error |
+|---|---|---|---|---|---|
+| None | Played to a result, both agree | 791 at turn 2400 | 165 at turn 2400 | 0 at every check | 14 at the end |
+| 100 ms, 2% loss | Played to a result, both agree | 920 | 358 | 0 at every check | 153 at worst, usually about 30 |
+| 250 ms, 5% loss | Played to a result, both agree | 810 | 284 | 0 at every check | 166 at worst, usually under 70 |
+
+Positions are world units, and a cell is about 43. The largest figure in any run, about
+12,000 to 13,000, is the check that falls during the host's opening teleport. A check every
+five seconds compares each live unit on the client with the host's.
+
+- **Movement: keep the legacy step-following for now.** Its error under 250 ms and 5% loss
+  stays within a few cells, inside the warp distance (300). This is from numbers only: nobody
+  has seen whether it looks acceptable, so snapshot interpolation stays the fallback. The
+  decision is not final until someone has watched it.
+- **Critical hits go in the weapon hit stream.** As per-unit chunks they reached the client
+  in another order from the hits, and what a critical hit destroys decides where the next hit
+  lands, so armour drifted apart. With one ordered stream it does not.
+- **Armour is compared only for live units.** A hit on a unit that is down takes another path
+  once it has finished falling, which an animation decides on each machine. That difference is
+  real and left alone, since a wreck's armour changes nothing.
+- **Bad data no longer ends the game on the paths this uses.** Roster indices are bounded, and
+  `TacticalOrder::validPacked` checks a client's order before `unpack`, which ends the game on a
+  bad target. The host checks that a client owns the unit it orders. A client that sends what
+  only a host may send is dropped, as is one whose reliable queue is full.
+- **A found bug, not a network one:** `Gate` and `Turret` inherited a `getDamageLevel` that read
+  their type as the wrong class, also in single player. Only the mouse-over check for rock clumps
+  and a debug string use it on them, so play does not change.
+
+### Phase 3, begun
+
+World events go from the host to clients in order, as two words each in a `ChunkKind::World` batch
+(`netwire::WorldEvent`): artillery, mines, terrain fire, a building captured, and kills and losses. A
+repair is `Mover::refit` run again on the client from the same state. A client calls a strike by
+asking the host, and the host applies it for that client's commander.
+
+`NetEventsEvery` in a scenario stages what a short battle is not sure to do. In `bench/net_m08.fit` a
+client saw artillery, mines, captures and repairs, armour never differed, and both ends finish with
+the same kills, losses, buildings and mines (`[NETSCORE]`). The repairs are staged by the director, not
+done by a repair truck, and no run has lit a tree. The strike requests are not checked against resource
+points. `bench/net_order_*.fit` has a client's unit walk 85 m to an HQ under the interface's order, and
+take it through the game's own capture: that team wins on both maps, m08 and m05.
+
+A client's hold position reaches the host, and the in-mission results table has real players, names
+and ranks, the winners first and then by team score. Mission script messages and team scores are sent.
+A `TACTICAL_ORDER_RECOVER` is refused: executing one is a `STOP`, in single player too, so a client
+could have ended the host's game with it.
+
+### Game modes
+
+Every stock multiplayer map declares a mode, in `MissionSettings`, so a game now plays the map's. The
+original rules went with the code Microsoft removed, so `code/netrules.*` rebuilds them from what the
+maps hold, and these are **our rules, not necessarily the shipped game's**:
+
+| Mode | Maps | HQs on the map | Ends when | At the time limit |
+|---|---|---|---|---|
+| Elimination | m01, m02, m02a, m03 | None | One team has units | Highest score (kills) |
+| King of the Hill | m05 | One, at the centre | One team has units | Highest score, a point a second on the hill |
+| Capture Base | m02b, m08 | One per possible team | One base is left | Highest score |
+| Territories | m07 | Six in a ring | One team has units | Highest score, a point a second for each held |
+| Last Man Standing | m04 | None | One team has units | Most units |
+| Last Man on the Hill | m06 | One, at the centre | One team has units | Whoever holds the hill |
+| Other | m09 | None | As Elimination, for now | As Elimination |
+
+A level result at the time limit is a draw. On a capture base map each team takes the free HQ nearest
+where its units start, in team order, so both ends agree without being told. HQs nobody took stop being
+capturable. m10 and later have not been looked at for what they declare.
+
+Run between two processes on x64 desktop GL: each mode on a map of that mode reached the expected result,
+and both ends finished with the same buildings. In most of these runs the test takes the HQ; on m08 and m05
+it is also done by a unit under orders. King of the Hill, Territories, Last Man on the Hill and Last Man
+Standing run with a shortened time limit.
+
+### Support, recovery and every order
+
+The host holds every commander's resource points and decides every support call. A client's button
+takes the points from its own screen at once, so it needs no round trip, and asks. The host checks what
+the interface checks where it clicked (the cost, a place its team can see, passable, no water, a free roster
+slot), charges them and tells every machine, or refuses and gives them back. A map's `ResourcePoints` and
+`...EnabledDefault` settings now count, as there is no lobby to set them in.
+
+- **A support vehicle:** every machine makes the unit, not yet existing, in the same roster slot, and flies
+  its own VTOL. When the host's reaches the drop, the unit exists everywhere; when it lands, the host powers it
+  up. Support units do not keep a team in the game.
+- **A recovery:** the Karnov flies on every machine, the host says when, and sends the mech's exact armour and
+  structure, because a wreck's were free to differ until something could bring it back. One wreck takes
+  one Karnov. Stage 7 of the 2001 protocol, dropping a dead unit from its team, is not used: a wreck stays
+  on the roster in single player too.
+- **Turrets** send their target when it changes, so a client turns them to face it. The host alone fires them.
+  27 to 62 turrets stand on m01, m04, m08, m09 and m10; none on the others.
+- **Pilot kill stats** reach a client.
+- **Mines:** a shot or a blast setting one off was each machine's own business, so their counts drifted.
+  `SetOffMine` leaves it to the host.
+- **A truck out of points** stops on a client too, and a repair is limited to what a client can be told. After each repair
+  the host sends the exact armour, as a repair shares its points with ammo, and a client's ammo can be a moment behind.
+- **Results:** a network game ends on the real results screen (`MPStats`), and Close quits, as there is no lobby to
+  return to. Under `-autoexit` it shows for one frame, so every test goes through its code;
+  `MC2_NET_RESULTS_FRAMES` keeps it longer, and with `-bench` takes a screenshot of it.
+- **Found on the way, also in single player:** a pilot with one of the four short voices (`pilot1a` to `pilot1d`)
+  ended the game on the radio messages past the end of its file, a recovered mech could stay starting up for good,
+  and the radio crashed when every queued message's pilot had died.
+
+Tests, between two processes on x64 desktop GL: `bench/net_support.fit` (each side calls a truck, a scout, a minelayer and
+a guard tower through the button and click the interface gives, and recovers a mech, and the client gives every kind of order
+the interface can), `bench/net_repair.fit` (a truck and a minelayer at work, with nothing to shoot them) and `bench/net_turret.fit` (a battle
+among team 1's turrets on m09: 92 shots fired, 83 target changes reached the client). Armour differed in no check, and both ends
+finished with the same resource points. `bench/net_support.fit` also passes under 100 ms and 2% loss, and all three under ASan + UBSan,
+which found an out-of-bounds read the first time a turret fired: a rear torso hit used as a body location, on any turret shot.
+
+A rare host crash in `net_support.fit` took some finding: a support vehicle destroyed between its drop and its VTOL landing has lost its pilot, and
+the landing powered it up through a null pointer. It took a battle killing a vehicle in those few seconds, so 50 local games missed it, and it
+looked tied to recoveries by chance. ASan caught it in CI. Single player had the same flaw. A crash in an automated run now prints a backtrace, and
+`net_smoke.sh` names the frames.
+
+Not settled: nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
+in a test has been shown to have one. Windows and arm64 have only what CI runs.
+
+### On a Quest 2 (2026-11-05)
+
+A PC (Linux x64, WSL, llvmpipe under Xvfb, no display) and a Quest 2 on home Wi-Fi, inside the app with the
+renderer and head tracking running, played `bench/net_m08.fit`, 12 units a side, damage on. The headset was unworn,
+held awake by the proximity override, so this is not a run with someone in it.
+
+- **Quest as host, PC as client:** played to a result. Armour differed in 0 of 15 checks, and both ends finished with
+  the same kills, losses, buildings and mines. Position error ended at 8 units, 156 at worst.
+- **Quest as client, PC as host:** ran 3600 frames, armour differing in 0 of 12 checks. This needed `-netcall`, since
+  a Quest cannot reach a host inside WSL: the host dials a client started with `-netjoin wait`. The client's
+  fixed `-bench` step ran it faster than real time, which is probably why its position error reached 227.
+
+Frame costs, from `-bench`, one run each of the same 3600 frames:
+
+| Quest 2 | Client | Host, with a PC client | Host alone, no network |
+|---|---|---|---|
+| Game step, p50 / p95 | 3.98 / 5.78 ms | 4.38 / 6.41 ms | 3.99 / 124 ms |
+| Frame, p50 / p95 | 15.1 / 19.8 ms | 15.8 / 21.7 ms | 15.4 / 22.7 ms |
+| Frames over 13.9 ms (72 Hz) | 78% | 83% | 90% |
+| Frames per second | 63.1 | 60.5 | 52.9 |
+
+- **A client is about 9% cheaper per step, not much cheaper.** The hope in "Decision 2" does not hold: it does skip
+  AI and pathing, but its step is mostly the rest. Single runs, and the two battles differ, so treat this as rough.
+- **Hosting did not visibly cost a frame.** The host alone is not a clean control: its script orders both sides, which
+  is the extra pathfinding in its p95, and its battle went differently.
+- **Neither role meets 72 Hz in this battle, either way round.** That is the renderer, about 13.5 ms of the frame,
+  and is the VR work's to solve. Every run had rare stalls of 140 to 260 ms; not traced.
+- **The APK grew** from 8.9 MB to 12.8 MB against a build of 2 November, not all of it the network.
+- After `[NET] mission over` the first run's process was still there when looked at. A quit on the headset is unchecked.
+
+Not settled by phase 2, against its exit criterion:
+
+- **No one has been in the headset for a network game.** Worn, focus changes and a person's eyes are all still to come.
+- **Windows peer, and x64 with arm64 on Linux.** The Quest is arm64 with BoringSSL, so that part is covered, but BCrypt is not.
+- **Sound, effects and movement on the client have not been looked at.** The check covers armour,
+  status and position.
+- Not sent, and left so: a gate. Each machine opens its own by what it sees nearby, and only the host
+  decides what a closing gate crushes, so the two may differ for a moment; no test has had one, and which stock maps have one has not been checked.
+- `TACTICAL_ORDER_RECOVER`, the old order, is dead code in the game and is refused. Recovery is the Karnov.
+- A mission script's result is not sent, which matters for co-op (phase 4b).
+- A client that leaves is not replaced, and a host that leaves ends the game for the client.
+- The data check in `Hello` is only the mission's name. The roster hash at the load barrier catches
+  other units, but not other weapon or terrain data.
+- The exit on `-autoexit` crashed in the heap before the network closed in `ShutdownNetworking`, and
+  has not since, sanitized or not. Which object it was was not traced.
+
 ## Verification
 
 - **Unit (every commit, all four configurations):** round trip per message and
@@ -541,9 +717,8 @@ For you:
 
 For the work:
 
-- Does GNS still behave on a Quest inside the app, while rendering and worn?
-- How much cheaper is a client's step than single-player's on a Quest?
-- Is legacy step-following acceptable at 100 to 250 ms with loss?
+- Does GNS still behave on a Quest worn? (Inside the app and rendering, it does: "On a Quest 2".)
+- Is legacy step-following acceptable to look at, at 100 to 250 ms with loss?
 - What does the game do today when the OpenXR session loses focus, and can a
   background thread keep the network going while the app is paused?
 - Can a sideloaded app use Shared Spatial Anchors, and what does it take?

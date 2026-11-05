@@ -1,0 +1,26 @@
+FITini
+// A client's unit, under the order the interface gives, walks to the hill on the King of
+// the Hill map mc2_m05 and takes it, so the client's team must win on score at the limit:
+//   scripts/net_smoke.sh --mission mc2_m05 --scenario bench/net_order_m05.fit --expect-winner 1 --world-events no
+// The hill is at 21, 149. Nobody takes damage.
+
+[Bench]
+st Mission = "mc2_m05"
+l Frames = 20000
+l Gather = 12
+f ArenaX = -979.0
+f ArenaY = -751.0
+f LineGap = 2000.0
+f Spacing = 90.0
+b Pain = FALSE
+l ReorderEvery = 0
+l NetOrderCaptureAt = 60
+f NetTimeLimit = 75.0
+l NumSegments = 1
+
+[Segment0]
+st Name = "capture"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend

@@ -10,6 +10,15 @@
 
 namespace gos_net {
 
+#ifndef MC2_NET
+std::unique_ptr<Transport> createGnsTransport(std::string* error, int)
+{
+	if (error)
+		*error = "this build has no network (MC2_NET is off)";
+	return nullptr;
+}
+#endif
+
 namespace {
 
 class LoopbackTransport;

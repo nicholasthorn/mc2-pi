@@ -1,5 +1,6 @@
 // code/netwire.cpp: see netwire.h
 
+#include <cmath>
 #include "netwire.h"
 
 #include <cstring>
@@ -96,13 +97,13 @@ bool validWelcome(const Welcome& m)
 {
 	if (m.reject == RejectReason::None)
 		return m.numPlayers >= 1 && m.numPlayers <= MAX_PLAYERS && m.commanderId < m.numPlayers;
-	return m.reject == RejectReason::WrongVersion || m.reject == RejectReason::WrongData || m.reject == RejectReason::GameFull;
+	return m.reject == RejectReason::WrongVersion || m.reject == RejectReason::WrongData || m.reject == RejectReason::GameFull || m.reject == RejectReason::WrongRoster;
 }
 
 bool validKind(ChunkKind kind)
 {
 	const uint8_t k = static_cast<uint8_t>(kind);
-	return k >= static_cast<uint8_t>(ChunkKind::Move) && k <= static_cast<uint8_t>(ChunkKind::Order);
+	return k >= static_cast<uint8_t>(ChunkKind::Move) && k <= static_cast<uint8_t>(ChunkKind::Support);
 }
 
 // Reads the type byte and checks it, for a decoder.
@@ -113,12 +114,80 @@ bool expectType(Reader& in, MessageType type)
 
 }
 
+bool encodeWorldEvent(const WorldEvent& e, uint32_t words[WORLD_EVENT_WORDS])
+{
+	const uint8_t t = static_cast<uint8_t>(e.type);
+	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::TurretTarget)
+		|| e.a > MAX_WORLD_FIELD || e.b > MAX_WORLD_FIELD)
+		return false;
+	words[0] = static_cast<uint32_t>(t) | (static_cast<uint32_t>(e.a) << 8) | (static_cast<uint32_t>(e.b) << 20);
+	words[1] = e.value;
+	return true;
+}
+
+static bool validSupportEvent(const SupportEvent& e)
+{
+	switch (e.stage) {
+		case SupportStage::RequestVehicle:
+		case SupportStage::BeginVehicle:
+		case SupportStage::DropVehicle:
+		case SupportStage::RequestRecovery:
+		case SupportStage::BeginRecovery:
+		case SupportStage::Recovered:
+		case SupportStage::Refused:
+			break;
+		default:
+			return false;
+	}
+	return e.commander < MAX_PLAYERS && e.cost >= 0 && std::isfinite(e.x) && std::isfinite(e.y) && std::isfinite(e.z);
+}
+
+bool encodeSupportEvent(const SupportEvent& e, uint32_t words[SUPPORT_EVENT_WORDS])
+{
+	if (!validSupportEvent(e))
+		return false;
+	words[0] = static_cast<uint32_t>(e.stage) | (static_cast<uint32_t>(e.commander) << 8) | (static_cast<uint32_t>(e.rosterIndex) << 16);
+	words[1] = e.vehicleId;
+	words[2] = static_cast<uint32_t>(e.cost);
+	std::memcpy(&words[3], &e.x, 4);
+	std::memcpy(&words[4], &e.y, 4);
+	std::memcpy(&words[5], &e.z, 4);
+	return true;
+}
+
+bool decodeSupportEvent(const uint32_t words[SUPPORT_EVENT_WORDS], SupportEvent& e)
+{
+	e.stage = static_cast<SupportStage>(words[0] & 0xFFu);
+	e.commander = static_cast<uint8_t>((words[0] >> 8) & 0xFFu);
+	e.rosterIndex = static_cast<uint16_t>(words[0] >> 16);
+	if (words[1] > 0xFFFFu)
+		return false;
+	e.vehicleId = static_cast<uint16_t>(words[1]);
+	e.cost = static_cast<int32_t>(words[2]);
+	std::memcpy(&e.x, &words[3], 4);
+	std::memcpy(&e.y, &words[4], 4);
+	std::memcpy(&e.z, &words[5], 4);
+	return validSupportEvent(e);
+}
+
+bool decodeWorldEvent(const uint32_t words[WORLD_EVENT_WORDS], WorldEvent& e)
+{
+	const uint8_t t = static_cast<uint8_t>(words[0] & 0xFFu);
+	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::TurretTarget))
+		return false;
+	e.type = static_cast<WorldEventType>(t);
+	e.a = static_cast<uint16_t>((words[0] >> 8) & MAX_WORLD_FIELD);
+	e.b = static_cast<uint16_t>(words[0] >> 20);
+	e.value = words[1];
+	return true;
+}
+
 bool peekType(const void* data, size_t size, MessageType& type)
 {
 	if (size < 1)
 		return false;
 	const uint8_t t = *static_cast<const uint8_t*>(data);
-	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::ChunkBatch))
+	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::EndGame))
 		return false;
 	type = static_cast<MessageType>(t);
 	return true;
@@ -223,6 +292,58 @@ bool decode(const void* data, size_t size, ChunkBatch& m)
 	for (size_t i = 0; i < count; i++)
 		m.words[i] = in.u32();
 	return in.finished();
+}
+
+bool encode(const Ready& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::Ready));
+	w.u32(m.rosterHash);
+	return true;
+}
+
+bool decode(const void* data, size_t size, Ready& m)
+{
+	Reader in(data, size);
+	if (!expectType(in, MessageType::Ready))
+		return false;
+	m.rosterHash = in.u32();
+	return in.finished();
+}
+
+bool encode(const Start&, std::vector<uint8_t>& out)
+{
+	out.clear();
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::Start));
+	return true;
+}
+
+bool decode(const void* data, size_t size, Start&)
+{
+	Reader in(data, size);
+	return expectType(in, MessageType::Start) && in.finished();
+}
+
+bool encode(const EndGame& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (m.winningTeam >= MAX_PLAYERS && m.winningTeam != NO_WINNER)
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::EndGame));
+	w.u8(m.winningTeam);
+	return true;
+}
+
+bool decode(const void* data, size_t size, EndGame& m)
+{
+	Reader in(data, size);
+	if (!expectType(in, MessageType::EndGame))
+		return false;
+	m.winningTeam = in.u8();
+	return in.finished() && (m.winningTeam < MAX_PLAYERS || m.winningTeam == NO_WINNER);
 }
 
 }
