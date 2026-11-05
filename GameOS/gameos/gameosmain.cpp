@@ -584,7 +584,7 @@ int main(int argc, char** argv)
         logic_wait += last_dt;
         bool run_logic = true;
         if(logic_step > 0.0 && stepped) {
-            run_logic = logic_wait >= logic_step;
+            run_logic = logic_wait >= logic_step && !gos_GameStepHeldBack();
             // the game's frameLength is 1 / frameRate: the time since its
             // last step, not since the last frame
             if(run_logic)

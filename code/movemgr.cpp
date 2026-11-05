@@ -236,6 +236,7 @@ static void pathWorker (void) {
 		workerManager->update();
 		lock.lock();
 		workerBusy = false;
+		gos_SetGameStepHeldBack(false);
 		workerDone.notify_all();
 	}
 }
@@ -287,6 +288,7 @@ void MovePathManager::startWorker (void) {
 	}
 	workerManager = this;
 	workerBusy = true;
+	gos_SetGameStepHeldBack(true);
 	workerWake.notify_all();
 }
 
