@@ -494,7 +494,7 @@ static const char* netRejectName (netwire::RejectReason reason) {
 
 //---------------------------------------------------------------------------
 
-void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char* missionName) {
+void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char* missionName, const char* dialAddress, unsigned short dialPort) {
 
 	std::string error;
 	netTransport = gos_net::createGnsTransport(&error);
@@ -510,6 +510,8 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 	initUpdateFrequencies();
 	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
 	fflush(stdout);
+	if (dialAddress && !netSession->dialClient(dialAddress, dialPort))
+		Fatal(0, " -netcall: needs an IP address ");
 	if (!netWait([]() { return netSession->allJoined(); }))
 		Fatal(0, " -netlisten: not everyone joined in time ");
 }
@@ -523,9 +525,10 @@ void MultiPlayer::joinNetGame (const char* address, unsigned short port, const c
 	if (!netTransport)
 		Fatal(0, (std::string(" -netjoin: no network: ") + error).c_str());
 	netSession.reset(new netsession::Session(*netTransport));
-	if (!netSession->join(address, port, (uint32_t)netHash(2166136261u, missionName), "player"))
-		Fatal(0, " -netjoin: needs an IP address ");
-	printf("[NET] joining %s at %s port %d\n", missionName, address, (int)port);
+	const uint32_t hash = (uint32_t)netHash(2166136261u, missionName);
+	if (address ? !netSession->join(address, port, hash, "player") : !netSession->joinWaiting(port, hash, "player"))
+		Fatal(0, address ? " -netjoin: needs an IP address " : " -netjoin wait: cannot listen on this port ");
+	printf("[NET] joining %s at %s port %d\n", missionName, address ? address : "whoever calls", (int)port);
 	fflush(stdout);
 	const bool answered = netWait([]() {
 		return netSession->joined() || netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None);
@@ -936,18 +939,24 @@ void MultiPlayer::initSpecialBuildings (char commandersToLoad[8][3]) {
 
 //---------------------------------------------------------------------------
 
+BuildingPtr MultiPlayer::hqToTake (void) {
+
+	if (missionSettings.missionType == MISSION_TYPE_CAPTURE_BASE) {
+		for (long team = 0; team < numTeams; team++)
+			if ((team != playerInfo[commanderID].team) && mainHqBuildings[team])
+				return(mainHqBuildings[team]);
+		return(NULL);
+	}
+	return(netHqs.empty() ? NULL : netHqs[0]);
+}
+
+//---------------------------------------------------------------------------
+
 void MultiPlayer::stageHqCapture (void) {
 
 	if (!netSession || !iAmHost)
 		return;
-	BuildingPtr target = NULL;
-	if (missionSettings.missionType == MISSION_TYPE_CAPTURE_BASE) {
-		for (long team = 0; (team < numTeams) && !target; team++)
-			if ((team != commanderID) && mainHqBuildings[team])
-				target = mainHqBuildings[team];
-		}
-	else if (!netHqs.empty())
-		target = netHqs[0];
+	BuildingPtr target = hqToTake();
 	if (!target) {
 		printf("[NET] no HQ to take on this map\n");
 		return;

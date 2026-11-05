@@ -107,6 +107,19 @@ static long netHostPlayers = 0;		// -nethost <players>: multiplayer host, no net
 static unsigned short netListenPort = 0;	// -netlisten [port]: and clients may join it
 static char netJoinAddress[64] = "";	// -netjoin <address>[:port]: join a host's game
 static unsigned short netJoinPort = netsession::DEFAULT_PORT;
+static char netCallAddress[64] = "";	// -netcall <address>[:port]: the host dials a client that waits
+static unsigned short netCallPort = netsession::DEFAULT_PORT;
+
+// <address>[:port], with a port only after a colon that is the only one (not IPv6)
+static void netParseAddress (const char* text, char* address, size_t size, unsigned short& port) {
+	strncpy(address, text, size - 1);
+	address[size - 1] = 0;
+	char* colon = strrchr(address, ':');
+	if (colon && (colon == strchr(address, ':'))) {
+		port = (unsigned short)atoi(colon + 1);
+		*colon = 0;
+	}
+}
 bool gamePaused = FALSE;
 bool hasGuardBand = false;
 bool canMultiTextureDetail = false;
@@ -1706,9 +1719,10 @@ void __stdcall InitializeGameEngine()
 				MPlayer = new MultiPlayer;
 				MPlayer->setup();
 				if (netJoinAddress[0])
-					MPlayer->joinNetGame(netJoinAddress, netJoinPort, missionName);
-				else if (netListenPort)
-					MPlayer->hostNetGame(netHostPlayers, netListenPort, missionName);
+					MPlayer->joinNetGame((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName);
+				else if (netListenPort || netCallAddress[0])
+					MPlayer->hostNetGame(netHostPlayers, netListenPort ? netListenPort : netsession::DEFAULT_PORT, missionName,
+						netCallAddress[0] ? netCallAddress : NULL, netCallPort);
 				else
 					MPlayer->startLocalHost(netHostPlayers);
 				MultiPlayTeamId = MPlayer->commanderID;
@@ -2608,16 +2622,12 @@ void ParseCommandLine(const char *command_line)
 		else if (S_stricmp(argv[i],"-netjoin") == 0)
 		{
 			if ((i + 1) < n_args)
-			{
-				// address, then a port after the last colon if it is IPv4
-				strncpy(netJoinAddress, argv[++i], sizeof(netJoinAddress) - 1);
-				char* colon = strrchr(netJoinAddress, ':');
-				if (colon && (colon == strchr(netJoinAddress, ':')))
-				{
-					netJoinPort = (unsigned short)textToLong(colon + 1);
-					*colon = 0;
-				}
-			}
+				netParseAddress(argv[++i], netJoinAddress, sizeof(netJoinAddress), netJoinPort);
+		}
+		else if (S_stricmp(argv[i],"-netcall") == 0)
+		{
+			if ((i + 1) < n_args)
+				netParseAddress(argv[++i], netCallAddress, sizeof(netCallAddress), netCallPort);
 		}
 		else if (S_stricmp(argv[i],"-nodialog") == 0)
 		{

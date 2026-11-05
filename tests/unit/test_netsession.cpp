@@ -122,6 +122,72 @@ TEST_CASE("a one-player host has nobody to wait for")
 	CHECK(game.host.start());
 }
 
+TEST_CASE("the host can dial a client that waits")
+{
+	Game game;
+	const uint16_t clientPort = PORT + 1;
+	REQUIRE(game.host.host(PORT, 2, HASH));
+	game.transports.push_back(game.network.createTransport());
+	game.clients.emplace_back(new Session(*game.transports.back()));
+	Session& a = *game.clients.back();
+	REQUIRE(a.joinWaiting(clientPort, HASH, "Ace"));
+	game.pump();
+	CHECK_FALSE(a.joined());
+
+	CHECK(game.host.dialClient("127.0.0.1", clientPort));
+	game.pump();
+	CHECK(a.joined());
+	CHECK(a.commander() == 1);
+	CHECK(game.host.allJoined());
+
+	game.host.setRosterHash(ROSTER);
+	CHECK(a.sendReady(ROSTER));
+	game.pump();
+	CHECK(game.host.start());
+	game.pump();
+	CHECK(a.started());
+
+	Received received;
+	ChunkBatch order = orderBatch();
+	CHECK(a.sendToHost(gos_net::Delivery::ReliableOrdered, order));
+	game.pump();
+	REQUIRE(game.host.nextBatch(received));
+	CHECK(received.commander == 1);
+}
+
+TEST_CASE("a client that waits takes only the first to arrive as the host")
+{
+	Game game;
+	const uint16_t clientPort = PORT + 1;
+	game.transports.push_back(game.network.createTransport());
+	game.clients.emplace_back(new Session(*game.transports.back()));
+	Session& a = *game.clients.back();
+	REQUIRE(a.joinWaiting(clientPort, HASH, "Ace"));
+
+	REQUIRE(game.host.host(PORT, 2, HASH));
+	CHECK(game.host.dialClient("127.0.0.1", clientPort));
+	game.pump();
+	CHECK(a.joined());
+
+	// a second caller says nothing the client listens to
+	auto other = game.network.createTransport();
+	gos_net::ConnectionId connection = gos_net::INVALID_CONNECTION;
+	REQUIRE(other->connect("127.0.0.1", clientPort, connection));
+	game.pump();
+	Start start;
+	std::vector<uint8_t> out;
+	REQUIRE(encode(start, out));
+	other->send(connection, gos_net::Delivery::ReliableOrdered, out.data(), out.size());
+	game.pump();
+	CHECK_FALSE(a.started());
+}
+
+TEST_CASE("only a host can dial")
+{
+	Game game;
+	CHECK_FALSE(game.host.dialClient("127.0.0.1", PORT));
+}
+
 TEST_CASE("the wrong data is refused")
 {
 	Game game;

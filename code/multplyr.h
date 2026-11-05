@@ -1510,7 +1510,9 @@ class MultiPlayer : public MultiPlayerState {
 
 		// A real game (-nethost <players> -netlisten [port], -netjoin <address>[:port]).
 		// Each waits until everyone has joined, and ends the game if it cannot be had.
-		void hostNetGame (long numPlayers, unsigned short port, const char* missionName);
+		// With dialAddress, the host calls a client that waits (-netcall), and with a NULL
+		// address, a client waits to be called (-netjoin wait).
+		void hostNetGame (long numPlayers, unsigned short port, const char* missionName, const char* dialAddress = NULL, unsigned short dialPort = 0);
 
 		void joinNetGame (const char* address, unsigned short port, const char* missionName);
 
@@ -1709,7 +1711,11 @@ class MultiPlayer : public MultiPlayerState {
 		// Over the network, what addArtilleryChunk and the like have queued.
 		void flushWorldEvents (void);
 
-		// For a test: the host's team takes the HQ that decides this mode, as a capture would.
+		// The HQ that decides this mode for this player: an enemy's base, or the first
+		// of the hill or the territories. NULL if the map has none.
+		BuildingPtr hqToTake (void);
+
+		// For a test: the host's team takes that HQ, as a capture would.
 		void stageHqCapture (void);
 
 		long addEndMissionChunk (void);

@@ -50,6 +50,12 @@ public:
 	// Client. False if the connection could not even be started.
 	bool join(const char* address, uint16_t port, uint32_t dataHash, const std::string& name);
 
+	// The same two, the other way round, for a host that cannot be reached but can reach
+	// out (behind address translation, as in WSL): the client listens for one connection,
+	// and the host dials it. After connecting nothing differs: the client still says Hello.
+	bool joinWaiting(uint16_t port, uint32_t dataHash, const std::string& name);
+	bool dialClient(const char* address, uint16_t port);
+
 	// Handles whatever has arrived. Call often while waiting, and each frame after.
 	void update();
 
@@ -115,6 +121,7 @@ private:
 
 	gos_net::ConnectionId server_ = gos_net::INVALID_CONNECTION;	// client
 	std::string name_;
+	bool waitingForHost_ = false;
 	bool joined_ = false;
 	bool started_ = false;
 	netwire::RejectReason rejected_ = netwire::RejectReason::None;

@@ -41,6 +41,21 @@ bool Session::join(const char* address, uint16_t port, uint32_t dataHash, const 
 	return transport_.connect(address, port, server_);
 }
 
+bool Session::joinWaiting(uint16_t port, uint32_t dataHash, const std::string& name)
+{
+	isHost_ = false;
+	dataHash_ = dataHash;
+	name_ = name;
+	waitingForHost_ = true;
+	return transport_.listen(port);
+}
+
+bool Session::dialClient(const char* address, uint16_t port)
+{
+	ConnectionId connection = INVALID_CONNECTION;
+	return isHost_ && transport_.connect(address, port, connection);
+}
+
 void Session::update()
 {
 	Event event;
@@ -209,6 +224,11 @@ void Session::judgeReady(ConnectionId connection)
 
 void Session::handleClient(const Event& event)
 {
+	// only the first to arrive is the host
+	if (waitingForHost_ && (event.type == EventType::Connected)) {
+		waitingForHost_ = false;
+		server_ = event.connection;
+	}
 	if (event.connection != server_)
 		return;
 	switch (event.type) {
