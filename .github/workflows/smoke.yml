@@ -213,6 +213,10 @@ jobs:
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m07 $capture --log-dir smoke-logs/net-territories
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m04 --scenario "$PWD/bench/net_timed.fit" \
             --world-events no --log-dir smoke-logs/net-last-man-standing
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_order_m08.fit" \
+            --expect-winner 1 --world-events no --log-dir smoke-logs/net-ordered-capture-base
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m05 --scenario "$PWD/bench/net_order_m05.fit" \
+            --expect-winner 1 --world-events no --log-dir smoke-logs/net-ordered-hill
       - uses: actions/upload-artifact@v7
         if: always()
         with:

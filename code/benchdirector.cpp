@@ -306,6 +306,38 @@ void strike (void) {
 		CallArtillery(Commander::home->getId(), ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3, false);
 }
 
+// A client's nearest unit to the HQ that decides this mode gets the order the interface
+// gives (missiongui.cpp), which goes by the host like any other.
+void orderCapture (void) {
+
+	BuildingPtr hq = MPlayer->hqToTake();
+	if (!hq) {
+		printf("[NET] no HQ to order a capture of\n");
+		return;
+	}
+	Stuff::Vector3D at = hq->getPosition();
+	MoverPtr nearest = NULL;
+	for (size_t i = 0; i < fighters.size(); i++) {
+		MoverPtr m = fighters[i];
+		if (!canFight(m) || (m->getCommander() != Commander::home))
+			continue;
+		if (!nearest || (m->distanceFrom(at) < nearest->distanceFrom(at)))
+			nearest = m;
+	}
+	if (!nearest)
+		return;
+	TacticalOrder order;
+	order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_CAPTURE);
+	order.targetWID = hq->getWatchID();
+	order.attackParams.type = ATTACK_NONE;
+	order.attackParams.method = ATTACKMETHOD_RAMMING;
+	order.attackParams.pursue = true;
+	order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+	printf("[NET] ordering %s to take the HQ at %.0f, %.0f, from %.0f away\n", nearest->getName(), at.x, at.y, nearest->distanceFrom(at));
+	fflush(stdout);
+	HandlePlayerOrder(nearest, &order);
+}
+
 // On the host, what nothing else in a two-minute battle is sure to do, to test that
 // it reaches a client: a mine between the lines, a repair, and a building changing hands.
 void netEvents (void) {
@@ -464,6 +496,9 @@ void BenchDirector::update (const char* missionName) {
 	// teleports apply during the units' own update, so order from frame 2
 	if ((frame >= 2) && (scenario.reorderEvery > 0) && ((frame - 2) % scenario.reorderEvery == 0))
 		orderAttacks();
+
+	if (MPlayer && MPlayer->isNetworked() && !MPlayer->isServer() && (scenario.netOrderCaptureAt > 0) && (scenario.netOrderCaptureAt == frame))
+		orderCapture();
 
 	const long seg = scenario.segmentAt(frame);
 	if (seg != segment) {
