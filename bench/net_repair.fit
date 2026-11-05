@@ -1,6 +1,7 @@
 FITini
-// A repair truck at work, with nothing to shoot it: the two sides are far apart and take no
-// orders to attack. Each side's first unit is hit once, then a truck of its own comes and fixes it.
+// A repair truck and a minelayer at work, with nothing to shoot them: the two sides are far apart
+// and take no orders to attack. Each side's first unit is hit once, then a truck of its own comes
+// and fixes it, and the client's minelayer lays.
 //   scripts/net_smoke.sh --mission mc2_m08 --scenario bench/net_repair.fit --expect-repairs --world-events no --frames 200000
 
 [Bench]
@@ -14,7 +15,8 @@ f ArenaX = 3672.0
 f ArenaY = 4497.0
 l ReorderEvery = 0
 l NetResourcePoints = 1000000
-l NetSupportEvery = 200
+f NetSupportSeconds = 6.0
+f NetLayMinesSeconds = 3.0
 l NetDamageAt = 100
 f NetTimeLimit = 70.0
 l NumSegments = 1

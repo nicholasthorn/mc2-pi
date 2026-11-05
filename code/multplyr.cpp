@@ -464,7 +464,7 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 	player->missionSettings.airStrike = player->missionSettings.guardTower = true;
 	player->missionSettings.repairVehicle = player->missionSettings.recoveryTeam = true;
 	player->missionSettings.sensorProbe = player->missionSettings.scoutCopter = true;
-	player->missionSettings.mineLayer = true;
+	player->missionSettings.mineLayer = player->missionSettings.resourceBuilding = true;
 	player->missionSettings.timeLimit = -1.0f;
 	player->missionSettings.missionType = MISSION_TYPE_ELIMINATION;
 	player->missionSettings.maxPlayers = MAX_MC_PLAYERS;
@@ -499,6 +499,8 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 			player->missionSettings.repairVehicle = enabled;
 		if (file.readIdBoolean("ArtilleryPieceEnabledDefault", enabled) == NO_ERR)
 			player->missionSettings.guardTower = enabled;
+		if (file.readIdBoolean("ResourceBuildingsEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.resourceBuilding = enabled;
 	}
 	file.close();
 	printf("[NET] mode %d, time limit %.0f\n", (int)player->missionSettings.missionType, player->missionSettings.timeLimit);
@@ -1320,8 +1322,10 @@ void SetOffMine (long row, long col) {
 
 //---------------------------------------------------------------------------
 
-// Armour and structure of a unit, exact. A wreck's are allowed to differ between machines,
-// since nothing reads them (applyNetCheck), until a recovery brings it back.
+// What a hit reads on a unit, exact: armour, structure, and each location's damage and critical
+// hits, which decide where the next hit goes. A wreck's are allowed to differ between machines,
+// since nothing reads them (applyNetCheck), until a recovery brings it back. Recovery itself
+// makes the components whole everywhere (Mover::recover).
 static void netSendArmour (MultiPlayer* player, MoverPtr mover) {
 
 	if (!netSession)
@@ -1336,15 +1340,25 @@ static void netSendArmour (MultiPlayer* player, MoverPtr mover) {
 	};
 	for (long i = 0; i < mover->numArmorLocations; i++)
 		add(mover->armor[i].curArmor);
-	for (long i = 0; i < mover->numBodyLocations; i++)
+	for (long i = 0; i < mover->numBodyLocations; i++) {
 		add(mover->body[i].curInternalStructure);
+		uint32_t state = mover->body[i].damageState;
+		// a slot past a location's parts is never set, so not read as a bool
+		for (long j = 0; (j < mover->body[i].totalSpaces) && (j < MAX_CRITSPACES_PER_BODYLOCATION); j++) {
+			unsigned char hit = 0;
+			memcpy(&hit, &mover->body[i].criticalSpaces[j].hit, 1);
+			if (hit == 1)
+				state |= 0x100u << j;
+		}
+		batch.words.push_back(state);
+	}
 	netSession->sendToClients(gos_net::Delivery::ReliableOrdered, batch);
 }
 
 static void netApplyArmour (MultiPlayer* player, const netwire::ChunkBatch& batch) {
 
 	MoverPtr mover = (batch.subject < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[batch.subject] : NULL;
-	if (!mover || (batch.words.size() != (size_t)(mover->numArmorLocations + mover->numBodyLocations)))
+	if (!mover || (batch.words.size() != (size_t)(mover->numArmorLocations + 2 * mover->numBodyLocations)))
 		return;
 	const auto get = [&batch](size_t i) {
 		float value = 0.0f;
@@ -1357,9 +1371,19 @@ static void netApplyArmour (MultiPlayer* player, const netwire::ChunkBatch& batc
 			mover->armor[i].curArmor = value;
 	}
 	for (long i = 0; i < mover->numBodyLocations; i++) {
-		const float value = get(mover->numArmorLocations + i);
+		const size_t at = mover->numArmorLocations + 2 * i;
+		const float value = get(at);
 		if ((value >= 0.0f) && (value <= mover->body[i].maxInternalStructure))
 			mover->body[i].curInternalStructure = value;
+		const uint32_t state = batch.words[at + 1];
+		if ((state & 0xFFu) <= IS_DAMAGE_DESTROYED)
+			mover->body[i].damageState = (unsigned char)(state & 0xFFu);
+		for (long j = 0; (j < mover->body[i].totalSpaces) && (j < MAX_CRITSPACES_PER_BODYLOCATION); j++)
+			mover->body[i].criticalSpaces[j].hit = ((state >> (8 + j)) & 1u) != 0;
+	}
+	if (mover->getObjectClass() == BATTLEMECH) {
+		((BattleMechPtr)mover)->calcLegStatus();
+		((BattleMechPtr)mover)->calcTorsoStatus();
 	}
 }
 
@@ -1404,6 +1428,7 @@ static bool netBeginVehicle (MultiPlayer* player, const netwire::SupportEvent& e
 	if (!mover)
 		return(false);
 	player->reinforcements[event.commander][0] = mover->getNetRosterIndex();
+	MissionInterfaceManager::instance()->endVtol(event.commander);
 	MissionInterfaceManager::instance()->beginVtol(event.vehicleId, event.commander, &pos);
 	netSupportCounts[0]++;
 	return(true);
@@ -1415,6 +1440,7 @@ static void netBeginRecovery (MultiPlayer* player, const netwire::SupportEvent& 
 	player->reinforcements[event.commander][1] = event.rosterIndex;
 	strncpy(player->reinforcementPilot[event.commander], LogisticsData::instance->getBestPilot(player->moverRoster[event.rosterIndex]->tonnage), 31);
 	player->reinforcementPilot[event.commander][31] = 0;
+	MissionInterfaceManager::instance()->endVtol(event.commander);
 	MissionInterfaceManager::instance()->beginVtol(event.vehicleId, event.commander, &pos);
 	netSupportCounts[2]++;
 }
@@ -1489,6 +1515,13 @@ static void netHostRequest (MultiPlayer* player, long commander, long vehicleId,
 		netHostResources(player, commander, -cost);
 	netSendSupport(player, event);
 }
+
+bool MultiPlayer::supportRequestPending (void) {
+
+	return(netSupportAsked);
+}
+
+//---------------------------------------------------------------------------
 
 void MultiPlayer::refundResources (long cost) {
 
@@ -2257,7 +2290,7 @@ static void applySupport (MultiPlayer* player, const netwire::ChunkBatch& batch)
 			netBeginRecovery(player, event);
 			break;
 		case netwire::SupportStage::Recovered:
-			if (!mover || (mover->getObjectClass() != BATTLEMECH))
+			if (!known || !mover || (mover->getObjectClass() != BATTLEMECH))
 				return;
 			netSupportCounts[3]++;
 			MissionInterfaceManager::instance()->recoverMech(event.commander, mover);
@@ -2658,8 +2691,8 @@ void MultiPlayer::logResults (void) {
 
 //-----------------------------------------------------------------------------
 
-// Nobody is there to press Done on an automated run. A frame goes through all of the screen's
-// code; MC2_NET_RESULTS_FRAMES keeps it up longer, for a screenshot under -bench.
+// Nobody is there to press Close on an automated run. A frame goes through all of the screen's
+// code; MC2_NET_RESULTS_FRAMES keeps it up longer, and under -bench takes a screenshot of it.
 bool MultiPlayer::resultsFrameDone (void) {
 
 	if (!gos_IsAutomatedRun())
@@ -2670,8 +2703,6 @@ bool MultiPlayer::resultsFrameDone (void) {
 		frames = wanted ? atol(wanted) : 1;
 		if (frames < 1)
 			frames = 1;
-		if (frames > 1)
-			gos_BenchScreenshot("results");
 	}
 	if (frames == 2)
 		gos_BenchScreenshot("results");

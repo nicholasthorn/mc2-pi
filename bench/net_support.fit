@@ -15,8 +15,8 @@ f ArenaX = 3672.0
 f ArenaY = 4497.0
 l ReorderEvery = 150
 l NetResourcePoints = 1000000
-l NetSupportEvery = 310
-l NetEveryOrderEvery = 170
+f NetSupportSeconds = 10.0
+f NetEveryOrderSeconds = 5.0
 f NetTimeLimit = 150.0
 l NumSegments = 1
 

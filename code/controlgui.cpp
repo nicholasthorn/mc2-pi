@@ -1961,7 +1961,8 @@ void ControlGui::handleVehicleClick( int ID )
 		return;
 	}
 
-	if ((ID == STOP_VEHICLE) && paintingMyVtol)
+	// nor once the host has been asked: it may have said yes, and taken the points
+	if ((ID == STOP_VEHICLE) && (paintingMyVtol || (MPlayer && MPlayer->supportRequestPending())))
 	{
 		//You cannot stop it once the VTOL is in flight, no matter what the button looks like.
 		soundSystem->playDigitalSample(INVALID_GUI);

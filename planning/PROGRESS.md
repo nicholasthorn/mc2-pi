@@ -12,6 +12,7 @@ belongs in commit messages and PRs.
 - [x] Linux build on Ubuntu 22.04 / GCC 11 (pkg-config fallbacks for SDL2_mixer/ttf) through 26.04 / GCC 15
 - [x] OpenGL ES 3.1 renderer behind `-DMC2_GLES=ON` (Raspberry Pi 4/400); desktop GL unchanged
 - [x] GLES texture upload repacking for 8-bit channel-count mismatches
+- [x] Multiplayer between processes, no UI (`-nethost`, `-netjoin`): every game mode, order, support vehicle and recovery, turrets, results (`future-features/NETWORKING.md`)
 - [x] arm64: `-fsigned-char`, portable heap caller capture, GCC 12 fixes
 - [x] Clang and MSVC build fixes
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)

@@ -611,12 +611,13 @@ slot), charges them and tells every machine, or refuses and gives them back. A m
 
 Tests, between two processes on x64 desktop GL: `bench/net_support.fit` (each side calls a truck, a scout, a minelayer and
 a guard tower through the button and click the interface gives, and recovers a mech, and the client gives every kind of order
-the interface can), `bench/net_repair.fit` (a truck at work, with nothing to shoot it) and `bench/net_turret.fit` (a battle
+the interface can), `bench/net_repair.fit` (a truck and a minelayer at work, with nothing to shoot them) and `bench/net_turret.fit` (a battle
 among team 1's turrets on m09: 92 shots fired, 83 target changes reached the client). Armour differed in no check, and both ends
 finished with the same resource points. `bench/net_support.fit` also passes under 100 ms and 2% loss, and all three under ASan + UBSan,
 which found an out-of-bounds read the first time a turret fired: a rear torso hit used as a body location, on any turret shot.
 
-Not settled: nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
+Not settled: one run of `net_support.fit` in about a dozen ended with the host's segmentation fault, just after the client asked for a
+recovery, and four more under a debugger did not repeat it, so its cause is unknown. Nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
 in a test has been shown to have one. Windows and arm64 have only what CI runs.
 
 ### On a Quest 2 (2026-11-05)

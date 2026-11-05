@@ -132,7 +132,6 @@ if [ "$SUPPORT" = 1 ]; then
     for what in 'vehicles begun' 'dropped' 'recoveries begun' 'recovered'; do
         echo "$support" | grep -Eq "$what [1-9]" || reasons+=("no $what on the client: $support")
     done
-    echo "$world" | grep -Eq 'mines [1-9]' || reasons+=("the minelayer laid no mines: $world")
     orders=$(grep '^\[NETORDERS\]' "$LOG_DIR/host.log")
     for what in move jump 'attack object' 'attack point' guard stop wait 'power down' 'power up' eject; do
         echo "$orders" | grep -Eq "$what [1-9]" || reasons+=("no $what order applied: $orders")
@@ -144,6 +143,7 @@ if [ "$SUPPORT" = 1 ]; then
 fi
 if [ "$EXPECT_REPAIRS" = 1 ]; then
     echo "$world" | grep -Eq 'repairs [1-9]' || reasons+=("no repair reached the client: $world")
+    echo "$world" | grep -Eq 'mines [1-9]' || reasons+=("the minelayer laid no mines: $world")
 fi
 if [ "$EXPECT_TURRETS" = 1 ]; then
     echo "$world" | grep -Eq 'turret targets [1-9]' || reasons+=("no turret target reached the client: $world")

@@ -950,10 +950,10 @@ long Building::setTeamId (long _teamId, bool setup)
 	if ((turn > 10) && getResourcePoints())
 	{
 		if (MPlayer) {
-			if (MPlayer->isServer())
+			if (MPlayer->isServer() && MPlayer->missionSettings.resourceBuilding)
 				MPlayer->sendReinforcement(getResourcePoints(), 0, "noname", commanderId, getPosition(), 6);
 				//MPlayer->playerInfo[commanderId].resourcePoints += ((BuildingTypePtr)getObjectType())->resourcePoints;
-			if (teamId == Team::home->getId())
+			if ((teamId == Team::home->getId()) && MPlayer->missionSettings.resourceBuilding)
 				soundSystem->playBettySample(BETTY_RESOURCES);
 		}
 		else {

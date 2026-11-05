@@ -432,7 +432,7 @@ void netSupport (void) {
 					break;
 				}
 		}
-		if (netRepairTarget && ((cyclesWaiting++ % 12) == 0)) {
+		if (netRepairTarget && ((cyclesWaiting++ % 4) == 0)) {
 			TacticalOrder order;
 			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_REFIT, false);
 			order.targetWID = netRepairTarget->getWatchID();
@@ -484,6 +484,29 @@ void netDamage (void) {
 			m->handleWeaponHit(&shot, true);
 			break;
 		}
+}
+
+// A client's minelayer, once it is here: laying is a mode of a move.
+void netLayMines (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked() || MPlayer->isServer())
+		return;
+	for (long i = 0; i < Team::home->getRosterSize(); i++) {
+		MoverPtr m = Team::home->getMover(i);
+		if (!m || (m->getCommander() != Commander::home) || !m->getExists() || m->isDisabled() || (m->getObjectType()->getObjTypeNum() != 120))
+			continue;
+		Stuff::Vector3D to = m->getPosition();
+		to.x += scenario.spacing * 2.0f;
+		to.z = land->getTerrainElevation(to);
+		TacticalOrder order;
+		order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_MOVETO_POINT, false);
+		order.setWayPoint(0, to);
+		order.moveParams.wayPath.mode[0] = TRAVEL_MODE_SLOW;
+		order.moveParams.mode = MOVE_MODE_MINELAYING;
+		printf("[NET] ordering %s to lay mines to %.0f, %.0f\n", m->getName(), to.x, to.y);
+		HandlePlayerOrder(m, &order);
+		return;
+	}
 }
 
 // A client's units get, one kind at a time, every kind of order the interface can give, built
@@ -554,29 +577,6 @@ void netEveryOrder (void) {
 		case 9:
 			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_EJECT, true);
 			break;
-		case 10: {
-			// the minelayer, once it is here: laying is a mode of a move
-			MoverPtr layer = NULL;
-			for (long i = 0; i < Team::home->getRosterSize(); i++) {
-				MoverPtr m = Team::home->getMover(i);
-				if (m && (m->getCommander() == Commander::home) && m->getExists() && !m->isDisabled() && (m->getObjectType()->getObjTypeNum() == 120))
-					layer = m;
-			}
-			if (!layer)
-				return;
-			beside = layer->getPosition();
-			beside.x += scenario.spacing * 3.0f;
-			beside.z = land->getTerrainElevation(beside);
-			unit = layer;
-			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_MOVETO_POINT, false);
-			order.setWayPoint(0, beside);
-			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_SLOW;
-			order.moveParams.mode = MOVE_MODE_MINELAYING;
-			// again and again: laying is slow, and a battle goes on around it
-			printf("[NET] order %ld to %s\n", step, unit->getName());
-			HandlePlayerOrder(unit, &order);
-			return;
-		}
 		default:
 			return;
 	}
@@ -704,10 +704,23 @@ void BenchDirector::update (const char* missionName) {
 		strike();
 	if ((scenario.netEventsEvery > 0) && (frame > 2) && (frame % scenario.netEventsEvery == 0))
 		netEvents();
-	if ((scenario.netSupportEvery > 0) && (frame > 2) && (frame % scenario.netSupportEvery == 0))
-		netSupport();
-	if ((scenario.netEveryOrderEvery > 0) && (frame > 2) && (frame % scenario.netEveryOrderEvery == 0))
-		netEveryOrder();
+	// By the game's clock, as the flights and the time limit are: frames would run out on a slow machine
+	static float nextSupport = 0.0f, nextOrder = 0.0f, nextLay = 0.0f;
+	if ((scenario.netLayMinesSeconds > 0.0f) && (scenarioTime >= nextLay)) {
+		if (nextLay > 0.0f)
+			netLayMines();
+		nextLay = scenarioTime + scenario.netLayMinesSeconds;
+	}
+	if ((scenario.netSupportSeconds > 0.0f) && (scenarioTime >= nextSupport)) {
+		if (nextSupport > 0.0f)
+			netSupport();
+		nextSupport = scenarioTime + scenario.netSupportSeconds;
+	}
+	if ((scenario.netEveryOrderSeconds > 0.0f) && (scenarioTime >= nextOrder)) {
+		if (nextOrder > 0.0f)
+			netEveryOrder();
+		nextOrder = scenarioTime + scenario.netEveryOrderSeconds;
+	}
 	if (MPlayer && MPlayer->isNetworked() && (frame == 1) && (scenario.netResourcePoints >= 0)) {
 		for (long i = 0; i < MAX_MC_PLAYERS; i++)
 			MPlayer->playerInfo[i].resourcePoints = scenario.netResourcePoints;

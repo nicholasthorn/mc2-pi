@@ -1706,6 +1706,8 @@ class MultiPlayer : public MultiPlayerState {
 		void logResults (void);
 		bool resultsFrameDone (void);
 
+		bool supportRequestPending (void);
+
 		// this machine's commander took back a support vehicle not yet called
 		void refundResources (long cost);
 

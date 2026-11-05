@@ -935,7 +935,9 @@ void MissionInterfaceManager::recoverMech(long commanderID, MoverPtr mech)
 	if (mechToRecover[commanderID]->isDisabled())
 	{
 		mechToRecover[commanderID]->setStatus(OBJECT_STATUS_SHUTDOWN,true);
-		mechToRecover[commanderID]->getSensorSystem()->broken = false;
+		// a mech without a sensor component has no sensor system
+		if (mechToRecover[commanderID]->getSensorSystem())
+			mechToRecover[commanderID]->getSensorSystem()->broken = false;
 		((MoverPtr)mechToRecover[commanderID])->timeLeft = 1.0f;
 		((MoverPtr)mechToRecover[commanderID])->exploding = false;
 	}
@@ -957,6 +959,29 @@ void MissionInterfaceManager::recoverMech(long commanderID, MoverPtr mech)
 		mechToRecover[commanderID]->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
 	if (MPlayer)
 		MPlayer->reinforcements[commanderID][1] = -1;
+}
+
+// The host's flight ended and it has started another, but this machine's is still in the air.
+void MissionInterfaceManager::endVtol(long commanderID)
+{
+	paintingVtol[commanderID] = 0;
+	if (vTol[commanderID])
+	{
+		delete vTol[commanderID];
+		vTol[commanderID] = NULL;
+	}
+	if (dustCloud[commanderID])
+	{
+		dustCloud[commanderID]->Kill();
+		delete dustCloud[commanderID];
+		dustCloud[commanderID] = NULL;
+	}
+	if (recoveryBeam[commanderID])
+	{
+		recoveryBeam[commanderID]->Kill();
+		delete recoveryBeam[commanderID];
+		recoveryBeam[commanderID] = NULL;
+	}
 }
 
 void MissionInterfaceManager::callSupportAt(int buttonID, const Stuff::Vector3D& pos, MoverPtr target)
