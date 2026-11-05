@@ -699,6 +699,8 @@ typedef TG_TypeShape* TG_TypeShapePtr;
 //-------------------------------------------------------------------------------------
 // The OTHER meat and Potatoes part.  This is the actual instance the game draws with.
 // TG_Shape
+class TG_RenderShape;
+
 class TG_Shape
 {
 	//-------------------------------------------------------
@@ -850,6 +852,14 @@ class TG_Shape
 
 		static void SetViewport (float mulX, float mulY, float addX, float addY);
 
+		// The mesh list (MC_TextureManager::meshesRecorded): a VR mesh is drawn from
+		// its record until the next game step, so later eyes and frames need not walk
+		// every object to rebuild it. Not a shape with its own depth (forceZ) or a HUD
+		// element, which stay per eye. MC2_MESH_LIST=0 turns it off.
+		static bool onMeshList (float forceZ, bool isHudElement);
+		bool isGPUMesh (void) { return !isSpotlight && !isWindow; }
+		static void forThisEye (TG_RenderShape& rs);
+
 		static void SetFog (DWORD fRGB, float fStart, float fFull);
 
 		//This function sets the list of lights used by the TransformShape function
@@ -930,6 +940,7 @@ public:
 	float viewport_[4];
     TG_HWLightsData lights_;
     float alpha_; // the shape's alpha, 0..1: it fades in and out
+    bool retained_; // stays until the next game step, each eye works out mvp_ and viewport_
 };
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -19,6 +19,8 @@
 #include"msl.h"
 #endif
 
+#include"txmmgr.h"
+
 #ifndef CIDENT_H
 #include"cident.h"
 #endif
@@ -1720,9 +1722,12 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
 //gos_DrawTriangle.
 void TG_MultiShape::Render (bool refreshTextures, float forceZ)
 {
+	// on the mesh list since this game step's first pass
+	const bool meshesRecorded = mcTextureManager->meshesRecorded() && TG_Shape::onMeshList(forceZ, isHudElement);
+
 	for (long i=0;i<numTG_Shapes;i++)
 	{
-		if (listOfShapes[i].processMe && listOfShapes[i].node)
+		if (listOfShapes[i].processMe && listOfShapes[i].node && !(meshesRecorded && listOfShapes[i].node->isGPUMesh()))
 		{
 			//-------------------------------------------------------
 			// Only need to due for unique instance items like mechs

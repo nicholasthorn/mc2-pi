@@ -1017,6 +1017,8 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 						shape_renderer.setMaterial(masterTextureNodes[textureIndex].get_gosTextureHandle());
 
 					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
+					if (rs->retained_)
+						TG_Shape::forThisEye(*rs);
 					shape_renderer.render(*rs, gos2my(rs->mw_), gos2my(rs->mvp_), hudElement);
 				}
 
@@ -1024,7 +1026,18 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 
 			//Reset the list to zero length to avoid drawing more then once!
 			//Also comes in handy if gameLogic is not called.
-			masterHardwareVertexNodes[i].currentShape = masterHardwareVertexNodes[i].shapes;
+			// (what is on the mesh list stays)
+			TG_RenderShape* keep = masterHardwareVertexNodes[i].shapes;
+			for (uint32_t sh = 0; sh < totalShapes; ++sh)
+			{
+				if (masterHardwareVertexNodes[i].shapes[sh].retained_)
+				{
+					if (keep != masterHardwareVertexNodes[i].shapes + sh)
+						*keep = masterHardwareVertexNodes[i].shapes[sh];
+					keep++;
+				}
+			}
+			masterHardwareVertexNodes[i].currentShape = keep;
 			//masterHardwareVertexNodes[i].numShapes = 0;
 		}
 	}
@@ -1754,6 +1767,8 @@ void MC_TextureManager::renderLists (void)
 
 	//Must turn zCompare back on for FXs
 	gos_SetRenderState( gos_State_ZCompare, 1 );
+
+	meshesRecorded_ = true;
 }
 
 DWORD MC_TextureManager::update (void)

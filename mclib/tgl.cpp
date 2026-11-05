@@ -2646,6 +2646,22 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 }
 
 #define TERRAIN_DEPTH_FUDGE		(0.000f)
+//------------------------------------------------------------------------------
+bool TG_Shape::onMeshList (float forceZ, bool isHudElement)
+{
+	static const bool off = getenv("MC2_MESH_LIST") && getenv("MC2_MESH_LIST")[0] == '0';
+	return !off && vrMeshPath() && (forceZ < 0.0f) && !isHudElement;
+}
+
+void TG_Shape::forThisEye (TG_RenderShape& rs)
+{
+	rs.mvp_.Multiply(rs.mw_, s_worldToClip);
+	rs.viewport_[0] = viewMulX;
+	rs.viewport_[1] = viewMulY;
+	rs.viewport_[2] = viewAddX;
+	rs.viewport_[3] = viewAddY;
+}
+
 //-------------------------------------------------------------------------------
 //This function takes the current listOfVisibleFaces and draws them using
 //gos_DrawTriangle.
@@ -2863,6 +2879,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			}
 
 			TG_RenderShape rs;
+			rs.retained_ = onMeshList(forceZ, isHudElement);
 			rs.vb_ = theShape->vb_;
 			rs.vdecl_ = theShape->vdecl_;
 			rs.mvp_ = mvp;

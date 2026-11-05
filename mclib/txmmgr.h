@@ -1062,8 +1062,16 @@ class MC_TextureManager
         // returns index at which this light structure was added
         // ( if same one was found, then that index is returned and nothing is added)
 
+		// this game step's meshes are all on the nodes (TG_Shape::onMeshList)
+		bool meshesRecorded (void)
+		{
+			return meshesRecorded_;
+		}
+
 		void clearArrays (void)
 		{
+			meshesRecorded_ = false;
+
 			for (long i=0;i<MC_MAXTEXTURES;i++)
 			{
 				masterTextureNodes[i].vertexData = NULL;
@@ -1094,6 +1102,7 @@ class MC_TextureManager
 
 		//Draws the GPU mesh nodes that have all of mustHave and none of mustNotHave
 		void renderHardwareNodes (DWORD mustHave, DWORD mustNotHave);
+		bool meshesRecorded_ = false;
 
 		DWORD getWidth( DWORD nodeId )
 		{
