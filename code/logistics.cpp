@@ -368,10 +368,20 @@ long Logistics::update (void)
 			}
 			else if ( MPlayer && MPlayer->isNetworked() )
 			{
-				// no lobby to go back to yet
 				printf( "[NET] results closed\n" );
 				fflush( stdout );
-				quitGame = true;
+				if ( justStartMission )
+					quitGame = true;
+				else
+				{
+					// Back to where a game is found or hosted, with a new MultiPlayer: nothing of
+					// this game carries over to the next. A session cannot go back to being a lobby.
+					MPlayer->closeSession();
+					delete MPlayer;
+					MPlayer = NULL;
+					logisticsState = log_SPLASH;
+					missionBegin->beginAtConnectionScreen();
+				}
 			}
 			else if ( MPlayer )
 			{

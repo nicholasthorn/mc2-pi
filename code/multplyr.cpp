@@ -139,6 +139,7 @@ long cLoadString (HINSTANCE hInstance,  UINT uID, LPTSTR lpBuffer, int nBufferMa
 #include"netrules.h"
 #include"netlan.h"
 #include"netlobby.h"
+#include"benchdirector.h"
 
 #include<algorithm>
 #include<cctype>
@@ -1083,10 +1084,9 @@ static void netLobbyTickClient (MultiPlayer* player) {
 	if (netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None)) {
 		printf("[NET] the host has gone from the lobby\n");
 		fflush(stdout);
+		// which takes the screens back to the main menu (MissionBegin::update)
 		player->hostLeft = true;
 		netLobbyOpen = false;
-		// what the screen does for a player who was booted: back to the main menu
-		player->playerInfo[player->commanderID].leftSession = true;
 		return;
 	}
 	if (!netSession->hasLobbyState())
@@ -1447,11 +1447,16 @@ long MultiPlayer::joinSession (MC2Session* session, char* playerName) {
 
 //-----------------------------------------------------------------------------
 
+static void netForgetGame (void);
+
 long MultiPlayer::closeSession (void) {
 
 	// the screens call this on their way in, too, with nothing to close
 	if (!netSession)
 		return 0;
+	printf("[NET] leaving the session\n");
+	fflush(stdout);
+	netForgetGame();
 	netBeacon.close();
 	netRules.reset();
 	netLobbyOpen = false;
@@ -2059,6 +2064,20 @@ extern MoverPtr BringInReinforcement (long vehicleID, long rosterIndex, long com
 static bool netSupportUnit[MAX_MULTIPLAYER_MOVERS] = {false};	// on the host: does not keep a team in the game
 static bool netSupportAsked = false;	// on a client: one request at a time, as there is one button
 static long netSupportCounts[5] = {0};	// vehicles begun, dropped, recoveries begun, mechs recovered, refusals
+
+// This process can play another game.
+static void netForgetGame (void) {
+
+	netGameEnded = false;
+	netOrdersApplied = netRepairsApplied = netHoldsApplied = 0;
+	std::fill(std::begin(netOrdersByCode), std::end(netOrdersByCode), 0L);
+	std::fill(std::begin(netWorldApplied), std::end(netWorldApplied), 0L);
+	netHqs.clear();
+	std::fill(std::begin(netSupportUnit), std::end(netSupportUnit), false);
+	netSupportAsked = false;
+	std::fill(std::begin(netSupportCounts), std::end(netSupportCounts), 0L);
+	BenchDirector::missionEnded();
+}
 
 static netwire::SupportEvent netSupportEvent (netwire::SupportStage stage, long commander, long rosterIndex, long vehicleId, long cost, const Stuff::Vector3D& pos) {
 

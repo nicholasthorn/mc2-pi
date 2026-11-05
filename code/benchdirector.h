@@ -10,6 +10,8 @@
 // (gos_BenchStateHash) on fixed-step frames (-bench, -deterministic).
 namespace BenchDirector {
 	void update (const char* missionName);
+	// The next mission starts from its first frame, with none of this one's units.
+	void missionEnded (void);
 }
 
 #endif // BENCHDIRECTOR_H

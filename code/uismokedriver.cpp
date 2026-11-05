@@ -54,7 +54,8 @@ long g_frames = 0;
 std::chrono::steady_clock::time_point g_last;	// previous update()
 UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
 bool g_labAccept = false;	// mechlab+accept: leave the mech lab by Accept
-UiAction g_retry = UiAction::None;	// a step that waits on another player: tried each frame
+UiAction g_retry = UiAction::None;	// a step that waits on another player: tried each frame, with the walk held
+float g_retryWaited = 0.0f;
 
 // what press() says of a step that cannot happen yet, but will
 const char* const NOT_YET = "not yet";
@@ -305,11 +306,7 @@ const char* UiSmokeDriver::press(UiAction action)
 	case UiAction::OpenOptions:
 		return pressButton(menu, MM_MSG_OPTIONS);
 	case UiAction::OpenMultiplayer:
-		// past the button's being disabled: players cannot get here until all of it works
-		if (!menu)
-			return "screen is gone";
-		menu->handleMessage(aMSG_LEFTMOUSEDOWN, MM_MSG_MULTIPLAYER);
-		return NULL;
+		return pressButton(menu, MM_MSG_MULTIPLAYER);
 	case UiAction::MpBrowse:
 		// the local network panel's button, which its parent screen answers
 		if (!screen)
@@ -326,11 +323,16 @@ const char* UiSmokeDriver::press(UiAction action)
 		return "screen is gone";
 	case UiAction::MpJoin:
 		if (MPGameBrowser* browser = dynamic_cast<MPGameBrowser*>(screen)) {
-			if (browser->gameList.GetItemCount() < 1)
-				return NOT_YET;
-			browser->gameList.SelectItem(0);
-			screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_NEXT);
-			return (screen->getStatus() == LogisticsScreen::RUNNING) ? NOT_YET : NULL;
+			// the first with room: a game that has just ended can still be listed for a moment
+			for (long i = 0; i < browser->gameList.GetItemCount(); i++) {
+				const MC2Session* game = (const MC2Session*)((aGameListItem*)browser->gameList.GetItem(i))->getSession();
+				if (game->inProgress || (game->numPlayers >= game->maxPlayers))
+					continue;
+				browser->gameList.SelectItem(i);
+				screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_NEXT);
+				return (screen->getStatus() == LogisticsScreen::RUNNING) ? NOT_YET : NULL;
+			}
+			return NOT_YET;
 		}
 		return NULL;	// on its way to the next screen
 	case UiAction::MpLaunch:
@@ -352,6 +354,22 @@ const char* UiSmokeDriver::press(UiAction action)
 			}
 			return NOT_YET;
 		}
+		return NULL;
+	case UiAction::MpPause:
+		return (g_retryWaited >= 10.0f) ? NULL : NOT_YET;
+	case UiAction::MpOthers:
+	case UiAction::MpAlone: {
+		long players = 0;
+		MPlayer->getPlayers(players);
+		return ((players > 1) == (action == UiAction::MpOthers)) ? NULL : NOT_YET;
+	}
+	case UiAction::MpLeave:
+		if (!screen)
+			return "screen is gone";
+		screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_PREV);
+		return pressButton(LogisticsOKDialog::instance(), LogisticsScreen::YES);
+	case UiAction::MpAwaitHostGone:
+	case UiAction::MpAwaitGameEnd:
 		return NULL;
 	case UiAction::MpPickMap:
 		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
@@ -627,15 +645,18 @@ void UiSmokeDriver::update()
 
 	++g_frames;
 	if (g_retry != UiAction::None) {
+		g_retryWaited += dt;
 		const char* why = press(g_retry);
-		if (why != NOT_YET) {
-			g_retry = UiAction::None;
-			if (why) {
-				snprintf(line, sizeof(line), "FAIL: %s", why);
-				finish(line, true);
-				return;
-			}
+		if ((why == NOT_YET) && (g_retryWaited > g_walk.timeoutSeconds))
+			why = "waited too long for another player";
+		if (why == NOT_YET)
+			return;
+		g_retry = UiAction::None;
+		if (why) {
+			snprintf(line, sizeof(line), "FAIL: %s", why);
+			finish(line, true);
 		}
+		return;
 	}
 	const UiScreen current = currentScreen();
 	const UiSmokeWalk::Result r = g_walk.update(current, dt);
@@ -651,7 +672,11 @@ void UiSmokeDriver::update()
 	case UiSmokeWalk::Event::Act:
 		if (*uiActionName(r.action)) {
 			// in-screen action: the screen stays
-			if (const char* why = press(r.action)) {
+			const char* why = press(r.action);
+			if (why == NOT_YET) {
+				g_retry = r.action;
+				g_retryWaited = 0.0f;
+			} else if (why) {
 				snprintf(line, sizeof(line), "FAIL: cannot %s on %s: %s",
 						uiActionName(r.action), uiScreenName(r.screen), why);
 				finish(line, true);
@@ -662,6 +687,7 @@ void UiSmokeDriver::update()
 		} else if (const char* why = press(r.action)) {
 			if (why == NOT_YET) {
 				g_retry = r.action;
+				g_retryWaited = 0.0f;
 			} else {
 				snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
 						uiScreenName(g_from), uiScreenName(r.screen), why);
@@ -672,13 +698,7 @@ void UiSmokeDriver::update()
 	case UiSmokeWalk::Event::Done:
 		snprintf(line, sizeof(line), "done: %ld screens in %ld frames",
 				g_walk.numSteps(), g_frames);
-		// the game goes on from where the walk ends: a battle reached through the screens
-		if (getenv("MC2_UISMOKE_STAY")) {
-			printf("[UISMOKE] %s\n", line);
-			fflush(stdout);
-			g_over = true;
-		} else
-			finish(line, false);
+		finish(line, false);
 		break;
 	case UiSmokeWalk::Event::Timeout:
 		snprintf(line, sizeof(line), "FAIL: %s did not appear within %.0f s (on %s)",

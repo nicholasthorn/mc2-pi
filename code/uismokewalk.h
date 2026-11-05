@@ -89,6 +89,12 @@ enum class UiAction {
 	MpJoin,				// browser: join the first game, once there is one
 	MpLaunch,			// lobby: the host launches once it can, a client says it is ready
 	MpPickMap,			// lobby: the map named by MC2_UISMOKE_MAP, from the host's map list
+	MpPause,			// browser: some seconds, for another player to see that this one left
+	MpOthers,			// lobby: wait for someone else to be in it
+	MpAlone,			// lobby: wait for them to have left
+	MpLeave,			// lobby: back, answering yes to the disconnect question
+	MpAwaitHostGone,	// lobby: the host leaves, and the game goes back to the main menu
+	MpAwaitGameEnd,		// mission: played out by a scenario, its results close, and back to the connection screen
 	// in-screen actions
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force

@@ -217,6 +217,7 @@ void MPParameterScreen::begin()
 	bDisconnectDlg = 0;
 
 	MPlayer->initParametersScreen();
+	mapName = "";	// so a client joining another lobby on the same map shows its picture
 
 	// a new lobby has no map yet, and setMission ends the game on one it cannot open
 	if ( !strlen( MPlayer->missionSettings.map ) )

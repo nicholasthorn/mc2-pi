@@ -436,8 +436,6 @@ void MainMenu::update()
 	else
 		getButton( MM_MSG_SAVE )->disable( false );
 
-	getButton( MM_MSG_MULTIPLAYER )->disable( true );
-
 	if ( introMovie )
 	{
 		userInput->mouseOff();

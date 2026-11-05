@@ -128,6 +128,10 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 	case UiScreen::MpParams:
 		if (to == UiScreen::Mission)
 			return UiAction::MpLaunch;
+		if (to == UiScreen::MpConnection || to == UiScreen::MpBrowser)
+			return UiAction::MpLeave;
+		if (to == UiScreen::MainMenu)
+			return UiAction::MpAwaitHostGone;
 		break;
 	case UiScreen::Save:
 		// saving (and Cancel) goes back to the logistics screen the main menu
@@ -203,6 +207,8 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::WinMission;
 		if (to == UiScreen::OptionsGraphics)
 			return UiAction::MissionOptions;
+		if (to == UiScreen::MpConnection)
+			return UiAction::MpAwaitGameEnd;
 		break;
 	case UiScreen::Salvage:
 		if (to == UiScreen::PilotReview || to == UiScreen::Promotion
@@ -246,6 +252,9 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechLab, "own", UiAction::OwnVariant },
 	{ UiScreen::MechLab, "accept", UiAction::LabAccept },
 	{ UiScreen::MpParams, "map", UiAction::MpPickMap },
+	{ UiScreen::MpBrowser, "pause", UiAction::MpPause },
+	{ UiScreen::MpParams, "others", UiAction::MpOthers },
+	{ UiScreen::MpParams, "alone", UiAction::MpAlone },
 };
 
 } // namespace

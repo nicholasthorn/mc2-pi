@@ -69,7 +69,8 @@ TEST_CASE("routes are the buttons a player presses") {
 		const bool results = s == UiScreen::Salvage || s == UiScreen::PilotReview
 				|| s == UiScreen::Promotion || s == UiScreen::MissionSelection;
 		const UiAction expected = results ? UiAction::WinMission
-				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions : UiAction::None;
+				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions
+				: s == UiScreen::MpConnection ? UiAction::MpAwaitGameEnd : UiAction::None;
 		CHECK(uiRoute(UiScreen::Mission, s) == expected);
 	}
 	CHECK(uiRoute(UiScreen::OptionsHotkeys, UiScreen::Mission) == UiAction::OptionsCancel);
@@ -132,6 +133,11 @@ TEST_CASE("multiplayer: into a lobby by hosting or joining, and from it to the m
 	CHECK(uiRoute(UiScreen::MpBrowser, UiScreen::MpConnection) == UiAction::Previous);
 	CHECK(uiRoute(UiScreen::MpParams, UiScreen::Mission) == UiAction::MpLaunch);
 	CHECK(uiScreenAction(UiScreen::MpParams, "map", 3) == UiAction::MpPickMap);
+	// and out again: by leaving, because the host left, or because the game ended
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpConnection) == UiAction::MpLeave);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpBrowser) == UiAction::MpLeave);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MainMenu) == UiAction::MpAwaitHostGone);
+	CHECK(uiRoute(UiScreen::Mission, UiScreen::MpConnection) == UiAction::MpAwaitGameEnd);
 }
 
 TEST_CASE("in-screen actions belong to one screen each") {

@@ -29,6 +29,8 @@ DIAL=0
 LAN=0
 LOBBY=0
 SCREENS=0
+AGAIN=0
+LEAVING=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -52,6 +54,8 @@ while [ $# -gt 0 ]; do
         --lan) LAN=1; shift ;;
         --lobby) LOBBY=1; shift ;;
         --screens) SCREENS=1; LOBBY=1; shift ;;
+        --again) AGAIN=1; shift ;;
+        --lobby-leaving) LEAVING=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -106,11 +110,26 @@ fi
 # client finds it on the local network. One run at a time on a machine, as for --lan.
 HOST_NET=(-nethost 2 "${HOST_ARGS[@]}")
 CLIENT_NET=("${CLIENT_ARGS[@]}")
+# Each walk ends at the connection screen, where the end of a game leads. --again: both go round
+# once more and play a second game.
 if [ "$SCREENS" = 1 ]; then
-    export MC2_UISMOKE_MAP="$MISSION" MC2_UISMOKE_STAY=1 MC2_UISMOKE_TIMEOUT=$((TIMEOUT / 2))
+    export MC2_UISMOKE_MAP="$MISSION" MC2_UISMOKE_TIMEOUT=$((TIMEOUT / 2))
     HOST_MISSION=(); CLIENT_MISSION=()
-    HOST_NET=(-uismoke "mainmenu,mp-connection,mp-params,mp-params+map,mission")
-    CLIENT_NET=(-uismoke "mainmenu,mp-connection,mp-browser,mp-params,mission")
+    HOST_GAME="mp-params,mp-params+map,mission,mp-connection"
+    CLIENT_GAME="mp-browser,mp-params,mission,mp-connection"
+    HOST_WALK="mainmenu,mp-connection,$HOST_GAME"
+    CLIENT_WALK="mainmenu,mp-connection,$CLIENT_GAME"
+    if [ "$AGAIN" = 1 ]; then
+        HOST_WALK="$HOST_WALK,$HOST_GAME"
+        CLIENT_WALK="$CLIENT_WALK,$CLIENT_GAME"
+    fi
+    # --lobby-leaving: no game. The client joins, leaves and joins again; then the host leaves.
+    if [ "$LEAVING" = 1 ]; then
+        HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+others,mp-params+alone,mp-params+others,mp-connection"
+        CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mp-browser,mp-browser+pause,mp-params,mainmenu"
+    fi
+    HOST_NET=(-uismoke "$HOST_WALK")
+    CLIENT_NET=(-uismoke "$CLIENT_WALK")
 fi
 ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${HOST_MISSION[@]}" "${COMMON[@]}" "${HOST_NET[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
 host_pid=$!
@@ -125,6 +144,22 @@ BAD='OpenGL Error|: ERROR: |STOP: |FATAL|runtime error: |ERROR: AddressSanitizer
 reasons=()
 [ "$host_rc" -eq 0 ] || reasons+=("host exit status $host_rc")
 [ "$client_rc" -eq 0 ] || reasons+=("client exit status $client_rc")
+if [ "$LEAVING" = 1 ]; then
+    for side in host client; do
+        n=$(grep -cE "$BAD" "$LOG_DIR/$side.log")
+        [ "$n" -gt 0 ] && reasons+=("$side: $n error line(s)")
+    done
+    grep -q '^\[NET\] the host has gone from the lobby' "$LOG_DIR/client.log" || reasons+=("the client did not see the host go")
+    [ "$(grep -c '^\[NET\] in the lobby as commander' "$LOG_DIR/client.log")" -eq 2 ] || reasons+=("the client did not join twice")
+    if [ ${#reasons[@]} -eq 0 ]; then
+        echo "PASS lobby leaving (${secs}s)"
+        exit 0
+    fi
+    echo "FAIL lobby leaving (${secs}s): $(printf '%s; ' "${reasons[@]}")"
+    grep -hE "$BAD|CRASH|UISMOKE" "$LOG_DIR/host.log" "$LOG_DIR/client.log" | head -20 | sed 's/^/    /'
+    echo "    logs: $LOG_DIR/host.log $LOG_DIR/client.log"
+    exit 1
+fi
 for side in host client; do
     log="$LOG_DIR/$side.log"
     n=$(grep -cE "$BAD" "$log")
@@ -133,6 +168,9 @@ for side in host client; do
     grep -q '^\[NET\] game over' "$log" || reasons+=("$side: played to no result")
     grep -q '^\[NETRESULT\] rank' "$log" || reasons+=("$side: no results table")
     grep -q '^\[NET\] results closed' "$log" || reasons+=("$side: the results screen never finished")
+    if [ "$AGAIN" = 1 ]; then
+        [ "$(grep -c '^\[NET\] results closed' "$log")" -eq 2 ] || reasons+=("$side: did not play two games")
+    fi
 done
 if [ "$WORLD_EVENTS" = yes ]; then
     grep -q '^\[NET\] turn .* weapon hit [1-9]' "$LOG_DIR/host.log" || reasons+=("no weapon hits: the battle did not happen")

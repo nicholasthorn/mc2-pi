@@ -202,6 +202,10 @@ jobs:
         run: |
           scripts/net_smoke.sh --game-dir gamedata --log-dir smoke-logs/net
           scripts/net_smoke.sh --game-dir gamedata --lag-ms 100 --loss-percent 2 --log-dir smoke-logs/net-lag
+          # as players do: from the main menu, through the lobby's screens, twice; and leaving a lobby
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m04 --scenario "$PWD/bench/net_timed.fit" \
+            --screens --again --world-events no --log-dir smoke-logs/net-screens
+          scripts/net_smoke.sh --game-dir gamedata --screens --lobby-leaving --log-dir smoke-logs/net-leaving
       - name: Multiplayer, the game modes
         # Each of the stock maps' modes, on a map of that mode. Where an HQ decides it,
         # the host's team takes one partway in, so it must win.
