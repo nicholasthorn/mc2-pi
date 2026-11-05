@@ -800,6 +800,12 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   options screen cannot apply 3664 or save it back). The headset also reports a display
   size override of 10992x1920 that nobody here set: the game's window is 3664 x
   1920 regardless, so it plays no part here.
+  Since then, 800x600 is too coarse on the panel: **a headset now runs at 1280x960**
+  when the saved size is 800x600, missing, or above 1920 (`vr_eye::fitInterfaceResolution`,
+  judged in the Quest 2, 2026-11-05); other layouts stand if set by hand. The same
+  shape keeps the game camera's 115.6 degrees. The 3664 is very likely the options
+  screen: SDL lists only that mode on the headset, and a file with no size had it
+  after a run in which the options screen was opened and left (not traced further).
 - **Pointing at buildings.** `vrPickWorld` tested the ground and movers only, so
   a ray meeting a wall went on to the ground behind it, and a name showed only
   when that point was still on the building on the game camera's screen (about

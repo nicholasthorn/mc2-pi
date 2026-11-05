@@ -5,6 +5,7 @@
 #include"platform_io.h" // for _chmod()
 
 #include"prefs.h"
+#include"utils/vr_eye.h"
 #include"gamesound.h"
 #include"missiongui.h"
 
@@ -97,20 +98,21 @@ CPrefs::CPrefs() {
 #endif
 }
 
-// VR: the interface is drawn on a panel of its own, whatever the headset's
-// window. Options saved in the headset can hold the window's size (3664 on the
-// Quest 2), beyond the largest layout (1920): the interface then fills a corner
-// of the panel. False until the VR session exists, which starts with the
-// renderer: applyPrefs checks again once it has made that, after the first
-// load. Later loads (the options screen) are caught here, before they can be
-// applied or saved back.
+// VR: the window is only the interface's panel, so its size is the panel's
+// sharpness (vr_eye::fitInterfaceResolution says why). False until the VR session
+// exists, which starts with the renderer: applyPrefs checks again once it has made
+// that, after the first load. Later loads (the options screen) are caught here,
+// before they can be applied or saved back. Only a real session: desktop runs on
+// the VR paths (MC2_VR_PATHS) compare at their own size.
 static bool fitResolutionToVR (CPrefs& loaded)
 {
-	if (!gos_IsVR() || (loaded.resolutionX <= 1920))
+	if (!gos_VRHeadset())
 		return false;
-	printf("[VR] saved resolution %ldx%ld has no interface layout: 800x600\n", (long)loaded.resolutionX, (long)loaded.resolutionY);
-	loaded.resolutionX = 800;
-	loaded.resolutionY = 600;
+	const int savedX = loaded.resolutionX;
+	const int savedY = loaded.resolutionY;
+	if (!vr_eye::fitInterfaceResolution(loaded.resolutionX, loaded.resolutionY))
+		return false;
+	printf("[VR] saved resolution %dx%d: the interface runs at %dx%d\n", savedX, savedY, loaded.resolutionX, loaded.resolutionY);
 	return true;
 }
 
