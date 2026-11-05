@@ -633,6 +633,11 @@ In slices, as it is large: finding a game and the data check first, then the lob
 - **Finding a game:** a host with a port to be reached on answers queries on UDP port 27816 (`code/netlan.*`, `GameOS/gameos/gos_net_lan.*`), and
   `-netjoin lan` joins the first game of its mission with room in it. A query goes to the broadcast address and to this machine. A Quest holds a
   `MulticastLock`, as its Wi-Fi otherwise drops broadcasts. Not yet run on a Quest, or between two machines. The browser screen does not use it yet.
+- **The lobby's protocol:** `code/netlobby.*` holds the rules with no game in it: who is in, teams, colours, map, settings, ready, and whether a game can
+  start. `netwire` has `LobbyState` (host to clients, the whole of it on any change), `LobbyChoice` (a client's own part) and `LobbyLaunch`. `netsession`
+  has a lobby mode: players come and go up to a limit, and launch renumbers them from 0, as a gap left by someone leaving is more than the game takes.
+  A client reports the hash of the chosen map as it has it, and cannot be ready on another. Unit tested on the loopback. Nothing in the game uses it yet:
+  the screens, mech selection and the main menu's button are the next slices.
 - **Left for the lobby:** `netGameEnded` and other statics in `multplyr.cpp` hold for the process, so a second game in one needs them reset. The
   Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.

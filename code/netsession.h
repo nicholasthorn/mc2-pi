@@ -35,6 +35,16 @@ struct Received {
 	netwire::ChunkBatch batch;
 };
 
+// What has happened in a lobby, for the host to put to its netlobby::Lobby.
+enum class LobbyEventType { Joined, Left, Choice };
+
+struct LobbyEvent {
+	LobbyEventType type = LobbyEventType::Joined;
+	uint8_t commander = 0;
+	std::string name;				// Joined
+	netwire::LobbyChoice choice;	// Choice
+};
+
 // Ranks for a results table, from each player's standing, higher is better: 1 for the
 // best, players level share a rank, and the next rank skips past them.
 void rankPlayers(const long* standings, int count, long* ranks);
@@ -46,6 +56,15 @@ public:
 	// Host. Commander 0 is the host itself, and clients take 1 to numPlayers - 1 as they
 	// join. False if the port cannot be had. Port 0 listens on none, for a host that dials.
 	bool host(uint16_t port, uint8_t numPlayers, uint32_t dataHash);
+
+	// Host, with a lobby: players come and go up to maxPlayers, with no number decided until
+	// launch(). Then it goes on as above, from "load".
+	bool hostLobby(uint16_t port, uint8_t maxPlayers, uint32_t dataHash);
+	bool sendLobbyState(const netwire::LobbyState& state);
+	bool nextLobbyEvent(LobbyEvent& out);
+	// Ends the lobby and renumbers everyone. False if it does not match who is here, or if the
+	// host is not commander 0, which the game takes for granted.
+	bool launch(const netwire::LobbyLaunch& launch);
 
 	// Client. False if the connection could not even be started.
 	bool join(const char* address, uint16_t port, uint32_t dataHash, const std::string& name);
@@ -81,6 +100,11 @@ public:
 	bool started() const { return started_; }
 	netwire::RejectReason rejected() const { return rejected_; }
 	bool sendReady(uint32_t rosterHash);
+	bool hasLobbyState() const { return hasLobbyState_; }
+	const netwire::LobbyState& lobbyState() const { return lobbyState_; }
+	bool sendLobbyChoice(const netwire::LobbyChoice& choice);
+	bool launched() const { return launched_; }
+	gos_net::ConnectionId serverConnection() const { return server_; }
 	bool sendToHost(gos_net::Delivery delivery, const netwire::ChunkBatch& batch);
 
 	// either: the other end is gone (client), and a game over was announced
@@ -120,12 +144,17 @@ private:
 	uint32_t rosterHash_ = 0;
 	bool haveRosterHash_ = false;
 	bool startSent_ = false;
+	bool lobbyOpen_ = false;
+	std::deque<LobbyEvent> lobbyEvents_;
+	netwire::LobbyState lobbyState_;		// client
+	bool hasLobbyState_ = false;
 
 	gos_net::ConnectionId server_ = gos_net::INVALID_CONNECTION;	// client
 	std::string name_;
 	bool waitingForHost_ = false;
 	bool joined_ = false;
 	bool started_ = false;
+	bool launched_ = false;					// either: the lobby is over
 	netwire::RejectReason rejected_ = netwire::RejectReason::None;
 	bool hostLost_ = false;
 

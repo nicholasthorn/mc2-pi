@@ -187,7 +187,7 @@ bool peekType(const void* data, size_t size, MessageType& type)
 	if (size < 1)
 		return false;
 	const uint8_t t = *static_cast<const uint8_t*>(data);
-	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::EndGame))
+	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::LobbyLaunch))
 		return false;
 	type = static_cast<MessageType>(t);
 	return true;
@@ -288,6 +288,163 @@ bool decode(const void* data, size_t size, LanAnnounce& m)
 	if (!readShortText(in, m.name) || !readShortText(in, m.map))
 		return false;
 	return in.finished() && validAnnounce(m);
+}
+
+static bool validLobbyState(const LobbyState& m)
+{
+	if (m.maxPlayers < 1 || m.maxPlayers > MAX_PLAYERS || m.players.size() > m.maxPlayers
+		|| !validName(m.map) || m.timeLimit < NO_TIME_LIMIT || m.resourcePoints < 0 || (m.flags & ~LOBBY_ALL_FLAGS) != 0)
+		return false;
+	bool slotTaken[MAX_PLAYERS] = {};
+	for (const LobbyPlayer& player : m.players) {
+		if (player.slot >= MAX_PLAYERS || slotTaken[player.slot] || !validName(player.name)
+			|| player.team >= MAX_PLAYERS || player.baseColor >= MAX_LOBBY_COLORS || player.stripeColor >= MAX_LOBBY_COLORS)
+			return false;
+		slotTaken[player.slot] = true;
+	}
+	return true;
+}
+
+bool encode(const LobbyState& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (!validLobbyState(m))
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::LobbyState));
+	w.u32(m.revision);
+	w.u8(m.maxPlayers);
+	w.u8(static_cast<uint8_t>(m.map.size()));
+	w.bytes(m.map.data(), m.map.size());
+	w.u32(static_cast<uint32_t>(m.timeLimit));
+	w.u32(static_cast<uint32_t>(m.resourcePoints));
+	w.u16(m.flags);
+	w.u8(static_cast<uint8_t>(m.players.size()));
+	for (const LobbyPlayer& player : m.players) {
+		w.u8(player.slot);
+		w.u8(static_cast<uint8_t>(player.name.size()));
+		w.bytes(player.name.data(), player.name.size());
+		w.u8(player.team);
+		w.u8(player.baseColor);
+		w.u8(player.stripeColor);
+		w.u8(player.ready ? 1 : 0);
+	}
+	return true;
+}
+
+bool decode(const void* data, size_t size, LobbyState& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::LobbyState))
+		return false;
+	m.revision = in.u32();
+	m.maxPlayers = in.u8();
+	if (!readShortText(in, m.map))
+		return false;
+	m.timeLimit = static_cast<int32_t>(in.u32());
+	m.resourcePoints = static_cast<int32_t>(in.u32());
+	m.flags = in.u16();
+	const size_t count = in.u8();
+	if (!in.ok() || count > MAX_PLAYERS)
+		return false;
+	m.players.clear();
+	for (size_t i = 0; i < count; i++) {
+		LobbyPlayer player;
+		player.slot = in.u8();
+		if (!readShortText(in, player.name))
+			return false;
+		player.team = in.u8();
+		player.baseColor = in.u8();
+		player.stripeColor = in.u8();
+		const uint8_t ready = in.u8();
+		if (!in.ok() || ready > 1)
+			return false;
+		player.ready = (ready != 0);
+		m.players.push_back(player);
+	}
+	return in.finished() && validLobbyState(m);
+}
+
+static bool validLobbyChoice(const LobbyChoice& m)
+{
+	return m.team < MAX_PLAYERS && m.baseColor < MAX_LOBBY_COLORS && m.stripeColor < MAX_LOBBY_COLORS;
+}
+
+bool encode(const LobbyChoice& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (!validLobbyChoice(m))
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::LobbyChoice));
+	w.u8(m.team);
+	w.u8(m.baseColor);
+	w.u8(m.stripeColor);
+	w.u8(m.ready ? 1 : 0);
+	w.u32(m.mapHash);
+	return true;
+}
+
+bool decode(const void* data, size_t size, LobbyChoice& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::LobbyChoice))
+		return false;
+	m.team = in.u8();
+	m.baseColor = in.u8();
+	m.stripeColor = in.u8();
+	const uint8_t ready = in.u8();
+	m.mapHash = in.u32();
+	if (!in.finished() || ready > 1)
+		return false;
+	m.ready = (ready != 0);
+	return validLobbyChoice(m);
+}
+
+static bool validLobbyLaunch(const LobbyLaunch& m)
+{
+	if (m.numPlayers < 1 || m.numPlayers > MAX_PLAYERS)
+		return false;
+	bool taken[MAX_PLAYERS] = {};
+	int count = 0;
+	for (uint8_t commander : m.commanders) {
+		if (commander == NO_COMMANDER)
+			continue;
+		if (commander >= m.numPlayers || taken[commander])
+			return false;
+		taken[commander] = true;
+		count++;
+	}
+	return count == m.numPlayers;
+}
+
+bool encode(const LobbyLaunch& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (!validLobbyLaunch(m))
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::LobbyLaunch));
+	w.u8(m.numPlayers);
+	w.bytes(m.commanders, MAX_PLAYERS);
+	return true;
+}
+
+bool decode(const void* data, size_t size, LobbyLaunch& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::LobbyLaunch))
+		return false;
+	m.numPlayers = in.u8();
+	if (!in.bytes(m.commanders, MAX_PLAYERS))
+		return false;
+	return in.finished() && validLobbyLaunch(m);
 }
 
 bool encode(const Hello& m, std::vector<uint8_t>& out)
