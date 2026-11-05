@@ -2033,6 +2033,10 @@ bool __stdcall gos_IsVR();
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.
 bool __stdcall gos_VRHudDue();
+// Whether path-finding runs on its worker, between game steps: in VR, where
+// frames without a step leave it time. MC2_PATH_WORKER=0 or 1 overrides that, for
+// comparing and for testing on a desktop.
+bool __stdcall gos_PathsOnWorker();
 //
 // The field of view, in degrees, for the game camera in VR: enough to cover
 // the eyes at the window's aspect, so that what the game counts as in view is

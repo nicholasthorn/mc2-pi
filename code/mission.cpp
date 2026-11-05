@@ -537,7 +537,14 @@ long Mission::update (void)
 #ifdef USE_PATH_COST_TABLE
 		GlobalMoveMap[0]->resetPathCostTable();
 #endif
-		BenchStage("paths",ProfileTime(MCTimePathManagerUpdate,PathManager->update()));
+		if (gos_PathsOnWorker())
+		{
+			PathManager->queueForWorker();
+		}
+		else
+		{
+			BenchStage("paths",ProfileTime(MCTimePathManagerUpdate,PathManager->update()));
+		}
 
 		if (KillAmbientLight) {
 	//		ambientRed<<16)+(ambientGreen<<8)+ambientBlue;
@@ -929,7 +936,6 @@ long Mission::render (void)
 		}
 		BenchStage("world_render",eye->renderWorld());
 		vrPickWorld();
-		GameMap->clearCellDebugs(0);
 	
 		//-----------------------------------------------------
 		// FOG time.  Set Render state to FOG on!

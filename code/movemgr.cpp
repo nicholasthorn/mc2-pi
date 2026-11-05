@@ -22,6 +22,11 @@
 
 #include"gameos.hpp"
 
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <vector>
+
 
 long MovePathManager::numPaths = 0;
 long MovePathManager::peakPaths = 0;
@@ -81,6 +86,7 @@ long MovePathManager::init (void) {
 
 void MovePathManager::destroy (void) {
 
+	finishWorker();
 }
 
 //---------------------------------------------------------------------------
@@ -191,6 +197,95 @@ void MovePathManager::calcPath (void) {
 
 		/*long err = */pilot->calcMovePath(curQRec->selectionIndex, curQRec->moveParams);
 	}
+}
+
+//----------------------------------------------------------------------------------
+// One thread, one batch at a time. The game step that asked is over, and the next
+// waits for it, so the path maps, the queue and the pilots' move orders are its
+// alone. The frames drawn meanwhile only read: at worst a waypoint line is torn.
+// STOP or Fatal in here still ends the process.
+
+// never destroyed: the worker waits on them to the end, and destroying a condition
+// variable at exit with a waiter blocks forever
+static std::mutex& workerMutex = *new std::mutex;
+static std::condition_variable& workerWake = *new std::condition_variable;
+static std::condition_variable& workerDone = *new std::condition_variable;
+static bool workerStarted = false;
+static bool workerBusy = false;
+static bool workerQueued = false;
+static MovePathManager* workerManager = NULL;
+static thread_local bool isWorkerThread = false;
+
+struct DeferredRadio {
+	MechWarriorPtr pilot;
+	long message;
+	bool propogate;
+};
+static std::vector<DeferredRadio> deferredRadio;
+
+static void pathWorker (void) {
+
+	isWorkerThread = true;
+	std::unique_lock<std::mutex> lock(workerMutex);
+	while (true) {
+		workerWake.wait(lock, [] { return workerBusy; });
+		lock.unlock();
+		workerManager->update();
+		lock.lock();
+		workerBusy = false;
+		workerDone.notify_all();
+	}
+}
+
+bool MovePathManager::onWorker (void) {
+
+	return(isWorkerThread);
+}
+
+void MovePathManager::deferRadio (MechWarriorPtr pilot, long message, bool propogate) {
+
+	DeferredRadio radio = {pilot, message, propogate};
+	deferredRadio.push_back(radio);
+}
+
+void MovePathManager::queueForWorker (void) {
+
+	workerQueued = true;
+}
+
+void MovePathManager::startWorker (void) {
+
+	if (!workerQueued)
+		return;
+	workerQueued = false;
+#ifdef USE_PATH_COST_TABLE
+	// as just before the paths without the worker: the step has since changed
+	GlobalMoveMap[0]->resetPathCostTable();
+#endif
+	std::lock_guard<std::mutex> lock(workerMutex);
+	if (!workerStarted) {
+		workerStarted = true;
+		std::thread(pathWorker).detach();
+	}
+	workerManager = this;
+	workerBusy = true;
+	workerWake.notify_all();
+}
+
+void MovePathManager::finishWorker (void) {
+
+	static const int benchWait = gos_BenchStageId("paths_wait");
+	gos_BenchStageStart(benchWait);
+	{
+		std::unique_lock<std::mutex> lock(workerMutex);
+		workerDone.wait(lock, [] { return !workerBusy; });
+	}
+	gos_BenchStageStop(benchWait);
+	workerQueued = false;
+
+	for (size_t i = 0; i < deferredRadio.size(); i++)
+		deferredRadio[i].pilot->radioMessage(deferredRadio[i].message, deferredRadio[i].propogate);
+	deferredRadio.clear();
 }
 
 //----------------------------------------------------------------------------------

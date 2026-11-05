@@ -130,8 +130,8 @@ double __stdcall gos_GetHiResTime()
 ////////////////////////////////////////////////////////////////////////////////
 
 static const int g_hepsStackSize = 128;
-static gos_Heap* g_heapsStack[g_hepsStackSize];
-static int g_heapStackPointer = -1;
+static thread_local gos_Heap* g_heapsStack[g_hepsStackSize];
+static thread_local int g_heapStackPointer = -1;
 
 ////////////////////////////////////////////////////////////////////////////////
 HGOSHEAP __stdcall gos_CreateMemoryHeap(char const* HeapName, DWORD MaximumSize/* = 0*/, HGOSHEAP parentHeap/* = ParentClientHeap*/)
