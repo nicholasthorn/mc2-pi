@@ -1404,6 +1404,9 @@ class gosRenderer {
 
         void applyRenderStates();
 
+        void startMergedDraw(gosMesh* mesh, int num_vertices);
+        void drawMerged();  // before anything else that needs GL
+
         void drawQuads(gos_VERTEX* vertices, int count);
         void drawLines(gos_VERTEX* vertices, int count);
         void drawPoints(gos_VERTEX* vertices, int count);
@@ -1439,6 +1442,8 @@ class gosRenderer {
 
     private:
 
+        gosMesh* merging_ = nullptr;                // with vertices waiting to draw
+        uint32_t mergedStates_[gos_MaxState] = {};
         bool beforeDrawCall();
         void afterDrawCall();
 
@@ -1732,6 +1737,8 @@ void gosRenderer::popRenderStates()
 
 void gosRenderer::applyRenderStates() {
 
+    drawMerged();
+
 	////////////////////////////////////////////////////////////////////////////////
 	if (glCulling_ != (int)renderStates_[gos_State_Culling]) {
 		switch (renderStates_[gos_State_Culling]) {
@@ -1993,6 +2000,39 @@ gosRenderMaterial* gosRenderer::selectLightedRenderMaterial(const RenderState& r
     }
 }
 
+// Consecutive draws with the same states become one: most of a frame's quads
+// and triangles are effects and interface pieces that share them. The states
+// go to GL when a run starts, and it is drawn when anything else needs GL.
+
+void gosRenderer::startMergedDraw(gosMesh* mesh, int num_vertices)
+{
+    if(merging_ && (merging_ != mesh
+                || mesh->getNumVertices() + num_vertices > mesh->getVertexCapacity()
+                || memcmp(mergedStates_, renderStates_, sizeof(mergedStates_)) != 0))
+        drawMerged();
+    if(!merging_) {
+        applyRenderStates();
+        merging_ = mesh;
+        memcpy(mergedStates_, renderStates_, sizeof(mergedStates_));
+    }
+}
+
+void gosRenderer::drawMerged()
+{
+    if(!merging_)
+        return;
+    gosMesh* mesh = merging_;
+    merging_ = nullptr;
+
+    gosRenderMaterial* mat = selectBasicRenderMaterial(curStates_);
+    gosASSERT(mat);
+
+    mat->setTransform(projection_);
+    mat->setFogColor(fog_color_);
+    mesh->draw(mat);
+    mesh->rewind();
+}
+
 void gosRenderer::drawQuads(gos_VERTEX* vertices, int count) {
     gosASSERT(vertices);
 
@@ -2001,16 +2041,7 @@ void gosRenderer::drawQuads(gos_VERTEX* vertices, int count) {
     int num_quads = count / 4;
     int num_vertices = num_quads * 6;
 
-    if(quads_->getNumVertices() + num_vertices > quads_->getVertexCapacity()) {
-        applyRenderStates();
-        gosRenderMaterial* mat = selectBasicRenderMaterial(curStates_);
-        gosASSERT(mat);
-
-        mat->setTransform(projection_);
-        mat->setFogColor(fog_color_);
-        quads_->draw(mat);
-        quads_->rewind();
-    } 
+    startMergedDraw(quads_, num_vertices);
 
     gosASSERT(quads_->getNumVertices() + num_vertices <= quads_->getVertexCapacity());
     for(int i=0; i<count;i+=4) {
@@ -2023,17 +2054,6 @@ void gosRenderer::drawQuads(gos_VERTEX* vertices, int count) {
         quads_->addVertices(vertices + 4*i + 2, 1);
         quads_->addVertices(vertices + 4*i + 3, 1);
     }
-
-    // for now draw anyway because no render state saved for draw calls
-    applyRenderStates();
-
-    gosRenderMaterial* mat = selectBasicRenderMaterial(curStates_);
-    gosASSERT(mat);
-
-    mat->setTransform(projection_);
-    mat->setFogColor(fog_color_);
-    quads_->draw(mat);
-    quads_->rewind();
 
     afterDrawCall();
 }
@@ -2095,31 +2115,10 @@ void gosRenderer::drawTris(gos_VERTEX* vertices, int count) {
 
     if(beforeDrawCall()) return;
 
-    if(tris_->getNumVertices() + count > tris_->getVertexCapacity()) {
-        applyRenderStates();
-
-        gosRenderMaterial* mat = selectBasicRenderMaterial(curStates_);
-        gosASSERT(mat);
-
-        mat->setTransform(projection_);
-		mat->setFogColor(fog_color_);
-        tris_->draw(mat);
-        tris_->rewind();
-    } 
+    startMergedDraw(tris_, count);
 
     gosASSERT(tris_->getNumVertices() + count <= tris_->getVertexCapacity());
     tris_->addVertices(vertices, count);
-
-    // for now draw anyway because no render state saved for draw calls
-    applyRenderStates();
-
-    gosRenderMaterial* mat = selectBasicRenderMaterial(curStates_);
-    gosASSERT(mat);
-
-    mat->setTransform(projection_);
-    mat->setFogColor(fog_color_);
-    tris_->draw(mat);
-    tris_->rewind();
 
     afterDrawCall();
 }
@@ -2695,6 +2694,7 @@ void gos_RendererBeginFrame() {
 
 void gos_RendererEndFrame() {
     gosASSERT(g_gos_renderer);
+    g_gos_renderer->drawMerged();
     g_gos_renderer->endFrame();
 }
 
@@ -2910,11 +2910,13 @@ DWORD __stdcall gos_NewTextureFromFile( gos_TextureFormat Format, const char* Fi
 }
 void __stdcall gos_DestroyTexture( DWORD Handle )
 {
+    g_gos_renderer->drawMerged();
     g_gos_renderer->deleteTexture(Handle);
 }
 
 void __stdcall gos_LockTexture( DWORD Handle, DWORD MipMapSize, bool ReadOnly, TEXTUREPTR* TextureInfo )
 {
+    g_gos_renderer->drawMerged();
     // TODO: does not really locks texture
     
     // not implemented yet
@@ -2946,6 +2948,7 @@ void __stdcall gos_LockTexture( DWORD Handle, DWORD MipMapSize, bool ReadOnly, T
 
 void __stdcall gos_UnLockTexture( DWORD Handle )
 {
+    g_gos_renderer->drawMerged();
     if (Handle == INVALID_TEXTURE_ID)
         return;
     gosTexture* ptex = g_gos_renderer->getTexture(Handle);
@@ -3059,6 +3062,7 @@ vec4 __stdcall gos_GetRenderViewport() {
 // whole window every frame
 void __stdcall gos_SetStereoEye(int eye)
 {
+    g_gos_renderer->drawMerged();
     // VR: the eye's own image (its size, its viewport)
     if(gos_xr::bindEye(eye)) {
         int width, height;
@@ -3529,6 +3533,7 @@ HGOSRENDERMATERIAL __stdcall gos_getRenderMaterial(const char* material)
 void __stdcall gos_ApplyRenderMaterial(HGOSRENDERMATERIAL material)
 {
 	gosASSERT(material);
+	g_gos_renderer->drawMerged();
 
 	// apply() reads the GL error flag per uniform: what earlier draws left must
 	// not be taken for its own, or dropped
