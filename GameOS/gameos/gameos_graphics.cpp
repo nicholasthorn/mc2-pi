@@ -3095,6 +3095,11 @@ bool __stdcall gos_IsVR()
     return forced || gos_xr::active();
 }
 
+bool __stdcall gos_VRHeadset()
+{
+    return gos_xr::active();
+}
+
 bool __stdcall gos_VRHudDue()
 {
     return gos_xr::hudDue();

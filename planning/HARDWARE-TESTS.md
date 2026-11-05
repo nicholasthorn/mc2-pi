@@ -106,13 +106,16 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 The interface only rests in a headset session, so no desktop run covers it.
 
-- [ ] **Quest 2, a mission played:** the interface updates promptly, health bars,
+- [x] **Quest 2, a mission played** (2026-11-05, fine): the interface updates promptly, health bars,
       timers and flashes run at the right speed (they advance per draw, and were
       probably about 2.4 times too fast before this), and floating help shows
       without ghosting.
-- [ ] **Pointing at the interface and at the world** stays right: the alpha under
-      the pointer is now read only on frames the interface draws.
-- [ ] **Leaving a mission or opening the options screen:** one frame of the old
+- [x] **Pointing at the interface and at the world** stays right.
+- [x] **The interface at 1280x960 in a mission** (2026-11-05): judged right on the
+      Quest 2, with the size set by hand in `options.cfg`.
+- [ ] **The same with the default:** the logistics screens and a mission started from
+      them, on a headset whose `options.cfg` says nothing or 800x600.
+- [x] **Leaving a mission or opening the options screen:** one frame of the old
       interface at most.
 
 ## STOP message box (#46)

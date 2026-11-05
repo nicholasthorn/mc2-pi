@@ -383,3 +383,27 @@ TEST_CASE("a field of view given as text: in the range, or 0 to turn it off")
 	CHECK(vr_eye::parseGameFov("500") == -1.0f);
 	CHECK(vr_eye::parseGameFov("-60") == -1.0f);
 }
+
+TEST_CASE("the interface's size in a headset: 1280x960 unless another layout was chosen")
+{
+	int w = 800, h = 600;
+	CHECK(vr_eye::fitInterfaceResolution(w, h));	// also a file with no size
+	CHECK(w == 1280);
+	CHECK(h == 960);
+
+	w = 3664, h = 1920;	// the headset's window, as the options screen saves it
+	CHECK(vr_eye::fitInterfaceResolution(w, h));
+	CHECK(w == 1280);
+	CHECK(h == 960);
+
+	// the same shape as 800x600, so the game camera stays as it was judged
+	CHECK(vr_eye::kInterfaceWidth * 600 == vr_eye::kInterfaceHeight * 800);
+
+	const int kept[][2] = {{1024, 768}, {1280, 960}, {1280, 1024}, {1600, 1200}, {1920, 1080}, {800, 500}};
+	for(const auto& size : kept) {
+		w = size[0], h = size[1];
+		CHECK_FALSE(vr_eye::fitInterfaceResolution(w, h));
+		CHECK(w == size[0]);
+		CHECK(h == size[1]);
+	}
+}
