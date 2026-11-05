@@ -947,12 +947,15 @@ long Mission::render (void)
 		
 		static const int benchUiRender = gos_BenchStageId("ui_render");
 		gos_BenchStageStart(benchUiRender);
-		FloatHelp::renderAll();
+		if (gos_VRHudDue())
+		{
+			FloatHelp::renderAll();
 	
-		currentFloatHelp = 0;
+			currentFloatHelp = 0;
 	
-		if (missionInterface)
-			missionInterface->render();
+			if (missionInterface)
+				missionInterface->render();
+		}
 		gos_BenchStageStop(benchUiRender);
 
 		if (KillAmbientLight) {

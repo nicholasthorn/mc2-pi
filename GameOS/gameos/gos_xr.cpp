@@ -117,6 +117,13 @@ struct State {
     PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC renderbufferStorageMultisample = nullptr;
     bool running = false;
     bool exit = false;
+    // MC2_XR_HUD_EVERY_FRAME=1 redraws the interface on every headset frame
+    bool hudEveryFrame = false;
+    bool hudRestAllowed = false;    // a mission's interface asked last frame (hudDue)
+    bool hudIsDue = true;           // this frame's interface is to be drawn
+    bool hudChanged = true;         // a game step since it was last drawn
+    int framesSinceHud = 0;
+    bool quadHasImage = false;      // the quad's swapchain has a released image
     // this frame
     bool frameBegun = false;
     XrFrameState frame = {};
@@ -855,6 +862,7 @@ bool copyFrame(int width, int height)
     glBlitFramebuffer(0, 0, width, height, 0, 0, g.quad.width, g.quad.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     release(g.quad);
+    g.quadHasImage = true;
     return true;
 }
 
@@ -1077,6 +1085,8 @@ bool init()
     readDebugSettings();
     const char* eyesEnv = getenv("MC2_XR_EYES");
     g.useEyes = !(eyesEnv && eyesEnv[0] == '0');
+    const char* hudEnv = getenv("MC2_XR_HUD_EVERY_FRAME");
+    g.hudEveryFrame = hudEnv && hudEnv[0] == '1';
     const char* msaaEnv = getenv("MC2_XR_MSAA");
     const int samples = msaaEnv ? atoi(msaaEnv) : 4;
     g.framebufferTexture2DMultisample = (PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC)
@@ -1259,7 +1269,8 @@ bool present(int width, int height)
     // something decides whether the pointer is on the interface (pollInput)
     if(g.actionSet != XR_NULL_HANDLE && g.useEyes) {
         collectAlpha();
-        requestAlpha(width, height);
+        if(g.hudIsDue)
+            requestAlpha(width, height);
     }
 
     XrCompositionLayerProjectionView projViews[2];
@@ -1282,7 +1293,8 @@ bool present(int width, int height)
         projection.views = projViews;
         layers[layerCount++] = (XrCompositionLayerBaseHeader*)&projection;
     }
-    if(g.frame.shouldRender && copyFrame(width, height)) {
+    // a resting interface: the quad's last image is still what it shows
+    if(g.frame.shouldRender && (g.hudIsDue ? copyFrame(width, height) : g.quadHasImage)) {
         quad.space = g.space;
         quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
         quad.subImage.swapchain = g.quad.swapchain;
@@ -1310,6 +1322,34 @@ bool present(int width, int height)
     ok(xrEndFrame(g.session, &endInfo), "xrEndFrame");
     gos_BenchStageStop(benchEnd);
     return true;
+}
+
+void hudFrame(bool gameStepped)
+{
+    g.hudChanged = g.hudChanged || gameStepped;
+    // drawn the frame after a step, not with it, so the step's frame has the
+    // time; a run of steps must not starve it, as its text then piles up
+    const bool rest = g.hudRestAllowed && g.useEyes && !g.hudEveryFrame && g.quadHasImage
+            && (!g.hudChanged || (gameStepped && g.framesSinceHud < 2));
+    g.hudRestAllowed = false;
+    g.hudIsDue = !rest;
+    if(g.hudIsDue) {
+        g.hudChanged = false;
+        g.framesSinceHud = 0;
+    } else {
+        ++g.framesSinceHud;
+    }
+}
+
+bool hudDue()
+{
+    g.hudRestAllowed = true;
+    return g.hudIsDue;
+}
+
+bool hudResting()
+{
+    return !g.hudIsDue;
 }
 
 bool exitRequested()

@@ -2029,6 +2029,10 @@ int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
 float __stdcall gos_GetVRWorldScale();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
+// For a mission, before it draws its interface: whether to this frame. In VR
+// that interface is a layer of its own, which can rest between game steps;
+// otherwise always true.
+bool __stdcall gos_VRHudDue();
 //
 // The field of view, in degrees, for the game camera in VR: enough to cover
 // the eyes at the window's aspect, so that what the game counts as in view is
