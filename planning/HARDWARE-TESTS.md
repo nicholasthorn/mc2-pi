@@ -132,6 +132,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## On the Quest (VR, `future-features/VR-TABLETOP.md`)
 
+- [ ] **Bomber target marker and explosions** (branch `fix/bomber-marker-explosion`).
+      Call a strike, then another close by: while the first marker spins, the
+      second's explosion shows whole, with no square in it, and the marker's
+      rings look soft rather than black-edged. Checked on the desktop with
+      `MC2_VR_PATHS=1`, which never showed the square itself, so only the
+      headset can confirm that part.
 - [ ] **Game camera's field of view** (PR #86, `future-features/VR-FOV.md`).
       Done on a Quest 2: the log line, world clicks near the horizon and past
       the terrain's edge, the frame rate against `MC2_XR_FOV=0`. Still to see:

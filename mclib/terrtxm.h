@@ -133,6 +133,7 @@ class TerrainTextures
 		long				globalMipLevel;
 		long				firstOverlay;
 
+		bool				listHasPlainNames;		//The mission's .lst names caches without ".old" (txmcachename.h)
 		bool				quickLoad;				//Checks for list o magic textures and then checks that each magic texture exists.
 		char				*localBaseName;
 		File				*listTransitionFile;	
@@ -200,6 +201,7 @@ class TerrainTextures
 			//---------------------------------------------------------------------------------
 			//Checks for list o magic textures and then checks that each magic texture exists. 
 			quickLoad = false;
+			listHasPlainNames = false;
 			localBaseName = NULL;
 			listTransitionFile = NULL;
 		}
