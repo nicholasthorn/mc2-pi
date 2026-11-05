@@ -13,6 +13,7 @@ set(SOURCES ${SOURCES}
     gos_font.cpp
     gos_input.cpp
     gos_net.cpp
+    gos_net_lan.cpp
 
     utils/stream.cpp
     utils/camera.cpp
@@ -62,6 +63,9 @@ if(MC2_NET)
     list(APPEND SOURCES gos_net_gns.cpp)
 endif()
 add_library(gameos ${SOURCES})
+if(MSVC)
+    target_link_libraries(gameos PRIVATE ws2_32)	# gos_net_lan.cpp, in a build without MC2_NET too
+endif()
 if(MC2_NET)
     target_link_libraries(gameos PRIVATE mc2_gns)	# only gos_net_gns.cpp sees its headers
 endif()
@@ -70,7 +74,7 @@ add_library(gameos_main ${MAIN_SRC})
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
     utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/args_file.cpp
-    utils/log_file.cpp gos_logfile.cpp gos_net.cpp
+    utils/log_file.cpp gos_logfile.cpp gos_net.cpp gos_net_lan.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 if(MC2_NET)
     set_source_files_properties(gos_net_gns.cpp PROPERTIES COMPILE_OPTIONS "${MC2_GNS_CALLER_OPTIONS}")

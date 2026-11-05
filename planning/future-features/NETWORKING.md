@@ -626,6 +626,19 @@ looked tied to recoveries by chance. ASan caught it in CI. Single player had the
 Not settled: nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
 in a test has been shown to have one. Windows and arm64 have only what CI runs.
 
+### Phase 4, begun
+
+In slices, as it is large: finding a game and the data check first, then the lobby's protocol, then the screens and mech selection on it.
+
+- **Finding a game:** a host with a port to be reached on answers queries on UDP port 27816 (`code/netlan.*`, `GameOS/gameos/gos_net_lan.*`), and
+  `-netjoin lan` joins the first game of its mission with room in it. A query goes to the broadcast address and to this machine. A Quest holds a
+  `MulticastLock`, as its Wi-Fi otherwise drops broadcasts. Not yet run on a Quest, or between two machines. The browser screen does not use it yet.
+- **Left for the lobby:** `netGameEnded` and other statics in `multplyr.cpp` hold for the process, so a second game in one needs them reset. The
+  Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
+- **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.
+- **The data check:** `Hello` now carries a hash of the mission, `object2.pak` and `gamesys.fit`, where it had only the mission's name, so other
+  data is refused when joining. It does not cover the whole mod set, as the mission's art and scripts are not in it.
+
 ### On a Quest 2 (2026-11-05)
 
 A PC (Linux x64, WSL, llvmpipe under Xvfb, no display) and a Quest 2 on home Wi-Fi, inside the app with the
@@ -667,8 +680,6 @@ Not settled by phase 2, against its exit criterion:
 - `TACTICAL_ORDER_RECOVER`, the old order, is dead code in the game and is refused. Recovery is the Karnov.
 - A mission script's result is not sent, which matters for co-op (phase 4b).
 - A client that leaves is not replaced, and a host that leaves ends the game for the client.
-- The data check in `Hello` is only the mission's name. The roster hash at the load barrier catches
-  other units, but not other weapon or terrain data.
 - The exit on `-autoexit` crashed in the heap before the network closed in `ShutdownNetworking`, and
   has not since, sanitized or not. Which object it was was not traced.
 
@@ -678,6 +689,8 @@ Not settled by phase 2, against its exit criterion:
   chunk, malformed input, fixed sizes, ASan + UBSan fuzz run.
 - **Two-process smoke (CI):** host and client on localhost under llvmpipe with
   `-autoexit`. The host stays fixed-step, so a run is repeatable on one machine.
+  All three configurations and every game mode nightly and on PRs that change
+  multiplayer code (`scripts/ci_multiplayer.sh`); other code PRs run one battle sanitized.
 - **Network conditions (CI):** GNS's simulator at, say, 0, 100 and 250 ms with
   0, 2 and 5% loss.
 - **Convergence, in place of a desync check:** at the end of a run, and regularly

@@ -202,6 +202,94 @@ bool peekProtocol(const void* data, size_t size, uint16_t& protocol)
 	return in.ok();
 }
 
+uint32_t hashBytes(uint32_t hash, const void* data, size_t size)
+{
+	const uint8_t* bytes = static_cast<const uint8_t*>(data);
+	for (size_t i = 0; i < size; i++) {
+		hash ^= bytes[i];
+		hash *= 16777619u;
+	}
+	return hash;
+}
+
+static bool validAnnounce(const LanAnnounce& m)
+{
+	return m.gamePort != 0 && m.maxPlayers >= 1 && m.maxPlayers <= MAX_PLAYERS && m.numPlayers <= m.maxPlayers
+		&& validName(m.name) && validName(m.map) && !m.map.empty();
+}
+
+bool encode(const LanQuery& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::LanQuery));
+	w.u32(LAN_MAGIC);
+	w.u16(m.protocol);
+	return true;
+}
+
+bool decode(const void* data, size_t size, LanQuery& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::LanQuery) || in.u32() != LAN_MAGIC)
+		return false;
+	m.protocol = in.u16();
+	return in.finished();
+}
+
+bool encode(const LanAnnounce& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (!validAnnounce(m))
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::LanAnnounce));
+	w.u32(LAN_MAGIC);
+	w.u16(m.protocol);
+	w.u16(m.gamePort);
+	w.u32(m.instance);
+	w.u8(m.numPlayers);
+	w.u8(m.maxPlayers);
+	w.u8(m.inProgress ? 1 : 0);
+	w.u8(static_cast<uint8_t>(m.name.size()));
+	w.bytes(m.name.data(), m.name.size());
+	w.u8(static_cast<uint8_t>(m.map.size()));
+	w.bytes(m.map.data(), m.map.size());
+	return true;
+}
+
+static bool readShortText(Reader& in, std::string& text)
+{
+	const size_t length = in.u8();
+	if (!in.ok() || length > MAX_NAME_LENGTH || length > in.remaining())
+		return false;
+	text.resize(length);
+	return (length == 0) || in.bytes(&text[0], length);
+}
+
+bool decode(const void* data, size_t size, LanAnnounce& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::LanAnnounce) || in.u32() != LAN_MAGIC)
+		return false;
+	m.protocol = in.u16();
+	m.gamePort = in.u16();
+	m.instance = in.u32();
+	m.numPlayers = in.u8();
+	m.maxPlayers = in.u8();
+	const uint8_t inProgress = in.u8();
+	if (!in.ok() || inProgress > 1)
+		return false;
+	m.inProgress = (inProgress != 0);
+	if (!readShortText(in, m.name) || !readShortText(in, m.map))
+		return false;
+	return in.finished() && validAnnounce(m);
+}
+
 bool encode(const Hello& m, std::vector<uint8_t>& out)
 {
 	out.clear();

@@ -26,6 +26,7 @@ LOSS=""
 EXPECT_WINNER=""
 WORLD_EVENTS=yes
 DIAL=0
+LAN=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -46,6 +47,7 @@ while [ $# -gt 0 ]; do
         --expect-winner) EXPECT_WINNER="$2"; shift 2 ;;
         --world-events) WORLD_EVENTS="$2"; shift 2 ;;
         --dial) DIAL=1; shift ;;
+        --lan) LAN=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -85,6 +87,11 @@ COMMON=(-mission "$MISSION" -autoexit "$FRAMES" -benchscenario "$SCENARIO")
 HOST_ARGS=(-netlisten "$PORT"); CLIENT_ARGS=(-netjoin "127.0.0.1:$PORT")
 if [ "$DIAL" = 1 ]; then
     HOST_ARGS=(-netcall "127.0.0.1:$PORT"); CLIENT_ARGS=(-netjoin "wait:$PORT")
+fi
+# --lan: the client finds the host by asking the local network. One run at a time on a machine:
+# a second host cannot take the discovery port, and both clients would find the first.
+if [ "$LAN" = 1 ]; then
+    CLIENT_ARGS=(-netjoin lan)
 fi
 ( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" -nethost 2 "${HOST_ARGS[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
 host_pid=$!

@@ -34,6 +34,11 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [x] **A Quest as host and as client, unworn** (2026-11-05, Quest 2, PC in WSL, home Wi-Fi): played
       and measured, with armour never differing. See "On a Quest 2" in `future-features/NETWORKING.md`.
       `-netjoin wait` on the Quest and `-netcall <its address>` on a host in WSL, which it cannot reach.
+- [ ] **A game found on the network** (phase 4). Two machines on one network, the same data:
+      `./mc2 -mission mc2_m08 -nethost 2 -netlisten` on one, `./mc2 -mission mc2_m08 -netjoin lan` on
+      the other. It should find and join within a few seconds. A Quest as each end, as its Wi-Fi drops
+      broadcasts without the lock in `MC2Activity`. Then a router with client isolation, which should
+      fail to find it, and joining by address is the way round. WSL cannot host for this (NAT).
 - [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on
