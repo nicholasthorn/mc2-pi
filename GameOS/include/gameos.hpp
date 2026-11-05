@@ -2031,11 +2031,11 @@ int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
 float __stdcall gos_GetVRWorldScale();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
+// A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.
+bool __stdcall gos_VRHeadset();
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.
-// A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.
-bool __stdcall gos_VRHeadset();
 bool __stdcall gos_VRHudDue();
 // This frame the interface is resting: nothing is to draw in the window.
 bool __stdcall gos_VRHudResting();
