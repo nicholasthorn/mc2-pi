@@ -26,6 +26,10 @@
 #include <salvagemecharea.h>
 #include <pilotreviewarea.h>
 #include <mechlopedia.h>
+#include <mpconnectiontype.h>
+#include <mpgamebrowser.h>
+#include <mpparameterscreen.h>
+#include <multplyr.h>
 #include <abutton.h>
 #include <aedit.h>
 
@@ -50,6 +54,10 @@ long g_frames = 0;
 std::chrono::steady_clock::time_point g_last;	// previous update()
 UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
 bool g_labAccept = false;	// mechlab+accept: leave the mech lab by Accept
+UiAction g_retry = UiAction::None;	// a step that waits on another player: tried each frame
+
+// what press() says of a step that cannot happen yet, but will
+const char* const NOT_YET = "not yet";
 
 void finish(const char* line, bool failed)
 {
@@ -274,6 +282,12 @@ UiScreen UiSmokeDriver::currentScreen()
 		return UiScreen::MechPurchase;
 	if (dynamic_cast<PilotReadyScreen*>(screen))
 		return UiScreen::PilotReady;
+	if (dynamic_cast<MPConnectionType*>(screen))
+		return UiScreen::MpConnection;
+	if (dynamic_cast<MPGameBrowser*>(screen))
+		return UiScreen::MpBrowser;
+	if (dynamic_cast<MPParameterScreen*>(screen))
+		return UiScreen::MpParams;
 	return UiScreen::Unknown;
 }
 
@@ -290,6 +304,77 @@ const char* UiSmokeDriver::press(UiAction action)
 	switch (action) {
 	case UiAction::OpenOptions:
 		return pressButton(menu, MM_MSG_OPTIONS);
+	case UiAction::OpenMultiplayer:
+		// past the button's being disabled: players cannot get here until all of it works
+		if (!menu)
+			return "screen is gone";
+		menu->handleMessage(aMSG_LEFTMOUSEDOWN, MM_MSG_MULTIPLAYER);
+		return NULL;
+	case UiAction::MpBrowse:
+		// the local network panel's button, which its parent screen answers
+		if (!screen)
+			return "screen is gone";
+		screen->handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID);
+		return NULL;
+	case UiAction::MpHost:
+		if (MPConnectionType* connection = dynamic_cast<MPConnectionType*>(screen)) {
+			connection->handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID + 1);
+			connection->hostDlg.edits[0].setEntry("uismoke");
+			connection->hostDlg.handleMessage(aMSG_LEFTMOUSEDOWN, LogisticsScreen::YES);
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::MpJoin:
+		if (MPGameBrowser* browser = dynamic_cast<MPGameBrowser*>(screen)) {
+			if (browser->gameList.GetItemCount() < 1)
+				return NOT_YET;
+			browser->gameList.SelectItem(0);
+			screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_NEXT);
+			return (screen->getStatus() == LogisticsScreen::RUNNING) ? NOT_YET : NULL;
+		}
+		return NULL;	// on its way to the next screen
+	case UiAction::MpLaunch:
+		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
+			if (params->getStatus() != LogisticsScreen::RUNNING)
+				return NULL;
+			if (MPlayer->isHost()) {
+				aButton* launch = params->getButton(MB_MSG_NEXT);
+				if (!launch || !launch->isEnabled())
+					return NOT_YET;
+				params->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_NEXT);
+				return NULL;
+			}
+			// its ready button acts only on the mouse: what its update() does for a click
+			MC2Player* me = MPlayer->getPlayerInfo(MPlayer->commanderID);
+			if (MPlayer->missionSettings.map[0] && !me->ready) {
+				me->ready = 1;
+				MPlayer->sendPlayerUpdate(0, 5, MPlayer->commanderID);
+			}
+			return NOT_YET;
+		}
+		return NULL;
+	case UiAction::MpPickMap:
+		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
+			const char* name = getenv("MC2_UISMOKE_MAP");
+			if (!name || !*name)
+				return "mp-params+map needs MC2_UISMOKE_MAP (a map's file name)";
+			if (!params->getButton(101))
+				return "button not found";
+			params->handleMessage(aMSG_LEFTMOUSEDOWN, 101);
+			MPLoadMap& dialog = params->mpLoadMap;
+			for (long i = 0; i < dialog.mapList.GetItemCount(); i++) {
+				aLocalizedListItem* item = (aLocalizedListItem*)dialog.mapList.GetItem(i);
+				// a heading for each kind of game has no file behind it
+				const char* file = item->getHiddenText();
+				if (file && (0 == S_stricmp(file, name))) {
+					dialog.mapList.SelectItem(i);
+					dialog.updateMapInfo();
+					return pressButton(&dialog, LogisticsScreen::YES);
+				}
+			}
+			return "no such map in the list";
+		}
+		return "screen is gone";
 	case UiAction::NewCampaign:
 		return pressButton(menu, MM_MSG_NEW_CAMPAIGN);
 	case UiAction::OptionsTab0:
@@ -526,6 +611,9 @@ void UiSmokeDriver::update()
 		// a longer hold, to take pictures of the screens
 		if (const char* hold = getenv("MC2_UISMOKE_HOLD"))
 			g_walk.holdFrames = atol(hold);
+		// a step can wait on another player, who is loading under a sanitizer
+		if (const char* timeout = getenv("MC2_UISMOKE_TIMEOUT"))
+			g_walk.timeoutSeconds = (float)atof(timeout);
 		printf("[UISMOKE] walk of %ld screens: %s\n", g_walk.numSteps(), text);
 		fflush(stdout);
 		g_last = std::chrono::steady_clock::now();
@@ -538,6 +626,17 @@ void UiSmokeDriver::update()
 	g_last = now;
 
 	++g_frames;
+	if (g_retry != UiAction::None) {
+		const char* why = press(g_retry);
+		if (why != NOT_YET) {
+			g_retry = UiAction::None;
+			if (why) {
+				snprintf(line, sizeof(line), "FAIL: %s", why);
+				finish(line, true);
+				return;
+			}
+		}
+	}
 	const UiScreen current = currentScreen();
 	const UiSmokeWalk::Result r = g_walk.update(current, dt);
 	switch (r.event) {
@@ -561,15 +660,25 @@ void UiSmokeDriver::update()
 				fflush(stdout);
 			}
 		} else if (const char* why = press(r.action)) {
-			snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
-					uiScreenName(g_from), uiScreenName(r.screen), why);
-			finish(line, true);
+			if (why == NOT_YET) {
+				g_retry = r.action;
+			} else {
+				snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
+						uiScreenName(g_from), uiScreenName(r.screen), why);
+				finish(line, true);
+			}
 		}
 		break;
 	case UiSmokeWalk::Event::Done:
 		snprintf(line, sizeof(line), "done: %ld screens in %ld frames",
 				g_walk.numSteps(), g_frames);
-		finish(line, false);
+		// the game goes on from where the walk ends: a battle reached through the screens
+		if (getenv("MC2_UISMOKE_STAY")) {
+			printf("[UISMOKE] %s\n", line);
+			fflush(stdout);
+			g_over = true;
+		} else
+			finish(line, false);
 		break;
 	case UiSmokeWalk::Event::Timeout:
 		snprintf(line, sizeof(line), "FAIL: %s did not appear within %.0f s (on %s)",

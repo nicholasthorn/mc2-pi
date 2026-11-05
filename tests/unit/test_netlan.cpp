@@ -70,8 +70,8 @@ TEST_CASE("LanAnnounce: what no game announces is refused")
 	a.gamePort = 0;
 	CHECK_FALSE(encode(a, out));
 	a = someGame();
-	a.map = "";
-	CHECK_FALSE(encode(a, out));
+	a.map = "";		// a lobby that has not chosen one yet is still a game to join
+	CHECK(encode(a, out));
 	a = someGame();
 	a.name = std::string(MAX_NAME_LENGTH + 1, 'x');
 	CHECK_FALSE(encode(a, out));

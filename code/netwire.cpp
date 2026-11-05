@@ -215,7 +215,7 @@ uint32_t hashBytes(uint32_t hash, const void* data, size_t size)
 static bool validAnnounce(const LanAnnounce& m)
 {
 	return m.gamePort != 0 && m.maxPlayers >= 1 && m.maxPlayers <= MAX_PLAYERS && m.numPlayers <= m.maxPlayers
-		&& validName(m.name) && validName(m.map) && !m.map.empty();
+		&& validName(m.name) && validName(m.map);	// a lobby's map can still be to choose
 }
 
 bool encode(const LanQuery& m, std::vector<uint8_t>& out)

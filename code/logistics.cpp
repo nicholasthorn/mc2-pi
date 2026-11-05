@@ -461,6 +461,26 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 	if (MPlayer)
 		MPlayer->setMode(MULTIPLAYER_MODE_LOADING);
 
+	// A network game has none of the stage messages below: the lobby's launch said who is who,
+	// and every machine starts from that, as a game from the command line does (mechcmd2.cpp).
+	if (MPlayer && MPlayer->isNetworked()) {
+		char netCommanders[MAX_MC_PLAYERS][3];
+		const long players = MPlayer->commandersForLoad(netCommanders);
+		MultiPlayTeamId = MPlayer->playerInfo[MPlayer->commanderID].team;
+		MultiPlayCommanderId = MPlayer->commanderID;
+		useUnlimitedAmmo = MPlayer->missionSettings.unlimitedAmmo;
+		if (mission)
+			mission->destroy();
+		mission->init(MPlayer->missionSettings.map, MISSION_LOAD_MP_QUICKSTART, 0, NULL, netCommanders, MultiPlayer::moversPerCommander(players));
+		MPlayer->waitForNetStart();
+		eye->activate();
+		eye->update();
+		mission->start();
+		mission->update(); // force this, so we don't render first
+		MPlayer->setMode(MULTIPLAYER_MODE_MISSION);
+		return(1);
+	}
+
 	char commandersToLoad[MAX_MC_PLAYERS][3] = {{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}, {6, 6, 6}, {7, 7, 7}};
 	long missionLoadType = LogisticsData::instance->skipLogistics() ? 
 							MISSION_LOAD_SP_QUICKSTART : MISSION_LOAD_SP_LOGISTICS;

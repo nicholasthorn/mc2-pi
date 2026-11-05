@@ -31,6 +31,9 @@ const char* const SCREEN_NAMES[(int)UiScreen::Count] = {
 	"mechlopedia-history",
 	"save",
 	"load",
+	"mp-connection",
+	"mp-browser",
+	"mp-params",
 };
 
 bool isOptions(UiScreen s)
@@ -103,8 +106,28 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::OpenSave;
 		if (to == UiScreen::Load)
 			return UiAction::OpenLoad;
+		if (to == UiScreen::MpConnection)
+			return UiAction::OpenMultiplayer;
 		if (hasMainMenuButton(to))
 			return UiAction::ReturnToGame;
+		break;
+	case UiScreen::MpConnection:
+		if (to == UiScreen::MpBrowser)
+			return UiAction::MpBrowse;
+		if (to == UiScreen::MpParams)
+			return UiAction::MpHost;
+		if (to == UiScreen::MainMenu)
+			return UiAction::MainMenu;
+		break;
+	case UiScreen::MpBrowser:
+		if (to == UiScreen::MpConnection)
+			return UiAction::Previous;
+		if (to == UiScreen::MpParams)
+			return UiAction::MpJoin;
+		break;
+	case UiScreen::MpParams:
+		if (to == UiScreen::Mission)
+			return UiAction::MpLaunch;
 		break;
 	case UiScreen::Save:
 		// saving (and Cancel) goes back to the logistics screen the main menu
@@ -222,6 +245,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechLab, "swap", UiAction::SwapVariant },
 	{ UiScreen::MechLab, "own", UiAction::OwnVariant },
 	{ UiScreen::MechLab, "accept", UiAction::LabAccept },
+	{ UiScreen::MpParams, "map", UiAction::MpPickMap },
 };
 
 } // namespace

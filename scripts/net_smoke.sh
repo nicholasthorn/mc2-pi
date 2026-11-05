@@ -28,6 +28,7 @@ WORLD_EVENTS=yes
 DIAL=0
 LAN=0
 LOBBY=0
+SCREENS=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -50,6 +51,7 @@ while [ $# -gt 0 ]; do
         --dial) DIAL=1; shift ;;
         --lan) LAN=1; shift ;;
         --lobby) LOBBY=1; shift ;;
+        --screens) SCREENS=1; LOBBY=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -100,9 +102,19 @@ HOST_MISSION=(-mission "$MISSION"); CLIENT_MISSION=(-mission "$MISSION")
 if [ "$LOBBY" = 1 ]; then
     HOST_ARGS+=(-netlobby); CLIENT_MISSION=(-netlobby)
 fi
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${HOST_MISSION[@]}" "${COMMON[@]}" -nethost 2 "${HOST_ARGS[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
+# --screens: as players do, from the main menu: the host names a game and picks the map, and the
+# client finds it on the local network. One run at a time on a machine, as for --lan.
+HOST_NET=(-nethost 2 "${HOST_ARGS[@]}")
+CLIENT_NET=("${CLIENT_ARGS[@]}")
+if [ "$SCREENS" = 1 ]; then
+    export MC2_UISMOKE_MAP="$MISSION" MC2_UISMOKE_STAY=1 MC2_UISMOKE_TIMEOUT=$((TIMEOUT / 2))
+    HOST_MISSION=(); CLIENT_MISSION=()
+    HOST_NET=(-uismoke "mainmenu,mp-connection,mp-params,mp-params+map,mission")
+    CLIENT_NET=(-uismoke "mainmenu,mp-connection,mp-browser,mp-params,mission")
+fi
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${HOST_MISSION[@]}" "${COMMON[@]}" "${HOST_NET[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
 host_pid=$!
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${CLIENT_MISSION[@]}" "${COMMON[@]}" "${CLIENT_ARGS[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${CLIENT_MISSION[@]}" "${COMMON[@]}" "${CLIENT_NET[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
 client_pid=$!
 start=$(date +%s)
 wait "$host_pid"; host_rc=$?

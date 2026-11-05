@@ -218,7 +218,10 @@ void MPParameterScreen::begin()
 
 	MPlayer->initParametersScreen();
 
-	if ( MPlayer->isHost() )
+	// a new lobby has no map yet, and setMission ends the game on one it cannot open
+	if ( !strlen( MPlayer->missionSettings.map ) )
+		;
+	else if ( MPlayer->isHost() )
 		setMission( MPlayer->missionSettings.map, (status != UP && status != NEXT) ? 1 : 0 );
 	else
 		setMissionClientOnly( MPlayer->missionSettings.map );
@@ -584,8 +587,7 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 			break;
 
 		case MP_QUICKSTART:
-			MPlayer->missionSettings.quickStart ^= 1;
-			MPParameterScreen::resetCheckBoxes();
+			// on for good until a game can have mech selection: its screens have no network yet
 			break;
 
 		}
@@ -822,7 +824,13 @@ void MPParameterScreen::update()
 			else
 				LogisticsData::instance->setPurchaseFile( pPurchaseFiles[faction] );
 			LogisticsData::instance->setCurrentMission( MPlayer->missionSettings.map );
-			MPlayer->sendMissionSetup(0, 6, NULL);
+			if ( !MPlayer->launchNetLobby() )
+			{
+				MPlayer->setInProgress( false );
+				delayTime = 0.f;
+				bWaitingToStart = 0;
+				return;
+			}
 
 			status = NEXT;
 			
@@ -1126,9 +1134,13 @@ void MPParameterScreen::update()
 
 			getButton( MP_QUICKSTART )->disable( 0 );
 
-			getButton( MP_LOCKGAME )->showGUIWindow( true );
-			getButton( MP_BOOTPLAYER )->showGUIWindow( true );
-			getButton( MP_BOOTPLAYER )->disable( false );
+			// not in a network game yet, nor is choosing colours: the lobby gives each a colour of their own
+			getButton( MP_LOCKGAME )->showGUIWindow( false );
+			getButton( MP_BOOTPLAYER )->showGUIWindow( false );
+			if ( getButton( 102/*add ai player*/ ) )
+				getButton( 102/*add ai player*/ )->showGUIWindow( false );
+			if ( getButton( MP_PLAYER_PREFS ) )
+				getButton( MP_PLAYER_PREFS )->disable( true );
 
 
 

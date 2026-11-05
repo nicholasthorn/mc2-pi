@@ -124,6 +124,16 @@ TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
 	CHECK(uiScreenAction(UiScreen::Load, "name", 4) == UiAction::None);
 }
 
+TEST_CASE("multiplayer: into a lobby by hosting or joining, and from it to the mission") {
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MpConnection) == UiAction::OpenMultiplayer);
+	CHECK(uiRoute(UiScreen::MpConnection, UiScreen::MpParams) == UiAction::MpHost);
+	CHECK(uiRoute(UiScreen::MpConnection, UiScreen::MpBrowser) == UiAction::MpBrowse);
+	CHECK(uiRoute(UiScreen::MpBrowser, UiScreen::MpParams) == UiAction::MpJoin);
+	CHECK(uiRoute(UiScreen::MpBrowser, UiScreen::MpConnection) == UiAction::Previous);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::Mission) == UiAction::MpLaunch);
+	CHECK(uiScreenAction(UiScreen::MpParams, "map", 3) == UiAction::MpPickMap);
+}
+
 TEST_CASE("in-screen actions belong to one screen each") {
 	CHECK(uiScreenAction(UiScreen::MechPurchase, "buy", 3) == UiAction::BuyMech);
 	CHECK(uiScreenAction(UiScreen::MechBay, "add", 3) == UiAction::AddToForce);

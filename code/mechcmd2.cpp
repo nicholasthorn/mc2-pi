@@ -1732,16 +1732,7 @@ void __stdcall InitializeGameEngine()
 					MPlayer->startLocalHost(netHostPlayers);
 				MultiPlayTeamId = MPlayer->playerInfo[MPlayer->commanderID].team;
 				MultiPlayCommanderId = MPlayer->commanderID;
-				long players = 0;
-				// a team per commander, and only as many as there are players
-				for (long i = 0; i < MAX_MC_PLAYERS; i++) {
-					if (MPlayer->playerInfo[i].commanderID > -1)
-						players++;
-					for (long j = 0; j < 3; j++)
-						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
-					// and a lobby can put two on one team
-					commandersToLoad[i][1] = MPlayer->playerInfo[i].team;
-				}
+				const long players = MPlayer->commandersForLoad(commandersToLoad);
 				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(players));
 				MPlayer->waitForNetStart();
 			}

@@ -105,6 +105,7 @@ private:
 
 class MPConnectionType : public LogisticsScreen
 {
+	friend class UiSmokeDriver;	// -uismoke fills in the host dialog
 public:
 	
 	MPConnectionType();

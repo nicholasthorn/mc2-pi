@@ -79,6 +79,7 @@ protected:
 
 class MPGameBrowser : public LogisticsScreen
 {
+	friend class UiSmokeDriver;	// -uismoke picks a game from the list
 public:
 	
 	MPGameBrowser();
