@@ -74,6 +74,17 @@ TEST_CASE("Lobby: a place is taken once, and frees when its player leaves")
 	CHECK(lobby.player(1)->name == "Bo");
 }
 
+TEST_CASE("Lobby: the same choice again is no change, so a client answering each state cannot loop")
+{
+	Lobby lobby = twoPlayers();
+	REQUIRE(lobby.applyChoice(1, readyOn(lobby, 1, MAP_HASH + 1)));	// another map: not ready
+	const uint32_t last = lobby.state().revision;
+	CHECK(lobby.applyChoice(1, readyOn(lobby, 1, MAP_HASH + 1)));
+	CHECK(lobby.state().revision == last);
+	CHECK(lobby.applyChoice(1, readyOn(lobby, 1)));
+	CHECK(lobby.state().revision != last);
+}
+
 TEST_CASE("Lobby: every change is a new revision, for a screen to notice")
 {
 	Lobby lobby = twoPlayers();
@@ -100,10 +111,10 @@ TEST_CASE("Lobby: what no screen offers is refused, and changes nothing")
 	choice.team = MAX_PLAYERS;
 	CHECK_FALSE(lobby.applyChoice(1, choice));
 	choice = readyOn(lobby, 1);
-	choice.baseColor = netlobby::MAX_COLORS;
+	choice.baseColor = MAX_LOBBY_COLORS;
 	CHECK_FALSE(lobby.applyChoice(1, choice));
 	choice = readyOn(lobby, 1);
-	choice.stripeColor = netlobby::MAX_COLORS;
+	choice.stripeColor = MAX_LOBBY_COLORS;
 	CHECK_FALSE(lobby.applyChoice(1, choice));
 	choice = readyOn(lobby, 1);
 	choice.baseColor = lobby.player(0)->baseColor;	// somebody's
@@ -258,7 +269,7 @@ TEST_CASE("Lobby messages: what no game sends is refused, whole or cut short")
 	state.players[1].team = MAX_PLAYERS;
 	CHECK_FALSE(encode(state, out));
 	state = good;
-	state.players[1].baseColor = netlobby::MAX_COLORS;
+	state.players[1].baseColor = MAX_LOBBY_COLORS;
 	CHECK_FALSE(encode(state, out));
 	state = good;
 	state.players[1].name = "100%";
@@ -410,6 +421,7 @@ TEST_CASE("Launch renumbers around whoever left, and the game goes on from there
 	CHECK(bo.launched());
 	CHECK(bo.commander() == 1);
 	CHECK(bo.numPlayers() == 2);
+	CHECK(bo.lobbyLaunch().commanders[2] == 1);
 
 	// the load barrier and start, as without a lobby
 	game.host.setRosterHash(0x77u);
@@ -495,6 +507,14 @@ TEST_CASE("A bad choice from a client drops it")
 	REQUIRE(game.transports[0]->send(ace.serverConnection(), gos_net::Delivery::ReliableOrdered, junk, sizeof(junk)));
 	game.pump();
 	CHECK(game.host.connectedClients() == 0);
+
+	// and the lobby hears of it: a player it kept would stop any game starting
+	netsession::LobbyEvent event;
+	REQUIRE(game.host.nextLobbyEvent(event));
+	CHECK(event.type == netsession::LobbyEventType::Joined);
+	REQUIRE(game.host.nextLobbyEvent(event));
+	CHECK(event.type == netsession::LobbyEventType::Left);
+	CHECK(event.commander == 1);
 }
 
 TEST_CASE("Without a lobby, lobby messages are not a thing a client may send")

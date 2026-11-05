@@ -104,6 +104,7 @@ public:
 	const netwire::LobbyState& lobbyState() const { return lobbyState_; }
 	bool sendLobbyChoice(const netwire::LobbyChoice& choice);
 	bool launched() const { return launched_; }
+	const netwire::LobbyLaunch& lobbyLaunch() const { return lobbyLaunch_; }	// either end, once launched
 	gos_net::ConnectionId serverConnection() const { return server_; }
 	bool sendToHost(gos_net::Delivery delivery, const netwire::ChunkBatch& batch);
 
@@ -124,6 +125,7 @@ private:
 		uint8_t commander = 0;
 	};
 
+	void lobbyPlayerGone(const Client& client);
 	void handleHost(const gos_net::Event& event);
 	void handleClient(const gos_net::Event& event);
 	void handleHello(Client& client, const gos_net::Event& event);
@@ -148,6 +150,7 @@ private:
 	std::deque<LobbyEvent> lobbyEvents_;
 	netwire::LobbyState lobbyState_;		// client
 	bool hasLobbyState_ = false;
+	netwire::LobbyLaunch lobbyLaunch_;
 
 	gos_net::ConnectionId server_ = gos_net::INVALID_CONNECTION;	// client
 	std::string name_;

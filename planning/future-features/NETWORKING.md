@@ -636,8 +636,10 @@ In slices, as it is large: finding a game and the data check first, then the lob
 - **The lobby's protocol:** `code/netlobby.*` holds the rules with no game in it: who is in, teams, colours, map, settings, ready, and whether a game can
   start. `netwire` has `LobbyState` (host to clients, the whole of it on any change), `LobbyChoice` (a client's own part) and `LobbyLaunch`. `netsession`
   has a lobby mode: players come and go up to a limit, and launch renumbers them from 0, as a gap left by someone leaving is more than the game takes.
-  A client reports the hash of the chosen map as it has it, and cannot be ready on another. Unit tested on the loopback. Nothing in the game uses it yet:
-  the screens, mech selection and the main menu's button are the next slices.
+  A client reports the hash of the chosen map as it has it, and cannot be ready on another. Unit tested on the loopback.
+- **A lobby with nobody at the screen:** `-netlobby` on both ends goes through it for real. The host takes `-mission` and `-nethost N`, a client needs
+  no mission and learns it from the host, everyone is ready as soon as they can be, and the game launches when all N are in. Between two processes,
+  on x64 desktop GL. The screens, mech selection and the main menu's button are the next slices.
 - **Left for the lobby:** `netGameEnded` and other statics in `multplyr.cpp` hold for the process, so a second game in one needs them reset. The
   Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.

@@ -79,10 +79,14 @@ bool Lobby::applyChoice(uint8_t slot, const LobbyChoice& choice)
 	for (const LobbyPlayer& other : state_.players)
 		if (other.slot != slot && other.baseColor == choice.baseColor)
 			return false;
+	const bool ready = choice.ready && !state_.map.empty() && (choice.mapHash == mapHash_);
+	// the same again is no change: a client answers each new state, and must not start a loop
+	if (player->team == choice.team && player->baseColor == choice.baseColor && player->stripeColor == choice.stripeColor && player->ready == ready)
+		return true;
 	player->team = choice.team;
 	player->baseColor = choice.baseColor;
 	player->stripeColor = choice.stripeColor;
-	player->ready = choice.ready && !state_.map.empty() && (choice.mapHash == mapHash_);
+	player->ready = ready;
 	changed();
 	return true;
 }

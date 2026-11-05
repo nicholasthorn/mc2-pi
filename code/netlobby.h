@@ -18,8 +18,6 @@
 
 namespace netlobby {
 
-constexpr uint8_t MAX_COLORS = netwire::MAX_LOBBY_COLORS;
-
 class Lobby {
 public:
 	explicit Lobby(uint8_t maxPlayers);

@@ -1708,6 +1708,11 @@ class MultiPlayer : public MultiPlayerState {
 
 		bool supportRequestPending (void);
 
+		// a lobby with no screens, for tests and a command line: everyone is ready as soon as
+		// they can be, and the game launches when all maxPlayers are in. The client learns the map.
+		void hostNetLobby (long maxPlayers, unsigned short port, const char* missionName);
+		void joinNetLobby (const char* address, unsigned short port, char* missionName, size_t missionNameSize);
+
 		// this machine's commander took back a support vehicle not yet called
 		void refundResources (long cost);
 

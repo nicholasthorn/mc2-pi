@@ -85,6 +85,7 @@ bool Session::launch(const LobbyLaunch& launch)
 	numPlayers_ = launch.numPlayers;
 	lobbyOpen_ = false;
 	launched_ = true;
+	lobbyLaunch_ = launch;
 	lobbyEvents_.clear();
 	return true;
 }
@@ -131,6 +132,17 @@ Session::Client* Session::findClient(ConnectionId connection)
 	return nullptr;
 }
 
+// However they went: a lobby that keeps a player who has gone can never start.
+void Session::lobbyPlayerGone(const Client& client)
+{
+	if (!lobbyOpen_ || !client.hello)
+		return;
+	LobbyEvent left;
+	left.type = LobbyEventType::Left;
+	left.commander = client.commander;
+	lobbyEvents_.push_back(std::move(left));
+}
+
 void Session::reject(ConnectionId connection, RejectReason reason)
 {
 	Welcome welcome;
@@ -140,6 +152,7 @@ void Session::reject(ConnectionId connection, RejectReason reason)
 	transport_.disconnect(connection);
 	Client* client = findClient(connection);
 	if (client) {
+		lobbyPlayerGone(*client);
 		if (client->hello && !startSent_)
 			commanderTaken_[client->commander] = false;
 		clients_.erase(clients_.begin() + (client - clients_.data()));
@@ -151,6 +164,7 @@ void Session::drop(ConnectionId connection, const char* why)
 	Client* client = findClient(connection);
 	if (client) {
 		printf("[NET] dropping commander %d: %s\n", client->hello ? client->commander : -1, why);
+		lobbyPlayerGone(*client);
 		if (client->hello && !startSent_)
 			commanderTaken_[client->commander] = false;
 		clients_.erase(clients_.begin() + (client - clients_.data()));
@@ -218,12 +232,7 @@ void Session::handleHost(const Event& event)
 		if (client) {
 			if (client->hello) {
 				printf("[NET] commander %d left\n", client->commander);
-				if (lobbyOpen_) {
-					LobbyEvent left;
-					left.type = LobbyEventType::Left;
-					left.commander = client->commander;
-					lobbyEvents_.push_back(std::move(left));
-				}
+				lobbyPlayerGone(*client);
 				// before the mission starts the place is free again; after, its units stay
 				if (!startSent_)
 					commanderTaken_[client->commander] = false;
@@ -368,6 +377,7 @@ void Session::handleClient(const Event& event)
 			}
 			commander_ = launch.commanders[commander_];
 			numPlayers_ = launch.numPlayers;
+			lobbyLaunch_ = launch;
 			launched_ = true;
 			break;
 		}
