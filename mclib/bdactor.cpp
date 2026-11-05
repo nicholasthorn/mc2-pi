@@ -2126,6 +2126,7 @@ long BldgAppearance::update (bool animate)
 			bldgShape->SetRecalcShadows(checkShadows);
 			
 		bldgShape->SetLightList(eye->getWorldLights(),eye->getNumLights());
+		bldgShape->SetIsMarker(appearType->spinMe);
 		bldgShape->TransformMultiShape (&xlatPosition,&rot);
 		
 		if (bldgShadowShape && useShadows)
