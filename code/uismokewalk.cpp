@@ -253,6 +253,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechLab, "accept", UiAction::LabAccept },
 	{ UiScreen::MpParams, "map", UiAction::MpPickMap },
 	{ UiScreen::MpBrowser, "pause", UiAction::MpPause },
+	{ UiScreen::MpParams, "pause", UiAction::MpPause },
 	{ UiScreen::MpParams, "others", UiAction::MpOthers },
 	{ UiScreen::MpParams, "alone", UiAction::MpAlone },
 };

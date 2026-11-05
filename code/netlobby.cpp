@@ -79,7 +79,7 @@ bool Lobby::applyChoice(uint8_t slot, const LobbyChoice& choice)
 	for (const LobbyPlayer& other : state_.players)
 		if (other.slot != slot && other.baseColor == choice.baseColor)
 			return false;
-	const bool ready = choice.ready && !state_.map.empty() && (choice.mapHash == mapHash_);
+	const bool ready = choice.ready && !state_.map.empty() && (choice.mapHash == state_.mapHash) && (choice.revision >= readyFrom_);
 	// the same again is no change: a client answers each new state, and must not start a loop
 	if (player->team == choice.team && player->baseColor == choice.baseColor && player->stripeColor == choice.stripeColor && player->ready == ready)
 		return true;
@@ -97,21 +97,38 @@ void Lobby::clearReady()
 		player.ready = false;
 }
 
-void Lobby::setMap(const std::string& map, uint32_t mapHash)
+bool Lobby::setMap(const std::string& map, uint32_t mapHash)
 {
+	LobbyState trial = state_;
+	trial.map = map;
+	trial.mapHash = mapHash;
+	std::vector<uint8_t> out;
+	if (!encode(trial, out))
+		return false;
 	state_.map = map;
-	mapHash_ = mapHash;
+	state_.mapHash = mapHash;
 	clearReady();
 	changed();
+	readyFrom_ = state_.revision;
+	return true;
 }
 
-void Lobby::setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags)
+bool Lobby::setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags)
 {
+	LobbyState trial = state_;
+	trial.timeLimit = timeLimit;
+	trial.resourcePoints = resourcePoints;
+	trial.flags = flags;
+	std::vector<uint8_t> out;
+	if (!encode(trial, out))
+		return false;
 	state_.timeLimit = timeLimit;
 	state_.resourcePoints = resourcePoints;
 	state_.flags = flags;
 	clearReady();
 	changed();
+	readyFrom_ = state_.revision;
+	return true;
 }
 
 bool Lobby::canStart(std::string* why) const

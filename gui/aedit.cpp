@@ -734,6 +734,10 @@ int		aEdit::findChar(int nXPos)
 	nNextPos = nLastPos = 0;
 	n=0;
 
+	// an empty string's data can be null, and it has nothing to find in any case
+	if ( !text.Length() )
+		return 0;
+
 	unsigned char* pBegin = (unsigned char*)&text[0];
 	unsigned char* pCur = pBegin;
 	unsigned char* pNext = pBegin;

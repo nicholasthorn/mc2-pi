@@ -1722,7 +1722,8 @@ void __stdcall InitializeGameEngine()
 				if (netUseLobby && netJoinAddress[0])
 					MPlayer->joinNetLobby((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName, sizeof(missionName));
 				else if (netUseLobby)
-					MPlayer->hostNetLobby(netHostPlayers, netListenPort, missionName);
+					MPlayer->hostNetLobby(netHostPlayers, netListenPort, missionName,
+						netCallAddress[0] ? netCallAddress : NULL, netCallPort);
 				else if (netJoinAddress[0])
 					MPlayer->joinNetGame((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName);
 				else if (netListenPort || netCallAddress[0])

@@ -356,6 +356,7 @@ const char* UiSmokeDriver::press(UiAction action)
 		}
 		return NULL;
 	case UiAction::MpPause:
+		// by the clock, where a hold counts frames: for another player to see what changed
 		return (g_retryWaited >= 10.0f) ? NULL : NOT_YET;
 	case UiAction::MpOthers:
 	case UiAction::MpAlone: {

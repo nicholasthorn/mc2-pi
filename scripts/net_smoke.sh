@@ -125,8 +125,9 @@ if [ "$SCREENS" = 1 ]; then
     fi
     # --lobby-leaving: no game. The client joins, leaves and joins again; then the host leaves.
     if [ "$LEAVING" = 1 ]; then
-        HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+others,mp-params+alone,mp-params+others,mp-connection"
-        CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mp-browser,mp-browser+pause,mp-params,mainmenu"
+        # with pauses, so that each sees what the other did before it moves on
+        HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+others,mp-params+alone,mp-params+others,mp-params+pause,mp-connection"
+        CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mp-params+pause,mp-browser,mp-browser+pause,mp-params,mainmenu"
     fi
     HOST_NET=(-uismoke "$HOST_WALK")
     CLIENT_NET=(-uismoke "$CLIENT_WALK")

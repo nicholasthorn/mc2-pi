@@ -232,6 +232,9 @@ jobs:
           # the same, by way of a lobby: only the host says which mission
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_capture.fit" \
             --expect-winner 0 --world-events no --lan --lobby --log-dir smoke-logs/net-lobby
+          # and for a host that cannot be reached, which calls the client
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_capture.fit" \
+            --expect-winner 0 --world-events no --dial --lobby --log-dir smoke-logs/net-lobby-dial
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m05 --scenario "$PWD/bench/net_order_m05.fit" \
             --expect-winner 1 --world-events no --log-dir smoke-logs/net-ordered-hill
       - uses: actions/upload-artifact@v7
