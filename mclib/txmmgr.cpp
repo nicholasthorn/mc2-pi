@@ -1569,7 +1569,8 @@ void MC_TextureManager::renderLists (void)
 	if (gos_IsVR())
 	{
 		gos_SetRenderState( gos_State_ZWrite, 0);
-		renderHardwareNodes(MC2_DRAWALPHA, MC2_ISCOMPASS);
+		renderHardwareNodes(MC2_DRAWALPHA, MC2_ISCOMPASS | MC2_ISMARKER);
+		renderHardwareNodes(MC2_DRAWALPHA | MC2_ISMARKER, 0);	// over the fading shapes
 		gos_SetRenderState( gos_State_ZWrite, 1);
 		gos_SetRenderState( gos_State_TextureAddress, gos_TextureWrap );
 	}

@@ -569,7 +569,7 @@ DWORD TG_TypeShape::GPUTextureFlags (DWORD t, DWORD addFlags, BYTE alphaValue)
 	// cut-outs are drawn with the solids, softened by alpha to coverage
 	// (renderHardwareNodes)
 	DWORD flags = addFlags;
-	if (GPUMeshBlended(alphaValue, vrAlpha, (addFlags & (MC2_ISCOMPASS | MC2_ISMARKER)) != 0))
+	if (GPUMeshBlended(alphaValue, vrAlpha, (addFlags & MC2_ISCOMPASS) != 0, (addFlags & MC2_ISMARKER) != 0))
 		flags |= MC2_DRAWALPHA;
 	else
 		flags |= MC2_DRAWSOLID;
@@ -1786,7 +1786,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 	lastTurnTransformed = turn;
 
 	bool bDrawnByShader = (bShadersDrawPathEnabled || vrMeshPath()) && !isSpotlight && !isWindow && 
-        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
+        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff) && !isMarker));
 
 	for (long j=0;j<numVertices;j++)
 	{
@@ -2565,7 +2565,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 				//--------------------------------------------------
 				// Any sorting we need to do occurs in here as well!
 				// So, find out what texture this face is using and mark that texture as needing 3 more vertices.
-				if (theShape->listOfTextures[theShape->listOfTypeTriangles[j].localTextureHandle].textureAlpha || (alphaValue != 0xff))
+				if (theShape->listOfTextures[theShape->listOfTypeTriangles[j].localTextureHandle].textureAlpha || (alphaValue != 0xff) || isMarker)
 				{
 					mcTextureManager->addTriangle(theShape->listOfTextures[theShape->listOfTypeTriangles[j].localTextureHandle].mcTextureNodeIndex,MC2_DRAWALPHA | addFlags);
 				}
@@ -2664,7 +2664,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
 
 	bool bDrawnByShader = (bShadersDrawPathEnabled || vrMeshPath()) && !isSpotlight && !isWindow && 
-        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
+        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff) && !isMarker));
 
 	//VR: this path's vertices were projected for the game camera during the
 	//update, which a head-tracked eye does not match: leave them out of the
@@ -2803,7 +2803,7 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 						//--------------------------------------------------
 						// Any sorting we need to do occurs in here as well!
 						// So, find out what texture this face is using and mark that texture as needing 3 more vertices.
-						if (theShape->listOfTextures[triType.localTextureHandle].textureAlpha || (alphaValue != 0xff))
+						if (theShape->listOfTextures[triType.localTextureHandle].textureAlpha || (alphaValue != 0xff) || isMarker)
 						{
 							mcTextureManager->addVertices(theShape->listOfTextures[triType.localTextureHandle].mcTextureNodeIndex,gVertex,MC2_DRAWALPHA | addFlags);
 						}

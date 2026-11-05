@@ -863,7 +863,7 @@ class TG_Shape
 		//Function returns 0 if any one vertex screen position is off screen.
 		//Function returns 1 is all vertex screen positions are on screen.
 		// NOTE:  THIS IS NOT A RIGOROUS CLIP!!!!!!!!!
-		long MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D *backFacePoint, TG_ShapeRecPtr parentNode, bool isHudElement, BYTE alphaValue, bool isClamped, bool isMarker = false);
+		long MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D *backFacePoint, TG_ShapeRecPtr parentNode, bool isHudElement, BYTE alphaValue, bool isClamped, bool isMarker);
 
 		//This function creates the list of shadows and transforms them in preparation to drawing.
 		//
@@ -871,7 +871,7 @@ class TG_Shape
 
 		//This function takes the current listOfVisibleFaces and draws them using
 		//gos_DrawTriangle.  Does clipping, too!
-		void Render (float forceZ = -1.0f, bool isHudElement = false, BYTE alphaValue = 0xff, bool isClamped = false, const Stuff::Matrix4D* shapeToClip = nullptr, const Stuff::Matrix4D* shapeToWorld = nullptr, bool isMarker = false);
+		void Render (float forceZ, bool isHudElement, BYTE alphaValue, bool isClamped, const Stuff::Matrix4D* shapeToClip, const Stuff::Matrix4D* shapeToWorld, bool isMarker);
 
 		//This function takes the current listOfShadowTriangles and draws them using
 		//gos_DrawTriangle.  Does clipping, too!
