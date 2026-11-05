@@ -1702,6 +1702,10 @@ class MultiPlayer : public MultiPlayerState {
 
 		long addPilotKillStat (MoverPtr mover, long vehicleClass);
 
+		// the results table, for a log; and whether an automated run has shown it long enough
+		void logResults (void);
+		bool resultsFrameDone (void);
+
 		// this machine's commander took back a support vehicle not yet called
 		void refundResources (long cost);
 

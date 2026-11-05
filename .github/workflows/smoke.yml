@@ -213,7 +213,9 @@ jobs:
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m07 $capture --log-dir smoke-logs/net-territories
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m04 --scenario "$PWD/bench/net_timed.fit" \
             --world-events no --log-dir smoke-logs/net-last-man-standing
-          # support vehicles, a recovery and every kind of order, then a repair truck at work
+          # support vehicles, a recovery and every kind of order, a repair truck, turrets firing
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m09 --scenario "$PWD/bench/net_turret.fit" --expect-turrets \
+            --world-events no --frames 200000 --log-dir smoke-logs/net-turret
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_support.fit" --support \
             --world-events no --frames 200000 --log-dir smoke-logs/net-support
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_repair.fit" --expect-repairs \

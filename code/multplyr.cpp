@@ -457,6 +457,10 @@ static unsigned long netHash (unsigned long hash, const char* text) {
 // No lobby to set these in yet, so they are the map's.
 static void netReadMissionSettings (MultiPlayer* player, const char* missionName) {
 
+	strncpy(player->missionSettings.map, missionName, MAXLEN_MAP_NAME - 1);
+	player->missionSettings.map[MAXLEN_MAP_NAME - 1] = 0;
+	strncpy(player->missionSettings.name, missionName, MAXLEN_MAP_DESC - 1);	// its display name is in the lobby's data
+	player->missionSettings.name[MAXLEN_MAP_DESC - 1] = 0;
 	player->missionSettings.airStrike = player->missionSettings.guardTower = true;
 	player->missionSettings.repairVehicle = player->missionSettings.recoveryTeam = true;
 	player->missionSettings.sensorProbe = player->missionSettings.scoutCopter = true;
@@ -504,8 +508,10 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 static void netNamePlayers (MultiPlayer* player) {
 
 	for (long i = 0; i < MAX_MC_PLAYERS; i++)
-		if (player->playerInfo[i].commanderID > -1)
+		if (player->playerInfo[i].commanderID > -1) {
 			sprintf(player->playerInfo[i].name, "Player %ld", i + 1);
+			player->playerInfo[i].teamSelected = player->playerInfo[i].team;	// the results show it
+		}
 }
 
 static const char* netRejectName (netwire::RejectReason reason) {
@@ -619,6 +625,11 @@ void MultiPlayer::waitForNetStart (void) {
 			Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
 	}
 	printf("[NET] mission start\n");
+	printf("[NET] %ld turrets\n", ObjectManager ? ObjectManager->getNumTurrets() : 0L);
+	for (long i = 0; ObjectManager && (i < ObjectManager->getNumTurrets()) && (i < 4); i++) {
+		const Stuff::Vector3D at = ObjectManager->getTurret(i)->getPosition();
+		printf("[NET] turret %ld at %.0f, %.0f, team %ld\n", i, at.x, at.y, ObjectManager->getTurret(i)->getTeamId());
+	}
 	fflush(stdout);
 }
 
@@ -2631,6 +2642,40 @@ bool MultiPlayer::calcMissionStatus (void) {
 int __cdecl sortPlayerRanks (const void* player1, const void* player2) {
 
 	return(0);
+}
+
+//-----------------------------------------------------------------------------
+
+void MultiPlayer::logResults (void) {
+
+	calcPlayerRanks();
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if (playerInfo[i].commanderID > -1)
+			printf("[NETRESULT] rank %d: %s, team %d, score %d, kills %d, losses %d, %s\n", (int)playerInfo[i].rank, playerInfo[i].name, (int)playerInfo[i].team, (int)playerInfo[i].score,
+				(int)playerInfo[i].kills, (int)playerInfo[i].losses, playerInfo[i].winner ? "winner" : "not the winner");
+	fflush(stdout);
+}
+
+//-----------------------------------------------------------------------------
+
+// Nobody is there to press Done on an automated run. A frame goes through all of the screen's
+// code; MC2_NET_RESULTS_FRAMES keeps it up longer, for a screenshot under -bench.
+bool MultiPlayer::resultsFrameDone (void) {
+
+	if (!gos_IsAutomatedRun())
+		return(false);
+	static long frames = -1;
+	if (frames < 0) {
+		const char* wanted = getenv("MC2_NET_RESULTS_FRAMES");
+		frames = wanted ? atol(wanted) : 1;
+		if (frames < 1)
+			frames = 1;
+		if (frames > 1)
+			gos_BenchScreenshot("results");
+	}
+	if (frames == 2)
+		gos_BenchScreenshot("results");
+	return(--frames < 1);
 }
 
 //-----------------------------------------------------------------------------

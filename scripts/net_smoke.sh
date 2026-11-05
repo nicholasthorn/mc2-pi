@@ -28,6 +28,7 @@ WORLD_EVENTS=yes
 DIAL=0
 SUPPORT=0
 EXPECT_REPAIRS=0
+EXPECT_TURRETS=0
 PORT=$((27815 + $$ % 1000))
 
 while [ $# -gt 0 ]; do
@@ -47,6 +48,7 @@ while [ $# -gt 0 ]; do
         --dial) DIAL=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
+        --expect-turrets) EXPECT_TURRETS=1; shift ;;
         *) echo "net_smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -103,6 +105,8 @@ for side in host client; do
     [ "$n" -gt 0 ] && reasons+=("$side: $n error line(s)")
     grep -q '^\[NET\] mission start' "$log" || reasons+=("$side: the mission never started")
     grep -q '^\[NET\] game over' "$log" || reasons+=("$side: played to no result")
+    grep -q '^\[NETRESULT\] rank' "$log" || reasons+=("$side: no results table")
+    grep -q '^\[NET\] results closed' "$log" || reasons+=("$side: the results screen never finished")
 done
 if [ "$WORLD_EVENTS" = yes ]; then
     grep -q '^\[NET\] turn .* weapon hit [1-9]' "$LOG_DIR/host.log" || reasons+=("no weapon hits: the battle did not happen")
@@ -140,6 +144,10 @@ if [ "$SUPPORT" = 1 ]; then
 fi
 if [ "$EXPECT_REPAIRS" = 1 ]; then
     echo "$world" | grep -Eq 'repairs [1-9]' || reasons+=("no repair reached the client: $world")
+fi
+if [ "$EXPECT_TURRETS" = 1 ]; then
+    echo "$world" | grep -Eq 'turret targets [1-9]' || reasons+=("no turret target reached the client: $world")
+    grep -Eq '^\[NET\] turn .*\(turrets [1-9]' "$LOG_DIR/host.log" || reasons+=("no turret fired on the host")
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then
     reasons+=("expected team $EXPECT_WINNER to win: $hostwin")
