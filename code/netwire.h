@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 10;
+constexpr uint16_t PROTOCOL_VERSION = 11;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -181,6 +181,7 @@ struct LanAnnounce {
 	uint8_t numPlayers = 0;		// who has joined, the host among them
 	uint8_t maxPlayers = 0;
 	bool inProgress = false;
+	bool lobby = false;			// its data hash has no mission in it: each kind can join only its own
 	std::string name;			// what to call this game in a list
 	std::string map;			// a mission's file name
 };

@@ -370,8 +370,19 @@ void Session::handleClient(const Event& event)
 			LobbyLaunch launch;
 			if (!joined_ || launched_ || !decode(event.data.data(), event.data.size(), launch))
 				break;
-			// a launch with no map to load is not a game (a host always says the map first)
-			if (!hasLobbyState_ || lobbyState_.map.empty())
+			// A launch with no map to load is not a game, and one that is not for the players the
+			// state said, or with someone else as the host, is not the game agreed. A host says the
+			// state first, so none of this is a race: it is a host not to be followed.
+			if (!hasLobbyState_ || lobbyState_.map.empty() || launch.commanders[0] != 0)
+				break;
+			bool inState[MAX_PLAYERS] = {};
+			for (const LobbyPlayer& player : lobbyState_.players)
+				inState[player.slot] = true;
+			bool agreed = true;
+			for (int slot = 0; slot < MAX_PLAYERS; slot++)
+				if ((launch.commanders[slot] != NO_COMMANDER) != inState[slot])
+					agreed = false;
+			if (!agreed)
 				break;
 			// a host that leaves this player out has nothing for it to play
 			if (launch.commanders[commander_] == NO_COMMANDER) {

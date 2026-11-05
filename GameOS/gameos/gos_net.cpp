@@ -6,6 +6,7 @@
 #include <cstring>
 #include <deque>
 #include <map>
+#include <set>
 #include <utility>
 
 namespace gos_net {
@@ -35,6 +36,7 @@ struct LoopbackNetwork::State {
 	ConnectionId nextConnection = 1;
 	std::map<uint16_t, LoopbackTransport*> listeners;
 	std::map<ConnectionId, Link> links;
+	std::set<ConnectionId> failing;
 
 	bool dropThisOne()
 	{
@@ -102,6 +104,8 @@ public:
 		const Link& link = it->second;
 		if (link.ends[0] != this && link.ends[1] != this)
 			return false;
+		if (state_->failing.count(connection))
+			return false;
 		if (delivery == Delivery::Unreliable && state_->dropThisOne())
 			return true;
 		Event event;
@@ -164,6 +168,11 @@ LoopbackNetwork::LoopbackNetwork(unsigned dropPercent, uint32_t seed) : state_(s
 std::unique_ptr<Transport> LoopbackNetwork::createTransport()
 {
 	return std::unique_ptr<Transport>(new LoopbackTransport(state_));
+}
+
+void LoopbackNetwork::failSends(ConnectionId connection)
+{
+	state_->failing.insert(connection);
 }
 
 }

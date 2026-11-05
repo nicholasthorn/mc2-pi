@@ -637,8 +637,10 @@ In slices, as it is large: finding a game and the data check first, then the lob
   start. `netwire` has `LobbyState` (host to clients, the whole of it on any change), `LobbyChoice` (a client's own part) and `LobbyLaunch`. `netsession`
   has a lobby mode: players come and go up to a limit, and launch renumbers them from 0, as a gap left by someone leaving is more than the game takes.
   A client reports the hash of the chosen map as it has it, and cannot be ready on another; the state says the host's, so a client can tell at once. A ready
-  answers one revision of the state, so one on its way as the host changes the settings does not count for the new ones. A map's name cannot be a path. Someone
-  who leaves while loading is not waited for: their units stay, as for someone who leaves in play. Unit tested on the loopback.
+  answers one revision of the state, so one on its way as the host changes the settings does not count for the new ones. A map's name holds only letters, digits, `_`, `-` and inner spaces, which every stock mission fits; the Omnitech set is not checked. The hash covers
+  the map's `.fit` and `.pak`, but not its art or scripts. Someone who leaves while loading is not waited for: their units stay, as for someone who leaves in play, unless nobody
+  is left, when the host stops. A client follows only a launch of the players the state said. An announcement says whether it is a lobby, as each kind of game can be joined
+  only by its own: a plain game's data hash has its mission in it. Unit tested on the loopback.
 - **A lobby with nobody at the screen:** `-netlobby` on both ends goes through it for real. The host takes `-mission` and `-nethost N`, a client needs
   no mission and learns it from the host, everyone is ready as soon as they can be, and the game launches when all N are in. Between two processes,
   on x64 desktop GL, also with a host that calls its client (`-netcall`, `-netjoin wait`). Mech selection is the next slice.

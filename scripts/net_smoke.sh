@@ -166,7 +166,7 @@ if [ "$LEAVING" = 1 ]; then
         [ "$(grep -c '^\[NET\] in the lobby as commander' "$LOG_DIR/client.log")" -eq 2 ] || reasons+=("the client did not join twice")
     fi
     if [ ${#reasons[@]} -eq 0 ]; then
-        echo "PASS ${HOST_QUITS/1/host quits}, lobby leaving walk (${secs}s)"
+        [ "$HOST_QUITS" = 1 ] && echo "PASS host quits (${secs}s)" || echo "PASS lobby leaving (${secs}s)"
         exit 0
     fi
     echo "FAIL lobby leaving (${secs}s): $(printf '%s; ' "${reasons[@]}")"
