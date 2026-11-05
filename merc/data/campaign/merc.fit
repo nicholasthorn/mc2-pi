@@ -1,0 +1,75 @@
+FITini
+
+// The mercenary mode's worlds: planning/future-features/OPEN-WORLD.md.
+// Enemies and Champions are ObjectNumber:CSV name, as in a mission's [PartN].
+
+[Campaign]
+
+st CampaignName = "Mercenary Company (test)"
+l GroupCount = 1
+l CBills = 260000
+st FinalVideo = ""
+
+[Group0]
+
+l NumberToComplete = 1
+l MissionCount = 0
+st OperationFile = "mcl_merc_op0"
+st Video = "STANDIN"
+l Tune = 22
+
+[Merc]
+
+l NumWorlds = 3
+l StartWorld = 0
+l Seed = 3062
+st RivalName = "Tessa Vane"
+st RivalUnit = "the Black Lanterns"
+st RivalMechs = "46:Wolfhound,16:Hunchback,58:Zeus,52:Madcat"
+
+[MercWorld0]
+
+st Name = "Carver V"
+st Faction = "the Chaos March"
+st Description = "A battered frontier world, and a good place to start."
+st ChampionName = "Sergeant Major Kell"
+st Shop = "Purchase03"
+st OperationFile = "mcl_merc_op0"
+st Maps = "mc2_02,mc2_03,mc2_05"
+st Enemies = "48:Raven,46:Wolfhound,16:Hunchback,45:Werewolf"
+st Champions = "16:Hunchback,874:Bushwacker,18:Catapult"
+l RequiredLicences = 0
+l JumpCost = 0
+l Tier = 1
+
+[MercWorld1]
+
+st Name = "Galatea"
+st Faction = "the Mercenary Guild"
+st Description = "The old hiring hall of the Inner Sphere, where better money means better enemies."
+st ChampionName = "Captain Oriel Voss"
+st Shop = "Purchase12"
+st OperationFile = "mcl_merc_op1"
+st Maps = "mc2_09,mc2_11,mc2_12"
+st Enemies = "874:Bushwacker,18:Catapult,47:Hollander,50:Jaegermech,15:Uller"
+st Champions = "58:Zeus,18:Catapult,50:Jaegermech,52:Madcat"
+l RequiredLicences = 1
+l JumpCost = 20000
+l Tier = 2
+
+[MercWorld2]
+
+st Name = "Outreach"
+st Faction = "the Dragoons"
+st Description = "Home of the best mercenaries alive, and they will test you."
+st ChampionName = "Colonel Hask"
+st Shop = "Purchase22"
+st OperationFile = "mcl_merc_op2"
+st Maps = "mc2_17,mc2_19,mc2_22"
+st Enemies = "58:Zeus,49:Highlander,52:Madcat,54:Vulture,51:Atlas"
+st Champions = "51:Atlas,49:Highlander,52:Madcat,875:Bloodasp"
+l RequiredLicences = 2
+l JumpCost = 40000
+l Tier = 3
+
+FITend

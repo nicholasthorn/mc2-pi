@@ -288,6 +288,8 @@ set(SOURCES
     "code/mpstats.cpp"
     "code/multplyr.cpp"
     "code/mc2movie.cpp"
+    "code/merccontract.cpp"
+    "code/mercmode.cpp"
     )
 
 
@@ -320,7 +322,7 @@ endif()
 if(MC2_STRICT_WARNINGS)
     set_source_files_properties(code/benchscenario.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
-    set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netrules.cpp code/iconsheet.cpp
+    set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netrules.cpp code/iconsheet.cpp code/merccontract.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
     # uismokedriver.cpp is game glue (like benchdirector.cpp) but new code, as is
     # ondisksizes.cpp (compile-time size checks over the game's structs):
@@ -331,7 +333,7 @@ if(MC2_STRICT_WARNINGS)
     foreach(_dir GameOS/include GameOS/gameos mclib gui code netlib thirdparty)
         list(APPEND _mc2_legacy_isystem "-isystem" "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}")
     endforeach()
-    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp
+    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp code/mercmode.cpp
         PROPERTIES COMPILE_OPTIONS
         "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas;${_mc2_legacy_isystem}")
 endif()

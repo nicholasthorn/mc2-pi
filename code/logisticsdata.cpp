@@ -1385,6 +1385,17 @@ void	LogisticsData::setMissionCompleted( )
 					{
 						removeMechFromInventory( pMech->getName(), pMover->getPilot()->getName() );
 						LogisticsVariant* pVar = getVariant( ((BattleMech*)pMover)->variantName );
+						if ( missionInfo->isMercenary() && pVar )
+						{
+							float cur = 0.f, most = 0.f;
+							for ( int loc = 0; loc < pMover->numArmorLocations; loc++ )
+							{
+								cur += pMover->armor[loc].curArmor;
+								most += pMover->armor[loc].maxArmor;
+							}
+							if ( most > 0.f )
+								missionInfo->mercAddRepairBill( 1.f - cur / most, (long)pVar->getMaxWeight() );
+						}
 						addMechToInventory( pVar, ForceGroupCount++, pPilot, base, highlight1, highlight2 );
 						if ( pPilot )
 							pPilot->setUsed( true );
@@ -1422,6 +1433,7 @@ void	LogisticsData::setMissionCompleted( )
 		}
 	}
 
+	missionInfo->mercMissionDone( inventory.Count() > 0 );
 #endif
 }
 

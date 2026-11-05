@@ -9,6 +9,7 @@ MissionSelectionScreen.cpp			: Implementation of the MissionSelectionScreen comp
 #include"missionselectionscreen.h"
 #include"mechbayscreen.h"
 #include"logisticsdata.h"
+#include"logisticsmissioninfo.h"
 #include "../resource.h"
 #include"missionbriefingscreen.h"
 #include"sounds.h"
@@ -215,6 +216,8 @@ void MissionSelectionScreen::begin()
 	if ( fadeInTime )
 		operationScreen.beginFadeIn( fadeInTime );
 
+	LogisticsData::instance->getMissionInfo()->mercRefreshJumps();
+
 	// initialize the operation
 	const char* str = LogisticsData::instance->getCurrentOperationFileName();
 
@@ -355,6 +358,16 @@ int MissionSelectionScreen::handleMessage( unsigned long msg, unsigned long who 
 	switch( who )
 	{
 	case MB_MSG_NEXT:
+		// on the star map, Next with a world selected makes the jump
+		if ( LogisticsData::instance->getMissionInfo()->mercJumpSelected() )
+		{
+			if ( LogisticsData::instance->getMissionInfo()->mercJump() )
+			{
+				pressedButton = -1;
+				begin();
+			}
+			break;
+		}
 		status = NEXT;
 		break;
 
@@ -398,6 +411,45 @@ int MissionSelectionScreen::handleMessage( unsigned long msg, unsigned long who 
 
 	return 0;
 
+}
+
+// for the UI smoke walk: what the player does with clicks on the star map
+bool MissionSelectionScreen::mercPickChampion()
+{
+	for ( int i = 0; i < missionCount; i++ )
+	{
+		setMission( i );
+		if ( LogisticsData::instance->getMissionInfo()->mercChampionSelected() )
+			return true;
+	}
+	return false;
+}
+
+bool MissionSelectionScreen::mercPickRival()
+{
+	for ( int i = 0; i < missionCount; i++ )
+	{
+		setMission( i );
+		if ( LogisticsData::instance->getMissionInfo()->mercRivalSelected() )
+			return true;
+	}
+	return false;
+}
+
+bool MissionSelectionScreen::mercJumpToOpenWorld()
+{
+	for ( int i = 0; i < missionCount; i++ )
+	{
+		if ( !LogisticsData::instance->getMissionAvailable( missionNames[i] ) )
+			continue;
+		setMission( i );
+		if ( LogisticsData::instance->getMissionInfo()->mercJumpSelected() )
+		{
+			handleMessage( 0, MB_MSG_NEXT );
+			return true;
+		}
+	}
+	return false;
 }
 
 void MissionSelectionScreen::setMission( int whichOne )

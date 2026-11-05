@@ -120,6 +120,7 @@ public:
 	long				getCurrentMissionTune();
 	const char *		getCurrentABLScript() const;
 	long 				getCurrentMissionId();
+	LogisticsMissionInfo* getMissionInfo() { return missionInfo; }
 
 	void				clearInventory();
 

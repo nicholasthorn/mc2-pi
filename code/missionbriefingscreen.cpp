@@ -13,6 +13,7 @@
 #include"multplyr.h"
 #include"chatwindow.h"
 #include"gamesound.h"
+#include"mercmode.h"
 
 
 #define RP_INDEX 1
@@ -298,7 +299,7 @@ long	MissionBriefingScreen::getMissionTGA( const char* missionName )
 	// do I need to open the file?  I guess so, if this proves too slow,
 	// it could be done when a stage is completed
 	FullPathFileName path;
-	path.init( missionPath, missionName, ".pak" );
+	path.init( missionPath, mercMissionTerrain(missionName), ".pak" );
 
     // sebi: check that file was removed? NB!
 #ifndef LINUX_BUILD
@@ -382,10 +383,8 @@ void MissionBriefingScreen::begin()
 
 
 	// need to get all the objectives and stuff
-	FullPathFileName fitPath;
-	fitPath.init( missionPath, missionName, ".fit" );
 	FitIniFile fitFile;
-	fitFile.open( fitPath );
+	mercOpenMissionFit( fitFile, missionName );
 
 	// put initial divider in list box
 	addItem(IDS_MN_DIVIDER, 0xff005392, -1);

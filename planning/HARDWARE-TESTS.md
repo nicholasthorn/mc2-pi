@@ -106,6 +106,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       ideally on the Pi.
 - [ ] **Helicopter dust cloud** (`mech3d.cpp`) draws with the plain matrix,
       unlike the water wake next to it. Check whether it looks wrong.
+- [ ] **Mercenary mode: is it fun?** (`future-features/OPEN-WORLD.md`, GL) Copy
+      `merc/data` over the game's `data`, then New Campaign, "Mercenary Company
+      (test)". Buy a lance, play contracts, beat the licence fight, jump. Headless
+      walks cover the screens and one bench fight the win, but nobody has played
+      it: judge the pay, prices and lance sizes, whether enemies come at you, and
+      whether the contract and repair lines read well.
 
 ## VR interface between game steps (#127)
 

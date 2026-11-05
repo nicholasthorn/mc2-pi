@@ -17,6 +17,7 @@ LogisticsMissionInfo.h			: Interface for the LogisticsMissionInfo component.
 
 //*************************************************************************************************
 class FitIniFile;
+class MercMode;
 /**************************************************************************************************
 CLASS DESCRIPTION
 LogisticsMissionInfo:
@@ -96,6 +97,18 @@ class LogisticsMissionInfo
 
 		void				setSingleMission( const char* pName );
 
+		// mercenary mode, planning/future-features/OPEN-WORLD.md
+		bool				isMercenary() const { return merc != NULL; }
+		bool				mercJumpSelected() const;
+		bool				mercChampionSelected() const;
+		bool				mercRivalSelected() const;
+		bool				mercJump();
+		void				mercAddRepairBill( float damageFraction, long tons );
+		void				mercMissionDone( bool hasMechs );
+		void				mercMissionLost();
+		bool				mercShowBoardAfterLoss();
+		void				mercRefreshJumps();
+
 		bool				canHaveSalavageCraft();
 		bool				canHaveRepairTruck();
 		bool				canHaveScoutCopter();
@@ -111,10 +124,7 @@ class LogisticsMissionInfo
 			return currentMission;
 		}
 
-		void				setCurrentMissionNumber(long cMission)
-		{
-			currentMission = cMission;
-		}
+		void				setCurrentMissionNumber(long cMission);
 
 
 	
@@ -149,6 +159,7 @@ class LogisticsMissionInfo
 			bool enableAirStrike;
 			bool enableSensorStrike;
 			bool enableMineLayer;
+			bool locked = false;	// on the star map, but its button is disabled
 		};	
 
 		typedef EList<MissionInfo*, MissionInfo*> MISSION_LIST;
@@ -195,6 +206,12 @@ class LogisticsMissionInfo
 		bool					bMultiplayer;
 
 		FILE_LIST				additionalPurchaseFiles;
+
+		MercMode*				merc;
+		long					mercCBillsBefore;
+		bool					mercRivalJustWon;
+		void					mercSelectFirstOpen();
+		void					mercRebuildBoard();
 
 		LogisticsMissionInfo::MissionInfo* getPreviousMission();
 		void readMissionInfo( FitIniFile& file, LogisticsMissionInfo::MissionInfo* pInfo );

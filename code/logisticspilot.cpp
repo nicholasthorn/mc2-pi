@@ -10,6 +10,7 @@
 #include"logisticspilot.h"
 #include"logisticserrors.h"
 #include"logisticsdata.h"
+#include"logisticsmissioninfo.h"
 
 #include"warrior.h"
 #include"../resource.h"
@@ -266,10 +267,12 @@ long LogisticsPilot::update( MechWarrior* pWarrior )
 	// the pilot just has no record of that mission
 	if ((missionJustPlayed < 0) || (missionJustPlayed >= MAX_MISSIONS))
 		PAUSE(("Logistics thinks last mission played was %d",(int)missionJustPlayed));
-	else
+	// the campaign ribbons count these by the shipping campaign's numbers
+	else if ( !LogisticsData::instance->getMissionInfo()->isMercenary() )
 		missionsPlayed[missionJustPlayed] = 1;
 
-	if ( pWarrior->getStatus() == WARRIOR_STATUS_DEAD )
+	// a mercenary pilot ejects and comes back
+	if ( pWarrior->getStatus() == WARRIOR_STATUS_DEAD && !LogisticsData::instance->getMissionInfo()->isMercenary() )
 	{
 		bDead = true;
 		bJustDied = true;

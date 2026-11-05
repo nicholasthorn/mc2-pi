@@ -11,6 +11,7 @@
 // Include Files
 #ifndef LOGISTICS_H
 #include"logistics.h"
+#include"logisticsmissioninfo.h"
 #endif
 
 #ifndef TEST_SHELL
@@ -173,6 +174,7 @@ void Logistics::start (long startMode)
 			}
 			else if ( !justStartMission )
 			{
+				LogisticsData::instance->getMissionInfo()->mercMissionLost();
 				missionResults->bDone = true;
 				logisticsState = log_RESULTS;
 			}
@@ -342,7 +344,9 @@ long Logistics::update (void)
 					
 					missionBegin->begin();
 
- 					if ( lastMissionResult == mis_PLAYER_LOST_BIG && !MPlayer )
+						// (the mercenary board has moved on from the rival's fight)
+	 					if ( lastMissionResult == mis_PLAYER_LOST_BIG && !MPlayer
+							&& !LogisticsData::instance->getMissionInfo()->mercShowBoardAfterLoss() )
 					{
 						if ( LogisticsData::instance->skipLogistics()  )
 						{
