@@ -1990,6 +1990,8 @@ void __stdcall gos_BenchStateHash( unsigned int hash );
 int __stdcall gos_BenchStageId( const char* name );
 void __stdcall gos_BenchStageStart( int id );
 void __stdcall gos_BenchStageStop( int id );
+// Time the statement y as the stage called name.
+#define BenchStage(name,y)	do { static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); } while (0)
 //
 // "-benchfov <degrees>" (with -bench): the camera's field of view, forced
 // every frame, or 0 when not set (VR cost estimates: a headset sees about
@@ -2029,6 +2031,8 @@ int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
 float __stdcall gos_GetVRWorldScale();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
+// A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.
+bool __stdcall gos_VRHeadset();
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.
@@ -2041,6 +2045,8 @@ bool __stdcall gos_PathsOnWorker();
 // frame or two later instead of holding that frame up.
 void __stdcall gos_SetGameStepHeldBack( bool heldBack );
 bool __stdcall gos_GameStepHeldBack();
+// This frame the interface is resting: nothing is to draw in the window.
+bool __stdcall gos_VRHudResting();
 //
 // The field of view, in degrees, for the game camera in VR: enough to cover
 // the eyes at the window's aspect, so that what the game counts as in view is

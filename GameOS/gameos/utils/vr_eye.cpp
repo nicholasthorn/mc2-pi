@@ -212,4 +212,13 @@ bool parseHeadPose(const char* text, float orientation[4])
     return true;
 }
 
+bool fitInterfaceResolution(int& width, int& height)
+{
+    if((width != 800 || height != 600) && width <= 1920)
+        return false;
+    width = kInterfaceWidth;
+    height = kInterfaceHeight;
+    return true;
+}
+
 }

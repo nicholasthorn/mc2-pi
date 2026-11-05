@@ -22,6 +22,7 @@
 #include "utils/tga_writer.h"
 #include "utils/vr_controls.h"
 #include "utils/vr_eye.h"
+#include "utils/vr_hud.h"
 
 #include <EGL/egl.h>
 #include <SDL2/SDL.h>
@@ -121,7 +122,7 @@ struct State {
     bool hudEveryFrame = false;
     bool hudRestAllowed = false;    // a mission's interface asked last frame (hudDue)
     bool hudIsDue = true;           // this frame's interface is to be drawn
-    bool hudChanged = true;         // a game step since it was last drawn
+    bool hudChanged = true;         // a game step since it last reached the headset
     int framesSinceHud = 0;
     bool quadHasImage = false;      // the quad's swapchain has a released image
     // this frame
@@ -863,6 +864,7 @@ bool copyFrame(int width, int height)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     release(g.quad);
     g.quadHasImage = true;
+    g.hudChanged = false;
     return true;
 }
 
@@ -1269,8 +1271,7 @@ bool present(int width, int height)
     // something decides whether the pointer is on the interface (pollInput)
     if(g.actionSet != XR_NULL_HANDLE && g.useEyes) {
         collectAlpha();
-        if(g.hudIsDue)
-            requestAlpha(width, height);
+        requestAlpha(width, height);    // a resting window still holds its interface
     }
 
     XrCompositionLayerProjectionView projViews[2];
@@ -1327,18 +1328,14 @@ bool present(int width, int height)
 void hudFrame(bool gameStepped)
 {
     g.hudChanged = g.hudChanged || gameStepped;
-    // drawn the frame after a step, not with it, so the step's frame has the
-    // time; a run of steps must not starve it, as its text then piles up
-    const bool rest = g.hudRestAllowed && g.useEyes && !g.hudEveryFrame && g.quadHasImage
-            && (!g.hudChanged || (gameStepped && g.framesSinceHud < 2));
+    const bool rest = vr_hud::rests({g.hudRestAllowed, g.useEyes, g.hudEveryFrame, g.quadHasImage,
+                                     g.hudChanged, gameStepped, g.framesSinceHud});
     g.hudRestAllowed = false;
     g.hudIsDue = !rest;
-    if(g.hudIsDue) {
-        g.hudChanged = false;
+    if(g.hudIsDue)
         g.framesSinceHud = 0;
-    } else {
+    else
         ++g.framesSinceHud;
-    }
 }
 
 bool hudDue()

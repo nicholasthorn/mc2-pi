@@ -1956,6 +1956,10 @@ void gosRenderer::handleEvents()
 
 bool gosRenderer::beforeDrawCall()
 {
+    // the debug tools count draw calls: earlier ones must really have drawn
+    if(break_on_draw_call_ || num_draw_calls_to_draw_ != 0)
+        drawMerged();
+
     num_draw_calls_++;
     if(break_draw_call_num_ == num_draw_calls_ && break_on_draw_call_) {
         PAUSE(("Draw call %d break\n", num_draw_calls_ - 1));
@@ -2046,13 +2050,13 @@ void gosRenderer::drawQuads(gos_VERTEX* vertices, int count) {
     gosASSERT(quads_->getNumVertices() + num_vertices <= quads_->getVertexCapacity());
     for(int i=0; i<count;i+=4) {
 
-        quads_->addVertices(vertices + 4*i + 0, 1);
-        quads_->addVertices(vertices + 4*i + 1, 1);
-        quads_->addVertices(vertices + 4*i + 2, 1);
+        quads_->addVertices(vertices + i + 0, 1);
+        quads_->addVertices(vertices + i + 1, 1);
+        quads_->addVertices(vertices + i + 2, 1);
 
-        quads_->addVertices(vertices + 4*i + 0, 1);
-        quads_->addVertices(vertices + 4*i + 2, 1);
-        quads_->addVertices(vertices + 4*i + 3, 1);
+        quads_->addVertices(vertices + i + 0, 1);
+        quads_->addVertices(vertices + i + 2, 1);
+        quads_->addVertices(vertices + i + 3, 1);
     }
 
     afterDrawCall();
@@ -3057,9 +3061,8 @@ vec4 __stdcall gos_GetRenderViewport() {
 	return g_gos_renderer->getRenderViewport();
 }
 
-// -stereo: draws go out as they are issued (flush() is empty), so changing
-// the GL viewport between eyes is enough; draw_screen() resets it to the
-// whole window every frame
+// -stereo: once a run of merged draws is out, changing the GL viewport between
+// eyes is enough; draw_screen() resets it to the whole window every frame
 void __stdcall gos_SetStereoEye(int eye)
 {
     g_gos_renderer->drawMerged();
@@ -3092,6 +3095,11 @@ bool __stdcall gos_IsVR()
     return forced || gos_xr::active();
 }
 
+bool __stdcall gos_VRHeadset()
+{
+    return gos_xr::active();
+}
+
 bool __stdcall gos_VRHudDue()
 {
     return gos_xr::hudDue();
@@ -3103,6 +3111,11 @@ bool __stdcall gos_PathsOnWorker()
     if(forced)
         return forced[0] == '1';
     return gos_xr::logicStep() > 0.0;
+}
+
+bool __stdcall gos_VRHudResting()
+{
+    return gos_xr::hudResting();
 }
 
 float __stdcall gos_GetVRFieldOfView()

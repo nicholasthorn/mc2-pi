@@ -96,6 +96,17 @@ const float kOverlayTextEyePixels = 0.825f;
 const float kOverlayMarkerShareX = 0.393f / kOverlayTextEyePixels;
 void overlayTextScale(int windowWidth, int windowHeight, int eyeWidth, int eyeHeight, float& scaleX, float& scaleY);
 
+// The size the game runs at in a headset, where its window is only the interface
+// panel. 800x600 (also what a file with no size reads as) makes the panel's text
+// coarse; 1280x960 was judged right in the Quest 2, keeping 800x600's shape, so the
+// game camera does not change. Anything wider than the largest layout (1920) has
+// no interface layout: the panel's contents fill a corner of it, and the options
+// screen can save the headset's own 3664 there. Other sizes stand. True when it
+// changed the size.
+const int kInterfaceWidth = 1280;
+const int kInterfaceHeight = 960;
+bool fitInterfaceResolution(int& width, int& height);
+
 // A fixed head rotation given as text (MC2_XR_POSE=yaw,pitch in degrees: yaw
 // about +y, left, then pitch about +x, up, in OpenXR's axes) as a quaternion
 // (x, y, z, w). False when the text is not two numbers.
