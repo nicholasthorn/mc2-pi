@@ -44,6 +44,15 @@ struct BenchScenario {
 	float strikeRadius = 300.0f;	// artillery lands within this of the centre
 	bool follow = true;			// camera keys relative to the fight, not the arena
 	bool pain = false;			// units take damage and can be destroyed
+	long netEventsEvery = 0;	// over the network: stage a mine, repair and capture every N frames
+	long netCaptureHqAt = 0;	// over the network: at this frame the host's team takes an HQ
+	long netOrderCaptureAt = 0;	// over the network: at this frame a client's unit is ordered to take an HQ
+	long netResourcePoints = -1;	// over the network: every commander starts with these
+	float netSupportSeconds = 0.0f;	// over the network: each side calls its next support vehicle this often
+	float netEveryOrderSeconds = 0.0f;	// over the network: a client gives its next kind of order this often
+	long netDamageAt = 0;		// over the network: at this frame the host hits one unit of each side
+	float netLayMinesSeconds = 0.0f;	// over the network: a client orders its minelayer to lay, this often
+	float netTimeLimit = 0.0f;	// over the network: seconds, in place of the map's
 	float screenX = 0.5f;		// where on screen to hold the fight's centre,
 	float screenY = 0.5f;		// fractions from the top left (clear of the HUD)
 

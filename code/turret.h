@@ -288,6 +288,12 @@ class Turret : public TerrainObject {
 		virtual Stuff::Vector3D getLOSPosition (void);
 		float losNodeZ = 0.0f;		// its height, for the path worker
 		
+		// TerrainObject's would read this as a TerrainObjectType
+		virtual float getDamageLevel (void)
+		{
+			return ((TurretTypePtr)getObjectType())->getDamageLevel();
+		}
+
 		virtual float getDestructLevel (void)
 		{
 			return ((TurretTypePtr)getObjectType())->getDamageLevel() - damage;

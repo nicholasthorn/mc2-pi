@@ -26,8 +26,9 @@ Most of the tree is 2001 Microsoft code plus alariq's port. Treat it as legacy:
   `ABL_Fatal()` are `[[noreturn]]`: code after them never runs. A problem the
   game can survive (bad mission data, a missing optional file) is a `PAUSE`
   (log and carry on) plus a bail-out, not a `STOP`.
-- **Networking is stubbed.** Calls into the MP layer can return NULL or dummy
-  data (`getPlayerInfo()` etc.); guard them.
+- **Networking is mostly stubbed.** Calls into the MP layer can return NULL or dummy
+  data (`getPlayerInfo()` etc.); guard them. What comes off the network is untrusted, and
+  the 2001 chunk handlers end the game on a bad value: check it before it gets there.
 - **Some bugs are kept as shipped.** Original-game behaviour that changes how
   the game plays (forest pathing, fog bytes, ...) is kept on purpose
   and listed under "Kept as shipped" in `planning/PROGRESS.md`, with a comment

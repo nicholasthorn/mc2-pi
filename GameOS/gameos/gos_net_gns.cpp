@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <map>
@@ -283,6 +284,12 @@ std::unique_ptr<Transport> createGnsTransport(std::string* error, int connectTim
 			return nullptr;
 		}
 		SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(onStatusChanged);
+		const char* lag = getenv("MC2_NET_LAG_MS");
+		if (lag)
+			SteamNetworkingUtils()->SetGlobalConfigValueInt32(k_ESteamNetworkingConfig_FakePacketLag_Send, atoi(lag));
+		const char* loss = getenv("MC2_NET_LOSS_PERCENT");
+		if (loss)
+			SteamNetworkingUtils()->SetGlobalConfigValueFloat(k_ESteamNetworkingConfig_FakePacketLoss_Send, static_cast<float>(atof(loss)));
 	}
 	g_transports++;
 	if (connectTimeoutMs > 0)

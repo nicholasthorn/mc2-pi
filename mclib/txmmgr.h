@@ -65,6 +65,7 @@ enum MC_TextureKey
 #define MC2_ISSPOTLGT				256
 #define MC2_ISHUDLMNT				512
 #define MC2_ALPHATEST				1024
+#define MC2_ISMARKER				2048	//spinning marker: in front of the world, blended, no depth write
 
 //----------------------------------------------------------------------
 // No More MC_BlockInfos.  gosTextureHandle is protected to enforce caching.

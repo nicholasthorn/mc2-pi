@@ -943,16 +943,17 @@ long Building::setTeamId (long _teamId, bool setup)
 	}
 
 	static unsigned long highLight[8] = {0x00007f00, 0x0000007f, 0x007f0000};
-	if (turn > 10)
+	// a team not in this session is -1
+	if ((turn > 10) && (teamId > -1))
 		appearance->flashBuilding(5.0,0.5,highLight[Team::relations[teamId][Team::home->getId()]]);
 		
 	if ((turn > 10) && getResourcePoints())
 	{
 		if (MPlayer) {
-			if (MPlayer->isServer())
+			if (MPlayer->isServer() && MPlayer->missionSettings.resourceBuilding)
 				MPlayer->sendReinforcement(getResourcePoints(), 0, "noname", commanderId, getPosition(), 6);
 				//MPlayer->playerInfo[commanderId].resourcePoints += ((BuildingTypePtr)getObjectType())->resourcePoints;
-			if (teamId == Team::home->getId())
+			if ((teamId == Team::home->getId()) && MPlayer->missionSettings.resourceBuilding)
 				soundSystem->playBettySample(BETTY_RESOURCES);
 		}
 		else {
