@@ -329,10 +329,6 @@ long Mission::update (void)
 	{
 		turn++;
 
-		// VR: this step's text replaces the last step's, if that never drew
-		if (gos_IsVR())
-			FloatHelp::resetAll();
-
 		// Tell GameOS gameplay has begun: "-autoexit" counts frames from here
 		// and scripts/smoke.sh checks for the marker it prints.
 		if (!gameplayMarked)
@@ -948,11 +944,11 @@ long Mission::render (void)
 		
 		static const int benchUiRender = gos_BenchStageId("ui_render");
 		gos_BenchStageStart(benchUiRender);
+		currentFloatHelp = 0;
+
 		if (gos_VRHudDue())
 		{
 			FloatHelp::renderAll();
-	
-			currentFloatHelp = 0;
 	
 			if (missionInterface)
 				missionInterface->render();

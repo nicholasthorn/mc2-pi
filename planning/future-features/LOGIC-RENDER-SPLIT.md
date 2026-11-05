@@ -57,6 +57,13 @@ multiplayer does not need them to match across machines (`NETWORKING.md`).
 
 Not fully traced: `calcMoveGoal` lines 4500 to 4970.
 
+**ThreadSanitizer found more than this read did.** `calcMoveGoal` sets the mover's
+`position` and cell position to each candidate cell to test line of sight, and
+`getLOSPosition` changes `inView` and rotates nodes, all while frames draw, so a mech
+could be read at a candidate cell. The fix goes with the worker
+(`perf/vr-path-worker`): line of sight takes the candidate as its own field, and on
+the worker uses node heights refreshed just before it starts.
+
 Running the same split on idle frames on the main thread needs only step 6 and
 has no races, but a burst has to fit about 6.5 ms per frame.
 
