@@ -607,7 +607,8 @@ slot), charges them and tells every machine, or refuses and gives them back. A m
   return to. Under `-autoexit` it shows for one frame, so every test goes through its code;
   `MC2_NET_RESULTS_FRAMES` keeps it longer, and with `-bench` takes a screenshot of it.
 - **Found on the way, also in single player:** a pilot with one of the four short voices (`pilot1a` to `pilot1d`)
-  ended the game on the radio messages past the end of its file, and a recovered mech could stay starting up for good.
+  ended the game on the radio messages past the end of its file, a recovered mech could stay starting up for good,
+  and the radio crashed when every queued message's pilot had died.
 
 Tests, between two processes on x64 desktop GL: `bench/net_support.fit` (each side calls a truck, a scout, a minelayer and
 a guard tower through the button and click the interface gives, and recovers a mech, and the client gives every kind of order
@@ -616,8 +617,10 @@ among team 1's turrets on m09: 92 shots fired, 83 target changes reached the cli
 finished with the same resource points. `bench/net_support.fit` also passes under 100 ms and 2% loss, and all three under ASan + UBSan,
 which found an out-of-bounds read the first time a turret fired: a rear torso hit used as a body location, on any turret shot.
 
-Not settled: one run of `net_support.fit` in about a dozen ended with the host's segmentation fault, just after the client asked for a
-recovery, and four more under a debugger did not repeat it, so its cause is unknown. Nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
+Not settled: one local run of `net_support.fit` ended with the host's segmentation fault and no backtrace, and 14 more under a debugger did
+not repeat it. CI then caught a client crashing on a null radio message when the pilots of every queued message had died (`gamesound.cpp`),
+in the plain battle, now fixed. That fits the first crash, whose log ended among sounds, but is not proof of it. Nobody has watched any of this
+(`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
 in a test has been shown to have one. Windows and arm64 have only what CI runs.
 
 ### On a Quest 2 (2026-11-05)
