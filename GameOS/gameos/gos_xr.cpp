@@ -22,6 +22,7 @@
 #include "utils/tga_writer.h"
 #include "utils/vr_controls.h"
 #include "utils/vr_eye.h"
+#include "utils/vr_hud.h"
 
 #include <EGL/egl.h>
 #include <SDL2/SDL.h>
@@ -1327,10 +1328,8 @@ bool present(int width, int height)
 void hudFrame(bool gameStepped)
 {
     g.hudChanged = g.hudChanged || gameStepped;
-    // drawn the frame after a step, not with it, so the step's frame has the
-    // time; a run of steps must not starve it, as its text then piles up
-    const bool rest = g.hudRestAllowed && g.useEyes && !g.hudEveryFrame && g.quadHasImage
-            && (!g.hudChanged || (gameStepped && g.framesSinceHud < 2));
+    const bool rest = vr_hud::rests({g.hudRestAllowed, g.useEyes, g.hudEveryFrame, g.quadHasImage,
+                                     g.hudChanged, gameStepped, g.framesSinceHud});
     g.hudRestAllowed = false;
     g.hudIsDue = !rest;
     if(g.hudIsDue) {

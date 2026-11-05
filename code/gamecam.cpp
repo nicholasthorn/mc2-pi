@@ -51,8 +51,6 @@ extern MidLevelRenderer::MLRClipper * theClipper;
 
 #define MAX_SHADOW_PITCH_CHANGE	(5.0f)
 
-// -bench: time y as a named stage (gos_BenchStageId); both eyes add up
-#define BenchStage(name,y)	{ static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); }
 
 extern bool drawOldWay;
 

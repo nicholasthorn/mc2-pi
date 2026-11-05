@@ -80,6 +80,19 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Helicopter dust cloud** (`mech3d.cpp`) draws with the plain matrix,
       unlike the water wake next to it. Check whether it looks wrong.
 
+## VR interface between game steps (#127)
+
+The interface only rests in a headset session, so no desktop run covers it.
+
+- [ ] **Quest 2, a mission played:** the interface updates promptly, health bars,
+      timers and flashes run at the right speed (they advance per draw, and were
+      probably about 2.4 times too fast before this), and floating help shows
+      without ghosting.
+- [ ] **Pointing at the interface and at the world** stays right: the alpha under
+      the pointer is now read only on frames the interface draws.
+- [ ] **Leaving a mission or opening the options screen:** one frame of the old
+      interface at most.
+
 ## STOP message box (#46)
 
 - [ ] **Windows:** a `STOP` (e.g. `-mission nosuchmission`) shows the box

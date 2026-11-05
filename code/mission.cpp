@@ -303,9 +303,6 @@ extern __int64 x;
 #define ProfileTime(x,y)	y;
 #endif
 
-// -bench: time y as a named stage, its own "<name>_ms" [BENCH] key and CSV
-// column (gos_BenchStageId). Used to estimate the cost of VR stereo.
-#define BenchStage(name,y)	{ static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); }
 
 long GameVisibleVertices		= 60;
 float BaseHeadShotElevation		= 1.0f;
@@ -331,6 +328,10 @@ long Mission::update (void)
 	if (active)
 	{
 		turn++;
+
+		// VR: this step's text replaces the last step's, if that never drew
+		if (gos_IsVR())
+			FloatHelp::resetAll();
 
 		// Tell GameOS gameplay has begun: "-autoexit" counts frames from here
 		// and scripts/smoke.sh checks for the marker it prints.

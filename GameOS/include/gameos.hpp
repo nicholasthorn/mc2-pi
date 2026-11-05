@@ -1990,6 +1990,8 @@ void __stdcall gos_BenchStateHash( unsigned int hash );
 int __stdcall gos_BenchStageId( const char* name );
 void __stdcall gos_BenchStageStart( int id );
 void __stdcall gos_BenchStageStop( int id );
+// Time the statement y as the stage called name.
+#define BenchStage(name,y)	{ static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); }
 //
 // "-benchfov <degrees>" (with -bench): the camera's field of view, forced
 // every frame, or 0 when not set (VR cost estimates: a headset sees about
@@ -2033,6 +2035,8 @@ bool __stdcall gos_IsVR();
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.
 bool __stdcall gos_VRHudDue();
+// This frame the interface is resting: nothing is to draw in the window.
+bool __stdcall gos_VRHudResting();
 //
 // The field of view, in degrees, for the game camera in VR: enough to cover
 // the eyes at the window's aspect, so that what the game counts as in view is
