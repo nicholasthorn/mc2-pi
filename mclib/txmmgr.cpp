@@ -1484,6 +1484,7 @@ void MC_TextureManager::renderLists (void)
                     !(masterVertexNodes[i].flags & MC2_ISSHADOWS) &&
                     !(masterVertexNodes[i].flags & MC2_ISCOMPASS) &&
                     !(masterVertexNodes[i].flags & MC2_ISCRATERS) &&
+                    !(masterVertexNodes[i].flags & MC2_ISMARKER) &&
                     (masterVertexNodes[i].flags & MC2_DRAWALPHA) &&
                     (masterVertexNodes[i].flags & MC2_ALPHATEST)==states*MC2_ALPHATEST &&
                     (masterVertexNodes[i].vertices))
@@ -1529,12 +1530,47 @@ void MC_TextureManager::renderLists (void)
     gos_SetRenderState( gos_State_AlphaTest, 0);
 
 	
+	// The spinning markers. Their z is forced in front of the world, so a depth
+	// write here, transparent texels included, would hide from every later draw
+	// (the effects above all) the whole of the marker's quad
+	gos_SetRenderState( gos_State_ZWrite, 0);
+	for (int i=0;i<nextAvailableVertexNode;i++)
+	{
+		if ((masterVertexNodes[i].flags & MC2_ISMARKER) &&
+			(masterVertexNodes[i].flags & MC2_DRAWALPHA) &&
+			(masterVertexNodes[i].vertices))
+		{
+			DWORD totalVertices = masterVertexNodes[i].numVertices;
+			if (masterVertexNodes[i].currentVertex != (masterVertexNodes[i].vertices + masterVertexNodes[i].numVertices))
+			{
+				totalVertices = masterVertexNodes[i].currentVertex - masterVertexNodes[i].vertices;
+			}
+
+			gos_SetRenderState( gos_State_Texture, masterTextureNodes[masterVertexNodes[i].textureIndex].get_gosTextureHandle());
+
+			long currentVertices = 0;
+			while (currentVertices < (long)totalVertices)
+			{
+				long tVertices = totalVertices - currentVertices;
+				if (tVertices > MAX_SENDDOWN)
+					tVertices = MAX_SENDDOWN;
+
+				gos_RenderIndexedArray( masterVertexNodes[i].vertices + currentVertices, tVertices, indexArray, tVertices );
+				currentVertices += tVertices;
+			}
+
+			//Reset the list to zero length to avoid drawing more then once!
+			masterVertexNodes[i].currentVertex = masterVertexNodes[i].vertices;
+		}
+	}
+
 	// VR: fading shapes on the GPU path, blended over everything solid. No depth
 	// write: unsorted, what they do not hide must still draw
 	if (gos_IsVR())
 	{
 		gos_SetRenderState( gos_State_ZWrite, 0);
-		renderHardwareNodes(MC2_DRAWALPHA, MC2_ISCOMPASS);
+		renderHardwareNodes(MC2_DRAWALPHA, MC2_ISCOMPASS | MC2_ISMARKER);
+		renderHardwareNodes(MC2_DRAWALPHA | MC2_ISMARKER, 0);	// over the fading shapes
 		gos_SetRenderState( gos_State_ZWrite, 1);
 		gos_SetRenderState( gos_State_TextureAddress, gos_TextureWrap );
 	}
