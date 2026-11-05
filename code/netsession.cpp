@@ -33,6 +33,63 @@ bool Session::host(uint16_t port, uint8_t numPlayers, uint32_t dataHash)
 	return true;
 }
 
+bool Session::hostLobby(uint16_t port, uint8_t maxPlayers, uint32_t dataHash)
+{
+	if (!host(port, maxPlayers, dataHash))
+		return false;
+	lobbyOpen_ = true;
+	return true;
+}
+
+bool Session::sendLobbyState(const LobbyState& state)
+{
+	return lobbyOpen_ && encode(state, scratch_) && sendAll(Delivery::ReliableOrdered, scratch_);
+}
+
+bool Session::nextLobbyEvent(LobbyEvent& out)
+{
+	if (lobbyEvents_.empty())
+		return false;
+	out = std::move(lobbyEvents_.front());
+	lobbyEvents_.pop_front();
+	return true;
+}
+
+bool Session::launch(const LobbyLaunch& launch)
+{
+	if (!lobbyOpen_ || launch.commanders[0] != 0)
+		return false;
+	std::vector<uint8_t> message;
+	if (!encode(launch, message))
+		return false;
+	// everyone named must be here, and everyone here named
+	int here = 1;
+	for (const Client& client : clients_) {
+		if (!client.hello)
+			continue;
+		if (launch.commanders[client.commander] == NO_COMMANDER)
+			return false;
+		here++;
+	}
+	if (here != launch.numPlayers)
+		return false;
+	// Not false if one could not be told: the others have been, and are on their way to loading.
+	sendAll(Delivery::ReliableOrdered, message);
+	std::fill(commanderTaken_, commanderTaken_ + MAX_PLAYERS, false);
+	commanderTaken_[0] = true;
+	for (Client& client : clients_)
+		if (client.hello) {
+			client.commander = launch.commanders[client.commander];
+			commanderTaken_[client.commander] = true;
+		}
+	numPlayers_ = launch.numPlayers;
+	lobbyOpen_ = false;
+	launched_ = true;
+	lobbyLaunch_ = launch;
+	lobbyEvents_.clear();
+	return true;
+}
+
 bool Session::join(const char* address, uint16_t port, uint32_t dataHash, const std::string& name)
 {
 	isHost_ = false;
@@ -75,6 +132,17 @@ Session::Client* Session::findClient(ConnectionId connection)
 	return nullptr;
 }
 
+// However they went: a lobby that keeps a player who has gone can never start.
+void Session::lobbyPlayerGone(const Client& client)
+{
+	if (!lobbyOpen_ || !client.hello)
+		return;
+	LobbyEvent left;
+	left.type = LobbyEventType::Left;
+	left.commander = client.commander;
+	lobbyEvents_.push_back(std::move(left));
+}
+
 void Session::reject(ConnectionId connection, RejectReason reason)
 {
 	Welcome welcome;
@@ -84,6 +152,7 @@ void Session::reject(ConnectionId connection, RejectReason reason)
 	transport_.disconnect(connection);
 	Client* client = findClient(connection);
 	if (client) {
+		lobbyPlayerGone(*client);
 		if (client->hello && !startSent_)
 			commanderTaken_[client->commander] = false;
 		clients_.erase(clients_.begin() + (client - clients_.data()));
@@ -95,6 +164,7 @@ void Session::drop(ConnectionId connection, const char* why)
 	Client* client = findClient(connection);
 	if (client) {
 		printf("[NET] dropping commander %d: %s\n", client->hello ? client->commander : -1, why);
+		lobbyPlayerGone(*client);
 		if (client->hello && !startSent_)
 			commanderTaken_[client->commander] = false;
 		clients_.erase(clients_.begin() + (client - clients_.data()));
@@ -125,7 +195,7 @@ void Session::handleHello(Client& client, const Event& event)
 	uint8_t place = 0;
 	while (place < numPlayers_ && commanderTaken_[place])
 		place++;
-	if (place == numPlayers_ || startSent_) {
+	if (place == numPlayers_ || startSent_ || launched_) {
 		reject(event.connection, RejectReason::GameFull);
 		return;
 	}
@@ -138,6 +208,13 @@ void Session::handleHello(Client& client, const Event& event)
 	if (encode(welcome, scratch_))
 		transport_.send(event.connection, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
 	printf("[NET] commander %d joined: %s\n", place, hello.name.c_str());
+	if (lobbyOpen_) {
+		LobbyEvent joined;
+		joined.type = LobbyEventType::Joined;
+		joined.commander = place;
+		joined.name = hello.name;
+		lobbyEvents_.push_back(std::move(joined));
+	}
 }
 
 void Session::handleHost(const Event& event)
@@ -155,6 +232,7 @@ void Session::handleHost(const Event& event)
 		if (client) {
 			if (client->hello) {
 				printf("[NET] commander %d left\n", client->commander);
+				lobbyPlayerGone(*client);
 				// before the mission starts the place is free again; after, its units stay
 				if (!startSent_)
 					commanderTaken_[client->commander] = false;
@@ -179,7 +257,20 @@ void Session::handleHost(const Event& event)
 				drop(event.connection, "message before Hello");
 			break;
 		}
-		if (type == MessageType::Ready) {
+		if (type == MessageType::LobbyChoice) {
+			// one sent as the launch went out is not a fault
+			if (launched_)
+				break;
+			LobbyEvent chose;
+			chose.type = LobbyEventType::Choice;
+			chose.commander = client->commander;
+			if (!lobbyOpen_ || !decode(event.data.data(), event.data.size(), chose.choice)) {
+				drop(event.connection, "bad lobby choice");
+				break;
+			}
+			lobbyEvents_.push_back(std::move(chose));
+		}
+		else if (type == MessageType::Ready) {
 			Ready ready;
 			if (!decode(event.data.data(), event.data.size(), ready) || client->sentReady) {
 				drop(event.connection, "bad Ready");
@@ -267,6 +358,43 @@ void Session::handleClient(const Event& event)
 			joined_ = true;
 			break;
 		}
+		case MessageType::LobbyState: {
+			LobbyState state;
+			if (joined_ && !launched_ && decode(event.data.data(), event.data.size(), state)) {
+				lobbyState_ = std::move(state);
+				hasLobbyState_ = true;
+			}
+			break;
+		}
+		case MessageType::LobbyLaunch: {
+			LobbyLaunch launch;
+			if (!joined_ || launched_ || !decode(event.data.data(), event.data.size(), launch))
+				break;
+			// A launch with no map to load is not a game, and one that is not for the players the
+			// state said, or with someone else as the host, is not the game agreed. A host says the
+			// state first, so none of this is a race: it is a host not to be followed.
+			if (!hasLobbyState_ || lobbyState_.map.empty() || launch.commanders[0] != 0)
+				break;
+			bool inState[MAX_PLAYERS] = {};
+			for (const LobbyPlayer& player : lobbyState_.players)
+				inState[player.slot] = true;
+			bool agreed = true;
+			for (int slot = 0; slot < MAX_PLAYERS; slot++)
+				if ((launch.commanders[slot] != NO_COMMANDER) != inState[slot])
+					agreed = false;
+			if (!agreed)
+				break;
+			// a host that leaves this player out has nothing for it to play
+			if (launch.commanders[commander_] == NO_COMMANDER) {
+				rejected_ = RejectReason::GameFull;
+				break;
+			}
+			commander_ = launch.commanders[commander_];
+			numPlayers_ = launch.numPlayers;
+			lobbyLaunch_ = launch;
+			launched_ = true;
+			break;
+		}
 		case MessageType::Start: {
 			Start start;
 			if (joined_ && decode(event.data.data(), event.data.size(), start))
@@ -310,7 +438,9 @@ bool Session::allJoined() const
 
 bool Session::allReady() const
 {
-	if (!allJoined())
+	// After a launch nobody can take a place that comes free, and everyone has the units of
+	// whoever left while loading: they stay, as for someone who leaves in play.
+	if (!launched_ && !allJoined())
 		return false;
 	for (const Client& client : clients_)
 		if (client.hello && !client.ready)
@@ -396,6 +526,13 @@ bool Session::sendReady(uint32_t rosterHash)
 	Ready ready;
 	ready.rosterHash = rosterHash;
 	return joined_ && encode(ready, scratch_)
+		&& transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
+}
+
+bool Session::sendLobbyChoice(const LobbyChoice& choice)
+{
+	// a client cannot know a host has a lobby until it says so
+	return joined_ && hasLobbyState_ && !launched_ && encode(choice, scratch_)
 		&& transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
 }
 

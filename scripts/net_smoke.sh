@@ -27,6 +27,7 @@ EXPECT_WINNER=""
 WORLD_EVENTS=yes
 DIAL=0
 LAN=0
+LOBBY=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -48,6 +49,7 @@ while [ $# -gt 0 ]; do
         --world-events) WORLD_EVENTS="$2"; shift 2 ;;
         --dial) DIAL=1; shift ;;
         --lan) LAN=1; shift ;;
+        --lobby) LOBBY=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -81,7 +83,7 @@ export SDL_VIDEODRIVER=x11
 
 command -v xvfb-run >/dev/null || { echo "net_smoke: xvfb-run not installed" >&2; exit 2; }
 RUN=(xvfb-run -a -s "-screen 0 800x600x24")
-COMMON=(-mission "$MISSION" -autoexit "$FRAMES" -benchscenario "$SCENARIO")
+COMMON=(-autoexit "$FRAMES" -benchscenario "$SCENARIO")
 
 # --dial: the host calls a client that waits, as for a host that cannot be reached
 HOST_ARGS=(-netlisten "$PORT"); CLIENT_ARGS=(-netjoin "127.0.0.1:$PORT")
@@ -93,9 +95,14 @@ fi
 if [ "$LAN" = 1 ]; then
     CLIENT_ARGS=(-netjoin lan)
 fi
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" -nethost 2 "${HOST_ARGS[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
+# --lobby: by way of a lobby, so only the host says which mission
+HOST_MISSION=(-mission "$MISSION"); CLIENT_MISSION=(-mission "$MISSION")
+if [ "$LOBBY" = 1 ]; then
+    HOST_ARGS+=(-netlobby); CLIENT_MISSION=(-netlobby)
+fi
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${HOST_MISSION[@]}" "${COMMON[@]}" -nethost 2 "${HOST_ARGS[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
 host_pid=$!
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" "${CLIENT_ARGS[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${CLIENT_MISSION[@]}" "${COMMON[@]}" "${CLIENT_ARGS[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
 client_pid=$!
 start=$(date +%s)
 wait "$host_pid"; host_rc=$?
@@ -162,6 +169,14 @@ fi
 if [ "$EXPECT_TURRETS" = 1 ]; then
     echo "$world" | grep -Eq 'turret targets [1-9]' || reasons+=("no turret target reached the client: $world")
     grep -Eq '^\[NET\] turn .*\(turrets [1-9]' "$LOG_DIR/host.log" || reasons+=("no turret fired on the host")
+fi
+if [ "$LOBBY" = 1 ]; then
+    # both ends must have agreed on all of it, and the client learned the map
+    if ! diff <(grep '^\[NETLOBBY\]' "$LOG_DIR/host.log") <(grep '^\[NETLOBBY\]' "$LOG_DIR/client.log") > "$LOG_DIR/lobby.diff" \
+        || ! grep -q '^\[NETLOBBY\] map' "$LOG_DIR/host.log"; then
+        reasons+=("host and client came out of the lobby differently ($LOG_DIR/lobby.diff)")
+    fi
+    grep -q "^\[NET\] launched as commander 1 of 2, on $MISSION" "$LOG_DIR/client.log" || reasons+=("the client did not launch on $MISSION")
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then
     reasons+=("expected team $EXPECT_WINNER to win: $hostwin")

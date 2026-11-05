@@ -106,6 +106,7 @@ bool justStartMission = FALSE;
 static long netHostPlayers = 0;		// -nethost <players>: multiplayer host, no network
 static unsigned short netListenPort = 0;	// -netlisten [port]: and clients may join it
 static char netJoinAddress[64] = "";	// -netjoin <address>[:port]: join a host's game
+static bool netUseLobby = false;	// -netlobby: by way of a lobby, the map being the host's choice
 static unsigned short netJoinPort = netsession::DEFAULT_PORT;
 static char netCallAddress[64] = "";	// -netcall <address>[:port]: the host dials a client that waits
 static unsigned short netCallPort = netsession::DEFAULT_PORT;
@@ -1722,14 +1723,19 @@ void __stdcall InitializeGameEngine()
 			{
 				MPlayer = new MultiPlayer;
 				MPlayer->setup();
-				if (netJoinAddress[0])
+				if (netUseLobby && netJoinAddress[0])
+					MPlayer->joinNetLobby((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName, sizeof(missionName));
+				else if (netUseLobby)
+					MPlayer->hostNetLobby(netHostPlayers, netListenPort, missionName,
+						netCallAddress[0] ? netCallAddress : NULL, netCallPort);
+				else if (netJoinAddress[0])
 					MPlayer->joinNetGame((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName);
 				else if (netListenPort || netCallAddress[0])
 					MPlayer->hostNetGame(netHostPlayers, netListenPort, missionName,
 						netCallAddress[0] ? netCallAddress : NULL, netCallPort);
 				else
 					MPlayer->startLocalHost(netHostPlayers);
-				MultiPlayTeamId = MPlayer->commanderID;
+				MultiPlayTeamId = MPlayer->playerInfo[MPlayer->commanderID].team;
 				MultiPlayCommanderId = MPlayer->commanderID;
 				long players = 0;
 				// a team per commander, and only as many as there are players
@@ -1738,12 +1744,17 @@ void __stdcall InitializeGameEngine()
 						players++;
 					for (long j = 0; j < 3; j++)
 						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
+					// and a lobby can put two on one team
+					commandersToLoad[i][1] = MPlayer->playerInfo[i].team;
 				}
 				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(players));
 				MPlayer->waitForNetStart();
 			}
-			else
+			else {
+				if (netUseLobby)
+					Fatal(0, " -netlobby: needs -nethost or -netjoin ");
 				mission->init(missionName, MISSION_LOAD_SP_QUICKSTART, 0, NULL, commandersToLoad, 2);
+			}
 			eye->activate();
 			eye->update();
 			mission->start();
@@ -2639,6 +2650,13 @@ void ParseCommandLine(const char *command_line)
 		{
 			if ((i + 1) < n_args)
 				netParseAddress(argv[++i], netJoinAddress, sizeof(netJoinAddress), netJoinPort);
+		}
+		else if (S_stricmp(argv[i],"-netlobby") == 0)
+		{
+			netUseLobby = true;
+			// a client has no -mission to say so: it hears the map from the host
+			justStartMission = true;
+			inViewMode = false;
 		}
 		else if (S_stricmp(argv[i],"-netcall") == 0)
 		{
