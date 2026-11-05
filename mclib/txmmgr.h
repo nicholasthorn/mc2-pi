@@ -1094,8 +1094,11 @@ class MC_TextureManager
 			nextAvailableVertexNode = 0;
 			nextAvailableHardwareVertexNode = 0;
 
-			gvManager->reset();
-			rsManager->reset();
+			// (a mission that never started has neither when it is destroyed)
+			if (gvManager)
+				gvManager->reset();
+			if (rsManager)
+				rsManager->reset();
 		}
 		
 		//Sends down the triangle lists

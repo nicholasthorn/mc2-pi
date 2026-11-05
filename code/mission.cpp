@@ -3316,6 +3316,10 @@ void Mission::initTGLForMission()
 //----------------------------------------------------------------------------------
 void Mission::destroy (bool initLogistics)
 {
+	// before anything goes: the worker reads it, and its radio messages need it
+	if (PathManager)
+		PathManager->finishWorker();
+
 	//---------------------------------------------------------------
 	// Shutdown the Mission Interface
 	if (missionInterface)
@@ -3563,6 +3567,8 @@ void Mission::destroy (bool initLogistics)
 	//The flush below will remove this one.
 	Mover::holdFireIconHandle = 0;
 
+	// the mesh list points at shapes and vertex buffers about to go
+	mcTextureManager->clearArrays();
 	mcTextureManager->flush();
 	mcTextureManager->freeVertices();
 	mcTextureManager->freeShapes();

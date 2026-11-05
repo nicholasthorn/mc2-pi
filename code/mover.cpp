@@ -3514,7 +3514,7 @@ Stuff::Vector3D Mover::getLOSPosition (void)
 		losJumpLowestNode = jumpLowestNode;
 	}
 
-	const Stuff::Vector3D& losBase = losProbing ? losProbePosition : position;
+	const Stuff::Vector3D losBase = getLOSBasePosition();
 	Stuff::Vector3D losPos = losBase;
 	if (lowestWeaponNodeZ != -9999.9f)
 		losPos.z += lowestWeaponNodeZ;
@@ -4836,10 +4836,6 @@ long Mover::calcMoveGoal (GameObjectPtr target,
 	//goalPos.z += target->getAppearRadius();		//Lets not look along the ground, shall we.
 												//Target probably has some altitude
 	if (hasWeaponNode()) {
-		Stuff::Vector3D curMoverPosition;
-		curMoverPosition = position;
-		long curMoverRow = cellPositionRow;
-		long curMoverCol = cellPositionCol;
 
 		startTime = GetCycles();
 		long i = 0;

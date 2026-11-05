@@ -14,9 +14,10 @@
 
 #ifndef MISSION_H
 #include"mission.h"
+#endif
+
 #include"warrior.h"
 #include"movemgr.h"
-#endif
 
 #ifndef UNITDESG_H
 #include"unitdesg.h"
@@ -2219,7 +2220,8 @@ void __stdcall DoGameLogic()
 			if (mission && (!optionsScreenWrapper || optionsScreenWrapper->isDone() ) )
 			{
 				long result = mission->update();
-				if (PathManager)
+				// the mission's last step leaves the paths: what follows takes it apart
+				if (PathManager && (result == mis_PLAYING))
 					PathManager->startWorker();
 				if (result == 9999) {
 					mission->destroy();
