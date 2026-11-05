@@ -602,7 +602,8 @@ slot), charges them and tells every machine, or refuses and gives them back. A m
 - **Pilot kill stats** reach a client.
 - **Mines:** a shot or a blast setting one off was each machine's own business, so their counts drifted.
   `SetOffMine` leaves it to the host.
-- **A truck out of points** stops on a client too, and a repair is limited to what a client can be told.
+- **A truck out of points** stops on a client too, and a repair is limited to what a client can be told. After each repair
+  the host sends the exact armour, as a repair shares its points with ammo, and a client's ammo can be a moment behind.
 - **Results:** a network game ends on the real results screen (`MPStats`), and Close quits, as there is no lobby to
   return to. Under `-autoexit` it shows for one frame, so every test goes through its code;
   `MC2_NET_RESULTS_FRAMES` keeps it longer, and with `-bench` takes a screenshot of it.
@@ -618,8 +619,8 @@ finished with the same resource points. `bench/net_support.fit` also passes unde
 which found an out-of-bounds read the first time a turret fired: a rear torso hit used as a body location, on any turret shot.
 
 Not settled: **a rare host crash.** `net_support.fit` has ended twice with the host's segmentation fault, once locally and once on arm64 in CI,
-each time just after the client asked for a recovery, with no backtrace. Another 38 local games did not repeat it. Its cause is unknown. It is not
-the null radio message also fixed here, since the second came after that fix. A crash in an automated run now prints a backtrace, and
+with a recovery in play both times and no backtrace. Another 50 local games on x64 did not repeat it, 10 of them forcing what the two crashes had in
+common, a client's recovery being the host's first. Its cause is unknown. It is not the null radio message also fixed here, since the second came after that fix. A crash in an automated run now prints a backtrace, and
 `net_smoke.sh` names the frames. Nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
 in a test has been shown to have one. Windows and arm64 have only what CI runs.
 

@@ -1161,6 +1161,8 @@ long MultiPlayer::addWeaponHitChunk (WeaponHitChunkPtr chunk) {
 
 //---------------------------------------------------------------------------
 
+static void netSendArmour (MultiPlayer* player, MoverPtr mover);
+
 long MultiPlayer::addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr shotInfo, bool isRefit) {
 
 	if (!netSession) {
@@ -1170,7 +1172,15 @@ long MultiPlayer::addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr sho
 	WeaponHitChunk chunk;
 	chunk.init();
 	chunk.build(target, shotInfo, isRefit);
-	return(addWeaponHitChunk(&chunk));
+	const long result = addWeaponHitChunk(&chunk);
+	// A repair shares its points with the ammo that needs refilling, and a client's ammo can be
+	// a moment behind the host's, so running it there can come out differently. Armour first
+	// differed on a client that way, in a battle in CI. The host has repaired by now: say what came of it.
+	if (isRefit && target && target->isMover()) {
+		sendWeaponHitUpdate();
+		netSendArmour(this, (MoverPtr)target);
+	}
+	return(result);
 }
 
 //---------------------------------------------------------------------------
