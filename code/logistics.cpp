@@ -366,6 +366,13 @@ long Logistics::update (void)
 					}
 				
 			}
+			else if ( MPlayer && MPlayer->isNetworked() )
+			{
+				// no lobby to go back to yet
+				printf( "[NET] results closed\n" );
+				fflush( stdout );
+				quitGame = true;
+			}
 			else if ( MPlayer )
 			{
 				logisticsState = log_SPLASH;

@@ -158,6 +158,11 @@ long i, roll, callsign, fragmentNum, dropOut = 0;
 	else
 		i = 0;
 
+	// Four voices (pilot1a to pilot1d) stop short of the last messages, and seekPacket
+	// ends the game past the end of a file. That pilot just says nothing.
+	if ((messageInfo[msgType].messageMapping + i) >= messagesFile[radioID]->getNumPackets())
+		return(NO_PLAY);
+
 	RadioData *msgData = (RadioData *)radioHeap->Malloc(sizeof(RadioData));
 	if (!msgData)
 	{
@@ -205,7 +210,7 @@ long i, roll, callsign, fragmentNum, dropOut = 0;
 		callsign += messageInfo[RADIO_CALLSIGN].messageMapping;
 	}
 	
-	if (callsign)
+	if (callsign && (callsign < messagesFile[radioID]->getNumPackets()))
 	{
 		if (messagesFile[radioID]->seekPacket(callsign) == NO_ERR)
 		{

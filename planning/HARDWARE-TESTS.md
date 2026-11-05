@@ -34,6 +34,11 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [x] **A Quest as host and as client, unworn** (2026-11-05, Quest 2, PC in WSL, home Wi-Fi): played
       and measured, with armour never differing. See "On a Quest 2" in `future-features/NETWORKING.md`.
       `-netjoin wait` on the Quest and `-netcall <its address>` on a host in WSL, which it cannot reach.
+- [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
+      click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
+      both screens; order the truck to repair; down a mech and call the Karnov; check the points on
+      screen after each, and after the Stop button. At the end, the results screen: names, team,
+      laurels on the winner, and Close quits. Tests check the state of all this, not how it looks.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
       mechs look right, do orders given by hand with the controllers work, and does taking the headset
       off and on leave the game running? Also whether the app quits by itself at the end.
