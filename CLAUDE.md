@@ -116,9 +116,11 @@ Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
 
 CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
 tests on each, and validates the shaders on every push to `pi-port` and every PR.
-`.github/workflows/smoke.yml` runs five missions and a two-process multiplayer battle
-nightly, on demand and on PRs that touch code, on x64 desktop GL, arm64 GLES, and x64
-under ASan + UBSan.
+`.github/workflows/smoke.yml` runs five missions nightly, on demand and on PRs that touch
+code, on x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan. The multiplayer battles
+run with them nightly, on demand and on PRs that change multiplayer code
+(`scripts/ci_multiplayer.sh`); other code PRs run the two-process battle only sanitized,
+without the game modes.
 `ci.yml` also runs the unit tests under ASan + UBSan and cppcheck on changed
 files; both workflows skip a push that changes only docs or only merges
 `pi-port` in (`scripts/ci_skip.sh`);
