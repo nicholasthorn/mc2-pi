@@ -1132,7 +1132,12 @@ void beginFrame()
 
     XrFrameWaitInfo waitInfo = xrStruct<XrFrameWaitInfo>(XR_TYPE_FRAME_WAIT_INFO);
     g.frame = xrStruct<XrFrameState>(XR_TYPE_FRAME_STATE);
-    if(!ok(xrWaitFrame(g.session, &waitInfo, &g.frame), "xrWaitFrame"))
+    // -bench: pacing, not work, though it is inside render_ms
+    static const int benchWait = gos_BenchStageId("xr_wait");
+    gos_BenchStageStart(benchWait);
+    const XrResult waited = xrWaitFrame(g.session, &waitInfo, &g.frame);
+    gos_BenchStageStop(benchWait);
+    if(!ok(waited, "xrWaitFrame"))
         return;
     XrFrameBeginInfo beginInfo = xrStruct<XrFrameBeginInfo>(XR_TYPE_FRAME_BEGIN_INFO);
     if(!ok(xrBeginFrame(g.session, &beginInfo), "xrBeginFrame"))
@@ -1203,7 +1208,12 @@ bool bindEye(int eye)
         return false;
     }
     Image& image = g.eyes[eye];
-    if(!image.acquired && !acquire(image)) {
+    // -bench: can wait for the compositor to give the image back
+    static const int benchAcquire = gos_BenchStageId("xr_acquire");
+    gos_BenchStageStart(benchAcquire);
+    const bool acquired = image.acquired || acquire(image);
+    gos_BenchStageStop(benchAcquire);
+    if(!acquired) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return false;
     }
@@ -1295,7 +1305,10 @@ bool present(int width, int height)
     endInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
     endInfo.layerCount = layerCount;
     endInfo.layers = layers;
+    static const int benchEnd = gos_BenchStageId("xr_end");
+    gos_BenchStageStart(benchEnd);
     ok(xrEndFrame(g.session, &endInfo), "xrEndFrame");
+    gos_BenchStageStop(benchEnd);
     return true;
 }
 

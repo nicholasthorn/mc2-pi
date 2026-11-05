@@ -1984,7 +1984,7 @@ void __stdcall gos_BenchStateHash( unsigned int hash );
 // CSV column and [BENCH] key, the frame's total time between Start and Stop
 // (a stage entered several times a frame adds up). gos_BenchStageId(name)
 // returns the stage's id (call once, e.g. into a static), or -1 without
-// -bench or once 8 names are taken; Start/Stop ignore -1. Not reentrant:
+// -bench or once 32 names are taken; Start/Stop ignore -1. Not reentrant:
 // do not nest a stage inside itself.
 //
 int __stdcall gos_BenchStageId( const char* name );

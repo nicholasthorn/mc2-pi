@@ -118,9 +118,17 @@ and a column in the frame CSV, averaged per frame:
 | `shape_xform` | `TransformMultiShape`: shapes to clip space, inside `objects` | `logic_ms` |
 | `world_render` | `eye->render()`: world enqueue and GL submit | `render_ms` |
 | `ui_render` | interface and floating help | `render_ms` |
+| `world_sky`, `world_terrain`, `world_craters`, `world_objects`, `world_water`, `world_shadows` | each kind of world object's enqueue (`GameCamera::render`) | `world_render` |
+| `world_lists` | `renderLists()`: the enqueued draws go to GL | `world_render` |
+| `lists_mesh` | the GPU mesh nodes (`renderHardwareNodes`) | `world_lists` |
+| `world_fx`, `world_weather` | effects and weather, drawn directly | `world_render` |
+| `xr_wait` | headset only: `xrWaitFrame`, pacing to the display rather than work | `render_ms` |
+| `xr_acquire` | headset only: getting the eyes' images | `world_render` |
+| `xr_end` | headset only: `xrEndFrame` | `swap_ms` |
 
-`terrain_geom`, `shape_xform` and `world_render` are the work VR stereo
-would repeat per eye (`planning/future-features/VR-TABLETOP.md`).
+In VR the stages inside `world_render` add up both eyes. Read `render_ms` less
+`xr_wait` for the work a headset frame does. `terrain_geom`, `shape_xform` and
+`world_render` are the work VR stereo would repeat per eye (`planning/future-features/VR-TABLETOP.md`).
 `-benchfov <degrees>` forces the camera's field of view for the whole run
 (a headset sees about 100 degrees, the game 40), to measure the wider view. It is applied each frame after the bench director, before the camera update.
 

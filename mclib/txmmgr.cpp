@@ -959,6 +959,9 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 {
 	static bool bSkip = true;
 	ShapeRenderer shape_renderer;
+	// -bench: the part of world_lists that is GPU meshes
+	static const int benchListsMesh = gos_BenchStageId("lists_mesh");
+	gos_BenchStageStart(benchListsMesh);
 
 	gos_SetRenderState(gos_State_Culling, gos_Cull_CW);
 
@@ -1035,6 +1038,7 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 
 	// restore viewport
 	gos_SetRenderViewport(0, 0, Environment.drawableWidth, Environment.drawableHeight);
+	gos_BenchStageStop(benchListsMesh);
 }
 
 //----------------------------------------------------------------------

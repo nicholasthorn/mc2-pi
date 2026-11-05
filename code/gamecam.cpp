@@ -51,6 +51,9 @@ extern MidLevelRenderer::MLRClipper * theClipper;
 
 #define MAX_SHADOW_PITCH_CHANGE	(5.0f)
 
+// -bench: time y as a named stage (gos_BenchStageId); both eyes add up
+#define BenchStage(name,y)	{ static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); }
+
 extern bool drawOldWay;
 
 extern bool useNonWeaponEffects;
@@ -145,19 +148,19 @@ void GameCamera::render (void)
 		// Turn stuff on line by line until perspective is working.
 		
 		if (Environment.Renderer != 3)
-			theSky->render(1);
+			BenchStage("world_sky",theSky->render(1));
 		
-		land->render();								//render the Terrain
+		BenchStage("world_terrain",land->render());								//render the Terrain
 
 		if (Environment.Renderer != 3)
-			craterManager->render();					//render the craters and footprints
+			BenchStage("world_craters",craterManager->render());					//render the craters and footprints
 		
-		ObjectManager->render(true, true, true);	//render all other objects
+		BenchStage("world_objects",ObjectManager->render(true, true, true));	//render all other objects
 
-		land->renderWater();						//Draw Water Last!
+		BenchStage("world_water",land->renderWater());						//Draw Water Last!
 
 		if (useShadows && Environment.Renderer != 3)
-			ObjectManager->renderShadows(true, true, true);
+			BenchStage("world_shadows",ObjectManager->renderShadows(true, true, true));
 
 		if (mission && mission->missionInterface)
 			mission->missionInterface->drawVTOL();
@@ -169,7 +172,7 @@ void GameCamera::render (void)
 		}
 	
 		if (!drawOldWay)
-			mcTextureManager->renderLists();			//This sends triangles down to the card.  All "rendering" to this point has been setting up tri lists
+			BenchStage("world_lists",mcTextureManager->renderLists());			//This sends triangles down to the card.  All "rendering" to this point has been setting up tri lists
 
 		if (drawOldWay)
 		{
@@ -178,11 +181,11 @@ void GameCamera::render (void)
 			gos_SetRenderState( gos_State_ShadeMode, gos_ShadeGouraud);
 		}
 
-		theClipper->RenderNow();		//Draw the FX
+		BenchStage("world_fx",theClipper->RenderNow());		//Draw the FX
 
 
 		if (useNonWeaponEffects)
-			weather->render();				//Draw the weather
+			BenchStage("world_weather",weather->render());				//Draw the weather
 	}
 
 	if (drawOldWay && !inMovieMode)
