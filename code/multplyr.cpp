@@ -413,6 +413,15 @@ static std::unique_ptr<netsession::Session> netSession;
 
 static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, long a, long b, unsigned long value);
 
+static void netOpenSession (const char* flag) {
+
+	std::string error;
+	netTransport = gos_net::createGnsTransport(&error);
+	if (!netTransport)
+		Fatal(0, (std::string(" ") + flag + ": no network: " + error).c_str());
+	netSession.reset(new netsession::Session(*netTransport));
+}
+
 static void netClose (void) {
 
 	netSession.reset();
@@ -475,6 +484,8 @@ static uint32_t netDataHash (const char* missionName) {
 	if (missionName) {
 		path.init(missionPath, missionName, ".fit");
 		hash = netHashFile(hash, path, total);
+		path.init(missionPath, missionName, ".pak");
+		hash = netHashFile(hash, path, total);
 	}
 	path.init(objectPath, "object2", ".pak");
 	hash = netHashFile(hash, path, total);
@@ -485,12 +496,20 @@ static uint32_t netDataHash (const char* missionName) {
 	return(hash);
 }
 
+// Its settings and its terrain and objects.
+static uint32_t netMapHash (const char* map, unsigned long& total) {
+
+	FullPathFileName path;
+	path.init(missionPath, map, ".fit");
+	const uint32_t hash = netHashFile(netwire::HASH_START, path, total);
+	path.init(missionPath, map, ".pak");
+	return(netHashFile(hash, path, total));
+}
+
 static uint32_t netMapHash (const char* map) {
 
 	unsigned long total = 0;
-	FullPathFileName path;
-	path.init(missionPath, map, ".fit");
-	return(netHashFile(netwire::HASH_START, path, total));
+	return(netMapHash(map, total));
 }
 
 //---------------------------------------------------------------------------
@@ -518,6 +537,7 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 	player->missionSettings.timeLimit = -1.0f;
 	player->missionSettings.missionType = MISSION_TYPE_ELIMINATION;
 	player->missionSettings.maxPlayers = MAX_MC_PLAYERS;
+	player->missionSettings.maxTeams = MAX_MC_PLAYERS;
 	FullPathFileName path;
 	path.init(missionPath, missionName, ".fit");
 	FitIniFile file;
@@ -533,6 +553,9 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 		unsigned long most = 0;
 		if ((file.readIdULong("MaximumNumberOfPlayers", most) == NO_ERR) && (most >= 1) && (most <= MAX_MC_PLAYERS))
 			player->missionSettings.maxPlayers = (char)most;
+		unsigned long teams = 0;
+		if ((file.readIdULong("MaximumNumberOfTeams", teams) == NO_ERR) && (teams >= 1) && (teams <= MAX_MC_PLAYERS))
+			player->missionSettings.maxTeams = (char)teams;
 		long points = 0;
 		if ((file.readIdLong("ResourcePoints", points) == NO_ERR) && (points >= 0))
 			player->missionSettings.resourcePoints = points;
@@ -629,6 +652,8 @@ static bool netFindOnLan (const char* missionName, std::string& address, unsigne
 			const char* skip = NULL;
 			if (game.protocol != netwire::PROTOCOL_VERSION)
 				skip = "another version of the game";
+			else if (game.lobby != (missionName == NULL))
+				skip = game.lobby ? "a lobby, and this is not looking for one" : "not a lobby, and this is looking for one";
 			else if (missionName && (S_stricmp(game.map.c_str(), missionName) != 0))
 				skip = "another mission";
 			else if (game.inProgress || (game.numPlayers >= game.maxPlayers))
@@ -657,11 +682,7 @@ static bool netFindOnLan (const char* missionName, std::string& address, unsigne
 
 void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char* missionName, const char* dialAddress, unsigned short dialPort) {
 
-	std::string error;
-	netTransport = gos_net::createGnsTransport(&error);
-	if (!netTransport)
-		Fatal(0, (std::string(" -netlisten: no network: ") + error).c_str());
-	netSession.reset(new netsession::Session(*netTransport));
+	netOpenSession("-netlisten");
 	if (!netSession->host(port, (uint8_t)numPlayers, netDataHash(missionName)))
 		Fatal(port, " -netlisten: cannot listen on this port ");
 	startLocalHost(numPlayers);
@@ -693,13 +714,15 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 
 //---------------------------------------------------------------------------
 
+static void netFatalIfRefused (void) {
+
+	if (netSession->rejected() != netwire::RejectReason::None)
+		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+}
+
 void MultiPlayer::joinNetGame (const char* address, unsigned short port, const char* missionName) {
 
-	std::string error;
-	netTransport = gos_net::createGnsTransport(&error);
-	if (!netTransport)
-		Fatal(0, (std::string(" -netjoin: no network: ") + error).c_str());
-	netSession.reset(new netsession::Session(*netTransport));
+	netOpenSession("-netjoin");
 	const uint32_t hash = netDataHash(missionName);
 	std::string lanAddress;
 	if (address && (strcmp(address, "lan") == 0)) {
@@ -716,8 +739,7 @@ void MultiPlayer::joinNetGame (const char* address, unsigned short port, const c
 	});
 	if (!answered || netSession->hostLost())
 		Fatal(0, " -netjoin: no answer from the host ");
-	if (netSession->rejected() != netwire::RejectReason::None)
-		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+	netFatalIfRefused();
 	startLocalHost(netSession->numPlayers());
 	inSession = true;
 	netReadMissionSettings(this, missionName);
@@ -824,11 +846,17 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 
 	if (!missionName || !missionName[0])
 		Fatal(0, " -netlobby: a host needs -mission ");
-	std::string error;
-	netTransport = gos_net::createGnsTransport(&error);
-	if (!netTransport)
-		Fatal(0, (std::string(" -netlobby: no network: ") + error).c_str());
-	netSession.reset(new netsession::Session(*netTransport));
+	// now, not after everyone has joined: netHashFile takes a missing file for a difference
+	FullPathFileName ownMap;
+	ownMap.init(missionPath, missionName, ".fit");
+	File ownMapFile;
+	if (ownMapFile.open(ownMap) != NO_ERR)
+		Fatal(0, (std::string(" -netlobby: this machine has no map called ") + missionName + " ").c_str());
+	ownMapFile.close();
+	// who it dials is one client, who then stays
+	if (dialAddress && (maxPlayers > 2))
+		Fatal(maxPlayers, " -netcall: calls one client, so a lobby of two players ");
+	netOpenSession("-netlobby");
 	// one who dials need not listen too, as for a game with no lobby
 	if (!port && !dialAddress)
 		port = netsession::DEFAULT_PORT;
@@ -841,7 +869,7 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 	netlobby::Lobby lobby((uint8_t)maxPlayers);
 	if (!lobby.addPlayer(0, netPlayerName()))
 		Fatal(0, " -netlobby: cannot add the host ");
-	if (!lobby.setMap(missionName, netMapHash(missionName)))
+	if (!lobby.setMap(missionName, netMapHash(missionName), (uint8_t)missionSettings.maxTeams))
 		Fatal(0, " -netlobby: this map's name cannot be sent ");
 	// anything under nothing is no time limit, in a map's own data too
 	const int32_t timeLimit = (missionSettings.timeLimit < 0.0f) ? netwire::NO_TIME_LIMIT : (int32_t)missionSettings.timeLimit;
@@ -851,14 +879,16 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 	printf("[NET] lobby for %s on port %d, for %ld players\n", missionName, (int)port, maxPlayers);
 	fflush(stdout);
 	// not one who dials: nobody could reach this end in any case
+	netAnnounce.lobby = true;
 	if (port && !dialAddress)
 		netStartBeacon(port, maxPlayers, missionName);
 
 	uint32_t sentRevision = lobby.state().revision - 1;
 	double nextDial = 0.0;
 	const bool everyone = netWait([&]() {
-		// a client may not be listening yet, and a dial with nobody there gives up in about 10 s
-		if (dialAddress && (netNow() >= nextDial)) {
+		// A client may not be listening yet, and a dial with nobody there gives up in about 10 s.
+		// One that has answered stays: it hangs up on any other call.
+		if (dialAddress && (netSession->connectedClients() == 0) && (netNow() >= nextDial)) {
 			nextDial = netNow() + 15.0;
 			if (!netSession->dialClient(dialAddress, dialPort))
 				Fatal(0, " -netcall: needs an IP address ");
@@ -905,11 +935,7 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 
 void MultiPlayer::joinNetLobby (const char* address, unsigned short port, char* missionName, size_t missionNameSize) {
 
-	std::string error;
-	netTransport = gos_net::createGnsTransport(&error);
-	if (!netTransport)
-		Fatal(0, (std::string(" -netjoin: no network: ") + error).c_str());
-	netSession.reset(new netsession::Session(*netTransport));
+	netOpenSession("-netjoin");
 	std::string lanAddress;
 	if (address && (strcmp(address, "lan") == 0)) {
 		if (!netFindOnLan(NULL, lanAddress, port))
@@ -960,8 +986,7 @@ void MultiPlayer::joinNetLobby (const char* address, unsigned short port, char* 
 	});
 	if (!over || netSession->hostLost())
 		Fatal(0, " -netjoin: the host went away, or never launched ");
-	if (netSession->rejected() != netwire::RejectReason::None)
-		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+	netFatalIfRefused();
 
 	const netwire::LobbyState& state = netSession->lobbyState();
 	if (state.map.size() >= missionNameSize)
@@ -999,8 +1024,12 @@ void MultiPlayer::waitForNetStart (void) {
 
 	if (iAmHost) {
 		netSession->setRosterHash((uint32_t)hash);
-		if (!netWait([]() { return netSession->allReady(); }) || !netSession->start())
+		if (!netWait([]() { return netSession->allReady() || netSession->allLeft(); }))
 			Fatal(0, " -netlisten: not everyone loaded the mission ");
+		if (netSession->allLeft())
+			Fatal(0, " -netlisten: everyone else left while the mission loaded ");
+		// someone who cannot be told is dropped, and the rest play
+		netSession->start();
 		}
 	else {
 		netSession->sendReady((uint32_t)hash);
@@ -1009,8 +1038,7 @@ void MultiPlayer::waitForNetStart (void) {
 		});
 		if (!answered || netSession->hostLost())
 			Fatal(0, " -netjoin: the host did not start the mission ");
-		if (netSession->rejected() != netwire::RejectReason::None)
-			Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+		netFatalIfRefused();
 	}
 	printf("[NET] mission start\n");
 	printf("[NET] %ld turrets\n", ObjectManager ? ObjectManager->getNumTurrets() : 0L);

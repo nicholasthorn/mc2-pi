@@ -88,6 +88,8 @@ public:
 	// host
 	bool allJoined() const;
 	bool allReady() const;
+	// A launched game with nobody left to play it: they all went while loading.
+	bool allLeft() const { return launched_ && numPlayers_ > 1 && connectedClients() == 0; }
 	void setRosterHash(uint32_t hash);	// before a Ready can be judged
 	bool start();
 	bool sendToClients(gos_net::Delivery delivery, const netwire::ChunkBatch& batch);

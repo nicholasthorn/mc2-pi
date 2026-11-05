@@ -212,11 +212,27 @@ uint32_t hashBytes(uint32_t hash, const void* data, size_t size)
 	return hash;
 }
 
-// A map's name goes into a path on the machine that receives it: a file name, and nothing that
-// leads out of the missions.
+// A map's name goes into a path on the machine that receives it, so only what a map's file is
+// called: every stock mission fits. Nothing that leads out of the missions, nothing a file system
+// reads as another file (a space at either end, on Windows), and none of Windows' devices.
 static bool validMapName(const std::string& name)
 {
-	return validName(name) && name.find_first_of("/\\:") == std::string::npos && name.find("..") == std::string::npos;
+	if (!validName(name))
+		return false;
+	std::string lower;
+	for (char c : name) {
+		const bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+		if (!letter && !(c >= '0' && c <= '9') && c != '_' && c != '-' && c != ' ')
+			return false;
+		lower += (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+	}
+	if (!name.empty() && (name.front() == ' ' || name.back() == ' '))
+		return false;
+	if (lower == "con" || lower == "prn" || lower == "aux" || lower == "nul")
+		return false;
+	if (lower.size() == 4 && (lower.compare(0, 3, "com") == 0 || lower.compare(0, 3, "lpt") == 0) && lower[3] >= '0' && lower[3] <= '9')
+		return false;
+	return true;
 }
 
 static bool validAnnounce(const LanAnnounce& m)
@@ -260,6 +276,7 @@ bool encode(const LanAnnounce& m, std::vector<uint8_t>& out)
 	w.u8(m.numPlayers);
 	w.u8(m.maxPlayers);
 	w.u8(m.inProgress ? 1 : 0);
+	w.u8(m.lobby ? 1 : 0);
 	w.u8(static_cast<uint8_t>(m.name.size()));
 	w.bytes(m.name.data(), m.name.size());
 	w.u8(static_cast<uint8_t>(m.map.size()));
@@ -289,9 +306,11 @@ bool decode(const void* data, size_t size, LanAnnounce& m)
 	m.numPlayers = in.u8();
 	m.maxPlayers = in.u8();
 	const uint8_t inProgress = in.u8();
-	if (!in.ok() || inProgress > 1)
+	const uint8_t lobby = in.u8();
+	if (!in.ok() || inProgress > 1 || lobby > 1)
 		return false;
 	m.inProgress = (inProgress != 0);
+	m.lobby = (lobby != 0);
 	if (!readShortText(in, m.name) || !readShortText(in, m.map))
 		return false;
 	return in.finished() && validAnnounce(m);

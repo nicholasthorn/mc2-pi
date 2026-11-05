@@ -185,6 +185,38 @@ TEST_CASE("Lobby: a map or settings that no state could carry are refused, and c
 	CHECK(encode(lobby.state(), out));
 }
 
+TEST_CASE("Lobby: nobody is on a team past what the map takes")
+{
+	Lobby lobby(4);
+	REQUIRE(lobby.addPlayer(0, "Host"));
+	REQUIRE(lobby.addPlayer(1, "Ace"));
+	REQUIRE(lobby.addPlayer(2, "Bo"));
+	CHECK(lobby.player(2)->team == 2);
+
+	// a map for two puts the third on the last
+	REQUIRE(lobby.setMap("mc2_m08", MAP_HASH, 2));
+	CHECK(lobby.player(0)->team == 0);
+	CHECK(lobby.player(1)->team == 1);
+	CHECK(lobby.player(2)->team == 1);
+
+	LobbyChoice choice = readyOn(lobby, 2);
+	choice.team = 2;
+	CHECK_FALSE(lobby.applyChoice(2, choice));
+	CHECK(lobby.player(2)->team == 1);
+
+	// and whoever joins now
+	REQUIRE(lobby.addPlayer(3, "Cy"));
+	CHECK(lobby.player(3)->team == 1);
+
+	// a map that says nothing sensible cannot empty the list
+	REQUIRE(lobby.setMap("mc2_m05", MAP_HASH, 0));
+	CHECK(lobby.player(1)->team == 0);
+	REQUIRE(lobby.setMap("mc2_m05", MAP_HASH, 200));
+	choice = readyOn(lobby, 2);
+	choice.team = MAX_PLAYERS - 1;
+	CHECK(lobby.applyChoice(2, choice));
+}
+
 TEST_CASE("Lobby: a game can start with a map, two sides, and everyone ready")
 {
 	Lobby lobby(4);
@@ -364,11 +396,12 @@ struct LobbyGame {
 		REQUIRE(host.hostLobby(PORT, maxPlayers, DATA_HASH));
 	}
 
-	// the map, which a launch needs a client to have heard
-	void sayMap()
+	// the map and who is in, which a launch needs a client to have heard
+	void sayState(const std::vector<uint8_t>& slots)
 	{
 		Lobby lobby(4);
-		REQUIRE(lobby.addPlayer(0, "Host"));
+		for (uint8_t slot : slots)
+			REQUIRE(lobby.addPlayer(slot, "Someone"));
 		REQUIRE(lobby.setMap("mc2_m08", MAP_HASH));
 		REQUIRE(host.sendLobbyState(lobby.state()));
 		pump();
@@ -460,7 +493,7 @@ TEST_CASE("Launch renumbers around whoever left, and the game goes on from there
 	game.transports[0]->disconnect(ace.serverConnection());
 	game.clients[0].reset();
 	game.pump();
-	game.sayMap();
+	game.sayState({ 0, 2 });
 
 	LobbyLaunch launch;
 	launch.numPlayers = 2;
@@ -500,7 +533,7 @@ TEST_CASE("Someone who leaves while loading is not waited for")
 	LobbyGame game;
 	netsession::Session& ace = game.addClient("Ace");
 	netsession::Session& bo = game.addClient("Bo");
-	game.sayMap();
+	game.sayState({ 0, 1, 2 });
 	LobbyLaunch launch;
 	launch.numPlayers = 3;
 	launch.commanders[0] = 0;
@@ -522,6 +555,103 @@ TEST_CASE("Someone who leaves while loading is not waited for")
 	REQUIRE(game.host.start());
 	game.pump();
 	CHECK(bo.started());
+}
+
+TEST_CASE("If everyone else leaves while loading, there is nobody to play")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	game.sayState({ 0, 1 });
+	LobbyLaunch launch;
+	launch.numPlayers = 2;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	REQUIRE(game.host.launch(launch));
+	game.pump();
+	CHECK_FALSE(game.host.allLeft());
+
+	game.transports[0]->disconnect(ace.serverConnection());
+	game.clients[0].reset();
+	game.pump();
+	CHECK(game.host.allLeft());
+}
+
+TEST_CASE("Nobody has left a lobby that has not launched, or a game with one player")
+{
+	LobbyGame game;
+	CHECK_FALSE(game.host.allLeft());
+	LobbyLaunch launch;
+	launch.numPlayers = 1;
+	launch.commanders[0] = 0;
+	REQUIRE(game.host.launch(launch));
+	CHECK_FALSE(game.host.allLeft());
+}
+
+TEST_CASE("A launch that one client cannot be told of goes ahead for the others")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	netsession::Session& bo = game.addClient("Bo");
+	game.sayState({ 0, 1, 2 });
+	game.network.failSends(ace.serverConnection());
+
+	LobbyLaunch launch;
+	launch.numPlayers = 3;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	launch.commanders[2] = 2;
+	REQUIRE(game.host.launch(launch));
+	game.pump();
+	CHECK(game.host.connectedClients() == 1);
+	CHECK(game.host.numPlayers() == 3);
+	CHECK(bo.launched());
+	CHECK(bo.commander() == 2);
+	CHECK_FALSE(ace.launched());
+
+	// and Bo is not left waiting for Ace
+	game.host.setRosterHash(0x77u);
+	REQUIRE(bo.sendReady(0x77u));
+	game.pump();
+	CHECK(game.host.allReady());
+	game.host.start();
+	game.pump();
+	CHECK(bo.started());
+}
+
+TEST_CASE("A client does not follow a launch other than what the state said")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	game.addClient("Bo");
+	game.sayState({ 0, 1, 2 });	// three in the state, and two in the launch: Bo is left out
+	game.transports[1]->disconnect(game.clients[1]->serverConnection());
+	game.clients[1].reset();
+	game.pump();
+
+	LobbyLaunch launch;
+	launch.numPlayers = 2;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	REQUIRE(game.host.launch(launch));
+	game.pump();
+	CHECK_FALSE(ace.launched());
+}
+
+TEST_CASE("A client does not follow a launch that makes it the host")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	game.sayState({ 0, 1 });
+	// what the host's own launch() refuses, from a host that does not
+	LobbyLaunch launch;
+	launch.numPlayers = 2;
+	launch.commanders[0] = 1;
+	launch.commanders[1] = 0;
+	std::vector<uint8_t> out;
+	REQUIRE(encode(launch, out));
+	REQUIRE(game.hostTransport->send(ace.serverConnection(), gos_net::Delivery::ReliableOrdered, out.data(), out.size()));
+	game.pump();
+	CHECK_FALSE(ace.launched());
 }
 
 TEST_CASE("A launch with no map heard is no launch")
