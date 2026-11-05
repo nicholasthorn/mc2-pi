@@ -29,12 +29,14 @@ public:
 
 	// A player's own choice, from the network or from this machine. Refused whole if anything
 	// in it is out of range, or the colour is someone else's. Ready only sticks with the map's
-	// hash, so nobody can be ready on a map they lack.
+	// hash, so nobody can be ready on a map they lack, and in answer to the latest map and
+	// settings, so a ready on its way as the host changes them does not count for the new ones.
 	bool applyChoice(uint8_t slot, const netwire::LobbyChoice& choice);
 
-	// The host's. Each takes everyone's ready back: they agreed to something else.
-	void setMap(const std::string& map, uint32_t mapHash);
-	void setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags);
+	// The host's. Each takes everyone's ready back: they agreed to something else. False, with
+	// nothing changed, for what a state could not carry to the clients.
+	bool setMap(const std::string& map, uint32_t mapHash);
+	bool setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags);
 
 	// The host's own place needs no ready: starting is its say. If not, why not.
 	bool canStart(std::string* why = nullptr) const;
@@ -52,7 +54,7 @@ private:
 	void clearReady();
 
 	netwire::LobbyState state_;
-	uint32_t mapHash_ = 0;
+	uint32_t readyFrom_ = 0;	// the revision of the last change that took ready back
 };
 
 }

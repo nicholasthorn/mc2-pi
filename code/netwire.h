@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 8;
+constexpr uint16_t PROTOCOL_VERSION = 9;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -220,6 +220,7 @@ struct LobbyState {
 	uint32_t revision = 0;		// a different one is a change
 	uint8_t maxPlayers = 0;		// 1 to MAX_PLAYERS, and no fewer than are in it
 	std::string map;			// a mission's file name; empty until one is chosen
+	uint32_t mapHash = 0;		// of the map as the host has it: a client can tell it has another
 	int32_t timeLimit = NO_TIME_LIMIT;	// seconds
 	int32_t resourcePoints = 0;
 	uint16_t flags = 0;			// LobbyFlags
@@ -228,6 +229,7 @@ struct LobbyState {
 
 // client to host
 struct LobbyChoice {
+	uint32_t revision = 0;		// of the state this answers: a ready is for what that state said
 	uint8_t team = 0;
 	uint8_t baseColor = 0;
 	uint8_t stripeColor = 0;

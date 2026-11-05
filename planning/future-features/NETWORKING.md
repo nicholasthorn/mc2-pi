@@ -636,12 +636,16 @@ In slices, as it is large: finding a game and the data check first, then the lob
 - **The lobby's protocol:** `code/netlobby.*` holds the rules with no game in it: who is in, teams, colours, map, settings, ready, and whether a game can
   start. `netwire` has `LobbyState` (host to clients, the whole of it on any change), `LobbyChoice` (a client's own part) and `LobbyLaunch`. `netsession`
   has a lobby mode: players come and go up to a limit, and launch renumbers them from 0, as a gap left by someone leaving is more than the game takes.
-  A client reports the hash of the chosen map as it has it, and cannot be ready on another. Unit tested on the loopback.
+  A client reports the hash of the chosen map as it has it, and cannot be ready on another; the state says the host's, so a client can tell at once. A ready
+  answers one revision of the state, so one on its way as the host changes the settings does not count for the new ones. A map's name cannot be a path. Someone
+  who leaves while loading is not waited for: their units stay, as for someone who leaves in play. Unit tested on the loopback.
 - **A lobby with nobody at the screen:** `-netlobby` on both ends goes through it for real. The host takes `-mission` and `-nethost N`, a client needs
   no mission and learns it from the host, everyone is ready as soon as they can be, and the game launches when all N are in. Between two processes,
-  on x64 desktop GL. The screens, mech selection and the main menu's button are the next slices.
+  on x64 desktop GL, also with a host that calls its client (`-netcall`, `-netjoin wait`). The screens, mech selection and the main menu's button are the next slices.
 - **Left for the lobby:** `netGameEnded` and other statics in `multplyr.cpp` hold for the process, so a second game in one needs them reset. The
   Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
+- **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
+  look on the units. A client with another copy of a map stops with a message naming it, which no run has reached, as a game directory's maps are in its FST.
 - **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.
 - **The data check:** `Hello` now carries a hash of the mission, `object2.pak` and `gamesys.fit`, where it had only the mission's name, so other
   data is refused when joining. It does not cover the whole mod set, as the mission's art and scripts are not in it.

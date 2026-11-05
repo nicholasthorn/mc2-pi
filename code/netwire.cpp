@@ -212,10 +212,17 @@ uint32_t hashBytes(uint32_t hash, const void* data, size_t size)
 	return hash;
 }
 
+// A map's name goes into a path on the machine that receives it: a file name, and nothing that
+// leads out of the missions.
+static bool validMapName(const std::string& name)
+{
+	return validName(name) && name.find_first_of("/\\:") == std::string::npos && name.find("..") == std::string::npos;
+}
+
 static bool validAnnounce(const LanAnnounce& m)
 {
 	return m.gamePort != 0 && m.maxPlayers >= 1 && m.maxPlayers <= MAX_PLAYERS && m.numPlayers <= m.maxPlayers
-		&& validName(m.name) && validName(m.map) && !m.map.empty();
+		&& validName(m.name) && validMapName(m.map) && !m.map.empty();
 }
 
 bool encode(const LanQuery& m, std::vector<uint8_t>& out)
@@ -293,7 +300,7 @@ bool decode(const void* data, size_t size, LanAnnounce& m)
 static bool validLobbyState(const LobbyState& m)
 {
 	if (m.maxPlayers < 1 || m.maxPlayers > MAX_PLAYERS || m.players.size() > m.maxPlayers
-		|| !validName(m.map) || m.timeLimit < NO_TIME_LIMIT || m.resourcePoints < 0 || (m.flags & ~LOBBY_ALL_FLAGS) != 0)
+		|| !validMapName(m.map) || m.timeLimit < NO_TIME_LIMIT || m.resourcePoints < 0 || (m.flags & ~LOBBY_ALL_FLAGS) != 0)
 		return false;
 	bool slotTaken[MAX_PLAYERS] = {};
 	for (const LobbyPlayer& player : m.players) {
@@ -316,6 +323,7 @@ bool encode(const LobbyState& m, std::vector<uint8_t>& out)
 	w.u8(m.maxPlayers);
 	w.u8(static_cast<uint8_t>(m.map.size()));
 	w.bytes(m.map.data(), m.map.size());
+	w.u32(m.mapHash);
 	w.u32(static_cast<uint32_t>(m.timeLimit));
 	w.u32(static_cast<uint32_t>(m.resourcePoints));
 	w.u16(m.flags);
@@ -343,6 +351,7 @@ bool decode(const void* data, size_t size, LobbyState& m)
 	m.maxPlayers = in.u8();
 	if (!readShortText(in, m.map))
 		return false;
+	m.mapHash = in.u32();
 	m.timeLimit = static_cast<int32_t>(in.u32());
 	m.resourcePoints = static_cast<int32_t>(in.u32());
 	m.flags = in.u16();
@@ -379,6 +388,7 @@ bool encode(const LobbyChoice& m, std::vector<uint8_t>& out)
 		return false;
 	Writer w(out);
 	w.u8(static_cast<uint8_t>(MessageType::LobbyChoice));
+	w.u32(m.revision);
 	w.u8(m.team);
 	w.u8(m.baseColor);
 	w.u8(m.stripeColor);
@@ -394,6 +404,7 @@ bool decode(const void* data, size_t size, LobbyChoice& m)
 	Reader in(data, size);
 	if (!expectType(in, MessageType::LobbyChoice))
 		return false;
+	m.revision = in.u32();
 	m.team = in.u8();
 	m.baseColor = in.u8();
 	m.stripeColor = in.u8();

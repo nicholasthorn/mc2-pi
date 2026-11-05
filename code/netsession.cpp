@@ -73,8 +73,8 @@ bool Session::launch(const LobbyLaunch& launch)
 	}
 	if (here != launch.numPlayers)
 		return false;
-	if (!sendAll(Delivery::ReliableOrdered, message))
-		return false;
+	// Not false if one could not be told: the others have been, and are on their way to loading.
+	sendAll(Delivery::ReliableOrdered, message);
 	std::fill(commanderTaken_, commanderTaken_ + MAX_PLAYERS, false);
 	commanderTaken_[0] = true;
 	for (Client& client : clients_)
@@ -370,6 +370,9 @@ void Session::handleClient(const Event& event)
 			LobbyLaunch launch;
 			if (!joined_ || launched_ || !decode(event.data.data(), event.data.size(), launch))
 				break;
+			// a launch with no map to load is not a game (a host always says the map first)
+			if (!hasLobbyState_ || lobbyState_.map.empty())
+				break;
 			// a host that leaves this player out has nothing for it to play
 			if (launch.commanders[commander_] == NO_COMMANDER) {
 				rejected_ = RejectReason::GameFull;
@@ -424,7 +427,9 @@ bool Session::allJoined() const
 
 bool Session::allReady() const
 {
-	if (!allJoined())
+	// After a launch nobody can take a place that comes free, and everyone has the units of
+	// whoever left while loading: they stay, as for someone who leaves in play.
+	if (!launched_ && !allJoined())
 		return false;
 	for (const Client& client : clients_)
 		if (client.hello && !client.ready)

@@ -72,6 +72,11 @@ TEST_CASE("LanAnnounce: what no game announces is refused")
 	a = someGame();
 	a.map = "";
 	CHECK_FALSE(encode(a, out));
+	for (const char* path : { "../../secret", "a/b", "a\\b", "c:map", ".." }) {
+		a = someGame();
+		a.map = path;
+		CHECK_FALSE(encode(a, out));
+	}
 	a = someGame();
 	a.name = std::string(MAX_NAME_LENGTH + 1, 'x');
 	CHECK_FALSE(encode(a, out));

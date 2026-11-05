@@ -25,6 +25,7 @@ LobbyChoice readyOn(const Lobby& lobby, uint8_t slot, uint32_t mapHash = MAP_HAS
 	const LobbyPlayer* player = lobby.player(slot);
 	REQUIRE(player);
 	LobbyChoice choice;
+	choice.revision = lobby.state().revision;
 	choice.team = player->team;
 	choice.baseColor = player->baseColor;
 	choice.stripeColor = player->stripeColor;
@@ -151,6 +152,39 @@ TEST_CASE("Lobby: changing the map or the settings takes everyone's ready back")
 	CHECK_FALSE(lobby.player(1)->ready);
 }
 
+TEST_CASE("Lobby: a ready on its way as the settings change does not count for the new ones")
+{
+	Lobby lobby = twoPlayers();
+	const LobbyChoice sent = readyOn(lobby, 1);	// answering the state as it was
+	lobby.setSettings(600, 1000, 0);
+	CHECK(lobby.applyChoice(1, sent));
+	CHECK_FALSE(lobby.player(1)->ready);
+	// the answer to the new state does
+	CHECK(lobby.applyChoice(1, readyOn(lobby, 1)));
+	CHECK(lobby.player(1)->ready);
+	// and a change of someone else's keeps it, as they agreed to the same map and settings
+	REQUIRE(lobby.addPlayer(2, "Bo"));
+	CHECK(lobby.applyChoice(2, readyOn(lobby, 2)));
+	CHECK(lobby.player(1)->ready);
+	CHECK(lobby.player(2)->ready);
+}
+
+TEST_CASE("Lobby: a map or settings that no state could carry are refused, and change nothing")
+{
+	Lobby lobby = twoPlayers();
+	REQUIRE(lobby.applyChoice(1, readyOn(lobby, 1)));
+	const uint32_t last = lobby.state().revision;
+	CHECK_FALSE(lobby.setMap("../../secret", MAP_HASH));
+	CHECK_FALSE(lobby.setMap("100%", MAP_HASH));
+	CHECK_FALSE(lobby.setSettings(-2, 0, 0));
+	CHECK_FALSE(lobby.setSettings(600, -1, 0));
+	CHECK(lobby.state().map == "mc2_m08");
+	CHECK(lobby.state().revision == last);
+	CHECK(lobby.player(1)->ready);
+	std::vector<uint8_t> out;
+	CHECK(encode(lobby.state(), out));
+}
+
 TEST_CASE("Lobby: a game can start with a map, two sides, and everyone ready")
 {
 	Lobby lobby(4);
@@ -209,6 +243,7 @@ TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 	CHECK(state.revision == lobby.state().revision);
 	CHECK(state.maxPlayers == 4);
 	CHECK(state.map == "mc2_m08");
+	CHECK(state.mapHash == MAP_HASH);
 	CHECK(state.timeLimit == 600);
 	CHECK(state.resourcePoints == 3000);
 	CHECK(state.flags == (LOBBY_AIRSTRIKE | LOBBY_MINELAYER));
@@ -218,6 +253,7 @@ TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 	CHECK(state.players[1].team == lobby.player(1)->team);
 
 	LobbyChoice choice;
+	choice.revision = 77;
 	choice.team = 3;
 	choice.baseColor = 4;
 	choice.stripeColor = 5;
@@ -226,6 +262,7 @@ TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 	REQUIRE(encode(choice, out));
 	LobbyChoice backChoice;
 	REQUIRE(decode(out.data(), out.size(), backChoice));
+	CHECK(backChoice.revision == 77);
 	CHECK(backChoice.team == 3);
 	CHECK(backChoice.baseColor == 4);
 	CHECK(backChoice.stripeColor == 5);
@@ -278,6 +315,9 @@ TEST_CASE("Lobby messages: what no game sends is refused, whole or cut short")
 	state.map = "bad%map";
 	CHECK_FALSE(encode(state, out));
 	state = good;
+	state.map = "../../secret";
+	CHECK_FALSE(encode(state, out));
+	state = good;
 	state.timeLimit = -2;
 	CHECK_FALSE(encode(state, out));
 	state = good;
@@ -322,6 +362,16 @@ struct LobbyGame {
 	LobbyGame(uint8_t maxPlayers = 4)
 	{
 		REQUIRE(host.hostLobby(PORT, maxPlayers, DATA_HASH));
+	}
+
+	// the map, which a launch needs a client to have heard
+	void sayMap()
+	{
+		Lobby lobby(4);
+		REQUIRE(lobby.addPlayer(0, "Host"));
+		REQUIRE(lobby.setMap("mc2_m08", MAP_HASH));
+		REQUIRE(host.sendLobbyState(lobby.state()));
+		pump();
 	}
 
 	netsession::Session& addClient(const char* name = "Ace", uint32_t hash = DATA_HASH)
@@ -410,6 +460,7 @@ TEST_CASE("Launch renumbers around whoever left, and the game goes on from there
 	game.transports[0]->disconnect(ace.serverConnection());
 	game.clients[0].reset();
 	game.pump();
+	game.sayMap();
 
 	LobbyLaunch launch;
 	launch.numPlayers = 2;
@@ -442,6 +493,48 @@ TEST_CASE("Launch renumbers around whoever left, and the game goes on from there
 	netsession::Received received;
 	REQUIRE(game.host.nextBatch(received));
 	CHECK(received.commander == 1);
+}
+
+TEST_CASE("Someone who leaves while loading is not waited for")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	netsession::Session& bo = game.addClient("Bo");
+	game.sayMap();
+	LobbyLaunch launch;
+	launch.numPlayers = 3;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	launch.commanders[2] = 2;
+	REQUIRE(game.host.launch(launch));
+	game.pump();
+	REQUIRE(bo.launched());
+
+	game.host.setRosterHash(0x77u);
+	REQUIRE(bo.sendReady(0x77u));
+	game.pump();
+	CHECK_FALSE(game.host.allReady());	// Ace is still loading
+
+	game.transports[0]->disconnect(ace.serverConnection());
+	game.clients[0].reset();
+	game.pump();
+	CHECK(game.host.allReady());
+	REQUIRE(game.host.start());
+	game.pump();
+	CHECK(bo.started());
+}
+
+TEST_CASE("A launch with no map heard is no launch")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	LobbyLaunch launch;
+	launch.numPlayers = 2;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	REQUIRE(game.host.launch(launch));
+	game.pump();
+	CHECK_FALSE(ace.launched());
 }
 
 TEST_CASE("After launch nobody else gets in")

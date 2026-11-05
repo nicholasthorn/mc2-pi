@@ -63,7 +63,8 @@ public:
 	bool sendLobbyState(const netwire::LobbyState& state);
 	bool nextLobbyEvent(LobbyEvent& out);
 	// Ends the lobby and renumbers everyone. False if it does not match who is here, or if the
-	// host is not commander 0, which the game takes for granted.
+	// host is not commander 0, which the game takes for granted. Whoever is too far behind to
+	// be told is dropped, as anyone can be; the game goes on with the rest.
 	bool launch(const netwire::LobbyLaunch& launch);
 
 	// Client. False if the connection could not even be started.

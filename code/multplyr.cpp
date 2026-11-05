@@ -731,6 +731,20 @@ void MultiPlayer::joinNetGame (const char* address, unsigned short port, const c
 
 //---------------------------------------------------------------------------
 
+// What the wire checks is what these tables hold.
+static_assert(netwire::MAX_LOBBY_COLORS == MAX_COLORS, "a lobby's colour indexes MultiPlayer::colors");
+static_assert(netwire::MAX_PLAYERS == MAX_MC_PLAYERS, "a lobby's slot and commander index playerInfo");
+
+// The screens fill MultiPlayer::colors from their layout (MPPrefs::initColors). A lobby with no
+// screens has these, or every unit would be black whatever colour its player has.
+static void netFillColors (void) {
+
+	static const unsigned long colors[] = {0xFFC02020, 0xFF2040C0, 0xFF20A040, 0xFFC0A020, 0xFF8030A0, 0xFF20A0A0, 0xFFC06020, 0xFFA0A0A0};
+	const long count = sizeof(colors) / sizeof(colors[0]);
+	for (long i = 0; i < MAX_COLORS; i++)
+		MultiPlayer::colors[i] = (long)colors[i % count];
+}
+
 // What a player is called, as a message can carry it and the game can hold it.
 static std::string netPlayerName (void) {
 
@@ -806,7 +820,7 @@ static void netApplyLobby (MultiPlayer* player, const netwire::LobbyState& state
 
 //---------------------------------------------------------------------------
 
-void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char* missionName) {
+void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char* missionName, const char* dialAddress, unsigned short dialPort) {
 
 	if (!missionName || !missionName[0])
 		Fatal(0, " -netlobby: a host needs -mission ");
@@ -815,7 +829,8 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 	if (!netTransport)
 		Fatal(0, (std::string(" -netlobby: no network: ") + error).c_str());
 	netSession.reset(new netsession::Session(*netTransport));
-	if (!port)
+	// one who dials need not listen too, as for a game with no lobby
+	if (!port && !dialAddress)
 		port = netsession::DEFAULT_PORT;
 	if (!netSession->hostLobby(port, (uint8_t)maxPlayers, netDataHash(NULL)))
 		Fatal(port, " -netlobby: cannot listen on this port ");
@@ -826,14 +841,28 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 	netlobby::Lobby lobby((uint8_t)maxPlayers);
 	if (!lobby.addPlayer(0, netPlayerName()))
 		Fatal(0, " -netlobby: cannot add the host ");
-	lobby.setMap(missionName, netMapHash(missionName));
-	lobby.setSettings((int32_t)missionSettings.timeLimit, (int32_t)missionSettings.resourcePoints, netLobbyFlags(missionSettings));
+	if (!lobby.setMap(missionName, netMapHash(missionName)))
+		Fatal(0, " -netlobby: this map's name cannot be sent ");
+	// anything under nothing is no time limit, in a map's own data too
+	const int32_t timeLimit = (missionSettings.timeLimit < 0.0f) ? netwire::NO_TIME_LIMIT : (int32_t)missionSettings.timeLimit;
+	if (!lobby.setSettings(timeLimit, (int32_t)missionSettings.resourcePoints, netLobbyFlags(missionSettings)))
+		Fatal(0, " -netlobby: this map's settings cannot be sent ");
+	netFillColors();
 	printf("[NET] lobby for %s on port %d, for %ld players\n", missionName, (int)port, maxPlayers);
 	fflush(stdout);
-	netStartBeacon(port, maxPlayers, missionName);
+	// not one who dials: nobody could reach this end in any case
+	if (port && !dialAddress)
+		netStartBeacon(port, maxPlayers, missionName);
 
 	uint32_t sentRevision = lobby.state().revision - 1;
+	double nextDial = 0.0;
 	const bool everyone = netWait([&]() {
+		// a client may not be listening yet, and a dial with nobody there gives up in about 10 s
+		if (dialAddress && (netNow() >= nextDial)) {
+			nextDial = netNow() + 15.0;
+			if (!netSession->dialClient(dialAddress, dialPort))
+				Fatal(0, " -netcall: needs an IP address ");
+		}
 		netsession::LobbyEvent event;
 		while (netSession->nextLobbyEvent(event)) {
 			switch (event.type) {
@@ -851,7 +880,10 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 		}
 		if (lobby.state().revision != sentRevision) {
 			sentRevision = lobby.state().revision;
-			netSession->sendLobbyState(lobby.state());
+			if (!netSession->sendLobbyState(lobby.state())) {
+				printf("[NET] the lobby's state did not reach everyone\n");
+				fflush(stdout);
+			}
 		}
 		netUpdateBeacon();
 		return (lobby.state().players.size() == (size_t)maxPlayers) && lobby.canStart();
@@ -908,11 +940,15 @@ void MultiPlayer::joinNetLobby (const char* address, unsigned short port, char* 
 		if (state.map != hashedMap) {
 			hashedMap = state.map;
 			mapHash = state.map.empty() ? 0 : netMapHash(state.map.c_str());
+			// the host would never take this one's ready, and neither would know why
+			if (!state.map.empty() && (mapHash != state.mapHash))
+				Fatal(0, (std::string(" -netjoin: this machine has no copy of ") + state.map + ", or another version of it ").c_str());
 		}
 		// as soon as it can be: this is the lobby with nobody at the screen
 		for (const netwire::LobbyPlayer& me : state.players)
 			if ((me.slot == netSession->commander()) && !me.ready) {
 				netwire::LobbyChoice choice;
+				choice.revision = state.revision;
 				choice.team = me.team;
 				choice.baseColor = me.baseColor;
 				choice.stripeColor = me.stripeColor;
@@ -931,6 +967,7 @@ void MultiPlayer::joinNetLobby (const char* address, unsigned short port, char* 
 	if (state.map.size() >= missionNameSize)
 		Fatal(0, " -netjoin: the map's name is too long ");
 	strcpy(missionName, state.map.c_str());
+	netFillColors();
 	startLocalHost(netSession->numPlayers());
 	inSession = true;
 	netReadMissionSettings(this, missionName);
