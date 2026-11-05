@@ -67,6 +67,28 @@ the worker uses node heights refreshed just before it starts.
 Running the same split on idle frames on the main thread needs only step 6 and
 has no races, but a burst has to fit about 6.5 ms per frame.
 
+### Built (branch `perf/vr-path-worker`)
+
+One thread, one batch of paths at a time, in VR only (`gos_PathsOnWorker`;
+`MC2_PATH_WORKER=0` or `1` overrides it). A step queues its paths, `startWorker` runs
+them after the step, and `finishWorker` waits before anything of the next step. The
+next step does not hold a frame up: with the worker still busy, the frame only draws
+and the step comes a frame or two later (`gos_GameStepHeldBack`).
+
+What had to change for it: the line-of-sight probe in `calcMoveGoal` no longer moves
+the unit (`losProbePosition`); on the worker `getLOSPosition` reads heights
+`startWorker` refreshed for every mover and turret; radio messages wait for the main
+thread; the heap stack is per thread. The last step of a mission starts no worker.
+
+ThreadSanitizer, 1,500 frames with the worker on: 0 reports touch path-finding, 16
+before the fix. 226 others do not involve it (mostly texture create and unlock) and
+are not reviewed one by one. Nothing in CI runs the worker, as it needs a headset or
+`MC2_PATH_WORKER=1`.
+
+Next limit: under `bench/mc2_19_heavy.fit` the game steps about 21 times a second,
+because path-finding itself takes about 50 ms in bursts. The pathfinder is the next
+target, not the threading.
+
 ## Option B: logic on its own thread
 
 **Large.** Not one blocker but the whole seam, with four hard parts.
@@ -115,13 +137,75 @@ With a step's `frameLength` and a 72 Hz render, those timers ran about 2.4 times
 too fast in VR (inferred, not observed). The interface now redrawing at about step
 rate should bring them close.
 
+## Step 3 design: the retained mesh list
+
+Status: built and measured on the Quest 2 (about 0.15 ms saved in `world_objects`); `MC2_MESH_LIST=0` turns it off. This section is the design as written before that. Instancing, which the list makes possible, is not built.
+
+**Moving transforms alone buys nothing on one thread.** A step frame must fit
+logic, render and present into one 13.9 ms slot. Work moved from logic into that
+frame's render still lands in the same slot. It only helps if it can run in a later
+frame, and today it cannot: `clearArrays` empties the texture manager's reservations
+at the start of the step, and the step refills them, so the step frame has to draw
+what that step built.
+
+**What is worth building instead:** the VR mesh path already has a snapshot.
+`TG_RenderShape` holds the buffers, world matrix, lights and alpha, and only `mvp` and
+the viewport depend on the eye. Today each eye rebuilds it by walking
+`ObjectManager->render`, through appearances and `TG_MultiShape::Render` down to
+`TG_Shape::Render`, which costs most of `world_objects` (1.65 ms a frame on the Quest)
+and is repeated on all of the 2 or 3 frames per step that draw the same state.
+
+The design:
+
+1. **Build once per step.** Where `MultiTransformShape` reserves today (`tgl.cpp:2577`),
+   append a record to a mesh instance list: buffers, declaration, `shapeToWorld`,
+   lights, alpha, texture node, flags. It needs no vertex loop (step 2).
+2. **Draw from the list.** Each eye walks the list and works out `mvp` from
+   `shapeToWorld` and its own view-projection. `TG_MultiShape::Render` returns early
+   for shapes on the list, so `ObjectManager->render` is left with only what is not a
+   mesh: bolts, effects, bars.
+3. **Sort within a texture node by vertex buffer,** so copies of a shape sit together.
+4. **Instance them.** Draw each run with `glDrawElementsInstanced` and per-instance
+   matrices. This is what should let unit counts grow, because cost then follows the
+   number of shape types, not the number of units. Desktop GL 4.0 and GLES 3.1 both
+   have it, but `gos_tex_vertex_lighted.vert` would need per-instance inputs, and each
+   instance's lights and alpha have to travel with it.
+
+Cases that need care:
+
+- **forceZ and HUD shapes** (the compass) draw per eye with their own matrix: leave
+  them on the old path.
+- **Stale records:** a list holds buffers until the next step, so a destroyed object's
+  shape must not free them first. Check the shape lifetimes in object removal.
+- **Pause:** `updateAppearancesOnly` must still build the list.
+- **`refreshTextures`:** `TG_MultiShape::Render` writes texture handles into shared type
+  data (`msl.cpp:1733`). Handle mechs' per-instance paint in the record, and watch cache
+  misses, which can create textures.
+- **Interface cameras** (`eye->drawsToInterface`, the mech view in menus) stay on the
+  old path, as `vrMeshPath` already separates them.
+
+**Why this serves step 4:** the list is the snapshot a render thread needs for meshes.
+With a second list and a swap, the logic thread fills one while the render thread draws
+the other.
+
+**Terrain, later:** `land->geometry` is 0.4 ms per step and `projectForEye` redoes
+every vertex per eye (`Camera::projectZ` is high in the headset profile). A static
+vertex buffer of elevations with per-eye projection in a shader would remove that,
+leaving lighting and fog in the step. Its cost grows with the terrain window, so this
+matters most for bigger maps. It changes how terrain draws, so it is its own piece of
+work.
+
+**Texture cache spikes:** `terrain_geom` is under 1 ms up to the 98th percentile but
+11.7 ms at the 99.5th, probably a cache miss decoding and uploading a texture (inferred).
+A small per-frame upload budget in idle frames would flatten those, and the same queue
+is what a logic thread needs to reach GL.
+
 ## Order
 
 1. Option A, with ThreadSanitizer on a desktop `MC2_VR_PATHS=1` run.
 2. Skip the per-vertex loop in `MultiTransformShape` for GPU meshes where nothing
    reads the result. Picking reads screen vertices, so that is the catch.
-3. Move transforms and terrain geometry to the render side, from a small snapshot,
-   which also unpicks the first two rows of the table above.
+3. The retained mesh list above, then instancing.
 4. Decide on the rest of B from what 1 to 3 measure. By the averages above, 1 and 2
    bring bad frames to about 6.5 ms of logic, which roughly fits the budget. Step 4
    may then be for robustness, plus interpolation, more than speed.

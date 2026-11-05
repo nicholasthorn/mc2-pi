@@ -3105,6 +3105,14 @@ bool __stdcall gos_VRHudDue()
     return gos_xr::hudDue();
 }
 
+bool __stdcall gos_PathsOnWorker()
+{
+    static const char* forced = getenv("MC2_PATH_WORKER");
+    if(forced)
+        return forced[0] == '1';
+    return gos_xr::logicStep() > 0.0;
+}
+
 bool __stdcall gos_VRHudResting()
 {
     return gos_xr::hudResting();

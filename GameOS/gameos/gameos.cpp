@@ -1,3 +1,4 @@
+#include <atomic>
 #include "gameos.hpp"
 #include "toolos.hpp"
 #include "memorymanager.hpp" // gos_Heap
@@ -130,8 +131,8 @@ double __stdcall gos_GetHiResTime()
 ////////////////////////////////////////////////////////////////////////////////
 
 static const int g_hepsStackSize = 128;
-static gos_Heap* g_heapsStack[g_hepsStackSize];
-static int g_heapStackPointer = -1;
+static thread_local gos_Heap* g_heapsStack[g_hepsStackSize];
+static thread_local int g_heapStackPointer = -1;
 
 ////////////////////////////////////////////////////////////////////////////////
 HGOSHEAP __stdcall gos_CreateMemoryHeap(char const* HeapName, DWORD MaximumSize/* = 0*/, HGOSHEAP parentHeap/* = ParentClientHeap*/)
@@ -309,6 +310,18 @@ void __stdcall gos_BenchStageStop(int id)
 {
     if(id >= 0 && id < (int)frame_stats::kMaxStages)
         g_bench_stage_ms[id] += timing::ticks2ms(timing::gettickcount() - g_bench_stage_start[id]);
+}
+
+static std::atomic<bool> g_game_step_held_back(false);
+
+void __stdcall gos_SetGameStepHeldBack(bool heldBack)
+{
+    g_game_step_held_back = heldBack;
+}
+
+bool __stdcall gos_GameStepHeldBack()
+{
+    return g_game_step_held_back;
 }
 
 float __stdcall gos_GetBenchFOV()
