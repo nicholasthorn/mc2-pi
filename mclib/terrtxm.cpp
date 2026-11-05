@@ -32,6 +32,10 @@
 #include"tgainfo.h"
 #endif
 
+#ifndef TXMCACHENAME_H
+#include"txmcachename.h"
+#endif
+
 #ifndef TERRAIN_H
 #include"terrain.h"
 #endif
@@ -1151,6 +1155,10 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 	long result = -1;
 	long txmResult = 0;
 
+	// What a transition's image is depends on this, so the cache file name does
+	// too (txmcachename.h)
+	const bool hasColorMap = (Terrain::terrainTextures2 != NULL);
+
 	if (nextTransition < MAX_MC2_TRANSITIONS)
 	{
 		//------------------------------------------------------
@@ -1180,13 +1188,20 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 		if (quickLoad)
 		{
 			char nameData[256];
-			sprintf(nameData,"%08u.%08u.txm",typeInfo,overlayInfo);
+			txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap);
 
 			FullPathFileName testPath;
 			testPath.init(texturePath,nameData,"");
 
 			File txmFile;
 			long fr = txmFile.open(testPath);
+			if ((fr != NO_ERR) && !hasColorMap)
+			{
+				// Caches an old-universe mod shipped under the plain name
+				txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,true);
+				testPath.init(texturePath,nameData,"");
+				fr = txmFile.open(testPath);
+			}
 			if (fr == NO_ERR)
 			{
 				long mipSize = TERRAIN_TXM_SIZE;
@@ -1247,8 +1262,7 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			}
 		}
 
-		// The cache is only written for the color map universe, see below
-		if (!listTransitionFile && Terrain::terrainTextures2)
+		if (!listTransitionFile)
 		{
 			//Check for the magic list and then for all of the textures on the magic list.
 			CreateDirectory(texturePath,NULL);
@@ -1414,46 +1428,31 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			// every time we load?  Should lower load time.  Lets see how big
 			// for all of the textures...
 			//
-			// The name is only (types, overlay) and is shared by every mission,
-			// but what is in the file depends on how this mission composes
-			// terrain: with a color map (every stock mission) the base is a
-			// blank alpha mask and only cement and overlays are drawn into it;
-			// without one it is the old opaque composite of the type textures,
-			// which is not even right when the types are the new ones (some
-			// are "undefined", solid magenta). A mission without a color map
-			// (its terrain named differently from its color map, as a renamed
-			// copy of a stock mission is) used to save that here, over the
-			// stock caches, and every stock mission after it quick-loaded them:
-			// roads and shores drawn in solid magenta. So only a mission with
-			// a color map saves; the others build in memory every load.
-			if (Terrain::terrainTextures2)
+			char nameData[256];
+			txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap);
+
+			FullPathFileName testPath;
+			testPath.init(texturePath,nameData,"");
+
+			if (listTransitionFile)
 			{
-				char nameData[256];
-				sprintf(nameData,"%08u.%08u.txm",typeInfo,overlayInfo);
-
-				FullPathFileName testPath;
-				testPath.init(texturePath,nameData,"");
-
-				if (listTransitionFile)
-				{
-					listTransitionFile->writeString(testPath);
-					listTransitionFile->writeByte(0);
-				}
-
-				MemoryPtr lzBuffer = (MemoryPtr)malloc(mipSize * mipSize * sizeof(DWORD) * 2);
-				long bufferSize = LZCompress(lzBuffer,ourRAM,(mipSize * mipSize * sizeof(DWORD)));
-
-				File txmFile;
-				txmFile.create(testPath);
-				txmFile.write(lzBuffer,bufferSize);
-				txmFile.close();
-				free(lzBuffer);
+				listTransitionFile->writeString(testPath);
+				listTransitionFile->writeByte(0);
 			}
+
+			MemoryPtr lzBuffer = (MemoryPtr)malloc(mipSize * mipSize * sizeof(DWORD) * 2);
+			long bufferSize = LZCompress(lzBuffer,ourRAM,(mipSize * mipSize * sizeof(DWORD)));
+
+			File txmFile;
+			txmFile.create(testPath);
+			txmFile.write(lzBuffer,bufferSize);
+			txmFile.close();
 				
 			if (kmp == 0)
 				txmResult = result;
 
 			tileRAMHeap->Free(ourRAM);
+			free(lzBuffer);
 		}
 
 		transitions[nextTransition].transitionIndex = typeInfo;
