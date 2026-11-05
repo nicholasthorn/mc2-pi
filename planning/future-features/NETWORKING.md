@@ -660,7 +660,7 @@ Not settled by phase 2, against its exit criterion:
 - **Sound, effects and movement on the client have not been looked at.** The check covers armour,
   status and position.
 - Not sent, and left so: a gate. Each machine opens its own by what it sees nearby, and only the host
-  decides what a closing gate crushes, so the two may differ for a moment; no stock map has one to test it on.
+  decides what a closing gate crushes, so the two may differ for a moment; no test has had one, and which stock maps have one has not been checked.
 - `TACTICAL_ORDER_RECOVER`, the old order, is dead code in the game and is refused. Recovery is the Karnov.
 - A mission script's result is not sent, which matters for co-op (phase 4b).
 - A client that leaves is not replaced, and a host that leaves ends the game for the client.
