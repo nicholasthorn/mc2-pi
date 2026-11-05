@@ -1866,7 +1866,7 @@ inline bool GameObject::lineOfSight (GameObjectPtr target, float startExtRad, bo
 	}
 
 	Stuff::Vector3D distance;
-	distance.Subtract(target->getPosition(),getPosition());
+	distance.Subtract(target->getPosition(),getLOSBasePosition());
 	float dist = distance.GetApproximateLength();
 
 	//Figure out altitude above minimum terrain altitude and look up in table.

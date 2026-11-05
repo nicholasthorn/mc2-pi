@@ -24,6 +24,8 @@
 #include"mover.h"
 #endif
 
+#include"movemgr.h"
+
 #ifndef MOVE_H
 #include"move.h"
 #endif
@@ -3459,7 +3461,11 @@ bool Mover::hasWeaponNode (void)
 Stuff::Vector3D Mover::getLOSPosition (void)
 {
 	float jumpLowestNode = 0.0f;
-	if (appearance)
+	// the worker leaves the appearance to the frames being drawn: startWorker has
+	// just had this run for every mover, so the heights it set are still right
+	if (MovePathManager::onWorker())
+		jumpLowestNode = losJumpLowestNode;
+	else if (appearance)
 	{
 		bool oldInView = appearance->canBeSeen();
 		appearance->setInView(true);
@@ -3498,9 +3504,11 @@ Stuff::Vector3D Mover::getLOSPosition (void)
 		}
 
 		appearance->setInView(oldInView);
+		losJumpLowestNode = jumpLowestNode;
 	}
 
-	Stuff::Vector3D losPos = position;
+	const Stuff::Vector3D& losBase = losProbing ? losProbePosition : position;
+	Stuff::Vector3D losPos = losBase;
 	if (lowestWeaponNodeZ != -9999.9f)
 		losPos.z += lowestWeaponNodeZ;
 	else
@@ -3508,7 +3516,7 @@ Stuff::Vector3D Mover::getLOSPosition (void)
 
 	if (jumpLowestNode > 0.0f)
 	{
-		losPos = position;
+		losPos = losBase;
 		losPos.z += jumpLowestNode;
 	}
 
@@ -4843,9 +4851,10 @@ long Mover::calcMoveGoal (GameObjectPtr target,
 				//start.x = (float)(mapCellUL[1] + curGoalCell[1]) * Terrain::worldUnitsPerCell + Terrain::worldUnitsPerCell / 2 - Terrain::worldUnitsMapSide / 2;
 				//start.y = (Terrain::worldUnitsMapSide / 2) - ((float)(mapCellUL[0] + curGoalCell[0]) * Terrain::worldUnitsPerCell) - Terrain::worldUnitsPerCell / 2;
 				start.z = land->getTerrainElevation(start)/* + 25.0f*/;		//For that matter, so do we!
-				position = start;
-				cellPositionRow = curGoalCell[0];
-				cellPositionCol = curGoalCell[1];
+				// would we see it from here? Only line of sight reads this: moving the
+				// unit itself would show, as frames draw while the path worker runs
+				losProbePosition = start;
+				losProbing = true;
 				__int64 lstartTime = GetCycles();
                 // sebi
 				//if (goalList[i][1] > -10000) {
@@ -4866,9 +4875,7 @@ long Mover::calcMoveGoal (GameObjectPtr target,
 		MCTimeCalcGoal5Update += (GetCycles() - startTime);
 #endif
 		ObjectManager->useMoverLineOfSightTable = true;
-		position = curMoverPosition;
-		cellPositionRow = curMoverRow;
-		cellPositionCol = curMoverCol;
+		losProbing = false;
 	}
 
 	GameMap->clearCellDebugs(2);

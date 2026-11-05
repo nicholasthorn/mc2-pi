@@ -20,6 +20,9 @@
 #include"warrior.h"
 #endif
 
+#include"objmgr.h"
+#include"turret.h"
+
 #include"gameos.hpp"
 
 #include <condition_variable>
@@ -258,6 +261,21 @@ void MovePathManager::startWorker (void) {
 	if (!workerQueued)
 		return;
 	workerQueued = false;
+	if (!queueFront)
+		return;
+
+	// line of sight on the worker reads these heights, and may ask about any mover
+	for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
+		MoverPtr mover = ObjectManager->getMover(i);
+		if (mover)
+			mover->getLOSPosition();
+	}
+	for (long i = 0; i < ObjectManager->getNumTurrets(); i++) {
+		TurretPtr turret = ObjectManager->getTurret(i);
+		if (turret)
+			turret->getLOSPosition();
+	}
+
 #ifdef USE_PATH_COST_TABLE
 	// as just before the paths without the worker: the step has since changed
 	GlobalMoveMap[0]->resetPathCostTable();

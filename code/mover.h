@@ -1066,6 +1066,13 @@ class Mover : public GameObject {
 		virtual bool hasWeaponNode (void);
 
 		Stuff::Vector3D getLOSPosition (void);
+		// calcMoveGoal's "from here?", and getLOSPosition's height while jumping
+		Stuff::Vector3D		losProbePosition;
+		bool				losProbing = false;
+		float				losJumpLowestNode = 0.0f;
+		virtual Stuff::Vector3D getLOSBasePosition (void) {
+			return(losProbing ? losProbePosition : position);
+		}
 
 		virtual void rotate (float angle);
 
