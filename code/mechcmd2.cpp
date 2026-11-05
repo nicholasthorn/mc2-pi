@@ -2224,11 +2224,23 @@ void __stdcall DoGameLogic()
 				}
 				else if (MPlayer && MPlayer->isNetworked() && (result != mis_PLAYING))
 				{
-					// no lobby to go back to yet
+					// The results, then out: there is no lobby to go back to yet. Someone who
+					// left the game has no results, and nor does a game whose host has gone.
 					printf("[NET] mission over, result %ld\n", result);
 					fflush(stdout);
-					mission->destroy();
-					quitGame = true;
+					if (aborted || MPlayer->hostLeft)
+					{
+						mission->destroy();
+						quitGame = true;
+					}
+					else
+					{
+						MPlayer->logResults();
+						mcTextureManager->flush(true);
+						logistics->start(log_RESULTS);
+						mission->destroy();
+					}
+					aborted = false;
 				}
 				else if (result != mis_PLAYING)
 				{

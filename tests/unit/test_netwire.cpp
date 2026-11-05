@@ -121,16 +121,16 @@ TEST_CASE("Welcome: a refusal at the load barrier")
 	CHECK(back.reject == RejectReason::WrongRoster);
 }
 
-TEST_CASE("ChunkBatch: the check kind is known, the one after it is not")
+TEST_CASE("ChunkBatch: the support kind is known, the one after it is not")
 {
 	ChunkBatch m;
-	m.kind = ChunkKind::Check;
+	m.kind = ChunkKind::Support;
 	m.words = { 1 };
 	std::vector<uint8_t> out;
 	REQUIRE(encode(m, out));
 	ChunkBatch back;
 	REQUIRE(decode(out.data(), out.size(), back));
-	out[1] = static_cast<uint8_t>(ChunkKind::Check) + 1;
+	out[1] = static_cast<uint8_t>(ChunkKind::Support) + 1;
 	CHECK_FALSE(decode(out.data(), out.size(), back));
 }
 
@@ -166,14 +166,74 @@ TEST_CASE("WorldEvent: what does not fit is refused")
 	e.b = 0;
 	e.type = static_cast<WorldEventType>(0);
 	CHECK_FALSE(encodeWorldEvent(e, words));
-	e.type = static_cast<WorldEventType>(8);
+	e.type = static_cast<WorldEventType>(11);
 	CHECK_FALSE(encodeWorldEvent(e, words));
 
 	WorldEvent back;
 	const uint32_t none[WORLD_EVENT_WORDS] = { 0u, 0u };
 	CHECK_FALSE(decodeWorldEvent(none, back));
-	const uint32_t past[WORLD_EVENT_WORDS] = { 8u, 0u };
+	const uint32_t past[WORLD_EVENT_WORDS] = { 11u, 0u };
 	CHECK_FALSE(decodeWorldEvent(past, back));
+}
+
+TEST_CASE("SupportEvent: exact first words and round trip, floats unchanged")
+{
+	SupportEvent e;
+	e.stage = SupportStage::BeginVehicle;
+	e.commander = 3;
+	e.rosterIndex = 0x0102;
+	e.vehicleId = 182;
+	e.cost = 6000;
+	e.x = -1234.5f;
+	e.y = 0.1f;
+	e.z = 77.25f;
+	uint32_t words[SUPPORT_EVENT_WORDS];
+	REQUIRE(encodeSupportEvent(e, words));
+	CHECK(words[0] == 0x01020301u);
+	CHECK(words[1] == 182u);
+	CHECK(words[2] == 6000u);
+
+	SupportEvent back;
+	REQUIRE(decodeSupportEvent(words, back));
+	CHECK(back.stage == e.stage);
+	CHECK(back.commander == e.commander);
+	CHECK(back.rosterIndex == e.rosterIndex);
+	CHECK(back.vehicleId == e.vehicleId);
+	CHECK(back.cost == e.cost);
+	CHECK(back.x == e.x);
+	CHECK(back.y == e.y);
+	CHECK(back.z == e.z);
+}
+
+TEST_CASE("SupportEvent: what no game sends is refused")
+{
+	const SupportEvent good;
+	uint32_t words[SUPPORT_EVENT_WORDS];
+	SupportEvent back;
+
+	SupportEvent e = good;
+	e.commander = MAX_PLAYERS;
+	CHECK_FALSE(encodeSupportEvent(e, words));
+	e = good;
+	e.cost = -1;
+	CHECK_FALSE(encodeSupportEvent(e, words));
+	e = good;
+	e.stage = static_cast<SupportStage>(6);
+	CHECK_FALSE(encodeSupportEvent(e, words));
+
+	// the same on the way in, whatever a sender does
+	const auto refused = [&](size_t word, uint32_t value) {
+		REQUIRE(encodeSupportEvent(good, words));
+		words[word] = value;
+		return !decodeSupportEvent(words, back);
+	};
+	CHECK(refused(0, 7u));				// a stage with no meaning
+	CHECK(refused(0, MAX_PLAYERS << 8));	// no such commander
+	CHECK(refused(1, 0x10000u));			// a vehicle that does not fit
+	CHECK(refused(2, 0x80000000u));		// a negative cost
+	CHECK(refused(3, 0x7F800000u));		// infinite
+	CHECK(refused(4, 0x7FC00000u));		// not a number
+	CHECK(refused(5, 0xFF800000u));
 }
 
 TEST_CASE("Hello: an empty name is fine")

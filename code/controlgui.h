@@ -263,7 +263,11 @@ class ControlGui
 				}
 			}
 		}		
-		void	pressLargeAirstrikeButton() { handleVehicleClick( LARGE_AIRSTRIKE ); }		
+		void	pressLargeAirstrikeButton() { handleVehicleClick( LARGE_AIRSTRIKE ); }
+		void	pressVehicleButton( int ID ) { handleVehicleClick( ID ); }
+		// resource points for a support vehicle's type number or an artillery type; -1 if none
+		static long supportCost( long vehicleTypeID );
+		static long strikeCost( long strikeType );
 		void	pressSensorStrikeButton() 
 		{ 
 			for ( int i = 0; i < LAST_VEHICLE; i++ )

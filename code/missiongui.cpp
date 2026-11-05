@@ -924,6 +924,73 @@ void MissionInterfaceManager::update (void)
 	updateRollovers();
 }
 
+void MissionInterfaceManager::recoverMech(long commanderID, MoverPtr mech)
+{
+	mechToRecover[commanderID] = mech;
+
+	//STAY in recover until its done.  I know it shouldn't be possible but trust me, its happening.
+	while (((MoverPtr)mechToRecover[commanderID])->recover() == false)
+		;
+
+	if (mechToRecover[commanderID]->isDisabled())
+	{
+		mechToRecover[commanderID]->setStatus(OBJECT_STATUS_SHUTDOWN,true);
+		// a mech without a sensor component has no sensor system
+		if (mechToRecover[commanderID]->getSensorSystem())
+			mechToRecover[commanderID]->getSensorSystem()->broken = false;
+		((MoverPtr)mechToRecover[commanderID])->timeLeft = 1.0f;
+		((MoverPtr)mechToRecover[commanderID])->exploding = false;
+	}
+	char* newPilotName = NULL;
+	if (MPlayer)
+		newPilotName = MPlayer->reinforcementPilot[commanderID];
+	else
+		newPilotName = (char*)LogisticsData::instance->getBestPilot( mechToRecover[commanderID]->tonnage );
+
+	// Left over from going down, the next movement update would take the start-up for a fall,
+	// and leave the unit starting up for good.
+	((MoverPtr)mechToRecover[commanderID])->disableThisFrame = false;
+	((MoverPtr)mechToRecover[commanderID])->shutDownThisFrame = false;
+
+	mission->tradeMover(mechToRecover[commanderID], Commander::commanders[commanderID]->getTeam()->getId(), commanderID, newPilotName, "pbrain");
+	mechRecovered[commanderID] = true;
+	// a client's unit powers up when the host's says so
+	if (!MPlayer || MPlayer->isServer())
+		mechToRecover[commanderID]->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
+	if (MPlayer)
+		MPlayer->reinforcements[commanderID][1] = -1;
+}
+
+// The host's flight ended and it has started another, but this machine's is still in the air.
+void MissionInterfaceManager::endVtol(long commanderID)
+{
+	paintingVtol[commanderID] = 0;
+	if (vTol[commanderID])
+	{
+		delete vTol[commanderID];
+		vTol[commanderID] = NULL;
+	}
+	if (dustCloud[commanderID])
+	{
+		dustCloud[commanderID]->Kill();
+		delete dustCloud[commanderID];
+		dustCloud[commanderID] = NULL;
+	}
+	if (recoveryBeam[commanderID])
+	{
+		recoveryBeam[commanderID]->Kill();
+		delete recoveryBeam[commanderID];
+		recoveryBeam[commanderID] = NULL;
+	}
+}
+
+void MissionInterfaceManager::callSupportAt(int buttonID, const Stuff::Vector3D& pos, MoverPtr target)
+{
+	controlGui.pressVehicleButton(buttonID);
+	wPos = pos;
+	beginVtol(-1, Commander::home->getId(), NULL, target);
+}
+
 void MissionInterfaceManager::updateVTol()
 {
 	//We're probably going to use this alot!
@@ -948,13 +1015,14 @@ void MissionInterfaceManager::updateVTol()
 					// Otherwise do nothing?
 					// Help Me, Spock!
 					// -fs
-					if (MPlayer) 
+					if (MPlayer)
 					{
-						if (commanderID == vtolNum)
+						// the host's VTOL decides, as each machine's runs on its own clock
+						if (MPlayer->isServer())
 						{
 							//--------------------------------------------------------
 							// This will get the other machines to enable the mover...
-							MPlayer->sendReinforcement(vehicleID[vtolNum], MPlayer->reinforcements[commanderID][0], "noname", commanderID, vPos[vtolNum], 2);
+							MPlayer->sendReinforcement(vehicleID[vtolNum], MPlayer->reinforcements[vtolNum][0], "noname", vtolNum, vPos[vtolNum], 2);
 						}
 					}
 					else
@@ -985,23 +1053,24 @@ void MissionInterfaceManager::updateVTol()
 					if (MPlayer) {
 						if ((vtolNum < 0) || (vtolNum >= MAX_MC_PLAYERS))
 							STOP(("updateVTOL: bad vtolNum"));
-						if (MPlayer->reinforcements[vtolNum][0] < 0)
-							STOP(("updateVTOL: bad reinforcement"));
-						MoverPtr mover = MPlayer->moverRoster[MPlayer->reinforcements[vtolNum][0]];
-						if (mover) {
+						// a second vehicle begun by now has taken the slot: not a reason to stop
+						const long index = MPlayer->reinforcements[vtolNum][0];
+						MoverPtr mover = ((index >= 0) && (index < MAX_MULTIPLAYER_MOVERS)) ? MPlayer->moverRoster[index] : NULL;
+						// the host's to order: every machine's VTOL lands here. The battle may have
+						// destroyed the unit since the drop, and taken its pilot with it.
+						if (mover && mover->getPilot() && MPlayer->isServer()) {
 							TacticalOrder tacOrder;
 							tacOrder.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_POWERUP, true);
-							tacOrder.pack(NULL, NULL);					
-							if (!MPlayer->isServer())
-								MPlayer->sendPlayerOrder(&tacOrder, false, 1, &mover);
-							else
-								mover->handleTacticalOrder(tacOrder);
+							tacOrder.pack(NULL, NULL);
+							mover->handleTacticalOrder(tacOrder);
 						}
 						MPlayer->reinforcements[vtolNum][0] = -1;
 						}
 					else if (reinforcement)
 					{
-						reinforcement->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
+						// as above: it may be gone already
+						if (reinforcement->getPilot())
+							reinforcement->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
 						reinforcement = NULL;
 					}
 
@@ -1053,47 +1122,14 @@ void MissionInterfaceManager::updateVTol()
 				{
 					if (scenarioTime > vTolTime[vtolNum] + Mover::recoverTime)
 					{
-						bool doIt = true;
+						// the host decides, and tells the others when it does (MultiPlayer::sendReinforcement)
 						if (MPlayer)
 						{
-							if (commanderID == vtolNum)
-							{
-								//--------------------------------------------------------
-								// This will get the other machines to enable the mover...
+							if (MPlayer->isServer() && !mechToRecover[vtolNum]->isDestroyed())
 								MPlayer->sendReinforcement(vehicleID[vtolNum], MPlayer->reinforcements[vtolNum][1], MPlayer->reinforcementPilot[vtolNum], vtolNum, vPos[vtolNum], 5);
-							}
-							else
-								doIt = false;
 						}
-						
-						if (doIt && !mechToRecover[vtolNum]->isDestroyed())
-						{
-							//Seems like we don't want to do this on every machine, do we?
-							// -fs
-
-							//STAY in recover until its done.  I know it shouldn't be possible but trust me, its happening.
-							while (((MoverPtr)mechToRecover[vtolNum])->recover() == false)
-								;
-
-							if (mechToRecover[vtolNum]->isDisabled())
-							{
-								mechToRecover[vtolNum]->setStatus(OBJECT_STATUS_SHUTDOWN,true);
-								mechToRecover[vtolNum]->getSensorSystem()->broken = false;
-								((MoverPtr)mechToRecover[vtolNum])->timeLeft = 1.0f;
-								((MoverPtr)mechToRecover[vtolNum])->exploding = false;
-							}
-							char* newPilotName = NULL;
-							if (MPlayer)
-								newPilotName = MPlayer->reinforcementPilot[vtolNum];
-							else
-								newPilotName = (char*)LogisticsData::instance->getBestPilot( mechToRecover[vtolNum]->tonnage );
-
-							mission->tradeMover(mechToRecover[vtolNum], Commander::commanders[vtolNum]->getTeam()->getId(), vtolNum, newPilotName, "pbrain");
-							mechRecovered[vtolNum] = true;
-							mechToRecover[vtolNum]->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
-							if (MPlayer)
-								MPlayer->reinforcements[vtolNum][1] = -1;
-						}
+						else if (!mechToRecover[vtolNum]->isDestroyed())
+							recoverMech(vtolNum, mechToRecover[vtolNum]);
 					}
 				}
 				else if ((vTol[vtolNum]->getCurrentGestureId() == 0) && (mechRecovered[vtolNum] || mechToRecover[vtolNum]->isDestroyed()) && (!vTol[vtolNum]->getInTransition()))

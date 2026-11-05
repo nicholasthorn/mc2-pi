@@ -1399,7 +1399,7 @@ void GroundVehicle::mineCheck (void) {
 
 			//---------------------------------------------------------
 			// Mark this tile as empty.  (we just set the mine off!!)
-			GameMap->setMine(cellPositionRow, cellPositionCol, 2);
+			SetOffMine(cellPositionRow, cellPositionCol);
 			
 			if (MPlayer) 
 			{
@@ -1430,7 +1430,7 @@ void GroundVehicle::mineCheck (void) {
 	
 				//---------------------------------------------------------
 				//  Mark this tile as empty.  (we just set the mine off!!)			
-				GameMap->setMine(cellPositionRow, cellPositionCol, 2);
+				SetOffMine(cellPositionRow, cellPositionCol);
 				
 				if (MPlayer) 
 				{
@@ -4754,7 +4754,7 @@ long GroundVehicle::fireWeapon (GameObjectPtr target, float targetTime, long wea
 					if (GameMap->getMine(cellRow, cellCol) == 1) 
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);	//Mark Exploded
+						SetOffMine(cellRow, cellCol);	//Mark Exploded
 					}
 				}
 			}
@@ -4848,7 +4848,7 @@ long GroundVehicle::fireWeapon (GameObjectPtr target, float targetTime, long wea
 					if (GameMap->getMine(cellRow, cellCol) == 1)
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);	//Mark Exploded
+						SetOffMine(cellRow, cellCol);	//Mark Exploded
 					}
 				}
 				}
@@ -4977,7 +4977,7 @@ long GroundVehicle::fireWeapon (GameObjectPtr target, float targetTime, long wea
 						if (GameMap->getMine(cellRow, cellCol) == 1) 
 						{
 							ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, positionOffset, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-							GameMap->setMine(cellRow, cellCol, 2); // Mark Exploded
+							SetOffMine(cellRow, cellCol); // Mark Exploded
 						}
 						}
 					else
@@ -5081,7 +5081,7 @@ long GroundVehicle::fireWeapon (GameObjectPtr target, float targetTime, long wea
 					if (GameMap->getMine(cellRow, cellCol) == 1) 
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, positionOffset, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);	//Mark Exploded
+						SetOffMine(cellRow, cellCol);	//Mark Exploded
 					}
 					}
 				else

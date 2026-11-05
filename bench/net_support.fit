@@ -1,0 +1,28 @@
+FITini
+// Each side calls in, through the buttons and the click the interface gives, a repair truck,
+// a scout, a minelayer and a guard tower, then recovers a mech that is down. The client also gives
+// every kind of order the interface can. Played to the end.
+//   scripts/net_smoke.sh --mission mc2_m08 --scenario bench/net_support.fit --support --world-events no
+
+[Bench]
+st Mission = "mc2_m08"
+l Frames = 200000
+l Gather = 12
+f LineGap = 2400.0
+f Spacing = 90.0
+b Pain = TRUE
+f ArenaX = 3672.0
+f ArenaY = 4497.0
+l ReorderEvery = 150
+l NetResourcePoints = 1000000
+f NetSupportSeconds = 10.0
+f NetEveryOrderSeconds = 5.0
+f NetTimeLimit = 150.0
+l NumSegments = 1
+
+[Segment0]
+st Name = "battle"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend
