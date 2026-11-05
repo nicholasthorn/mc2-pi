@@ -137,12 +137,14 @@ long cLoadString (HINSTANCE hInstance,  UINT uID, LPTSTR lpBuffer, int nBufferMa
 
 #include"netsession.h"
 #include"netrules.h"
+#include"netlan.h"
 
 #include<algorithm>
 #include<cctype>
 #include<chrono>
 #include<cmath>
 #include<memory>
+#include<random>
 #include<string>
 #include<thread>
 #include<vector>
@@ -446,6 +448,41 @@ static bool netWait (Done done) {
 	return(false);
 }
 
+// The file, if it can be read: both ends must have the same one, or neither.
+static uint32_t netHashFile (uint32_t hash, const char* path, unsigned long& total) {
+
+	File file;
+	if (file.open(path) != NO_ERR)
+		return(netwire::hashBytes(hash, "none", 4));
+	const unsigned long size = file.getLength();
+	total += size;
+	std::vector<unsigned char> bytes(size);
+	if (size > 0)
+		file.read(bytes.data(), size);
+	file.close();
+	return((size > 0) ? netwire::hashBytes(hash, bytes.data(), size) : hash);
+}
+
+// What two machines must agree on to play a mission: the mission, the units and their weapons,
+// and the rules. So a mod, or another version of the data, is refused in the lobby, not found in play.
+static uint32_t netDataHash (const char* missionName) {
+
+	uint32_t hash = netwire::HASH_START;
+	unsigned long total = 0;
+	FullPathFileName path;
+	path.init(missionPath, missionName, ".fit");
+	hash = netHashFile(hash, path, total);
+	path.init(objectPath, "object2", ".pak");
+	hash = netHashFile(hash, path, total);
+	path.init(missionPath, "gamesys", ".fit");
+	hash = netHashFile(hash, path, total);
+	printf("[NET] game data: %lu bytes, hash %08x\n", total, (unsigned)hash);
+	fflush(stdout);
+	return(hash);
+}
+
+//---------------------------------------------------------------------------
+
 static unsigned long netHash (unsigned long hash, const char* text) {
 
 	for (; *text; text++) {
@@ -521,11 +558,54 @@ static const char* netRejectName (netwire::RejectReason reason) {
 
 	switch (reason) {
 		case netwire::RejectReason::WrongVersion: return("another version of the game");
-		case netwire::RejectReason::WrongData: return("another mission");
+		case netwire::RejectReason::WrongData: return("another mission, or other game data");
 		case netwire::RejectReason::GameFull: return("the game is full");
 		case netwire::RejectReason::WrongRoster: return("other units in the mission");
 		default: return("unknown");
 	}
+}
+
+//---------------------------------------------------------------------------
+
+static netlan::Beacon netBeacon;
+static netwire::LanAnnounce netAnnounce;
+
+// How many have joined, for whoever asks: until the game starts, and after it as in progress.
+static void netUpdateBeacon (void) {
+
+	if (!netBeacon.isOpen())
+		return;
+	netAnnounce.numPlayers = (uint8_t)(1 + netSession->connectedClients());
+	if (netAnnounce.numPlayers > netAnnounce.maxPlayers)
+		netAnnounce.numPlayers = netAnnounce.maxPlayers;
+	netAnnounce.inProgress = netSession->allJoined();
+	netBeacon.update(netAnnounce);
+}
+
+// The first game of this mission with room in it, on the version this build speaks.
+static bool netFindOnLan (const char* missionName, std::string& address, unsigned short& port) {
+
+	netlan::Browser browser;
+	if (!browser.open())
+		return(false);
+	printf("[NET] looking for %s on the local network\n", missionName);
+	fflush(stdout);
+	const double giveUp = netNow() + NET_WAIT_SECONDS;
+	while (netNow() < giveUp) {
+		browser.update(netNow());
+		for (const netlan::Found& found : browser.found()) {
+			const netwire::LanAnnounce& game = found.announce;
+			if ((game.protocol != netwire::PROTOCOL_VERSION) || game.inProgress || (game.numPlayers >= game.maxPlayers) || (S_stricmp(game.map.c_str(), missionName) != 0))
+				continue;
+			address = found.address;
+			port = game.gamePort;
+			printf("[NET] found %s at %s port %d, %d of %d players\n", game.name.c_str(), address.c_str(), (int)port, (int)game.numPlayers, (int)game.maxPlayers);
+			fflush(stdout);
+			return(true);
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	}
+	return(false);
 }
 
 //---------------------------------------------------------------------------
@@ -537,7 +617,7 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 	if (!netTransport)
 		Fatal(0, (std::string(" -netlisten: no network: ") + error).c_str());
 	netSession.reset(new netsession::Session(*netTransport));
-	if (!netSession->host(port, (uint8_t)numPlayers, (uint32_t)netHash(2166136261u, missionName)))
+	if (!netSession->host(port, (uint8_t)numPlayers, netDataHash(missionName)))
 		Fatal(port, " -netlisten: cannot listen on this port ");
 	startLocalHost(numPlayers);
 	inSession = true;
@@ -548,6 +628,19 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 	initUpdateFrequencies();
 	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
 	fflush(stdout);
+	// not one who dials: nobody could reach this end in any case
+	if (port && !dialAddress) {
+		netAnnounce.gamePort = port;
+		netAnnounce.instance = std::random_device{}();
+		netAnnounce.maxPlayers = (uint8_t)numPlayers;
+		netAnnounce.map = missionName;
+		netAnnounce.name = std::string(missionName) + " game";
+		if (netBeacon.open())
+			printf("[NET] announcing on the local network\n");
+		else
+			printf("[NET] not announcing on the local network: its port is taken\n");
+		fflush(stdout);
+	}
 	// a client may not be listening yet, and a dial with nobody there gives up in about 10 s
 	double nextDial = 0.0;
 	const bool everyone = netWait([&]() {
@@ -556,6 +649,7 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 			if (!netSession->dialClient(dialAddress, dialPort))
 				Fatal(0, " -netcall: needs an IP address ");
 		}
+		netUpdateBeacon();
 		return netSession->allJoined();
 	});
 	if (!everyone)
@@ -571,7 +665,13 @@ void MultiPlayer::joinNetGame (const char* address, unsigned short port, const c
 	if (!netTransport)
 		Fatal(0, (std::string(" -netjoin: no network: ") + error).c_str());
 	netSession.reset(new netsession::Session(*netTransport));
-	const uint32_t hash = (uint32_t)netHash(2166136261u, missionName);
+	const uint32_t hash = netDataHash(missionName);
+	std::string lanAddress;
+	if (address && (strcmp(address, "lan") == 0)) {
+		if (!netFindOnLan(missionName, lanAddress, port))
+			Fatal(0, " -netjoin lan: no game of this mission found on the local network ");
+		address = lanAddress.c_str();
+	}
 	if (address ? !netSession->join(address, port, hash, "player") : !netSession->joinWaiting(port, hash, "player"))
 		Fatal(0, address ? " -netjoin: needs an IP address " : " -netjoin wait: cannot listen on this port ");
 	printf("[NET] joining %s at %s port %d\n", missionName, address ? address : "whoever calls", (int)port);
@@ -648,8 +748,11 @@ bool MultiPlayer::isNetworked (void) {
 long MultiPlayer::update (void) {
 
 	processMessages();
-	if (iAmHost)
+	if (iAmHost) {
 		updateClients();
+		if (netSession)
+			netUpdateBeacon();
+	}
 	return(MPLAYER_NO_ERR);
 }
 
