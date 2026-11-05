@@ -12,7 +12,8 @@ belongs in commit messages and PRs.
 - [x] Linux build on Ubuntu 22.04 / GCC 11 (pkg-config fallbacks for SDL2_mixer/ttf) through 26.04 / GCC 15
 - [x] OpenGL ES 3.1 renderer behind `-DMC2_GLES=ON` (Raspberry Pi 4/400); desktop GL unchanged
 - [x] GLES texture upload repacking for 8-bit channel-count mismatches
-- [x] Multiplayer between processes, no UI (`-nethost`, `-netjoin`): every game mode, order, support vehicle and recovery, turrets, results (`future-features/NETWORKING.md`)
+- [x] Multiplayer between processes (`-nethost`, `-netjoin`): every game mode, order, support vehicle and recovery, turrets, results (`future-features/NETWORKING.md`)
+- [x] Multiplayer from the main menu on the local network: host, browse, join, lobby, launch, results, and back for another game, tested through the screens by a walker, not yet by hand or on a Quest
 - [x] arm64: `-fsigned-char`, portable heap caller capture, GCC 12 fixes
 - [x] Clang and MSVC build fixes
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)
@@ -537,7 +538,7 @@ change, not as a bug fix.
 
 ## Known issues
 
-- Networked play has no UI: `-nethost`, `-netlisten` and `-netjoin` play a mission between processes (`future-features/NETWORKING.md`). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
+- Network games from the screens have no mech selection, chat, colour or name choice, locking or booting, and only the local network: no joining by address (`future-features/NETWORKING.md`). The other screens' stubs still return a blank player record, an empty name and no players instead of NULL.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -548,6 +549,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-05: Multiplayer from the main menu (branch `mp-phase4-screens`): the original connection, browser and parameters screens run a real game, with the menu's button on. `net_smoke --screens` plays a battle through them, twice in a process with `--again`, and `--lobby-leaving` leaves and rejoins a lobby, on x64 desktop GL, also under ASan + UBSan. No person has clicked through them yet. A bad texture handle is logged at the end of a second game, not yet traced.
 - 2026-11-05: Multiplayer lobby review fixes (branch `mp-phase4-lobby`): nobody waits for a player lost while loading, a launch reaches everyone it can, a client refuses a launch with no map and a map name that is a path, a ready no longer outlives a settings change, and `-netlobby` works with `-netcall`. Protocol 9. Two on one team and the look of a lobby's colours are still not run.
 - 2026-11-05: Multiplayer lobby protocol (branch `mp-phase4-lobby`): `code/netlobby.*`, three messages and a lobby mode in `netsession`, unit tested on the loopback. `-netlobby` plays a game through it between two processes, the client hearing the map from the host. No screens yet.
 - 2026-11-05: Multiplayer phase 4 begun (branch `mp-phase4`): a host answers on the local network and `-netjoin lan` finds it (`code/netlan.*`, unit tested over a real socket, in `smoke.yml`), and joining compares a hash of the mission, units and rules, not only the mission's name. Not yet run between two machines or on a Quest; the lobby and its screens are still to come.

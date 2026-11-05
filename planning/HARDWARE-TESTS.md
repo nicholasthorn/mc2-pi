@@ -43,7 +43,18 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on
       screen after each, and after the Stop button. At the end, the results screen: names, team,
-      laurels on the winner, and Close quits. Tests check the state of all this, not how it looks.
+      laurels on the winner, and Close (from `-mission`, it quits; from the menu, back to the
+      connection screen). Tests check the state of all this, not how it looks.
+- [ ] **A game from the main menu, by hand** (phase 4). Two windows or machines, no flags. Multiplayer,
+      Local network: host on one (name it, Load Map), Join on the other, pick the game. On the
+      parameters screen: is everything readable, do hidden buttons leave odd gaps, does each player's
+      team list work, does the client's Ready press and show on the host, does Launch count down and
+      stop if someone un-readies? Are the two sides in different colours in the mission? Then leave a
+      lobby each way, and play a second game after the results. A test walks all this by calling
+      the screens' handlers, and sets a client's ready itself, so the mouse is not covered. Does anything
+      look wrong on the results of a second game (a texture handle is logged as bad there)?
+- [ ] **The same on a Quest, by controller** (phase 4). Whether the screens can be used at all.
+      The Quest's multicast lock is still held for the app's whole life.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
       mechs look right, do orders given by hand with the controllers work, and does taking the headset
       off and on leave the game running? Also whether the app quits by itself at the end.
