@@ -1588,7 +1588,7 @@ long TacticalOrder::status (MechWarriorPtr warrior) {
 							float pointsUsed = 0;
 							float pointsAvailable = warrior->getVehicle()->getRefitPoints();
 							if (MPlayer)
-								pointsAvailable = netRefitPoints(pointsAvailable);
+								pointsAvailable = netRefitPoints((pointsAvailable > 255.0f) ? 255.0f : pointsAvailable);	// all a client can be told
 							long result = ((MoverPtr)target)->refit(pointsAvailable, pointsUsed);
 							if (MPlayer)
 								pointsUsed = netRefitPoints(pointsUsed);
@@ -1677,7 +1677,7 @@ long TacticalOrder::status (MechWarriorPtr warrior) {
 							float pointsUsed = 0;
 							float pointsAvailable = target->getRefitPoints();
 							if (MPlayer)
-								pointsAvailable = netRefitPoints(pointsAvailable);
+								pointsAvailable = netRefitPoints((pointsAvailable > 255.0f) ? 255.0f : pointsAvailable);	// all a client can be told
 							long result = warrior->getVehicle()->refit(pointsAvailable, pointsUsed);
 							if (MPlayer)
 								pointsUsed = netRefitPoints(pointsUsed);

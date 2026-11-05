@@ -483,7 +483,9 @@ void GameSoundSystem::update (void)
 		currentFragment = 0;
 		moveFromQueueToPlaying();
 
-		if (!currentMessage && !messagesInQueue)		//It is now possible for ALL remaining messages to go away because the pilot/mech died!
+		//It is now possible for ALL remaining messages to go away because the pilot/mech died!
+		// And the count can say otherwise: with no message, there is nothing below to play.
+		if (!currentMessage)
 			return;
 
 #ifndef VIEWER

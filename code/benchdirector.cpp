@@ -22,6 +22,9 @@
 #include "terrain.h"
 #include "multplyr.h"
 #include "bldng.h"
+#include "controlgui.h"
+#include "missiongui.h"
+#include "logisticsdata.h"
 #include "move.h"
 
 #include <gameos.hpp>
@@ -149,11 +152,13 @@ void gather (void) {
 }
 
 // Every fighter attacks the nearest enemy fighter in the arena.
+MoverPtr netRepairTarget = NULL;	// waiting for a truck: not to be sent back into the battle
+
 void orderAttacks (void) {
 
 	for (size_t i = 0; i < fighters.size(); i++) {
 		MoverPtr m = fighters[i];
-		if (!canFight(m) || !m->getPilot())
+		if (!canFight(m) || !m->getPilot() || (m == netRepairTarget))
 			continue;
 		MoverPtr best = NULL;
 		float bestDistance = 0.0f;
@@ -392,6 +397,194 @@ void netEvents (void) {
 	}
 }
 
+// Each side, through the buttons and the click the interface gives: a repair truck, a scout,
+// a minelayer, a guard tower, then the recovery of a mech of its own that is down. A truck
+// repairs whatever of its side needs it, under the order the interface gives.
+void netSupport (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked())
+		return;
+	static long step = 0;
+	static const int buttons[4] = { ControlGui::REPAIR_VEHICLE, ControlGui::PEGASUS_SCOUT, ControlGui::MINELAYER, ControlGui::GUARD_TOWER };
+	MissionInterfaceManager* iface = MissionInterfaceManager::instance();
+	const long self = Commander::home->getId();
+	if (iface->isVtolBusy(self))
+		return;
+
+	// A truck of ours and something of ours that needs it, which waits for it. The order again
+	// only long after, as a second one interrupts a repair. A unit with a truck on the way says
+	// it needs none (needsRefit), so on the host wait for the truck to let go.
+	static long cyclesWaiting = 0;
+	if (netRepairTarget && (!canFight(netRepairTarget) || (!netRepairTarget->refitBuddyWID && !netRepairTarget->needsRefit())))
+		netRepairTarget = NULL;
+	for (long i = 0; i < Team::home->getRosterSize(); i++) {
+		MoverPtr truck = Team::home->getMover(i);
+		if (!truck || (truck->getCommander() != Commander::home) || !truck->getExists() || truck->isDisabled() || !truck->isRefit() || !truck->getPilot())
+			continue;
+		if (!netRepairTarget) {
+			for (size_t j = 0; j < fighters.size(); j++)
+				if (canFight(fighters[j]) && (fighters[j]->getCommander() == Commander::home) && fighters[j]->needsRefit()) {
+					netRepairTarget = fighters[j];
+					TacticalOrder stay;
+					stay.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_STOP, true);
+					HandlePlayerOrder(netRepairTarget, &stay);
+					cyclesWaiting = 0;
+					break;
+				}
+		}
+		if (netRepairTarget && ((cyclesWaiting++ % 4) == 0)) {
+			TacticalOrder order;
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_REFIT, false);
+			order.targetWID = netRepairTarget->getWatchID();
+			printf("[NET] ordering %s to repair %s\n", truck->getName(), netRepairTarget->getName());
+			HandlePlayerOrder(truck, &order);
+		}
+		break;
+	}
+
+	if (step < 4) {
+		for (size_t i = 0; i < fighters.size(); i++) {
+			MoverPtr m = fighters[(i + step) % fighters.size()];
+			if (!canFight(m) || (m->getCommander() != Commander::home))
+				continue;
+			Stuff::Vector3D at = m->getPosition();
+			at.x += scenario.spacing;
+			if (!GameMap->getPassable(at) || land->getWater(at))
+				continue;
+			printf("[NET] calling support %ld at %.0f, %.0f\n", step, at.x, at.y);
+			iface->callSupportAt(buttons[step++], at, NULL);
+			return;
+		}
+		return;
+	}
+	if (step > 4)
+		return;
+	for (size_t i = 0; i < fighters.size(); i++) {
+		MoverPtr m = fighters[i];
+		if ((m->getObjectClass() != BATTLEMECH) || (m->getCommander() != Commander::home) || !m->isDisabled() || m->isDestroyed()
+			|| !Team::home->teamLineOfSight(m->getPosition(), 0.0f))
+			continue;
+		printf("[NET] calling recovery of %s\n", m->getName());
+		iface->callSupportAt(ControlGui::RECOVERY_TEAM, m->getPosition(), m);
+		step++;
+		return;
+	}
+}
+
+// Something for a repair truck to fix, on a run with no fighting.
+void netDamage (void) {
+
+	for (long commander = 0; commander < MAX_MC_PLAYERS; commander++)
+		for (size_t i = 0; i < fighters.size(); i++) {
+			MoverPtr m = fighters[i];
+			if (!canFight(m) || (m->getCommanderId() != commander))
+				continue;
+			WeaponShotInfo shot;
+			shot.init(0, -3, 20.0f, m->calcHitLocation(NULL, -1, ATTACKSOURCE_ARTILLERY, 0), 0.0f);
+			m->handleWeaponHit(&shot, true);
+			break;
+		}
+}
+
+// A client's minelayer, once it is here: laying is a mode of a move.
+void netLayMines (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked() || MPlayer->isServer())
+		return;
+	for (long i = 0; i < Team::home->getRosterSize(); i++) {
+		MoverPtr m = Team::home->getMover(i);
+		if (!m || (m->getCommander() != Commander::home) || !m->getExists() || m->isDisabled() || (m->getObjectType()->getObjTypeNum() != 120))
+			continue;
+		Stuff::Vector3D to = m->getPosition();
+		to.x += scenario.spacing * 2.0f;
+		to.z = land->getTerrainElevation(to);
+		TacticalOrder order;
+		order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_MOVETO_POINT, false);
+		order.setWayPoint(0, to);
+		order.moveParams.wayPath.mode[0] = TRAVEL_MODE_SLOW;
+		order.moveParams.mode = MOVE_MODE_MINELAYING;
+		printf("[NET] ordering %s to lay mines to %.0f, %.0f\n", m->getName(), to.x, to.y);
+		HandlePlayerOrder(m, &order);
+		return;
+	}
+}
+
+// A client's units get, one kind at a time, every kind of order the interface can give, built
+// as it builds them (missiongui.cpp). The ones that take a repair truck, an HQ or a repair bay
+// come from the other tests. The host counts what it applied: [NETORDERS].
+void netEveryOrder (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked() || MPlayer->isServer())
+		return;
+	static long step = 0;
+	std::vector<MoverPtr> mine, theirs;
+	for (size_t i = 0; i < fighters.size(); i++)
+		if (canFight(fighters[i]))
+			((fighters[i]->getCommander() == Commander::home) ? mine : theirs).push_back(fighters[i]);
+	if (mine.empty() || theirs.empty())
+		return;
+	MoverPtr unit = mine[step % mine.size()];
+	Stuff::Vector3D beside = unit->getPosition();
+	beside.x += scenario.spacing;
+	beside.z = land->getTerrainElevation(beside);
+	TacticalOrder order;
+	switch (step) {
+		case 0:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_MOVETO_POINT, false);
+			order.setWayPoint(0, beside);
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+			break;
+		case 1:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_JUMPTO_POINT, false);
+			order.moveParams.wait = false;
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_JUMP;
+			order.setWayPoint(0, beside);
+			break;
+		case 2:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_ATTACK_OBJECT);
+			order.targetWID = theirs[0]->getWatchID();
+			order.attackParams.type = ATTACK_TO_DESTROY;
+			order.attackParams.method = ATTACKMETHOD_RANGED;
+			order.attackParams.range = FIRERANGE_OPTIMAL;
+			order.attackParams.pursue = true;
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+			break;
+		case 3:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_ATTACK_POINT);
+			order.attackParams.targetPoint = beside;
+			order.attackParams.type = ATTACK_TO_DESTROY;
+			order.attackParams.method = ATTACKMETHOD_RANGED;
+			order.attackParams.range = FIRERANGE_OPTIMAL;
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+			break;
+		case 4:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_GUARD);
+			order.targetWID = mine[(step + 1) % mine.size()]->getWatchID();
+			break;
+		case 5:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_STOP, true);
+			break;
+		case 6:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_WAIT, false);
+			break;
+		case 7:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_POWERDOWN, true);
+			break;
+		case 8:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_POWERUP, true);
+			unit = mine[7 % mine.size()];	// the one that powered down
+			break;
+		case 9:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_EJECT, true);
+			break;
+		default:
+			return;
+	}
+	printf("[NET] order %ld to %s\n", step, unit->getName());
+	step++;
+	HandlePlayerOrder(unit, &order);
+}
+
 void moveCamera (void) {
 
 	// nothing else may move the camera: follow targets, ABL goals, movies
@@ -511,11 +704,35 @@ void BenchDirector::update (const char* missionName) {
 		strike();
 	if ((scenario.netEventsEvery > 0) && (frame > 2) && (frame % scenario.netEventsEvery == 0))
 		netEvents();
+	// By the game's clock, as the flights and the time limit are: frames would run out on a slow machine
+	static float nextSupport = 0.0f, nextOrder = 0.0f, nextLay = 0.0f;
+	if ((scenario.netLayMinesSeconds > 0.0f) && (scenarioTime >= nextLay)) {
+		if (nextLay > 0.0f)
+			netLayMines();
+		nextLay = scenarioTime + scenario.netLayMinesSeconds;
+	}
+	if ((scenario.netSupportSeconds > 0.0f) && (scenarioTime >= nextSupport)) {
+		if (nextSupport > 0.0f)
+			netSupport();
+		nextSupport = scenarioTime + scenario.netSupportSeconds;
+	}
+	if ((scenario.netEveryOrderSeconds > 0.0f) && (scenarioTime >= nextOrder)) {
+		if (nextOrder > 0.0f)
+			netEveryOrder();
+		nextOrder = scenarioTime + scenario.netEveryOrderSeconds;
+	}
+	if (MPlayer && MPlayer->isNetworked() && (frame == 1) && (scenario.netResourcePoints >= 0)) {
+		for (long i = 0; i < MAX_MC_PLAYERS; i++)
+			MPlayer->playerInfo[i].resourcePoints = scenario.netResourcePoints;
+		LogisticsData::instance->setResourcePoints(scenario.netResourcePoints);
+	}
 	if (MPlayer && MPlayer->isNetworked() && MPlayer->isServer()) {
 		if (scenario.netTimeLimit > 0.0f)
 			MPlayer->missionSettings.timeLimit = scenario.netTimeLimit;
 		if ((scenario.netCaptureHqAt > 0) && (scenario.netCaptureHqAt == frame))
 			MPlayer->stageHqCapture();
+		if ((scenario.netDamageAt > 0) && (scenario.netDamageAt == frame))
+			netDamage();
 	}
 	for (long i = 0; i < scenario.numSegments; i++)
 		if (scenario.segments[i].shot == frame)

@@ -575,13 +575,56 @@ maps hold, and these are **our rules, not necessarily the shipped game's**:
 
 A level result at the time limit is a draw. On a capture base map each team takes the free HQ nearest
 where its units start, in team order, so both ends agree without being told. HQs nobody took stop being
-capturable. A map's resource points stay out until reinforcements are sent. m10 and later have not been
-looked at for what they declare.
+capturable. m10 and later have not been looked at for what they declare.
 
 Run between two processes on x64 desktop GL: each mode on a map of that mode reached the expected result,
 and both ends finished with the same buildings. In most of these runs the test takes the HQ; on m08 and m05
 it is also done by a unit under orders. King of the Hill, Territories, Last Man on the Hill and Last Man
 Standing run with a shortened time limit.
+
+### Support, recovery and every order
+
+The host holds every commander's resource points and decides every support call. A client's button
+takes the points from its own screen at once, so it needs no round trip, and asks. The host checks what
+the interface checks where it clicked (the cost, a place its team can see, passable, no water, a free roster
+slot), charges them and tells every machine, or refuses and gives them back. A map's `ResourcePoints` and
+`...EnabledDefault` settings now count, as there is no lobby to set them in.
+
+- **A support vehicle:** every machine makes the unit, not yet existing, in the same roster slot, and flies
+  its own VTOL. When the host's reaches the drop, the unit exists everywhere; when it lands, the host powers it
+  up. Support units do not keep a team in the game.
+- **A recovery:** the Karnov flies on every machine, the host says when, and sends the mech's exact armour and
+  structure, because a wreck's were free to differ until something could bring it back. One wreck takes
+  one Karnov. Stage 7 of the 2001 protocol, dropping a dead unit from its team, is not used: a wreck stays
+  on the roster in single player too.
+- **Turrets** send their target when it changes, so a client turns them to face it. The host alone fires them.
+  27 to 62 turrets stand on m01, m04, m08, m09 and m10; none on the others.
+- **Pilot kill stats** reach a client.
+- **Mines:** a shot or a blast setting one off was each machine's own business, so their counts drifted.
+  `SetOffMine` leaves it to the host.
+- **A truck out of points** stops on a client too, and a repair is limited to what a client can be told. After each repair
+  the host sends the exact armour, as a repair shares its points with ammo, and a client's ammo can be a moment behind.
+- **Results:** a network game ends on the real results screen (`MPStats`), and Close quits, as there is no lobby to
+  return to. Under `-autoexit` it shows for one frame, so every test goes through its code;
+  `MC2_NET_RESULTS_FRAMES` keeps it longer, and with `-bench` takes a screenshot of it.
+- **Found on the way, also in single player:** a pilot with one of the four short voices (`pilot1a` to `pilot1d`)
+  ended the game on the radio messages past the end of its file, a recovered mech could stay starting up for good,
+  and the radio crashed when every queued message's pilot had died.
+
+Tests, between two processes on x64 desktop GL: `bench/net_support.fit` (each side calls a truck, a scout, a minelayer and
+a guard tower through the button and click the interface gives, and recovers a mech, and the client gives every kind of order
+the interface can), `bench/net_repair.fit` (a truck and a minelayer at work, with nothing to shoot them) and `bench/net_turret.fit` (a battle
+among team 1's turrets on m09: 92 shots fired, 83 target changes reached the client). Armour differed in no check, and both ends
+finished with the same resource points. `bench/net_support.fit` also passes under 100 ms and 2% loss, and all three under ASan + UBSan,
+which found an out-of-bounds read the first time a turret fired: a rear torso hit used as a body location, on any turret shot.
+
+A rare host crash in `net_support.fit` took some finding: a support vehicle destroyed between its drop and its VTOL landing has lost its pilot, and
+the landing powered it up through a null pointer. It took a battle killing a vehicle in those few seconds, so 50 local games missed it, and it
+looked tied to recoveries by chance. ASan caught it in CI. Single player had the same flaw. A crash in an automated run now prints a backtrace, and
+`net_smoke.sh` names the frames.
+
+Not settled: nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
+in a test has been shown to have one. Windows and arm64 have only what CI runs.
 
 ### On a Quest 2 (2026-11-05)
 
@@ -619,10 +662,10 @@ Not settled by phase 2, against its exit criterion:
 - **Windows peer, and x64 with arm64 on Linux.** The Quest is arm64 with BoringSSL, so that part is covered, but BCrypt is not.
 - **Sound, effects and movement on the client have not been looked at.** The check covers armour,
   status and position.
-- Not sent yet, for phase 3: gates and turrets changing state beyond the hits on them, a captured
-  vehicle, reinforcements, turret targets, pilot kill stats. Recovery is dead code in the game.
-- The host checks one win condition, the last team standing, and a mission script's result is not
-  sent. Ending goes straight to quitting: there is no results screen or lobby to return to.
+- Not sent, and left so: a gate. Each machine opens its own by what it sees nearby, and only the host
+  decides what a closing gate crushes, so the two may differ for a moment; no test has had one, and which stock maps have one has not been checked.
+- `TACTICAL_ORDER_RECOVER`, the old order, is dead code in the game and is refused. Recovery is the Karnov.
+- A mission script's result is not sent, which matters for co-op (phase 4b).
 - A client that leaves is not replaced, and a host that leaves ends the game for the client.
 - The data check in `Hello` is only the mission's name. The roster hash at the load barrier catches
   other units, but not other weapon or terrain data.
