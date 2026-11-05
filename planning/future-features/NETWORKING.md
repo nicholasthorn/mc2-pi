@@ -633,6 +633,9 @@ In slices, as it is large: finding a game and the data check first, then the lob
 - **Finding a game:** a host with a port to be reached on answers queries on UDP port 27816 (`code/netlan.*`, `GameOS/gameos/gos_net_lan.*`), and
   `-netjoin lan` joins the first game of its mission with room in it. A query goes to the broadcast address and to this machine. A Quest holds a
   `MulticastLock`, as its Wi-Fi otherwise drops broadcasts. Not yet run on a Quest, or between two machines. The browser screen does not use it yet.
+- **Left for the lobby:** `netGameEnded` and other statics in `multplyr.cpp` hold for the process, so a second game in one needs them reset. The
+  Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
+- **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.
 - **The data check:** `Hello` now carries a hash of the mission, `object2.pak` and `gamesys.fit`, where it had only the mission's name, so other
   data is refused when joining. It does not cover the whole mod set, as the mission's art and scripts are not in it.
 

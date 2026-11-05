@@ -590,13 +590,28 @@ static bool netFindOnLan (const char* missionName, std::string& address, unsigne
 		return(false);
 	printf("[NET] looking for %s on the local network\n", missionName);
 	fflush(stdout);
+	std::vector<uint32_t> reported;
 	const double giveUp = netNow() + NET_WAIT_SECONDS;
 	while (netNow() < giveUp) {
 		browser.update(netNow());
 		for (const netlan::Found& found : browser.found()) {
 			const netwire::LanAnnounce& game = found.announce;
-			if ((game.protocol != netwire::PROTOCOL_VERSION) || game.inProgress || (game.numPlayers >= game.maxPlayers) || (S_stricmp(game.map.c_str(), missionName) != 0))
+			const char* skip = NULL;
+			if (game.protocol != netwire::PROTOCOL_VERSION)
+				skip = "another version of the game";
+			else if (S_stricmp(game.map.c_str(), missionName) != 0)
+				skip = "another mission";
+			else if (game.inProgress || (game.numPlayers >= game.maxPlayers))
+				skip = "full, or already playing";
+			if (skip) {
+				// once each, or the wait says nothing about why
+				if (std::find(reported.begin(), reported.end(), game.instance) == reported.end()) {
+					reported.push_back(game.instance);
+					printf("[NET] passing over %s at %s: %s\n", game.name.c_str(), found.address.c_str(), skip);
+					fflush(stdout);
+				}
 				continue;
+			}
 			address = found.address;
 			port = game.gamePort;
 			printf("[NET] found %s at %s port %d, %d of %d players\n", game.name.c_str(), address.c_str(), (int)port, (int)game.numPlayers, (int)game.maxPlayers);
@@ -634,8 +649,11 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 		netAnnounce.instance = std::random_device{}();
 		netAnnounce.maxPlayers = (uint8_t)numPlayers;
 		netAnnounce.map = missionName;
-		netAnnounce.name = std::string(missionName) + " game";
-		if (netBeacon.open())
+		netAnnounce.name = (std::string(missionName) + " game").substr(0, netwire::MAX_NAME_LENGTH);
+		std::vector<uint8_t> trial;
+		if (!netwire::encode(netAnnounce, trial))
+			printf("[NET] not announcing on the local network: this mission's name cannot be sent\n");
+		else if (netBeacon.open())
 			printf("[NET] announcing on the local network\n");
 		else
 			printf("[NET] not announcing on the local network: its port is taken\n");

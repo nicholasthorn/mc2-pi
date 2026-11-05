@@ -154,8 +154,12 @@ bool LanSocket::receive(void* out, size_t capacity, size_t& size, LanAddress& fr
 	const long got = static_cast<long>(recvfrom(s, static_cast<receive_data_type>(out), room, 0, reinterpret_cast<sockaddr*>(&address), &length));
 	if (got < 0) {
 #ifdef PLATFORM_WINDOWS
+		const int error = WSAGetLastError();
+		// a send to a port nobody is on comes back as this, and says nothing about what is waiting
+		if (error == WSAECONNRESET)
+			return receive(out, capacity, size, from);
 		// a datagram larger than the buffer is an error there, not a short read
-		if (WSAGetLastError() != WSAEMSGSIZE)
+		if (error != WSAEMSGSIZE)
 			return false;
 		size = capacity;
 #else

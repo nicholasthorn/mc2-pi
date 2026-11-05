@@ -10,6 +10,8 @@ namespace {
 // larger than any valid message, so that one cut short by the socket cannot decode
 constexpr size_t BUFFER_SIZE = 512;
 constexpr uint32_t LOOPBACK = 0x7F000001u;
+// each frame: anyone can send to these ports, and a flood must not stall the game
+constexpr int MAX_DATAGRAMS_PER_UPDATE = 32;
 }
 
 void Beacon::update(const netwire::LanAnnounce& announce)
@@ -18,7 +20,7 @@ void Beacon::update(const netwire::LanAnnounce& announce)
 	size_t size = 0;
 	gos_net::LanAddress from;
 	std::vector<uint8_t> answer;
-	while (socket_.receive(buffer, sizeof(buffer), size, from)) {
+	for (int i = 0; (i < MAX_DATAGRAMS_PER_UPDATE) && socket_.receive(buffer, sizeof(buffer), size, from); i++) {
 		netwire::LanQuery query;
 		if (!netwire::decode(buffer, size, query))
 			continue;
@@ -41,7 +43,7 @@ void Browser::update(double now, uint16_t discoveryPort)
 	uint8_t buffer[BUFFER_SIZE];
 	size_t size = 0;
 	gos_net::LanAddress from;
-	while (socket_.receive(buffer, sizeof(buffer), size, from)) {
+	for (int i = 0; (i < MAX_DATAGRAMS_PER_UPDATE) && socket_.receive(buffer, sizeof(buffer), size, from); i++) {
 		netwire::LanAnnounce announce;
 		if (!netwire::decode(buffer, size, announce))
 			continue;

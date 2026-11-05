@@ -5,11 +5,19 @@
 
 #include "netlan.h"
 
+#include <chrono>
 #include <cstring>
+#include <thread>
 
 using namespace netwire;
 
 namespace {
+
+// Real sockets: what was sent may take a moment to arrive.
+void aMoment()
+{
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
 
 LanAnnounce someGame()
 {
@@ -105,6 +113,7 @@ TEST_CASE("A browser finds a beacon on this machine, and forgets it when it stop
 		browser.update(now, beacon.port());
 		beacon.update(someGame());
 		now += 0.001;
+		aMoment();
 	}
 	REQUIRE(browser.found().size() == 1);
 	CHECK(browser.found()[0].announce.map == "mc2_m08");
@@ -126,9 +135,17 @@ TEST_CASE("A browser finds a beacon on this machine, and forgets it when it stop
 	now += netlan::QUERY_SECONDS + 0.1;
 	browser.update(now, beacon.port());
 	beacon.update(other);
-	for (int i = 0; (i < 2000) && (browser.found().size() < 2); i++)
+	for (int i = 0; (i < 2000) && (browser.found().size() < 2); i++) {
 		browser.update(now, beacon.port());
+		aMoment();
+	}
 	CHECK(browser.found().size() == 2);
+
+	// whatever is still on its way from those: a query can get two answers, by broadcast and direct
+	for (int i = 0; i < 50; i++) {
+		browser.update(now, beacon.port());
+		aMoment();
+	}
 
 	// silence
 	now += netlan::FORGET_SECONDS + netlan::QUERY_SECONDS;
@@ -150,12 +167,44 @@ TEST_CASE("A beacon ignores what is not a query")
 	std::vector<uint8_t> announce;
 	REQUIRE(encode(someGame(), announce));
 	REQUIRE(stranger.sendTo(to, announce.data(), announce.size()));
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < 200; i++) {
 		beacon.update(someGame());
+		aMoment();
+	}
 	uint8_t buffer[512];
 	size_t size = 0;
 	gos_net::LanAddress from;
 	CHECK_FALSE(stranger.receive(buffer, sizeof(buffer), size, from));
+}
+
+TEST_CASE("A flood does not hold a beacon or a browser for long")
+{
+	netlan::Beacon beacon;
+	REQUIRE(beacon.open(0));
+	gos_net::LanSocket stranger;
+	REQUIRE(stranger.open(0));
+	gos_net::LanAddress to;
+	to.ip = 0x7F000001u;
+	to.port = beacon.port();
+	std::vector<uint8_t> query;
+	REQUIRE(encode(LanQuery(), query));
+	for (int i = 0; i < 100; i++)
+		REQUIRE(stranger.sendTo(to, query.data(), query.size()));
+	for (int i = 0; i < 20; i++)
+		aMoment();
+	beacon.update(someGame());
+	for (int i = 0; i < 20; i++)
+		aMoment();
+
+	// one update answered some, not all of it
+	uint8_t buffer[512];
+	size_t size = 0;
+	gos_net::LanAddress from;
+	int answers = 0;
+	while (stranger.receive(buffer, sizeof(buffer), size, from))
+		answers++;
+	CHECK(answers > 0);
+	CHECK(answers < 100);
 }
 
 TEST_CASE("hashBytes: order and content count, and it runs on across pieces")

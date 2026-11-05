@@ -23,20 +23,26 @@ public class MC2Activity extends SDLActivity {
         super.onCreate(savedInstanceState);
         // Without this a headset's Wi-Fi drops broadcasts, and a game on the
         // local network (code/netlan.h) is never asked for, or never heard.
-        WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        if (wifi != null) {
-            lanLock = wifi.createMulticastLock("mc2-lan");
-            lanLock.setReferenceCounted(false);
-            lanLock.acquire();
+        // Not worth stopping the game over: without it, a game is joined by its address.
+        try {
+            WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifi != null) {
+                lanLock = wifi.createMulticastLock("mc2-lan");
+                lanLock.setReferenceCounted(false);
+                lanLock.acquire();
+            }
+        } catch (RuntimeException e) {
+            android.util.Log.w("MC2", "no multicast lock: games on the local network may not be found", e);
+            lanLock = null;
         }
     }
 
     @Override
     protected void onDestroy() {
-        if (lanLock != null) {
+        if ((lanLock != null) && lanLock.isHeld()) {
             lanLock.release();
-            lanLock = null;
         }
+        lanLock = null;
         super.onDestroy();
     }
 }

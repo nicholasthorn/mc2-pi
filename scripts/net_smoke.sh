@@ -88,7 +88,8 @@ HOST_ARGS=(-netlisten "$PORT"); CLIENT_ARGS=(-netjoin "127.0.0.1:$PORT")
 if [ "$DIAL" = 1 ]; then
     HOST_ARGS=(-netcall "127.0.0.1:$PORT"); CLIENT_ARGS=(-netjoin "wait:$PORT")
 fi
-# --lan: the client finds the host by asking the local network
+# --lan: the client finds the host by asking the local network. One run at a time on a machine:
+# a second host cannot take the discovery port, and both clients would find the first.
 if [ "$LAN" = 1 ]; then
     CLIENT_ARGS=(-netjoin lan)
 fi
