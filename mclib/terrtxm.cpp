@@ -140,7 +140,7 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 			{
 				char listName[1024];
 				listFile.readString((MemoryPtr)listName);
-				if (!txmCacheNameIsOld(listName))
+				if (listName[0] && !txmCacheNameIsOld(listName))
 					listHasPlainNames = true;
 				if (!fileExists(listName) || !txmCacheMatchesSize(listName))
 				{
@@ -1426,13 +1426,13 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			// for all of the textures...
 			//
 			char nameData[256];
-			if (!txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap))
-				nameData[0] = 0;
+			const bool nameFits = txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap);
 
 			FullPathFileName testPath;
-			testPath.init(texturePath,nameData,"");
+			if (nameFits)
+				testPath.init(texturePath,nameData,"");
 
-			if (listTransitionFile)
+			if (nameFits && listTransitionFile)
 			{
 				listTransitionFile->writeString(testPath);
 				listTransitionFile->writeByte(0);
@@ -1441,10 +1441,14 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			MemoryPtr lzBuffer = (MemoryPtr)malloc(mipSize * mipSize * sizeof(DWORD) * 2);
 			long bufferSize = LZCompress(lzBuffer,ourRAM,(mipSize * mipSize * sizeof(DWORD)));
 
-			File txmFile;
-			txmFile.create(testPath);
-			txmFile.write(lzBuffer,bufferSize);
-			txmFile.close();
+			// A name that did not fit is not saved (the texture is still used)
+			if (nameFits)
+			{
+				File txmFile;
+				txmFile.create(testPath);
+				txmFile.write(lzBuffer,bufferSize);
+				txmFile.close();
+			}
 				
 			if (kmp == 0)
 				txmResult = result;
