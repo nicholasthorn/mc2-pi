@@ -255,6 +255,7 @@ class TG_MultiShape
 		bool					isHudElement;
 		BYTE					alphaValue;				//To fade shapes in and out
 		bool					isClamped;				//So I can force a shape to clamp its textures
+		bool					isMarker;				//Spinning marker: must not write depth (MC2_ISMARKER)
 
 	//-----------------
 	//Member Functions
@@ -278,6 +279,8 @@ class TG_MultiShape
 			alphaValue = 0xff;
 			
 			isClamped = false;
+			
+			isMarker = false;
 		}
 		
 		TG_MultiShape (void)
@@ -369,6 +372,11 @@ class TG_MultiShape
 		void SetIsClamped (bool value)
 		{
 			isClamped = value;
+		}
+
+		void SetIsMarker (bool value)
+		{
+			isMarker = value;
 		}
 		
 		//Function returns 0 if OK.  -1 if textureName is longer then nameLength-1.

@@ -569,7 +569,7 @@ DWORD TG_TypeShape::GPUTextureFlags (DWORD t, DWORD addFlags, BYTE alphaValue)
 	// cut-outs are drawn with the solids, softened by alpha to coverage
 	// (renderHardwareNodes)
 	DWORD flags = addFlags;
-	if (GPUMeshBlended(alphaValue, vrAlpha, (addFlags & MC2_ISCOMPASS) != 0))
+	if (GPUMeshBlended(alphaValue, vrAlpha, (addFlags & (MC2_ISCOMPASS | MC2_ISMARKER)) != 0))
 		flags |= MC2_DRAWALPHA;
 	else
 		flags |= MC2_DRAWSOLID;
@@ -1734,7 +1734,7 @@ extern float yawRotation;
 #define MAX_FOG_ELEVATION_INV		.01f
 #define TGL_WINDOW_THRESHOLD		0.75f
 
-long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D *backFacePoint, TG_ShapeRecPtr parentNode, bool isHudElement, BYTE alphaValue, bool isClamped)
+long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D *backFacePoint, TG_ShapeRecPtr parentNode, bool isHudElement, BYTE alphaValue, bool isClamped, bool isMarker)
 {
 	if (!numVertices)		//WE are the root Shape which may have no shape or a helper shape which defintely has no shape!
 		return(1);
@@ -2542,6 +2542,11 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 				addFlags |= MC2_ISTERRAIN;
 			}
 
+			if (isMarker)
+			{
+				addFlags |= MC2_ISMARKER;
+			}
+
             if(theShape->alphaTestOn)
 			{
 				addFlags |= MC2_ALPHATEST;
@@ -2587,6 +2592,11 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 			addFlags |= MC2_ISTERRAIN;
 		}
 
+		if (isMarker)
+		{
+			addFlags |= MC2_ISMARKER;
+		}
+
 		// faded right out: nothing to see, so no draw in either eye
 		if (theShape->ib_ && theShape->vb_ && alphaValue) {
 
@@ -2624,7 +2634,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 //-------------------------------------------------------------------------------
 //This function takes the current listOfVisibleFaces and draws them using
 //gos_DrawTriangle.
-void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool isClamped, const Stuff::Matrix4D* shapeToClip, const Stuff::Matrix4D* shapeToWorld)
+void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool isClamped, const Stuff::Matrix4D* shapeToClip, const Stuff::Matrix4D* shapeToWorld, bool isMarker)
 {
 	if (!renderTGLShapes)
 		return;
@@ -2717,6 +2727,11 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 			if (isClamped)
 			{
 				addFlags |= MC2_ISTERRAIN;
+			}
+
+			if (isMarker)
+			{
+				addFlags |= MC2_ISMARKER;
 			}
 
             if(theShape->alphaTestOn)
@@ -2817,6 +2832,11 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 		if (isClamped)
 		{
 			addFlags |= MC2_ISTERRAIN;
+		}
+
+		if (isMarker)
+		{
+			addFlags |= MC2_ISMARKER;
 		}
 
 		// faded right out: nothing to see, so no draw in either eye
