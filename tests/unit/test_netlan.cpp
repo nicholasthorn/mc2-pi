@@ -28,6 +28,7 @@ LanAnnounce someGame()
 	a.maxPlayers = 4;
 	a.name = "Nick's game";
 	a.map = "mc2_m08";
+	a.lobby = true;
 	return a;
 }
 
@@ -55,6 +56,7 @@ TEST_CASE("LanQuery and LanAnnounce: round trips")
 	CHECK(back.inProgress == a.inProgress);
 	CHECK(back.name == a.name);
 	CHECK(back.map == a.map);
+	CHECK(back.lobby == a.lobby);
 }
 
 TEST_CASE("LanAnnounce: what no game announces is refused")
@@ -72,6 +74,11 @@ TEST_CASE("LanAnnounce: what no game announces is refused")
 	a = someGame();
 	a.map = "";
 	CHECK_FALSE(encode(a, out));
+	for (const char* path : { "../../secret", "a/b", "a\\b", "c:map", "..", "a.b", " map", "map ", "con", "NUL", "com1", "LPT9" }) {
+		a = someGame();
+		a.map = path;
+		CHECK_FALSE(encode(a, out));
+	}
 	a = someGame();
 	a.name = std::string(MAX_NAME_LENGTH + 1, 'x');
 	CHECK_FALSE(encode(a, out));

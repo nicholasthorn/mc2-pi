@@ -146,7 +146,8 @@ detailed conventions.
 - **Networking is a vertical slice, with no UI.** `-nethost <players> -netlisten [port]`
   and `-netjoin <address>[:port]` play a mission between processes (or, for a host that cannot
   be reached, as in WSL, `-netcall <address>` and `-netjoin wait`; to find a host on the local
-  network, `-netjoin lan`) (`multplyr.cpp`, `code/netsession.*`, `code/netwire.*`, `code/netlan.*`,
+  network, `-netjoin lan`; add `-netlobby` for a lobby with nobody at the screen, where the client
+  hears the map from the host) (`multplyr.cpp`, `code/netsession.*`, `code/netwire.*`, `code/netlan.*`, `code/netlobby.*`,
   `GameOS/gameos/gos_net*`); `-nethost` alone runs a
   host's code with no network. `code/mp*.cpp` are still UI stubs, and the `MultiPlayer`
   methods behind the lobby are empty. `cmake/mc2_gns.cmake` downloads and builds the libraries

@@ -87,6 +87,9 @@ public:
 	explicit LoopbackNetwork(unsigned dropPercent = 0, uint32_t seed = 1);
 	std::unique_ptr<Transport> createTransport();
 
+	// Every send on this connection now fails, as for a queue that is full.
+	void failSends(ConnectionId connection);
+
 	struct State;
 
 private:

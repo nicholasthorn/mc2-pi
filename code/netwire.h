@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 7;
+constexpr uint16_t PROTOCOL_VERSION = 10;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -40,7 +40,10 @@ enum class MessageType : uint8_t {
 	Start = 5,
 	EndGame = 6,
 	LanQuery = 7,
-	LanAnnounce = 8
+	LanAnnounce = 8,
+	LobbyState = 9,
+	LobbyChoice = 10,
+	LobbyLaunch = 11
 };
 
 enum class RejectReason : uint8_t {
@@ -178,8 +181,67 @@ struct LanAnnounce {
 	uint8_t numPlayers = 0;		// who has joined, the host among them
 	uint8_t maxPlayers = 0;
 	bool inProgress = false;
+	bool lobby = false;			// its data hash has no mission in it: each kind can join only its own
 	std::string name;			// what to call this game in a list
 	std::string map;			// a mission's file name
+};
+
+// A lobby. The host holds it (netlobby.h) and sends the whole of it when it changes; a client
+// asks for its own part of it to change; and a launch ends it.
+constexpr uint8_t MAX_LOBBY_COLORS = 32;	// MAX_COLORS
+constexpr uint8_t NO_COMMANDER = 0xFF;
+constexpr int32_t NO_TIME_LIMIT = -1;
+
+// what a game allows: LobbyState::flags
+enum LobbyFlags : uint16_t {
+	LOBBY_AIRSTRIKE = 1u << 0,
+	LOBBY_GUARD_TOWER = 1u << 1,
+	LOBBY_REPAIR_VEHICLE = 1u << 2,
+	LOBBY_RECOVERY_TEAM = 1u << 3,
+	LOBBY_SENSOR_PROBE = 1u << 4,
+	LOBBY_SCOUT_COPTER = 1u << 5,
+	LOBBY_MINELAYER = 1u << 6,
+	LOBBY_RESOURCE_BUILDINGS = 1u << 7,
+	LOBBY_RESOURCE_FOR_MECHS = 1u << 8,
+	LOBBY_UNLIMITED_AMMO = 1u << 9,
+	LOBBY_ALL_FLAGS = (1u << 10) - 1u
+};
+
+struct LobbyPlayer {
+	uint8_t slot = 0;			// their commander in the session, below MAX_PLAYERS
+	std::string name;
+	uint8_t team = 0;			// below MAX_PLAYERS
+	uint8_t baseColor = 0;		// below MAX_LOBBY_COLORS
+	uint8_t stripeColor = 0;	// below MAX_LOBBY_COLORS
+	bool ready = false;
+};
+
+// host to clients
+struct LobbyState {
+	uint32_t revision = 0;		// a different one is a change
+	uint8_t maxPlayers = 0;		// 1 to MAX_PLAYERS, and no fewer than are in it
+	std::string map;			// a mission's file name; empty until one is chosen
+	uint32_t mapHash = 0;		// of the map as the host has it: a client can tell it has another
+	int32_t timeLimit = NO_TIME_LIMIT;	// seconds
+	int32_t resourcePoints = 0;
+	uint16_t flags = 0;			// LobbyFlags
+	std::vector<LobbyPlayer> players;
+};
+
+// client to host
+struct LobbyChoice {
+	uint32_t revision = 0;		// of the state this answers: a ready is for what that state said
+	uint8_t team = 0;
+	uint8_t baseColor = 0;
+	uint8_t stripeColor = 0;
+	bool ready = false;
+	uint32_t mapHash = 0;		// of the chosen map as this machine has it
+};
+
+// host to clients, ending a lobby: each slot's commander in the game, from 0 with no gaps.
+struct LobbyLaunch {
+	uint8_t numPlayers = 0;		// 1 to MAX_PLAYERS
+	uint8_t commanders[MAX_PLAYERS] = { NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER };
 };
 
 // FNV-1a: fixed for good, as both ends of a game compare it. Run it on from one piece to the next.
@@ -237,6 +299,9 @@ bool encode(const Start& message, std::vector<uint8_t>& out);
 bool encode(const EndGame& message, std::vector<uint8_t>& out);
 bool encode(const LanQuery& message, std::vector<uint8_t>& out);
 bool encode(const LanAnnounce& message, std::vector<uint8_t>& out);
+bool encode(const LobbyState& message, std::vector<uint8_t>& out);
+bool encode(const LobbyChoice& message, std::vector<uint8_t>& out);
+bool encode(const LobbyLaunch& message, std::vector<uint8_t>& out);
 
 // Each decoder returns false, and leaves message unusable, unless the whole of
 // data is one valid message of that type.
@@ -248,6 +313,9 @@ bool decode(const void* data, size_t size, Start& message);
 bool decode(const void* data, size_t size, EndGame& message);
 bool decode(const void* data, size_t size, LanQuery& message);
 bool decode(const void* data, size_t size, LanAnnounce& message);
+bool decode(const void* data, size_t size, LobbyState& message);
+bool decode(const void* data, size_t size, LobbyChoice& message);
+bool decode(const void* data, size_t size, LobbyLaunch& message);
 
 }
 
