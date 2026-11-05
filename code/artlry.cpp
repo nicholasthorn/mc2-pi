@@ -706,7 +706,8 @@ void Artillery::handleStaticCollision (void)
 					int mineResult = 0;
 					mineResult = GameMap->getMine(i,j);
 					
-					if (mineResult == 1)
+					// a client's are the host's to set off: it hears by a mine event
+					if ((mineResult == 1) && (!MPlayer || MPlayer->isServer()))
 					{
 						Stuff::Vector3D minePosition;
 						land->cellToWorld(i,j,minePosition);

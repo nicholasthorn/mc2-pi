@@ -321,6 +321,13 @@ class TacticalOrder {
 
 		long pack (MoverGroupPtr unit, MoverPtr point);
 
+		// Whether a packed order from the network can be unpacked: unpack ends the
+		// game on a bad target, and uses what it reads as indices.
+		static bool validPacked (unsigned long data0, unsigned long data1);
+
+		// An order about an object that no longer exists: pack would dereference it.
+		bool targetIsGone (void);
+
 		long unpack (void);
 
 		void setGroupFlag (long localMoverId, bool set);

@@ -72,6 +72,110 @@ TEST_CASE("Hello: exact bytes and round trip")
 	CHECK(back.name == m.name);
 }
 
+TEST_CASE("Ready, Start, EndGame: exact bytes and round trip")
+{
+	std::vector<uint8_t> out;
+	Ready ready;
+	ready.rosterHash = 0xAABBCCDDu;
+	REQUIRE(encode(ready, out));
+	const std::vector<uint8_t> readyBytes = { 4, 0xDD, 0xCC, 0xBB, 0xAA };
+	CHECK(out == readyBytes);
+	Ready readyBack;
+	REQUIRE(decode(out.data(), out.size(), readyBack));
+	CHECK(readyBack.rosterHash == ready.rosterHash);
+	out.push_back(0);	// one byte too many
+	CHECK_FALSE(decode(out.data(), out.size(), readyBack));
+
+	REQUIRE(encode(Start(), out));
+	const std::vector<uint8_t> startBytes = { 5 };
+	CHECK(out == startBytes);
+	Start startBack;
+	CHECK(decode(out.data(), out.size(), startBack));
+
+	EndGame end;
+	end.winningTeam = 3;
+	REQUIRE(encode(end, out));
+	const std::vector<uint8_t> endBytes = { 6, 3 };
+	CHECK(out == endBytes);
+	EndGame endBack;
+	REQUIRE(decode(out.data(), out.size(), endBack));
+	CHECK(endBack.winningTeam == 3);
+
+	// nobody won, and a team that cannot exist
+	end.winningTeam = NO_WINNER;
+	CHECK(encode(end, out));
+	end.winningTeam = MAX_PLAYERS;
+	CHECK_FALSE(encode(end, out));
+	const uint8_t badTeam[] = { 6, MAX_PLAYERS };
+	CHECK_FALSE(decode(badTeam, sizeof(badTeam), endBack));
+}
+
+TEST_CASE("Welcome: a refusal at the load barrier")
+{
+	Welcome m;
+	m.reject = RejectReason::WrongRoster;
+	std::vector<uint8_t> out;
+	REQUIRE(encode(m, out));
+	Welcome back;
+	REQUIRE(decode(out.data(), out.size(), back));
+	CHECK(back.reject == RejectReason::WrongRoster);
+}
+
+TEST_CASE("ChunkBatch: the check kind is known, the one after it is not")
+{
+	ChunkBatch m;
+	m.kind = ChunkKind::Check;
+	m.words = { 1 };
+	std::vector<uint8_t> out;
+	REQUIRE(encode(m, out));
+	ChunkBatch back;
+	REQUIRE(decode(out.data(), out.size(), back));
+	out[1] = static_cast<uint8_t>(ChunkKind::Check) + 1;
+	CHECK_FALSE(decode(out.data(), out.size(), back));
+}
+
+TEST_CASE("WorldEvent: exact words and round trip")
+{
+	WorldEvent e;
+	e.type = WorldEventType::Artillery;
+	e.a = 0x123;
+	e.b = 0xABC;
+	e.value = 0xDEADBEEFu;
+	uint32_t words[WORLD_EVENT_WORDS];
+	REQUIRE(encodeWorldEvent(e, words));
+	CHECK(words[0] == 0xABC12301u);
+	CHECK(words[1] == 0xDEADBEEFu);
+
+	WorldEvent back;
+	REQUIRE(decodeWorldEvent(words, back));
+	CHECK(back.type == e.type);
+	CHECK(back.a == e.a);
+	CHECK(back.b == e.b);
+	CHECK(back.value == e.value);
+}
+
+TEST_CASE("WorldEvent: what does not fit is refused")
+{
+	uint32_t words[WORLD_EVENT_WORDS];
+	WorldEvent e;
+	e.a = MAX_WORLD_FIELD + 1;
+	CHECK_FALSE(encodeWorldEvent(e, words));
+	e.a = 0;
+	e.b = MAX_WORLD_FIELD + 1;
+	CHECK_FALSE(encodeWorldEvent(e, words));
+	e.b = 0;
+	e.type = static_cast<WorldEventType>(0);
+	CHECK_FALSE(encodeWorldEvent(e, words));
+	e.type = static_cast<WorldEventType>(8);
+	CHECK_FALSE(encodeWorldEvent(e, words));
+
+	WorldEvent back;
+	const uint32_t none[WORLD_EVENT_WORDS] = { 0u, 0u };
+	CHECK_FALSE(decodeWorldEvent(none, back));
+	const uint32_t past[WORLD_EVENT_WORDS] = { 8u, 0u };
+	CHECK_FALSE(decodeWorldEvent(past, back));
+}
+
 TEST_CASE("Hello: an empty name is fine")
 {
 	std::vector<uint8_t> out;
@@ -320,6 +424,9 @@ static void decodeAll(const std::vector<uint8_t>& bytes)
 	decodeAndCheck<Hello>(bytes);
 	decodeAndCheck<Welcome>(bytes);
 	decodeAndCheck<ChunkBatch>(bytes);
+	decodeAndCheck<Ready>(bytes);
+	decodeAndCheck<Start>(bytes);
+	decodeAndCheck<EndGame>(bytes);
 }
 
 TEST_CASE("garbage never crashes a decoder")
@@ -333,7 +440,7 @@ TEST_CASE("garbage never crashes a decoder")
 			b = static_cast<uint8_t>(nextRandom(seed));
 		// a valid type byte half the time, to get past the first check
 		if (!bytes.empty() && (nextRandom(seed) & 1u))
-			bytes[0] = static_cast<uint8_t>(1u + nextRandom(seed) % 3u);
+			bytes[0] = static_cast<uint8_t>(1u + nextRandom(seed) % 6u);
 		decodeAll(bytes);
 	}
 }

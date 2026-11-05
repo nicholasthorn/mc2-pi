@@ -549,6 +549,113 @@ long TacticalOrder::pack (MoverGroupPtr group, MoverPtr point) {
 
 //---------------------------------------------------------------------------
 
+bool TacticalOrder::targetIsGone (void) {
+
+	switch (code) {
+		case TACTICAL_ORDER_ATTACK_OBJECT:
+		case TACTICAL_ORDER_MOVETO_OBJECT:
+		case TACTICAL_ORDER_JUMPTO_OBJECT:
+		case TACTICAL_ORDER_CAPTURE:
+		case TACTICAL_ORDER_REFIT:
+		case TACTICAL_ORDER_RECOVER:
+		case TACTICAL_ORDER_GETFIXED:
+			return(ObjectManager->getByWatchID(targetWID) == NULL);
+		default:
+			return(false);
+	}
+}
+
+//---------------------------------------------------------------------------
+
+bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
+
+	long code = (data0 & TACORDERCHUNK_CODE_MASK);
+	const bool guardLocation = (code == TACORDERCHUNK_CODE_MASK);
+	if (guardLocation)
+		code = TACTICAL_ORDER_GUARD;
+	else {
+		// Only what the interface gives. The others have no business coming from a
+		// player, and some end the game: a recover order STOPs when it is executed, and
+		// handleTacticalOrder Asserts on a scramble order.
+		switch (code) {
+			case TACTICAL_ORDER_WAIT:
+			case TACTICAL_ORDER_STOP:
+			case TACTICAL_ORDER_MOVETO_POINT:
+			case TACTICAL_ORDER_JUMPTO_POINT:
+			case TACTICAL_ORDER_GUARD:
+			case TACTICAL_ORDER_POWERUP:
+			case TACTICAL_ORDER_POWERDOWN:
+			case TACTICAL_ORDER_WAYPOINTS_DONE:
+			case TACTICAL_ORDER_EJECT:
+			case TACTICAL_ORDER_ATTACK_OBJECT:
+			case TACTICAL_ORDER_ATTACK_POINT:
+			case TACTICAL_ORDER_CAPTURE:
+			case TACTICAL_ORDER_REFIT:
+			case TACTICAL_ORDER_GETFIXED:
+				break;
+			default:
+				return(false);
+		}
+	}
+
+	unsigned long fields = data0 >> (TACORDERCHUNK_CODE_BITS + TACORDERCHUNK_ORIGIN_BITS + TACORDERCHUNK_UNITORDER_BITS + TACORDERCHUNK_GROUP_BITS);
+	if ((fields & TACORDERCHUNK_ATTACKTYPE_MASK) >= NUM_ATTACK_TYPES)
+		return(false);
+	fields >>= TACORDERCHUNK_ATTACKTYPE_BITS;
+	if ((fields & TACORDERCHUNK_ATTACKMETHOD_MASK) >= NUM_ATTACKMETHODS)
+		return(false);
+	fields >>= TACORDERCHUNK_ATTACKMETHOD_BITS;
+	// a hit location later: -1 is none
+	const long aimLocation = (long)(fields & TACORDERCHUNK_AIMLOCATION_MASK) - 2;
+	if ((aimLocation < -1) || (aimLocation >= MAX_MOVER_ARMOR_LOCATIONS))
+		return(false);
+
+	unsigned long target = data1 >> (TACORDERCHUNK_ATTACKRANGE_BITS + TACORDERCHUNK_PURSUE_BITS + TACORDERCHUNK_OBLITERATE_BITS
+		+ TACORDERCHUNK_FACEOBJECT_BITS + TACORDERCHUNK_WAIT_BITS + TACORDERCHUNK_MODE_BITS + TACORDERCHUNK_RUN_BITS);
+
+	bool cell = false, object = false;
+	switch (code) {
+		case TACTICAL_ORDER_MOVETO_POINT:
+		case TACTICAL_ORDER_JUMPTO_POINT:
+		case TACTICAL_ORDER_ATTACK_POINT:
+			cell = true;
+			break;
+		case TACTICAL_ORDER_GUARD:
+			cell = guardLocation;
+			object = !guardLocation;
+			break;
+		case TACTICAL_ORDER_ATTACK_OBJECT:
+		case TACTICAL_ORDER_CAPTURE:
+		case TACTICAL_ORDER_REFIT:
+		case TACTICAL_ORDER_GETFIXED:
+			object = true;
+			break;
+	}
+
+	if (cell) {
+		const long col = (target & TACORDERCHUNK_CELLPOS_MASK);
+		const long row = ((target >> TACORDERCHUNK_CELLPOS_BITS) & TACORDERCHUNK_CELLPOS_MASK);
+		return(GameMap->inBounds(row, col));
+	}
+	if (object) {
+		const unsigned long targetType = (target & TACORDERCHUNK_TARGETTYPE_MASK);
+		target >>= TACORDERCHUNK_TARGETTYPE_BITS;
+		if (targetType == 0) {
+			const unsigned long index = (target & TACORDERCHUNK_MOVERINDEX_MASK);
+			// executing a get fixed order casts its target to a Building
+			return((code != TACTICAL_ORDER_GETFIXED) && (index < MAX_MULTIPLAYER_MOVERS) && MPlayer && MPlayer->moverRoster[index]);
+		}
+		if (targetType == 1) {
+			GameObjectPtr object = ObjectManager->findByPartId((target & TACORDERCHUNK_TERRAINPARTID_MASK) + MIN_TERRAIN_PART_ID);
+			return(object && ((code != TACTICAL_ORDER_GETFIXED) || (object->getObjectClass() == BUILDING)));
+		}
+		return(false);
+	}
+	return(true);
+}
+
+//---------------------------------------------------------------------------
+
 long TacticalOrder::unpack (void) {
 
 	long tempData = data[0];
@@ -1480,7 +1587,11 @@ long TacticalOrder::status (MechWarriorPtr warrior) {
 						{
 							float pointsUsed = 0;
 							float pointsAvailable = warrior->getVehicle()->getRefitPoints();
+							if (MPlayer)
+								pointsAvailable = netRefitPoints(pointsAvailable);
 							long result = ((MoverPtr)target)->refit(pointsAvailable, pointsUsed);
+							if (MPlayer)
+								pointsUsed = netRefitPoints(pointsUsed);
 							warrior->getVehicle()->burnRefitPoints(pointsUsed);
 							if (warrior->getVehicle()->getRefitPoints() <= 0)
 							{
@@ -1565,7 +1676,11 @@ long TacticalOrder::status (MechWarriorPtr warrior) {
 						{
 							float pointsUsed = 0;
 							float pointsAvailable = target->getRefitPoints();
+							if (MPlayer)
+								pointsAvailable = netRefitPoints(pointsAvailable);
 							long result = warrior->getVehicle()->refit(pointsAvailable, pointsUsed);
+							if (MPlayer)
+								pointsUsed = netRefitPoints(pointsUsed);
 							target->burnRefitPoints(pointsUsed);
 							if (MPlayer) 
 							{

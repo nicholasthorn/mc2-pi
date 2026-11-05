@@ -287,6 +287,12 @@ class Turret : public TerrainObject {
 		
 		virtual Stuff::Vector3D getLOSPosition (void);
 		
+		// TerrainObject's would read this as a TerrainObjectType
+		virtual float getDamageLevel (void)
+		{
+			return ((TurretTypePtr)getObjectType())->getDamageLevel();
+		}
+
 		virtual float getDestructLevel (void)
 		{
 			return ((TurretTypePtr)getObjectType())->getDamageLevel() - damage;

@@ -36,6 +36,8 @@
 #include"multplyr.h"
 #endif
 
+#include"netsession.h"
+
 #ifndef TEAM_H
 #include"team.h"
 #endif
@@ -102,6 +104,22 @@ long FilterState = gos_FilterNone;
 bool quitGame = FALSE;
 bool justStartMission = FALSE;
 static long netHostPlayers = 0;		// -nethost <players>: multiplayer host, no network
+static unsigned short netListenPort = 0;	// -netlisten [port]: and clients may join it
+static char netJoinAddress[64] = "";	// -netjoin <address>[:port]: join a host's game
+static unsigned short netJoinPort = netsession::DEFAULT_PORT;
+static char netCallAddress[64] = "";	// -netcall <address>[:port]: the host dials a client that waits
+static unsigned short netCallPort = netsession::DEFAULT_PORT;
+
+// <address>[:port], with a port only after a colon that is the only one (not IPv6)
+static void netParseAddress (const char* text, char* address, size_t size, unsigned short& port) {
+	strncpy(address, text, size - 1);
+	address[size - 1] = 0;
+	char* colon = strrchr(address, ':');
+	if (colon && (colon == strchr(address, ':'))) {
+		port = (unsigned short)atoi(colon + 1);
+		*colon = 0;
+	}
+}
 bool gamePaused = FALSE;
 bool hasGuardBand = false;
 bool canMultiTextureDetail = false;
@@ -1696,18 +1714,29 @@ void __stdcall InitializeGameEngine()
 		{
 			logistics->setLogisticsState(log_STARTMISSIONFROMCMDLINE);
 			char commandersToLoad[MAX_MC_PLAYERS][3] = {{0, 0, 0}, {1, 1, 1}, {2, 0, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}, {6, 6, 6}, {7, 7, 7}};
-			if (netHostPlayers > 0)
+			if ((netHostPlayers > 0) || netJoinAddress[0])
 			{
 				MPlayer = new MultiPlayer;
 				MPlayer->setup();
-				MPlayer->startLocalHost(netHostPlayers);
-				MultiPlayTeamId = 0;
-				MultiPlayCommanderId = 0;
+				if (netJoinAddress[0])
+					MPlayer->joinNetGame((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName);
+				else if (netListenPort || netCallAddress[0])
+					MPlayer->hostNetGame(netHostPlayers, netListenPort, missionName,
+						netCallAddress[0] ? netCallAddress : NULL, netCallPort);
+				else
+					MPlayer->startLocalHost(netHostPlayers);
+				MultiPlayTeamId = MPlayer->commanderID;
+				MultiPlayCommanderId = MPlayer->commanderID;
+				long players = 0;
 				// a team per commander, and only as many as there are players
-				for (long i = 0; i < MAX_MC_PLAYERS; i++)
+				for (long i = 0; i < MAX_MC_PLAYERS; i++) {
+					if (MPlayer->playerInfo[i].commanderID > -1)
+						players++;
 					for (long j = 0; j < 3; j++)
 						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
-				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(netHostPlayers));
+				}
+				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(players));
+				MPlayer->waitForNetStart();
 			}
 			else
 				mission->init(missionName, MISSION_LOAD_SP_QUICKSTART, 0, NULL, commandersToLoad, 2);
@@ -1717,8 +1746,8 @@ void __stdcall InitializeGameEngine()
 		}
 		else
 		{
-			if (netHostPlayers > 0)
-				PAUSE(("-nethost: ignored without -mission"));
+			if ((netHostPlayers > 0) || netJoinAddress[0])
+				PAUSE(("-nethost, -netjoin: ignored without -mission"));
 			int param = log_SPLASH;
 			if ( MPlayer && MPlayer->launchedFromLobby )
 				param = log_ZONE;
@@ -2193,6 +2222,14 @@ void __stdcall DoGameLogic()
 						MPlayer->sendEndMission(1);
 					quitGame = true;
 				}
+				else if (MPlayer && MPlayer->isNetworked() && (result != mis_PLAYING))
+				{
+					// no lobby to go back to yet
+					printf("[NET] mission over, result %ld\n", result);
+					fflush(stdout);
+					mission->destroy();
+					quitGame = true;
+				}
 				else if (result != mis_PLAYING)
 				{
 					//if (MPlayer && MPlayer->isServer())
@@ -2575,6 +2612,22 @@ void ParseCommandLine(const char *command_line)
 				PAUSE(("-nethost: needs a number of players, 1 to %d", MAX_MC_PLAYERS));
 				netHostPlayers = 0;
 			}
+		}
+		else if (S_stricmp(argv[i],"-netlisten") == 0)
+		{
+			netListenPort = netsession::DEFAULT_PORT;
+			if (((i + 1) < n_args) && isdigit((unsigned char)argv[i + 1][0]))
+				netListenPort = (unsigned short)textToLong(argv[++i]);
+		}
+		else if (S_stricmp(argv[i],"-netjoin") == 0)
+		{
+			if ((i + 1) < n_args)
+				netParseAddress(argv[++i], netJoinAddress, sizeof(netJoinAddress), netJoinPort);
+		}
+		else if (S_stricmp(argv[i],"-netcall") == 0)
+		{
+			if ((i + 1) < n_args)
+				netParseAddress(argv[++i], netCallAddress, sizeof(netCallAddress), netCallPort);
 		}
 		else if (S_stricmp(argv[i],"-nodialog") == 0)
 		{
