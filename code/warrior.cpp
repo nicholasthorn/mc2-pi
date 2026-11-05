@@ -1304,6 +1304,12 @@ void SituationOrders::init (void) {
 
 void MechWarrior::radioMessage (long message, bool propogateIfMultiplayer) 
 {
+	// radios use their heap, packets, sound and the RNG
+	if (MovePathManager::onWorker()) {
+		MovePathManager::deferRadio(this, message, propogateIfMultiplayer);
+		return;
+	}
+
 bool limitFrequency = true;
 
 	if (message >= RADIO_MESSAGE_COUNT)

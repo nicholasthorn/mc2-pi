@@ -16,6 +16,9 @@
 #include"mission.h"
 #endif
 
+#include"warrior.h"
+#include"movemgr.h"
+
 #ifndef UNITDESG_H
 #include"unitdesg.h"
 #endif
@@ -2113,6 +2116,9 @@ long enoughCount = 0;
 bool DoneSniffing = false;
 void __stdcall DoGameLogic()
 {
+	if (PathManager)
+		PathManager->finishWorker();
+
 	if (!SnifferMode)
 	{
 	#ifdef LAB_ONLY		//Used for debugging LOS
@@ -2217,6 +2223,9 @@ void __stdcall DoGameLogic()
 			if (mission && (!optionsScreenWrapper || optionsScreenWrapper->isDone() ) )
 			{
 				long result = mission->update();
+				// the mission's last step leaves the paths: what follows takes it apart
+				if (PathManager && (result == mis_PLAYING))
+					PathManager->startWorker();
 				if (result == 9999) {
 					mission->destroy();
 					//delete mission;

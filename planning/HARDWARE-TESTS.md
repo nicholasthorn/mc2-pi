@@ -123,6 +123,19 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Helicopter dust cloud** (`mech3d.cpp`) draws with the plain matrix,
       unlike the water wake next to it. Check whether it looks wrong.
 
+## Path-finding on a worker, VR mesh list (branch `perf/vr-path-worker`)
+
+Only a headset session holds a game step back for the worker, so no desktop check or
+CI run covers that.
+
+- [ ] **Quest 2, a mission played to its end, then the next:** units move, order
+      changes take effect promptly, radio chatter plays; no crash leaving the mission
+      or starting the next, also with the mech bay skipped. Bench runs have not done this.
+- [ ] **Same state across runs:** two `-deterministic` headset runs of the same
+      mission print the same `[STATEHASH]`, with steps held back. Not yet compared.
+- [ ] **Multiplayer on a headset** (`-nethost` or `-netjoin`): a battle plays to its
+      result with the worker on.
+
 ## VR interface between game steps (#127)
 
 The interface only rests in a headset session, so no desktop run covers it.

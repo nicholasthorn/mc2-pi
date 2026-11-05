@@ -286,6 +286,7 @@ class Turret : public TerrainObject {
 		long updateAnimations (void);
 		
 		virtual Stuff::Vector3D getLOSPosition (void);
+		float losNodeZ = 0.0f;		// its height, for the path worker
 		
 		// TerrainObject's would read this as a TerrainObjectType
 		virtual float getDamageLevel (void)

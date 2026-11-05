@@ -510,6 +510,11 @@ class GameObject {
 			return(position);
 		}
 
+		// where line of sight is worked out from
+		virtual Stuff::Vector3D getLOSBasePosition (void) {
+			return(position);
+		}
+
 		virtual Stuff::Vector3D getLOSPosition (void) {
 			return(position);
 		}

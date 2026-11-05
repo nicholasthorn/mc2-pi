@@ -77,6 +77,17 @@ class MovePathManager {
 		void calcPath (void);
 
 		void update (void);
+
+		// The worker (gos_PathsOnWorker): a step asks for its paths with
+		// queueForWorker. startWorker, after the step, runs them while the frames
+		// draw, and finishWorker, before anything of the next step, waits for
+		// them. Nothing else may touch path-finding's data in between.
+		void queueForWorker (void);
+		void startWorker (void);
+		void finishWorker (void);
+		static bool onWorker (void);
+		// what must wait for the main thread (radioMessage)
+		static void deferRadio (MechWarriorPtr pilot, long message, bool propogate);
 };
 
 typedef MovePathManager* MovePathManagerPtr;

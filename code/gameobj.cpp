@@ -1877,7 +1877,7 @@ inline bool GameObject::lineOfSight (GameObjectPtr target, float startExtRad, bo
 	}
 
 	Stuff::Vector3D distance;
-	distance.Subtract(target->getPosition(),getPosition());
+	distance.Subtract(target->getPosition(),getLOSBasePosition());
 	float dist = distance.GetApproximateLength();
 
 	//Figure out altitude above minimum terrain altitude and look up in table.
@@ -1885,7 +1885,7 @@ inline bool GameObject::lineOfSight (GameObjectPtr target, float startExtRad, bo
 	if (MapData::waterDepth < Terrain::userMin)
 		baseElevation = Terrain::userMin;
 
-	float altitude = position.z - baseElevation;
+	float altitude = getLOSBasePosition().z - baseElevation;
 	float altitudeIntegerRange = (Terrain::userMax - baseElevation) * 0.00390625f;
 	long altLevel = 0;
 	if (altitudeIntegerRange > Stuff::SMALL)

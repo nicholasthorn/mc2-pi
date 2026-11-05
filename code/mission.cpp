@@ -534,7 +534,14 @@ long Mission::update (void)
 #ifdef USE_PATH_COST_TABLE
 		GlobalMoveMap[0]->resetPathCostTable();
 #endif
-		BenchStage("paths",ProfileTime(MCTimePathManagerUpdate,PathManager->update()));
+		if (gos_PathsOnWorker())
+		{
+			PathManager->queueForWorker();
+		}
+		else
+		{
+			BenchStage("paths",ProfileTime(MCTimePathManagerUpdate,PathManager->update()));
+		}
 
 		if (KillAmbientLight) {
 	//		ambientRed<<16)+(ambientGreen<<8)+ambientBlue;
@@ -926,7 +933,6 @@ long Mission::render (void)
 		}
 		BenchStage("world_render",eye->renderWorld());
 		vrPickWorld();
-		GameMap->clearCellDebugs(0);
 	
 		//-----------------------------------------------------
 		// FOG time.  Set Render state to FOG on!
@@ -3310,6 +3316,10 @@ void Mission::initTGLForMission()
 //----------------------------------------------------------------------------------
 void Mission::destroy (bool initLogistics)
 {
+	// before anything goes: the worker reads it, and its radio messages need it
+	if (PathManager)
+		PathManager->finishWorker();
+
 	//---------------------------------------------------------------
 	// Shutdown the Mission Interface
 	if (missionInterface)
@@ -3557,6 +3567,8 @@ void Mission::destroy (bool initLogistics)
 	//The flush below will remove this one.
 	Mover::holdFireIconHandle = 0;
 
+	// the mesh list points at shapes and vertex buffers about to go
+	mcTextureManager->clearArrays();
 	mcTextureManager->flush();
 	mcTextureManager->freeVertices();
 	mcTextureManager->freeShapes();

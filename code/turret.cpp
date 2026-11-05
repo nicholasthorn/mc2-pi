@@ -16,6 +16,8 @@
 #include"turret.h"
 #endif
 
+#include"movemgr.h"
+
 #ifndef GAMESOUND_H
 #include"gamesound.h"
 #endif
@@ -1242,9 +1244,11 @@ Stuff::Vector3D Turret::getPositionFromHS (long nodeId)
 //---------------------------------------------------------------------------
 Stuff::Vector3D Turret::getLOSPosition (void)
 {
-	Stuff::Vector3D nodePos = appearance->getWeaponNodePosition(0);
+	// the worker leaves the appearance alone: startWorker has just had this run
+	if (!MovePathManager::onWorker())
+		losNodeZ = appearance->getWeaponNodePosition(0).z;
 	Stuff::Vector3D losPos = position;
-	losPos.z = nodePos.z;
+	losPos.z = losNodeZ;
 	return(losPos);
 }
 
