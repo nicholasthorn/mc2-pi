@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 6;
+constexpr uint16_t PROTOCOL_VERSION = 7;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -38,7 +38,9 @@ enum class MessageType : uint8_t {
 	ChunkBatch = 3,
 	Ready = 4,
 	Start = 5,
-	EndGame = 6
+	EndGame = 6,
+	LanQuery = 7,
+	LanAnnounce = 8
 };
 
 enum class RejectReason : uint8_t {
@@ -159,6 +161,31 @@ struct SupportEvent {
 bool encodeSupportEvent(const SupportEvent& event, uint32_t words[SUPPORT_EVENT_WORDS]);
 bool decodeSupportEvent(const uint32_t words[SUPPORT_EVENT_WORDS], SupportEvent& event);
 
+// A datagram on the local network, not on a connection: anyone can send anything to the
+// port, so these open with a word of their own after the type. Who asks a question gets the
+// answer whatever version it has: the announce says what the host speaks. Never change the
+// fields before the name.
+constexpr uint32_t LAN_MAGIC = 0x4D433247u;	// "MC2G"
+
+struct LanQuery {
+	uint16_t protocol = PROTOCOL_VERSION;
+};
+
+struct LanAnnounce {
+	uint16_t protocol = PROTOCOL_VERSION;
+	uint16_t gamePort = 0;
+	uint32_t instance = 0;		// this game's own: one machine can be heard at two addresses
+	uint8_t numPlayers = 0;		// who has joined, the host among them
+	uint8_t maxPlayers = 0;
+	bool inProgress = false;
+	std::string name;			// what to call this game in a list
+	std::string map;			// a mission's file name
+};
+
+// FNV-1a: fixed for good, as both ends of a game compare it. Run it on from one piece to the next.
+constexpr uint32_t HASH_START = 2166136261u;
+uint32_t hashBytes(uint32_t hash, const void* data, size_t size);
+
 // Appends little-endian fields to a buffer.
 class Writer {
 public:
@@ -208,6 +235,8 @@ bool encode(const ChunkBatch& message, std::vector<uint8_t>& out);
 bool encode(const Ready& message, std::vector<uint8_t>& out);
 bool encode(const Start& message, std::vector<uint8_t>& out);
 bool encode(const EndGame& message, std::vector<uint8_t>& out);
+bool encode(const LanQuery& message, std::vector<uint8_t>& out);
+bool encode(const LanAnnounce& message, std::vector<uint8_t>& out);
 
 // Each decoder returns false, and leaves message unusable, unless the whole of
 // data is one valid message of that type.
@@ -217,6 +246,8 @@ bool decode(const void* data, size_t size, ChunkBatch& message);
 bool decode(const void* data, size_t size, Ready& message);
 bool decode(const void* data, size_t size, Start& message);
 bool decode(const void* data, size_t size, EndGame& message);
+bool decode(const void* data, size_t size, LanQuery& message);
+bool decode(const void* data, size_t size, LanAnnounce& message);
 
 }
 

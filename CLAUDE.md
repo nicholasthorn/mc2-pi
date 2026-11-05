@@ -145,8 +145,9 @@ detailed conventions.
   is the real "this is MSVC" flag. `PATH_SEPARATOR` is therefore `/` everywhere.
 - **Networking is a vertical slice, with no UI.** `-nethost <players> -netlisten [port]`
   and `-netjoin <address>[:port]` play a mission between processes (or, for a host that cannot
-  be reached, as in WSL, `-netcall <address>` and `-netjoin wait`) (`multplyr.cpp`,
-  `code/netsession.*`, `code/netwire.*`, `GameOS/gameos/gos_net*`); `-nethost` alone runs a
+  be reached, as in WSL, `-netcall <address>` and `-netjoin wait`; to find a host on the local
+  network, `-netjoin lan`) (`multplyr.cpp`, `code/netsession.*`, `code/netwire.*`, `code/netlan.*`,
+  `GameOS/gameos/gos_net*`); `-nethost` alone runs a
   host's code with no network. `code/mp*.cpp` are still UI stubs, and the `MultiPlayer`
   methods behind the lobby are empty. `cmake/mc2_gns.cmake` downloads and builds the libraries
   (`-DMC2_NET=OFF` leaves them out).
