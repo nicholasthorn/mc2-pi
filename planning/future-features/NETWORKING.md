@@ -700,6 +700,8 @@ Not settled by phase 2, against its exit criterion:
   chunk, malformed input, fixed sizes, ASan + UBSan fuzz run.
 - **Two-process smoke (CI):** host and client on localhost under llvmpipe with
   `-autoexit`. The host stays fixed-step, so a run is repeatable on one machine.
+  All three configurations and every game mode nightly and on PRs that change
+  multiplayer code (`scripts/ci_multiplayer.sh`); other code PRs run one battle sanitized.
 - **Network conditions (CI):** GNS's simulator at, say, 0, 100 and 250 ms with
   0, 2 and 5% loss.
 - **Convergence, in place of a desync check:** at the end of a run, and regularly
