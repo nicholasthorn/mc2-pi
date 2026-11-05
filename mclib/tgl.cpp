@@ -1763,8 +1763,34 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
 	
-	//At this point, we know we are going to process this shape,
-	// Get memory for its components from the pools!
+	bool bDrawnByShader = (bShadersDrawPathEnabled || vrMeshPath()) && !isSpotlight && !isWindow && 
+        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
+
+	// A VR mesh transforms in the shader for each eye, so the only thing to read
+	// these screen positions and faces is picking: PerPolySelect works them out
+	// from these if it gets that far. Shadows use the pools as before.
+	const bool onlyPicked = bDrawnByShader && vrMeshPath();
+	transformedForPick = onlyPicked;
+	if (onlyPicked)
+	{
+		pickToClip = *shapeToClip;
+		pickBackFacePoint = *backFacePoint;
+		oneOn = true;
+	}
+	const long numVerticesToTransform = onlyPicked ? 0 : numVertices;
+	const DWORD numTrianglesToLight = onlyPicked ? 0 : numTriangles;
+
+	if (onlyPicked && !useShadows)
+	{
+		listOfVertices = NULL;
+		listOfColors = NULL;
+		listOfShadowTVertices = NULL;
+		listOfTriangles = NULL;
+		listOfVisibleFaces = NULL;
+		listOfVisibleShadows = NULL;
+	}
+	else
+	{
 	listOfVertices = vertexPool->getVerticesFromPool(numVertices);
 	listOfColors = colorPool->getColorsFromPool(numVertices);
 	
@@ -1783,12 +1809,11 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		!listOfVisibleShadows)
 		return(1);
 
+	}
+
 	lastTurnTransformed = turn;
 
-	bool bDrawnByShader = (bShadersDrawPathEnabled || vrMeshPath()) && !isSpotlight && !isWindow && 
-        (vrMeshPath() || (!theShape->listOfTextures[theShape->listOfTypeTriangles[0].localTextureHandle].textureAlpha && (alphaValue == 0xff)));
-
-	for (long j=0;j<numVertices;j++)
+	for (long j=0;j<numVerticesToTransform;j++)
 	{
 		Stuff::Point3D pos = theShape->listOfTypeVertices[j].position;
 		if (shapeScalar > 0.0f)
@@ -2333,10 +2358,10 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		}
 	}
 
-	numVisibleFaces = 0;			//Reset Visible Faces
+	numVisibleFaces = onlyPicked ? numTriangles : 0;			//Reset Visible Faces; picking tests them all
 
 	TG_TypeTrianglePtr tri = &(theShape->listOfTypeTriangles[0]);
-	for (unsigned int j=0;j<numTriangles;j++,tri++)
+	for (unsigned int j=0;j<numTrianglesToLight;j++,tri++)
 	{
 		//---------------------------------------
 		// Mark backfacing those that are.
@@ -2632,12 +2657,12 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 	if (!numVertices)		//WE are the root Shape which may have no shape or a helper shape which defintely has no shape!
 		return;
 		
-	if (!listOfVertices ||
+	if ((!transformedForPick && (!listOfVertices ||
 		!listOfColors ||
 		!listOfShadowTVertices ||
 		!listOfTriangles ||
 		!listOfVisibleFaces ||
-		!listOfVisibleShadows ||
+		!listOfVisibleShadows)) ||
 		(/*(lastTurnTransformed != (turn-1)) &&*/ (lastTurnTransformed != turn)))
 		return;
 
@@ -2868,18 +2893,44 @@ void TG_Shape::Render (float forceZ, bool isHudElement, BYTE alphaValue, bool is
 }	
 
 extern bool InEditor;
+//------------------------------------------------------------------------------
+// Where MultiTransformShape would have put a vertex on screen (x and y)
+void TG_Shape::pickScreenPosition (TG_TypeShape* theShape, long vertex, Stuff::Point3D& result)
+{
+	Stuff::Point3D pos = theShape->listOfTypeVertices[vertex].position;
+	if (shapeScalar > 0.0f)
+		pos *= shapeScalar;
+
+	Stuff::Vector4D xformCoords;
+	xformCoords.Multiply(pos,pickToClip);
+
+	if (eye->usePerspective)
+	{
+		float rhw = 1.0f;
+		if (xformCoords.w != 0.0f)
+			rhw = 1.0f / xformCoords.w;
+		result.x = (xformCoords.x * rhw) * viewMulX + viewAddX;
+		result.y = (xformCoords.y * rhw) * viewMulY + viewAddY;
+	}
+	else
+	{
+		result.x = (1.0f - xformCoords.x) * viewMulX + viewAddX;
+		result.y = (1.0f - xformCoords.y) * viewMulY + viewAddY;
+	}
+}
+
 //------------------------------------------------------------------------------------------------------------
 // This function checks each visible triangle against the mouse position and returns if we are over ANY poly!
 bool TG_Shape::PerPolySelect (float mouseX, float mouseY)
 {
 	if (!InEditor)
 	{
-		if (!listOfVertices ||
+		if ((!transformedForPick && (!listOfVertices ||
 			!listOfColors ||
 			!listOfShadowTVertices ||
 			!listOfTriangles ||
 			!listOfVisibleFaces ||
-			!listOfVisibleShadows ||
+			!listOfVisibleShadows)) ||
 			((lastTurnTransformed != (turn-1)) /*&& (lastTurnTransformed != turn)*/))
 			return false;
 	}
@@ -2898,10 +2949,21 @@ bool TG_Shape::PerPolySelect (float mouseX, float mouseY)
 	TG_TypeShapePtr theShape = (TG_TypeShapePtr)myType;
  	for (long j=0;j<numVisibleFaces;j++)
 	{
-		if (listOfVisibleFaces[j] < numTriangles)
+		const DWORD face = transformedForPick ? (DWORD)j : listOfVisibleFaces[j];
+		if (face < numTriangles)
 		{
-			TG_TypeTriangle triType = theShape->listOfTypeTriangles[listOfVisibleFaces[j]];
+			TG_TypeTriangle triType = theShape->listOfTypeTriangles[face];
 			Stuff::Point3D v0,v1,v2;
+			if (transformedForPick)
+			{
+				if ((pickBackFacePoint * triType.faceNormal) <= 0.0f)
+					continue;
+				pickScreenPosition(theShape, triType.Vertices[0], v0);
+				pickScreenPosition(theShape, triType.Vertices[1], v1);
+				pickScreenPosition(theShape, triType.Vertices[2], v2);
+			}
+			else
+			{
 			v0.x = listOfVertices[triType.Vertices[0]].x;
 			v0.y = listOfVertices[triType.Vertices[0]].y;
 			
@@ -2910,6 +2972,7 @@ bool TG_Shape::PerPolySelect (float mouseX, float mouseY)
 			
 			v2.x = listOfVertices[triType.Vertices[2]].x;
 			v2.y = listOfVertices[triType.Vertices[2]].y;
+			}
 			v0.z = v1.z = v2.z = 0.0f;
 			
 			//Using the above vertex Data, determine if the mouse is over this poly!

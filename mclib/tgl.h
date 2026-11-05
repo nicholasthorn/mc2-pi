@@ -728,6 +728,12 @@ class TG_Shape
 
         TG_HWLightsData         lightData_;
 
+		// a VR mesh keeps these instead of screen positions (MultiTransformShape)
+		bool					transformedForPick = false;
+		Stuff::Matrix4D			pickToClip;
+		Stuff::Point3D			pickBackFacePoint;
+		void pickScreenPosition (TG_TypeShape* theShape, long vertex, Stuff::Point3D& result);
+
 		TG_ShadowVertexPtr		listOfShadowVertices;		//Stores shadow vertex information for the shape.
 															//We just use existing listOfTriangles to draw!
 															
