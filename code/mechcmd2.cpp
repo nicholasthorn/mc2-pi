@@ -1721,7 +1721,7 @@ void __stdcall InitializeGameEngine()
 				if (netJoinAddress[0])
 					MPlayer->joinNetGame((strcmp(netJoinAddress, "wait") == 0) ? NULL : netJoinAddress, netJoinPort, missionName);
 				else if (netListenPort || netCallAddress[0])
-					MPlayer->hostNetGame(netHostPlayers, netListenPort ? netListenPort : netsession::DEFAULT_PORT, missionName,
+					MPlayer->hostNetGame(netHostPlayers, netListenPort, missionName,
 						netCallAddress[0] ? netCallAddress : NULL, netCallPort);
 				else
 					MPlayer->startLocalHost(netHostPlayers);

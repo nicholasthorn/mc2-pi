@@ -44,7 +44,7 @@ public:
 	explicit Session(gos_net::Transport& transport) : transport_(transport) {}
 
 	// Host. Commander 0 is the host itself, and clients take 1 to numPlayers - 1 as they
-	// join. False if the port cannot be had.
+	// join. False if the port cannot be had. Port 0 listens on none, for a host that dials.
 	bool host(uint16_t port, uint8_t numPlayers, uint32_t dataHash);
 
 	// Client. False if the connection could not even be started.
@@ -53,6 +53,8 @@ public:
 	// The same two, the other way round, for a host that cannot be reached but can reach
 	// out (behind address translation, as in WSL): the client listens for one connection,
 	// and the host dials it. After connecting nothing differs: the client still says Hello.
+	// Whoever connects first is taken as the host, so this is not for the open internet.
+	// A dial that finds nobody listening fails after a while: call it again.
 	bool joinWaiting(uint16_t port, uint32_t dataHash, const std::string& name);
 	bool dialClient(const char* address, uint16_t port);
 

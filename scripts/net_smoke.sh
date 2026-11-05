@@ -25,6 +25,7 @@ LAG=""
 LOSS=""
 EXPECT_WINNER=""
 WORLD_EVENTS=yes
+DIAL=0
 PORT=$((27815 + $$ % 1000))
 
 while [ $# -gt 0 ]; do
@@ -41,6 +42,7 @@ while [ $# -gt 0 ]; do
         --port) PORT="$2"; shift 2 ;;
         --expect-winner) EXPECT_WINNER="$2"; shift 2 ;;
         --world-events) WORLD_EVENTS="$2"; shift 2 ;;
+        --dial) DIAL=1; shift ;;
         *) echo "net_smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -73,9 +75,14 @@ command -v xvfb-run >/dev/null || { echo "net_smoke: xvfb-run not installed" >&2
 RUN=(xvfb-run -a -s "-screen 0 800x600x24")
 COMMON=(-mission "$MISSION" -autoexit "$FRAMES" -benchscenario "$SCENARIO")
 
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" -nethost 2 -netlisten "$PORT" ) > "$LOG_DIR/host.log" 2>&1 &
+# --dial: the host calls a client that waits, as for a host that cannot be reached
+HOST_ARGS=(-netlisten "$PORT"); CLIENT_ARGS=(-netjoin "127.0.0.1:$PORT")
+if [ "$DIAL" = 1 ]; then
+    HOST_ARGS=(-netcall "127.0.0.1:$PORT"); CLIENT_ARGS=(-netjoin "wait:$PORT")
+fi
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" -nethost 2 "${HOST_ARGS[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
 host_pid=$!
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" -netjoin "127.0.0.1:$PORT" ) > "$LOG_DIR/client.log" 2>&1 &
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${COMMON[@]}" "${CLIENT_ARGS[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
 client_pid=$!
 start=$(date +%s)
 wait "$host_pid"; host_rc=$?

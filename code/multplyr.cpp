@@ -456,6 +456,7 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 
 	player->missionSettings.timeLimit = -1.0f;
 	player->missionSettings.missionType = MISSION_TYPE_ELIMINATION;
+	player->missionSettings.maxPlayers = MAX_MC_PLAYERS;
 	FullPathFileName path;
 	path.init(missionPath, missionName, ".fit");
 	FitIniFile file;
@@ -468,6 +469,9 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 		unsigned long type = 0;
 		if ((file.readIdULong("MissionType", type) == NO_ERR) && (type <= MISSION_TYPE_OTHER))
 			player->missionSettings.missionType = (char)type;
+		unsigned long most = 0;
+		if ((file.readIdULong("MaximumNumberOfPlayers", most) == NO_ERR) && (most >= 1) && (most <= MAX_MC_PLAYERS))
+			player->missionSettings.maxPlayers = (char)most;
 	}
 	file.close();
 	printf("[NET] mode %d, time limit %.0f\n", (int)player->missionSettings.missionType, player->missionSettings.timeLimit);
@@ -506,13 +510,23 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 	startLocalHost(numPlayers);
 	inSession = true;
 	netReadMissionSettings(this, missionName);
+	if (numPlayers > missionSettings.maxPlayers)
+		Fatal(missionSettings.maxPlayers, " -nethost: more players than this map takes ");
 	netNamePlayers(this);
 	initUpdateFrequencies();
 	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
 	fflush(stdout);
-	if (dialAddress && !netSession->dialClient(dialAddress, dialPort))
-		Fatal(0, " -netcall: needs an IP address ");
-	if (!netWait([]() { return netSession->allJoined(); }))
+	// a client may not be listening yet, and a dial with nobody there gives up in about 10 s
+	double nextDial = 0.0;
+	const bool everyone = netWait([&]() {
+		if (dialAddress && (netNow() >= nextDial)) {
+			nextDial = netNow() + 15.0;
+			if (!netSession->dialClient(dialAddress, dialPort))
+				Fatal(0, " -netcall: needs an IP address ");
+		}
+		return netSession->allJoined();
+	});
+	if (!everyone)
 		Fatal(0, " -netlisten: not everyone joined in time ");
 }
 

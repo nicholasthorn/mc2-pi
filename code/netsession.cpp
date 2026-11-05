@@ -23,7 +23,7 @@ void rankPlayers(const long* standings, int count, long* ranks)
 
 bool Session::host(uint16_t port, uint8_t numPlayers, uint32_t dataHash)
 {
-	if (numPlayers < 1 || numPlayers > MAX_PLAYERS || !transport_.listen(port))
+	if (numPlayers < 1 || numPlayers > MAX_PLAYERS || (port != 0 && !transport_.listen(port)))
 		return false;
 	isHost_ = true;
 	numPlayers_ = numPlayers;
@@ -229,8 +229,11 @@ void Session::handleClient(const Event& event)
 		waitingForHost_ = false;
 		server_ = event.connection;
 	}
-	if (event.connection != server_)
+	if (event.connection != server_) {
+		if (event.type == EventType::Connected)
+			transport_.disconnect(event.connection);
 		return;
+	}
 	switch (event.type) {
 	case EventType::Connected: {
 		Hello hello;

@@ -169,17 +169,30 @@ TEST_CASE("a client that waits takes only the first to arrive as the host")
 	game.pump();
 	CHECK(a.joined());
 
-	// a second caller says nothing the client listens to
+	// a second caller is sent away
 	auto other = game.network.createTransport();
 	gos_net::ConnectionId connection = gos_net::INVALID_CONNECTION;
 	REQUIRE(other->connect("127.0.0.1", clientPort, connection));
 	game.pump();
-	Start start;
-	std::vector<uint8_t> out;
-	REQUIRE(encode(start, out));
-	other->send(connection, gos_net::Delivery::ReliableOrdered, out.data(), out.size());
+	gos_net::Event event;
+	bool sentAway = false;
+	while (other->poll(event))
+		sentAway = sentAway || event.type == gos_net::EventType::Disconnected;
+	CHECK(sentAway);
+	CHECK_FALSE(a.hostLost());
+}
+
+TEST_CASE("a host that dials needs no port of its own")
+{
+	Game game;
+	REQUIRE(game.host.host(0, 2, HASH));
+	game.transports.push_back(game.network.createTransport());
+	game.clients.emplace_back(new Session(*game.transports.back()));
+	Session& a = *game.clients.back();
+	REQUIRE(a.joinWaiting(PORT, HASH, "Ace"));
+	CHECK(game.host.dialClient("127.0.0.1", PORT));
 	game.pump();
-	CHECK_FALSE(a.started());
+	CHECK(a.joined());
 }
 
 TEST_CASE("only a host can dial")

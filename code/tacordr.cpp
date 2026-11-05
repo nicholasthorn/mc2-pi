@@ -573,9 +573,30 @@ bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
 	const bool guardLocation = (code == TACORDERCHUNK_CODE_MASK);
 	if (guardLocation)
 		code = TACTICAL_ORDER_GUARD;
-	// execute STOPs on a recover order, in single player too
-	else if ((code <= TACTICAL_ORDER_NONE) || (code >= NUM_TACTICAL_ORDERS) || (code == TACTICAL_ORDER_RECOVER))
-		return(false);
+	else {
+		// Only what the interface gives. The others have no business coming from a
+		// player, and some end the game: a recover order STOPs when it is executed, and
+		// handleTacticalOrder Asserts on a scramble order.
+		switch (code) {
+			case TACTICAL_ORDER_WAIT:
+			case TACTICAL_ORDER_STOP:
+			case TACTICAL_ORDER_MOVETO_POINT:
+			case TACTICAL_ORDER_JUMPTO_POINT:
+			case TACTICAL_ORDER_GUARD:
+			case TACTICAL_ORDER_POWERUP:
+			case TACTICAL_ORDER_POWERDOWN:
+			case TACTICAL_ORDER_WAYPOINTS_DONE:
+			case TACTICAL_ORDER_EJECT:
+			case TACTICAL_ORDER_ATTACK_OBJECT:
+			case TACTICAL_ORDER_ATTACK_POINT:
+			case TACTICAL_ORDER_CAPTURE:
+			case TACTICAL_ORDER_REFIT:
+			case TACTICAL_ORDER_GETFIXED:
+				break;
+			default:
+				return(false);
+		}
+	}
 
 	unsigned long fields = data0 >> (TACORDERCHUNK_CODE_BITS + TACORDERCHUNK_ORIGIN_BITS + TACORDERCHUNK_UNITORDER_BITS + TACORDERCHUNK_GROUP_BITS);
 	if ((fields & TACORDERCHUNK_ATTACKTYPE_MASK) >= NUM_ATTACK_TYPES)
@@ -604,11 +625,8 @@ bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
 			object = !guardLocation;
 			break;
 		case TACTICAL_ORDER_ATTACK_OBJECT:
-		case TACTICAL_ORDER_MOVETO_OBJECT:
-		case TACTICAL_ORDER_JUMPTO_OBJECT:
 		case TACTICAL_ORDER_CAPTURE:
 		case TACTICAL_ORDER_REFIT:
-		case TACTICAL_ORDER_RECOVER:
 		case TACTICAL_ORDER_GETFIXED:
 			object = true;
 			break;
@@ -624,10 +642,13 @@ bool TacticalOrder::validPacked (unsigned long data0, unsigned long data1) {
 		target >>= TACORDERCHUNK_TARGETTYPE_BITS;
 		if (targetType == 0) {
 			const unsigned long index = (target & TACORDERCHUNK_MOVERINDEX_MASK);
-			return((index < MAX_MULTIPLAYER_MOVERS) && MPlayer && MPlayer->moverRoster[index]);
+			// executing a get fixed order casts its target to a Building
+			return((code != TACTICAL_ORDER_GETFIXED) && (index < MAX_MULTIPLAYER_MOVERS) && MPlayer && MPlayer->moverRoster[index]);
 		}
-		if (targetType == 1)
-			return(ObjectManager->findByPartId((target & TACORDERCHUNK_TERRAINPARTID_MASK) + MIN_TERRAIN_PART_ID) != NULL);
+		if (targetType == 1) {
+			GameObjectPtr object = ObjectManager->findByPartId((target & TACORDERCHUNK_TERRAINPARTID_MASK) + MIN_TERRAIN_PART_ID);
+			return(object && ((code != TACTICAL_ORDER_GETFIXED) || (object->getObjectClass() == BUILDING)));
+		}
 		return(false);
 	}
 	return(true);
