@@ -97,7 +97,7 @@ enum class UiAction {
 	MpOthers,			// lobby: wait for someone else to be in it
 	MpAlone,			// lobby: wait for them to have left
 	MpLeave,			// lobby: back, answering yes to the disconnect question
-	MpAwaitHostGone,	// lobby: the host leaves, and the game goes back to the main menu
+	MpAwaitHostGone,	// lobby or mission: the host leaves, and the game goes back to the main menu
 	MpAwaitGameEnd,		// mission: played out by a scenario, its results close, and back to the connection screen
 	// in-screen actions
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits

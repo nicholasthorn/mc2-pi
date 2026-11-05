@@ -1519,6 +1519,9 @@ class MultiPlayer : public MultiPlayerState {
 		// After the mission has loaded, before it starts: waits for everyone else's.
 		void waitForNetStart (void);
 
+		// The same, a frame at a time: 0 still waiting, 1 started, -1 it will not start.
+		long pollNetStart (void);
+
 		// The lobby behind the screens (hostSession, joinSession): the host's Launch. False,
 		// with the lobby still open, if the game cannot start after all.
 		bool launchNetLobby (void);

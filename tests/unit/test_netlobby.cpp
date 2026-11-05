@@ -207,6 +207,38 @@ TEST_CASE("Lobby: a choice can rename its player; no name leaves it as it is")
 	CHECK(lobby.player(1)->name == "Bo");
 }
 
+TEST_CASE("Lobby: nobody is on a team past what the map takes")
+{
+	Lobby lobby(4);
+	REQUIRE(lobby.addPlayer(0, "Host"));
+	REQUIRE(lobby.addPlayer(1, "Ace"));
+	REQUIRE(lobby.addPlayer(2, "Bo"));
+	CHECK(lobby.player(2)->team == 2);
+
+	// a map for two puts the third on the last
+	REQUIRE(lobby.setMap("mc2_m08", MAP_HASH, 2));
+	CHECK(lobby.player(0)->team == 0);
+	CHECK(lobby.player(1)->team == 1);
+	CHECK(lobby.player(2)->team == 1);
+
+	LobbyChoice choice = readyOn(lobby, 2);
+	choice.team = 2;
+	CHECK_FALSE(lobby.applyChoice(2, choice));
+	CHECK(lobby.player(2)->team == 1);
+
+	// and whoever joins now
+	REQUIRE(lobby.addPlayer(3, "Cy"));
+	CHECK(lobby.player(3)->team == 1);
+
+	// a map that says nothing sensible cannot empty the list
+	REQUIRE(lobby.setMap("mc2_m05", MAP_HASH, 0));
+	CHECK(lobby.player(1)->team == 0);
+	REQUIRE(lobby.setMap("mc2_m05", MAP_HASH, 200));
+	choice = readyOn(lobby, 2);
+	choice.team = MAX_PLAYERS - 1;
+	CHECK(lobby.applyChoice(2, choice));
+}
+
 TEST_CASE("Lobby: a game can start with a map, two sides, and everyone ready")
 {
 	Lobby lobby(4);

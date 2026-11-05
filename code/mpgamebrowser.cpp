@@ -303,7 +303,7 @@ void MPGameBrowser::update()
 	if ( bHosting )
 	{
 		hostDlg.update();
-		if ( hostDlg.isDone() )
+		if ( hostDlg.isDone() && hostDlg.getStatus() != RUNNING )
 		{
 			bHosting = 0;
 			if ( hostDlg.getStatus() == YES )

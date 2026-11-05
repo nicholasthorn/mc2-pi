@@ -1155,6 +1155,16 @@ void MPParameterScreen::update()
 			
 		}
 		
+		// A game with the map's own units has no use for these until there is mech selection.
+		static const int unusedButtons[] = { MP_ALLTECH, MP_VARIANTS, MP_INCREMENT_DROPWEIGHT, MP_DECREMENT_DROPWEIGHT, MP_INCREMENT_CBILLS, MP_DECREMENT_CBILLS };
+		for ( int i = 0; i < (int)(sizeof(unusedButtons) / sizeof(unusedButtons[0])); i++ )
+		{
+			if ( getButton( unusedButtons[i] ) )
+				getButton( unusedButtons[i] )->showGUIWindow( false );
+		}
+		edits[0].setReadOnly( true );
+		edits[1].setReadOnly( true );
+
 		int oldEditFocus = -1;
 		for ( int i = 0; i < editCount; i++ )
 		{
@@ -1948,16 +1958,9 @@ void aPlayerParams::update()
 	}
 	else
 	{
-		if ( MPlayer->isHost() )
-		{
-			CBillsSpinnerUpButton.showGUIWindow( 1 );
-			CBillsSpinnerDownButton.showGUIWindow( 1 );
-		}
-		else
-		{
-			CBillsSpinnerUpButton.showGUIWindow( 0 );
-			CBillsSpinnerDownButton.showGUIWindow( 0 );
-		}
+		// nobody spends C-Bills until there is mech selection
+		CBillsSpinnerUpButton.showGUIWindow( 0 );
+		CBillsSpinnerDownButton.showGUIWindow( 0 );
 		teamNumberDropList.disable( 0 );
 		factionDropList.disable( 0 );
 		rects[2].showGUIWindow( 1 );
@@ -2020,7 +2023,7 @@ void aPlayerParams::update()
 
 		if ( (commanderID == MPlayer->commanderID || MPlayer->isHost() ) )
 		{
-			edit.setReadOnly( 0 );
+			edit.setReadOnly( 1 );
 			bool bHasFocus = edit.hasFocus();
 			edit.update();
 			if ( bHasFocus && !edit.hasFocus() )

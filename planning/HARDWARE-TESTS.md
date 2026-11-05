@@ -54,6 +54,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       stripe colours, the mech turning in them, a colour someone has being refused, Cancel; does the
       insignia list work (each player's insignia is not sent to the others yet)? A test walks all this
       by calling the screens' handlers, and sets a client's ready itself, so the mouse is not covered.
+      Also: the connection screen opens on Local Network with the Zone and TCP/IP tabs off; the host
+      options that do nothing yet are hidden, and is what is left tidy (labels with no controls)? The
+      load screen while waiting for a slower machine; close the host in play: does the client get to
+      the main menu with a message? A client with another version of a map: the message, and Ready off.
 - [ ] **The same on a Quest, by controller** (phase 4). Whether the screens can be used at all.
       The Quest's multicast lock is still held for the app's whole life.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's

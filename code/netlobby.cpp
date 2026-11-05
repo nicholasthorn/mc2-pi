@@ -42,7 +42,7 @@ bool Lobby::addPlayer(uint8_t slot, const std::string& name)
 		teamTaken[player.team] = true;
 		colorTaken[player.baseColor] = true;
 	}
-	while (added.team < MAX_PLAYERS - 1 && teamTaken[added.team])
+	while (added.team < maxTeams_ - 1 && teamTaken[added.team])
 		added.team++;
 	while (added.baseColor < MAX_LOBBY_COLORS - 1 && colorTaken[added.baseColor])
 		added.baseColor++;
@@ -75,7 +75,7 @@ bool Lobby::applyChoice(uint8_t slot, const LobbyChoice& choice)
 {
 	LobbyPlayer* player = findPlayer(slot);
 	std::vector<uint8_t> out;
-	if (!player || !encode(choice, out))
+	if (!player || !encode(choice, out) || choice.team >= maxTeams_)
 		return false;
 	for (const LobbyPlayer& other : state_.players)
 		if (other.slot != slot && other.baseColor == choice.baseColor)
@@ -100,7 +100,7 @@ void Lobby::clearReady()
 		player.ready = false;
 }
 
-bool Lobby::setMap(const std::string& map, uint32_t mapHash)
+bool Lobby::setMap(const std::string& map, uint32_t mapHash, uint8_t maxTeams)
 {
 	LobbyState trial = state_;
 	trial.map = map;
@@ -110,6 +110,9 @@ bool Lobby::setMap(const std::string& map, uint32_t mapHash)
 		return false;
 	state_.map = map;
 	state_.mapHash = mapHash;
+	maxTeams_ = std::min<uint8_t>(std::max<uint8_t>(maxTeams, 1), MAX_PLAYERS);
+	for (LobbyPlayer& player : state_.players)
+		player.team = std::min<uint8_t>(player.team, maxTeams_ - 1);
 	clearReady();
 	changed();
 	readyFrom_ = state_.revision;

@@ -35,8 +35,9 @@ public:
 	bool applyChoice(uint8_t slot, const netwire::LobbyChoice& choice);
 
 	// The host's. Each takes everyone's ready back: they agreed to something else. False, with
-	// nothing changed, for what a state could not carry to the clients.
-	bool setMap(const std::string& map, uint32_t mapHash);
+	// nothing changed, for what a state could not carry to the clients. A map says how many
+	// teams it takes: whoever is on a team past that goes to its last.
+	bool setMap(const std::string& map, uint32_t mapHash, uint8_t maxTeams = netwire::MAX_PLAYERS);
 	bool setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags);
 
 	// The host's own place needs no ready: starting is its say. If not, why not.
@@ -56,6 +57,7 @@ private:
 
 	netwire::LobbyState state_;
 	uint32_t readyFrom_ = 0;	// the revision of the last change that took ready back
+	uint8_t maxTeams_ = netwire::MAX_PLAYERS;
 };
 
 }

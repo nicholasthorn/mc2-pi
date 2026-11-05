@@ -104,6 +104,7 @@ void Logistics::destroy (void)
 void Logistics::start (long startMode)
 {
 	bMissionLoaded  = 0;
+	bNetStartPending = false;
 	userInput->setMouseCursor( mState_LOGISTICS );
 //	userInput->mouseOn();
 
@@ -425,6 +426,30 @@ long Logistics::update (void)
 				playFullScreenVideo( pVid );
 				return logisticsState;
 			}
+			if ( bNetStartPending )
+			{
+				// a frame at a time, as slower machines can take a while, and with the load screen up
+				const long started = MPlayer ? MPlayer->pollNetStart() : -1;
+				if ( started == 0 )
+					return(logisticsState);
+				bNetStartPending = false;
+				if ( started < 0 )
+				{
+					// the next update's MissionBegin takes it back to the main menu
+					printf( "[NET] the mission will not start\n" );
+					fflush( stdout );
+					mission->destroy();
+					if ( MPlayer )
+						MPlayer->hostLeft = true;
+					return(logisticsState);
+				}
+				eye->activate();
+				eye->update();
+				mission->start();
+				mission->update(); // force this, so we don't render first
+				MPlayer->setMode(MULTIPLAYER_MODE_MISSION);
+				bMissionLoaded = true;
+			}
 			if ( missionBegin->readyToLoad() && !bMissionLoaded )
 			{
 				missionBegin->end();	//Called to clean up ABL!!
@@ -433,6 +458,11 @@ long Logistics::update (void)
 
 				if (!beginMission(0, 0, 0)) {
 					missionBegin->beginAtConnectionScreen();
+					return(logisticsState);
+				}
+				if ( MPlayer && MPlayer->isNetworked() )
+				{
+					bNetStartPending = true;
 					return(logisticsState);
 				}
 				bMissionLoaded = true;
@@ -485,12 +515,7 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 		if (mission)
 			mission->destroy();
 		mission->init(MPlayer->missionSettings.map, MISSION_LOAD_MP_QUICKSTART, 0, NULL, netCommanders, MultiPlayer::moversPerCommander(players));
-		MPlayer->waitForNetStart();
-		eye->activate();
-		eye->update();
-		mission->start();
-		mission->update(); // force this, so we don't render first
-		MPlayer->setMode(MULTIPLAYER_MODE_MISSION);
+		// and it starts once everyone has loaded: Logistics::update
 		return(1);
 	}
 

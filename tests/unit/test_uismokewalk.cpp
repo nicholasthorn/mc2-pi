@@ -70,7 +70,8 @@ TEST_CASE("routes are the buttons a player presses") {
 				|| s == UiScreen::Promotion || s == UiScreen::MissionSelection;
 		const UiAction expected = results ? UiAction::WinMission
 				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions
-				: s == UiScreen::MpConnection ? UiAction::MpAwaitGameEnd : UiAction::None;
+				: s == UiScreen::MpConnection ? UiAction::MpAwaitGameEnd
+				: s == UiScreen::MainMenu ? UiAction::MpAwaitHostGone : UiAction::None;
 		CHECK(uiRoute(UiScreen::Mission, s) == expected);
 	}
 	CHECK(uiRoute(UiScreen::OptionsHotkeys, UiScreen::Mission) == UiAction::OptionsCancel);

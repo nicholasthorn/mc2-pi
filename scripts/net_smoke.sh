@@ -31,6 +31,7 @@ LOBBY=0
 SCREENS=0
 AGAIN=0
 LEAVING=0
+HOST_QUITS=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -56,6 +57,7 @@ while [ $# -gt 0 ]; do
         --screens) SCREENS=1; LOBBY=1; shift ;;
         --again) AGAIN=1; shift ;;
         --lobby-leaving) LEAVING=1; shift ;;
+        --host-quits) HOST_QUITS=1; LEAVING=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -130,6 +132,11 @@ if [ "$SCREENS" = 1 ]; then
         HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+others,mp-params+alone,mp-params+others,mp-params+pause,mp-connection"
         CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mp-params+pause,mp-browser,mp-browser+pause,mp-params,mainmenu"
     fi
+    # --host-quits: in play, the host's process ends, and the client goes back to its main menu
+    if [ "$HOST_QUITS" = 1 ]; then
+        HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+map,mission,mission+pause"
+        CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mission,mainmenu"
+    fi
     HOST_NET=(-uismoke "$HOST_WALK")
     CLIENT_NET=(-uismoke "$CLIENT_WALK")
 fi
@@ -151,10 +158,15 @@ if [ "$LEAVING" = 1 ]; then
         n=$(grep -cE "$BAD" "$LOG_DIR/$side.log")
         [ "$n" -gt 0 ] && reasons+=("$side: $n error line(s)")
     done
-    grep -q '^\[NET\] the host has gone from the lobby' "$LOG_DIR/client.log" || reasons+=("the client did not see the host go")
-    [ "$(grep -c '^\[NET\] in the lobby as commander' "$LOG_DIR/client.log")" -eq 2 ] || reasons+=("the client did not join twice")
+    grep -q '^\[UISMOKE\] told that the host has gone' "$LOG_DIR/client.log" || reasons+=("the client was not told the host has gone")
+    if [ "$HOST_QUITS" = 1 ]; then
+        grep -q '^\[NET\] the host has gone$' "$LOG_DIR/client.log" || reasons+=("the client did not see the host go in play")
+    else
+        grep -q '^\[NET\] the host has gone from the lobby' "$LOG_DIR/client.log" || reasons+=("the client did not see the host go")
+        [ "$(grep -c '^\[NET\] in the lobby as commander' "$LOG_DIR/client.log")" -eq 2 ] || reasons+=("the client did not join twice")
+    fi
     if [ ${#reasons[@]} -eq 0 ]; then
-        echo "PASS lobby leaving (${secs}s)"
+        echo "PASS ${HOST_QUITS/1/host quits}, lobby leaving walk (${secs}s)"
         exit 0
     fi
     echo "FAIL lobby leaving (${secs}s): $(printf '%s; ' "${reasons[@]}")"

@@ -57,6 +57,7 @@ class Logistics
 		Logistics (void)
 		{
 			bMissionLoaded = false;
+			bNetStartPending = false;
 			lastMissionResult = 0;
 			prevState = 0;
 			init();
@@ -115,6 +116,7 @@ class Logistics
 
 		void initializeLogData();
 		bool		bMissionLoaded;
+		bool		bNetStartPending;	// a network game has loaded, and waits for the others
 		long		lastMissionResult;
 };
 

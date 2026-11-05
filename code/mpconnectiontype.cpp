@@ -139,7 +139,8 @@ void MPConnectionType::init(FitIniFile* file)
 		tcpipPanel.init(&PNfile);
 	}
 
-	connectionType = 0;
+	// the local network: the Gaming Zone is long gone, and joining by address is not connected yet
+	connectionType = 1;
 
 	buttons[indexOfButtonWithID(FIRST_BUTTON_ID+1)].press(!((1 == connectionType) || (2 == connectionType) || (3 == connectionType)));
 	buttons[indexOfButtonWithID(FIRST_BUTTON_ID+2)].press(1 == connectionType);
@@ -183,6 +184,8 @@ void MPConnectionType::begin()
 			getButton( FIRST_BUTTON_ID+2 )->disable( false );
 		}
 	}
+	getButton( FIRST_BUTTON_ID+1 )->disable( true );
+	getButton( FIRST_BUTTON_ID+3 )->disable( true );
 
 	tcpipPanel.begin();
 }

@@ -217,6 +217,8 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::MissionOptions;
 		if (to == UiScreen::MpConnection)
 			return UiAction::MpAwaitGameEnd;
+		if (to == UiScreen::MainMenu)
+			return UiAction::MpAwaitHostGone;
 		break;
 	case UiScreen::Salvage:
 		if (to == UiScreen::PilotReview || to == UiScreen::Promotion
@@ -262,6 +264,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MpParams, "map", UiAction::MpPickMap },
 	{ UiScreen::MpBrowser, "pause", UiAction::MpPause },
 	{ UiScreen::MpParams, "pause", UiAction::MpPause },
+	{ UiScreen::Mission, "pause", UiAction::MpPause },
 	{ UiScreen::MpPrefs, "name", UiAction::MpPrefsName },
 	{ UiScreen::MpPrefs, "colour", UiAction::MpPrefsColour },
 	{ UiScreen::MpParams, "others", UiAction::MpOthers },

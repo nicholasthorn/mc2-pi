@@ -726,7 +726,8 @@ const char* MissionBegin::update()
 		if ( pCurScreen->getStatus() == LogisticsScreen::GOTOSPLASH || ( MPlayer && MPlayer->hostLeft ) )
 		{
 			pCurScreen->end();
-			beginSplash();
+			// says who has gone, as a host's own game that will not start has nobody to name
+			beginSplash( ( MPlayer && MPlayer->hostLeft && !MPlayer->isHost() ) ? MPlayer->playerInfo[0].name : NULL );
 			if ( MPlayer &&  MPlayer->hostLeft )
 			{
 				MPlayer->closeSession();

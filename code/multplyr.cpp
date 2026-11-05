@@ -158,6 +158,7 @@ extern bool quitGame;
 
 extern float loadProgress;
 extern bool aborted;
+extern bool justStartMission;
 
 //***************************************************************************
 
@@ -233,12 +234,12 @@ void ResetNetworking (void) {
 
 //-----------------------------------------------------------------------------
 
-static void netClose (void);
+static void netCloseAll (void);
 
 void ShutdownNetworking (void) {
 
 	// before the game's heap goes, which is where these came from
-	netClose();
+	netCloseAll();
 }
 
 //***************************************************************************
@@ -424,6 +425,9 @@ static bool netLoading = false;			// launched, and no game to update until waitF
 static uint32_t netLobbyMapHash = 0;	// of the map as this machine has it
 static std::string netLobbyMap;			// on a client: the map that hash is of
 static double netChoiceUntil = 0.0;		// on a client: its own choice stands this long, for the host to answer
+static uint32_t netSentRevision = 0;	// on the host: the state last sent
+static bool netStartBegun = false;		// this machine has said it has loaded
+static double netStartGiveUp = 0.0;
 
 static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, long a, long b, unsigned long value);
 
@@ -604,7 +608,8 @@ static void netUpdateBeacon (void) {
 	netAnnounce.numPlayers = (uint8_t)(1 + netSession->connectedClients());
 	if (netAnnounce.numPlayers > netAnnounce.maxPlayers)
 		netAnnounce.numPlayers = netAnnounce.maxPlayers;
-	netAnnounce.inProgress = netSession->allJoined();
+	// (a lobby's end is for good: a place that comes free after it cannot be taken)
+	netAnnounce.inProgress = netSession->launched() || netSession->allJoined();
 	netBeacon.update(netAnnounce);
 }
 
@@ -1087,7 +1092,7 @@ static void netLobbyTickHost (MultiPlayer* player) {
 	const MissionSettings& settings = player->missionSettings;
 	if (netRules->state().map != settings.map) {
 		const uint32_t hash = settings.map[0] ? netMapHash(settings.map) : 0;
-		if (netRules->setMap(settings.map, hash)) {
+		if (netRules->setMap(settings.map, hash, (uint8_t)settings.maxTeams)) {
 			netLobbyMapHash = hash;
 			netAnnounce.map = settings.map;
 		}
@@ -1118,9 +1123,8 @@ static void netLobbyTickHost (MultiPlayer* player) {
 		choice.mapHash = netLobbyMapHash;
 		netRules->applyChoice(0, choice);
 	}
-	static uint32_t sentRevision = 0;
-	if (state.revision != sentRevision) {
-		sentRevision = state.revision;
+	if (state.revision != netSentRevision) {
+		netSentRevision = state.revision;
 		netSession->sendLobbyState(state);
 	}
 	netUpdateBeacon();
@@ -1153,16 +1157,18 @@ static void netLobbyTickClient (MultiPlayer* player) {
 	if (state.map != netLobbyMap) {
 		netLobbyMap = state.map;
 		netLobbyMapHash = state.map.empty() ? 0 : netMapHash(state.map.c_str());
-		if (!state.map.empty() && (netLobbyMapHash != state.mapHash)) {
-			printf("[NET] this machine has no copy of %s, or another version of it\n", state.map.c_str());
-			fflush(stdout);
-		}
 		if (state.map.empty()) {
 			player->missionSettings.map[0] = 0;
 			player->missionSettings.name[0] = 0;
 		}
 		else
 			netReadLobbyMap(player, state.map.c_str());
+		if (!state.map.empty() && (netLobbyMapHash != state.mapHash)) {
+			printf("[NET] this machine has no copy of %s, or another version of it\n", state.map.c_str());
+			fflush(stdout);
+			// what the parameters screen compares with its own copy: it says so, and turns Ready off
+			player->missionSettings.mapGuid.Data1 ^= 1;
+		}
 	}
 	netApplyLobbySettings(player->missionSettings, state);
 	netShowLobbyPlayers(player, state);
@@ -1208,38 +1214,50 @@ long MultiPlayer::commandersForLoad (char commandersToLoad[MAX_MC_PLAYERS][3]) {
 
 //---------------------------------------------------------------------------
 
-void MultiPlayer::waitForNetStart (void) {
+long MultiPlayer::pollNetStart (void) {
 
 	if (!netSession)
-		return;
+		return(1);
 
-	// the units must be the same on every machine, in the same order: the roster
-	// index is what names a unit on the wire
-	unsigned long hash = 2166136261u;
-	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
-		if (moverRoster[i]) {
-			char line[64];
-			sprintf(line, "%ld %ld ", i, moverRoster[i]->getCommanderId());
-			hash = netHash(hash, line);
-			hash = netHash(hash, moverRoster[i]->getName() ? moverRoster[i]->getName() : "");
-		}
-
-	if (iAmHost) {
-		netSession->setRosterHash((uint32_t)hash);
-		if (!netWait([]() { return netSession->allReady(); }) || !netSession->start())
-			Fatal(0, " -netlisten: not everyone loaded the mission ");
-		}
-	else {
-		netSession->sendReady((uint32_t)hash);
-		const bool answered = netWait([]() {
-			return netSession->started() || netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None);
-		});
-		if (!answered || netSession->hostLost())
-			Fatal(0, " -netjoin: the host did not start the mission ");
-		if (netSession->rejected() != netwire::RejectReason::None)
-			Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+	if (!netStartBegun) {
+		netStartBegun = true;
+		netStartGiveUp = netNow() + NET_WAIT_SECONDS;
+		// the units must be the same on every machine, in the same order: the roster
+		// index is what names a unit on the wire
+		unsigned long hash = 2166136261u;
+		for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
+			if (moverRoster[i]) {
+				char line[64];
+				sprintf(line, "%ld %ld ", i, moverRoster[i]->getCommanderId());
+				hash = netHash(hash, line);
+				hash = netHash(hash, moverRoster[i]->getName() ? moverRoster[i]->getName() : "");
+			}
+		if (iAmHost)
+			netSession->setRosterHash((uint32_t)hash);
+		else
+			netSession->sendReady((uint32_t)hash);
 	}
+
+	netSession->update();
+	bool started = false;
+	if (iAmHost) {
+		netUpdateBeacon();
+		if (netSession->allReady()) {
+			// someone who cannot be told is dropped, and the rest play
+			netSession->start();
+			started = true;
+		}
+	}
+	else {
+		if (netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None))
+			return(-1);
+		started = netSession->started();
+	}
+	if (!started)
+		return((netNow() < netStartGiveUp) ? 0 : -1);
+
 	netLoading = false;
+	netStartBegun = false;
 	printf("[NET] mission start\n");
 	printf("[NET] %ld turrets\n", ObjectManager ? ObjectManager->getNumTurrets() : 0L);
 	for (long i = 0; ObjectManager && (i < ObjectManager->getNumTurrets()) && (i < 4); i++) {
@@ -1247,6 +1265,25 @@ void MultiPlayer::waitForNetStart (void) {
 		printf("[NET] turret %ld at %.0f, %.0f, team %ld\n", i, at.x, at.y, ObjectManager->getTurret(i)->getTeamId());
 	}
 	fflush(stdout);
+	return(1);
+}
+
+//---------------------------------------------------------------------------
+
+void MultiPlayer::waitForNetStart (void) {
+
+	if (!netSession)
+		return;
+	long started;
+	while ((started = pollNetStart()) == 0)
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	if (started > 0)
+		return;
+	if (iAmHost)
+		Fatal(0, " -netlisten: not everyone loaded the mission ");
+	if (netSession->rejected() != netwire::RejectReason::None)
+		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+	Fatal(0, " -netjoin: the host did not start the mission ");
 }
 
 //---------------------------------------------------------------------------
@@ -1285,6 +1322,14 @@ long MultiPlayer::update (void) {
 
 static std::unique_ptr<netlan::Browser> netBrowser;
 static MC2Session netFoundSessions[64];
+
+static void netCloseAll (void) {
+
+	netBrowser.reset();
+	netRules.reset();
+	netBeacon.close();
+	netClose();
+}
 
 long MultiPlayer::beginSessionScan (char* ipAddress, bool persistent) {
 
@@ -1350,6 +1395,7 @@ static void netEnterLobby (MultiPlayer* player, bool isHost, long commander) {
 	netLobbyMap.clear();
 	netLobbyMapHash = 0;
 	netChoiceUntil = 0.0;
+	netSentRevision = 0;
 }
 
 bool MultiPlayer::hostSession (char* newSessionName, char* playerName, long mxPlayers) {
@@ -2139,6 +2185,7 @@ static void netForgetGame (void) {
 	std::fill(std::begin(netSupportUnit), std::end(netSupportUnit), false);
 	netSupportAsked = false;
 	std::fill(std::begin(netSupportCounts), std::end(netSupportCounts), 0L);
+	netStartBegun = false;
 	BenchDirector::missionEnded();
 }
 
@@ -3370,7 +3417,11 @@ void MultiPlayer::processMessages (void) {
 		hostLeft = true;
 		printf("[NET] the host has gone\n");
 		fflush(stdout);
-		quitGame = true;
+		// from the menu, back to it (mechcmd2.cpp, on the mission's result); from a command line, out
+		if (justStartMission)
+			quitGame = true;
+		else
+			scenarioResult = mis_PLAYER_DRAW;
 	}
 }
 

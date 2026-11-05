@@ -646,8 +646,10 @@ In slices, as it is large: finding a game and the data check first, then the lob
   lobby as `-netlobby`, and `MultiPlayer::update` runs it each frame until the host launches, a local choice standing for a second while the host answers.
   `beginMission` then loads as a game from the command line does, with no stage messages. At the end of a game each goes back to the connection screen with a
   new `MultiPlayer`, as a session cannot go back to being a lobby. `net_smoke --screens` walks all this with `-uismoke`: no person has yet.
-- **Off for now on the parameters screen:** mech selection (quickstart stays on), locking a game, booting a player, adding an AI, and chat. The direct IP panel
-  is not connected. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
+- **Trouble from the menu:** the host going in a lobby, while loading or in play takes a client to the main menu, which says so; the wait for others to load
+  is a frame at a time behind the load screen (`pollNetStart`), and whoever leaves meanwhile is not waited for. From a command line these still end the process.
+- **Off for now on the parameters screen:** mech selection (quickstart stays on, and its controls are hidden), locking a game, booting a player, adding an AI, and
+  chat, so a client has no sign that a launch is counting down. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
 - **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
   look on the units. A client with another copy of a map stops with a message naming it, which no run has reached, as a game directory's maps are in its FST.

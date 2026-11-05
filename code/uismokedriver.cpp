@@ -57,6 +57,7 @@ UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
 bool g_labAccept = false;	// mechlab+accept: leave the mech lab by Accept
 UiAction g_retry = UiAction::None;	// a step that waits on another player: tried each frame, with the walk held
 float g_retryWaited = 0.0f;
+bool g_sawHostGone = false;
 
 // what press() says of a step that cannot happen yet, but will
 const char* const NOT_YET = "not yet";
@@ -311,14 +312,19 @@ const char* UiSmokeDriver::press(UiAction action)
 	case UiAction::OpenMultiplayer:
 		return pressButton(menu, MM_MSG_MULTIPLAYER);
 	case UiAction::MpBrowse:
-		// the local network panel's button, which its parent screen answers
-		if (!screen)
-			return "screen is gone";
-		screen->handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID);
-		return NULL;
+		// the screen must have come up on the local network's panel, whose button this is
+		if (MPConnectionType* connection = dynamic_cast<MPConnectionType*>(screen)) {
+			if (connection->pPanel != &connection->lanPanel)
+				return "the screen is not showing the local network's panel";
+			connection->lanPanel.handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID);
+			return NULL;
+		}
+		return "screen is gone";
 	case UiAction::MpHost:
 		if (MPConnectionType* connection = dynamic_cast<MPConnectionType*>(screen)) {
-			connection->handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID + 1);
+			if (connection->pPanel != &connection->lanPanel)
+				return "the screen is not showing the local network's panel";
+			connection->lanPanel.handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID + 1);
 			connection->hostDlg.edits[0].setEntry("uismoke");
 			connection->hostDlg.handleMessage(aMSG_LEFTMOUSEDOWN, LogisticsScreen::YES);
 			return NULL;
@@ -388,6 +394,18 @@ const char* UiSmokeDriver::press(UiAction action)
 		screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_PREV);
 		return pressButton(LogisticsOKDialog::instance(), LogisticsScreen::YES);
 	case UiAction::MpAwaitHostGone:
+		// the main menu comes up saying so, and waits for OK
+		if (begin->bSplash && menu && menu->bHostLeftDlg) {
+			if (!g_sawHostGone) {
+				g_sawHostGone = true;
+				printf("[UISMOKE] told that the host has gone\n");
+				fflush(stdout);
+				// its one button has no id to press by
+				LogisticsOneButtonDialog::instance()->handleMessage(aMSG_LEFTMOUSEDOWN, LogisticsScreen::YES);
+			}
+			return NOT_YET;
+		}
+		return (currentScreen() == UiScreen::MainMenu) ? NULL : NOT_YET;
 	case UiAction::MpAwaitGameEnd:
 		return NULL;
 	case UiAction::MpPickMap:
@@ -691,10 +709,10 @@ void UiSmokeDriver::update()
 	case UiSmokeWalk::Event::Act:
 		if (*uiActionName(r.action)) {
 			// in-screen action: the screen stays
+			g_retryWaited = 0.0f;	// a pause counts from here, not from the last wait
 			const char* why = press(r.action);
 			if (why == NOT_YET) {
 				g_retry = r.action;
-				g_retryWaited = 0.0f;
 			} else if (why) {
 				snprintf(line, sizeof(line), "FAIL: cannot %s on %s: %s",
 						uiActionName(r.action), uiScreenName(r.screen), why);
@@ -703,10 +721,9 @@ void UiSmokeDriver::update()
 				printf("[ACTION] %s+%s\n", uiScreenName(r.screen), uiActionName(r.action));
 				fflush(stdout);
 			}
-		} else if (const char* why = press(r.action)) {
+		} else if (const char* why = (g_retryWaited = 0.0f, press(r.action))) {
 			if (why == NOT_YET) {
 				g_retry = r.action;
-				g_retryWaited = 0.0f;
 			} else {
 				snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
 						uiScreenName(g_from), uiScreenName(r.screen), why);

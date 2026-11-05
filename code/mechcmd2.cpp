@@ -23,6 +23,7 @@
 #ifndef LOGISTICS_H
 #include"logistics.h"
 #endif
+#include"missionbegin.h"
 
 #ifndef GAMESOUND_H
 #include"gamesound.h"
@@ -2226,14 +2227,28 @@ void __stdcall DoGameLogic()
 				}
 				else if (MPlayer && MPlayer->isNetworked() && (result != mis_PLAYING))
 				{
-					// The results, then out: there is no lobby to go back to yet. Someone who
-					// left the game has no results, and nor does a game whose host has gone.
+					// The results, then on (Logistics::update). Someone who left the game has no
+					// results, and nor does a game whose host has gone: from a command line that
+					// is the end, and from the menu it goes back to it, saying who has gone.
 					printf("[NET] mission over, result %ld\n", result);
 					fflush(stdout);
 					if (aborted || MPlayer->hostLeft)
 					{
+						const bool hostGone = !aborted;
+						static char hostName[MAXLEN_PLAYER_NAME];
+						strncpy(hostName, MPlayer->playerInfo[0].name, MAXLEN_PLAYER_NAME - 1);
 						mission->destroy();
-						quitGame = true;
+						if (justStartMission)
+							quitGame = true;
+						else
+						{
+							mcTextureManager->flush(true);
+							MPlayer->closeSession();
+							aborted = true;		// what has Logistics::start end this MultiPlayer
+							logistics->start(log_SPLASH);
+							if (hostGone && logistics->getMissionBegin())
+								logistics->getMissionBegin()->beginSplash(hostName);
+						}
 					}
 					else
 					{
