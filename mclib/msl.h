@@ -279,7 +279,7 @@ class TG_MultiShape
 			alphaValue = 0xff;
 			
 			isClamped = false;
-			
+
 			isMarker = false;
 		}
 		
