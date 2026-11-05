@@ -8213,7 +8213,7 @@ long BattleMech::fireWeapon (GameObjectPtr target, float targetTime, long weapon
 					if (GameMap->getMine(cellRow, cellCol) == 1) 
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);
+						SetOffMine(cellRow, cellCol);
 					}
 				}
 				}
@@ -8298,7 +8298,7 @@ long BattleMech::fireWeapon (GameObjectPtr target, float targetTime, long weapon
 					if (GameMap->getMine(cellRow, cellCol) == 1)
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);
+						SetOffMine(cellRow, cellCol);
 					}
 				}
 			}
@@ -8444,7 +8444,7 @@ long BattleMech::fireWeapon (GameObjectPtr target, float targetTime, long weapon
 						if (GameMap->getMine(cellRow, cellCol) == 1)
 						{
 							ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, positionOffset, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-							GameMap->setMine(cellRow, cellCol, 2);
+							SetOffMine(cellRow, cellCol);
 						}
 					}
 					else
@@ -8554,7 +8554,7 @@ long BattleMech::fireWeapon (GameObjectPtr target, float targetTime, long weapon
 					if (GameMap->getMine(cellRow, cellCol) == 1)
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, positionOffset, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);
+						SetOffMine(cellRow, cellCol);
 					}
 				}
 				else
@@ -8668,7 +8668,7 @@ long BattleMech::handleWeaponFire (long weaponIndex,
 						if (GameMap->getMine(cellRow, cellCol) == 1)
 						{
 							ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-							GameMap->setMine(cellRow, cellCol, 2);
+							SetOffMine(cellRow, cellCol);
 						}
 					}
 				}
@@ -8725,7 +8725,7 @@ long BattleMech::handleWeaponFire (long weaponIndex,
 					if (GameMap->getMine(cellRow, cellCol) == 1)
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);
+						SetOffMine(cellRow, cellCol);
 					}
 				}
 			}
@@ -8778,7 +8778,7 @@ long BattleMech::handleWeaponFire (long weaponIndex,
 						if (GameMap->getMine(cellRow, cellCol) == 1) 
 						{
 							ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-							GameMap->setMine(cellRow, cellCol, 2);
+							SetOffMine(cellRow, cellCol);
 						}
 					}
 				}
@@ -8819,7 +8819,7 @@ long BattleMech::handleWeaponFire (long weaponIndex,
 					if (GameMap->getMine(cellRow, cellCol) == 1) 
 					{
 						ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPoint, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-						GameMap->setMine(cellRow, cellCol, 2);
+						SetOffMine(cellRow, cellCol);
 					}
 				}
 			}

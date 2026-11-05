@@ -1702,6 +1702,9 @@ class MultiPlayer : public MultiPlayerState {
 
 		long addPilotKillStat (MoverPtr mover, long vehicleClass);
 
+		// this machine's commander took back a support vehicle not yet called
+		void refundResources (long cost);
+
 		long addScoreChunk (long commanderID, long score);
 
 		long addKillLossChunk (long killerCID, long loserCID);
@@ -1932,6 +1935,8 @@ inline bool isNetHost (void) {
 }
 
 //***************************************************************************
+
+void SetOffMine (long row, long col);
 
 #endif
 

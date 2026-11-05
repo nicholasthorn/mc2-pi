@@ -26,6 +26,8 @@ LOSS=""
 EXPECT_WINNER=""
 WORLD_EVENTS=yes
 DIAL=0
+SUPPORT=0
+EXPECT_REPAIRS=0
 PORT=$((27815 + $$ % 1000))
 
 while [ $# -gt 0 ]; do
@@ -43,6 +45,8 @@ while [ $# -gt 0 ]; do
         --expect-winner) EXPECT_WINNER="$2"; shift 2 ;;
         --world-events) WORLD_EVENTS="$2"; shift 2 ;;
         --dial) DIAL=1; shift ;;
+        --support) SUPPORT=1; shift ;;
+        --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         *) echo "net_smoke: unknown option $1" >&2; exit 2 ;;
     esac
 done
@@ -117,6 +121,25 @@ if [ "$WORLD_EVENTS" = yes ]; then
     for what in 'artillery' 'mines' 'captures' 'kills and losses' 'repairs'; do
         echo "$world" | grep -Eq "$what [1-9]" || reasons+=("no $what reached the client: $world")
     done
+fi
+if [ "$SUPPORT" = 1 ]; then
+    # support vehicles and a recovery, seen on the client, and paid for alike at both ends
+    support=$(grep '^\[NETSUPPORT\]' "$LOG_DIR/client.log" | tail -1)
+    for what in 'vehicles begun' 'dropped' 'recoveries begun' 'recovered'; do
+        echo "$support" | grep -Eq "$what [1-9]" || reasons+=("no $what on the client: $support")
+    done
+    echo "$world" | grep -Eq 'mines [1-9]' || reasons+=("the minelayer laid no mines: $world")
+    orders=$(grep '^\[NETORDERS\]' "$LOG_DIR/host.log")
+    for what in move jump 'attack object' 'attack point' guard stop wait 'power down' 'power up' eject; do
+        echo "$orders" | grep -Eq "$what [1-9]" || reasons+=("no $what order applied: $orders")
+    done
+    if ! diff <(grep '^\[NETPOINTS\]' "$LOG_DIR/host.log") <(grep '^\[NETPOINTS\]' "$LOG_DIR/client.log") > "$LOG_DIR/points.diff" \
+        || ! grep -q '^\[NETPOINTS\]' "$LOG_DIR/host.log"; then
+        reasons+=("host and client ended with other resource points ($LOG_DIR/points.diff)")
+    fi
+fi
+if [ "$EXPECT_REPAIRS" = 1 ]; then
+    echo "$world" | grep -Eq 'repairs [1-9]' || reasons+=("no repair reached the client: $world")
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then
     reasons+=("expected team $EXPECT_WINNER to win: $hostwin")

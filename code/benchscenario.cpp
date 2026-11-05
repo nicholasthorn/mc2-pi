@@ -83,6 +83,10 @@ bool BenchScenario::load(FitIniFile& fit, char* err, size_t errSize)
 	readOptional(fit, "NetEventsEvery", netEventsEvery);
 	readOptional(fit, "NetCaptureHqAt", netCaptureHqAt);
 	readOptional(fit, "NetOrderCaptureAt", netOrderCaptureAt);
+	readOptional(fit, "NetResourcePoints", netResourcePoints);
+	readOptional(fit, "NetSupportEvery", netSupportEvery);
+	readOptional(fit, "NetEveryOrderEvery", netEveryOrderEvery);
+	readOptional(fit, "NetDamageAt", netDamageAt);
 	readOptional(fit, "NetTimeLimit", netTimeLimit);
 	readOptional(fit, "ScreenX", screenX);
 	readOptional(fit, "ScreenY", screenY);

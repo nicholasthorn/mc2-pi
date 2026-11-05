@@ -280,6 +280,11 @@ public:
 		void	doGuard(GameObject* pObj);
 		int toggleHotKeys();
 		void	beginVtol(long supportID, long commanderID = 0, Stuff::Vector3D* reinforcePos = NULL, MoverPtr salvageTarget = NULL);
+		// multiplayer: what the host decided
+		bool	isVtolBusy(long commanderID) { return paintingVtol[commanderID]; }
+		void	recoverMech(long commanderID, MoverPtr mech);
+		// a test's click: press a support button, then click on pos
+		void	callSupportAt(int buttonID, const Stuff::Vector3D& pos, MoverPtr target);
 
 		//Tutorial Stuff goes here.
 		bool startAnimation(long buttonId,bool isButton,bool isPressed,float timeToScroll,long numFlashes);

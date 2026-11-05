@@ -363,6 +363,9 @@ void MultiPlayer::operator delete (void* us) {
 
 void MultiPlayer::init (void) {
 
+	// no support vehicle or recovery under way
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		reinforcements[i][0] = reinforcements[i][1] = -1;
 }
 
 //---------------------------------------------------------------------------
@@ -416,8 +419,9 @@ static void netClose (void) {
 static const float NET_WAIT_SECONDS = 300.0f;
 static long netOrdersApplied = 0;
 static long netRepairsApplied = 0;
+static long netOrdersByCode[NUM_TACTICAL_ORDERS] = {0};	// on the host
 static long netHoldsApplied = 0;
-static long netWorldApplied[7] = {0};	// by event type: artillery, mine, fire, capture, kill or loss, script, score
+static long netWorldApplied[10] = {0};	// by event type: artillery, mine, fire, capture, kill or loss, script, score, resources, pilot kill, turret target
 static const long NET_CAUSE_REFIT_POINTS = -5;	// a weapon hit chunk's cause: a repair spending its points
 static const uint32_t NET_SWEEP_AWAKE = 0x10000u;	// on a unit's index in a sweep
 static const long NET_TURRET_SUBJECT = MAX_MULTIPLAYER_MOVERS;	// a WeaponFire batch's subject from here is a turret
@@ -450,10 +454,13 @@ static unsigned long netHash (unsigned long hash, const char* text) {
 	return(hash);
 }
 
-// No lobby to set these in yet, so they are the map's. A map's resource points stay
-// out: reinforcements are not sent yet, and buying one would do nothing on a client.
+// No lobby to set these in yet, so they are the map's.
 static void netReadMissionSettings (MultiPlayer* player, const char* missionName) {
 
+	player->missionSettings.airStrike = player->missionSettings.guardTower = true;
+	player->missionSettings.repairVehicle = player->missionSettings.recoveryTeam = true;
+	player->missionSettings.sensorProbe = player->missionSettings.scoutCopter = true;
+	player->missionSettings.mineLayer = true;
 	player->missionSettings.timeLimit = -1.0f;
 	player->missionSettings.missionType = MISSION_TYPE_ELIMINATION;
 	player->missionSettings.maxPlayers = MAX_MC_PLAYERS;
@@ -472,6 +479,22 @@ static void netReadMissionSettings (MultiPlayer* player, const char* missionName
 		unsigned long most = 0;
 		if ((file.readIdULong("MaximumNumberOfPlayers", most) == NO_ERR) && (most >= 1) && (most <= MAX_MC_PLAYERS))
 			player->missionSettings.maxPlayers = (char)most;
+		long points = 0;
+		if ((file.readIdLong("ResourcePoints", points) == NO_ERR) && (points >= 0))
+			player->missionSettings.resourcePoints = points;
+		bool enabled = true;
+		if (file.readIdBoolean("AirStrikesEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.airStrike = enabled;
+		if (file.readIdBoolean("MineLayersEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.mineLayer = enabled;
+		if (file.readIdBoolean("ScoutCoptersEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.scoutCopter = enabled;
+		if (file.readIdBoolean("SensorProbesEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.sensorProbe = enabled;
+		if (file.readIdBoolean("RepairVehicleEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.repairVehicle = enabled;
+		if (file.readIdBoolean("ArtilleryPieceEnabledDefault", enabled) == NO_ERR)
+			player->missionSettings.guardTower = enabled;
 	}
 	file.close();
 	printf("[NET] mode %d, time limit %.0f\n", (int)player->missionSettings.missionType, player->missionSettings.timeLimit);
@@ -1057,6 +1080,8 @@ long MultiPlayer::addLightOnFireChunk (GameObjectPtr object, long seconds) {
 
 long MultiPlayer::addPilotKillStat (MoverPtr mover, long vehicleClass) {
 
+	if (mover && (vehicleClass >= 0))
+		addWorldEvent(this, netwire::WorldEventType::PilotKill, mover->getNetRosterIndex(), vehicleClass, 0);
 	return(0);
 }
 
@@ -1235,8 +1260,287 @@ void MultiPlayer::sendEndMission (long result) {
 //---------------------------------------------------------------------------
 extern MoverPtr BringInReinforcement (long vehicleID, long rosterIndex, long commanderID, Stuff::Vector3D pos, bool exists);
 
+// Support vehicles and recoveries. The host decides everything: it holds every commander's
+// resource points, and takes the money when a request reaches it. A commander's own machine
+// has taken it already, at the button (ControlGui::handleVehicleClick), so that the button
+// and the number on screen need no round trip, and gets it back if the host says no.
+static bool netSupportUnit[MAX_MULTIPLAYER_MOVERS] = {false};	// on the host: does not keep a team in the game
+static bool netSupportAsked = false;	// on a client: one request at a time, as there is one button
+static long netSupportCounts[5] = {0};	// vehicles begun, dropped, recoveries begun, mechs recovered, refusals
+
+static netwire::SupportEvent netSupportEvent (netwire::SupportStage stage, long commander, long rosterIndex, long vehicleId, long cost, const Stuff::Vector3D& pos) {
+
+	netwire::SupportEvent event;
+	event.stage = stage;
+	event.commander = (uint8_t)commander;
+	event.rosterIndex = (uint16_t)rosterIndex;
+	event.vehicleId = (uint16_t)vehicleId;
+	event.cost = (int32_t)cost;
+	event.x = pos.x;
+	event.y = pos.y;
+	event.z = pos.z;
+	return(event);
+}
+
+static void netSendSupport (MultiPlayer* player, const netwire::SupportEvent& event) {
+
+	uint32_t words[netwire::SUPPORT_EVENT_WORDS];
+	if (!netSession || !netwire::encodeSupportEvent(event, words))
+		return;
+	// what came before this must arrive before it: a hit landed before a recovery does not count after it
+	player->sendWeaponHitUpdate();
+	player->flushWorldEvents();
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::Support;
+	batch.words.assign(words, words + netwire::SUPPORT_EVENT_WORDS);
+	netSession->sendToClients(gos_net::Delivery::ReliableOrdered, batch);
+}
+
+// A shot or a blast set off a mine. Every machine sees the shot land, but each would see it
+// land somewhere a little different, so the host decides and tells the others.
+void SetOffMine (long row, long col) {
+
+	if (MPlayer && !MPlayer->isServer())
+		return;
+	GameMap->setMine(row, col, 2);
+	if (MPlayer)
+		MPlayer->addMineChunk(row, col, 1, 2, 0);
+}
+
+//---------------------------------------------------------------------------
+
+// Armour and structure of a unit, exact. A wreck's are allowed to differ between machines,
+// since nothing reads them (applyNetCheck), until a recovery brings it back.
+static void netSendArmour (MultiPlayer* player, MoverPtr mover) {
+
+	if (!netSession)
+		return;
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::Support;
+	batch.subject = (uint16_t)mover->getNetRosterIndex();
+	const auto add = [&batch](float value) {
+		uint32_t word = 0;
+		memcpy(&word, &value, 4);
+		batch.words.push_back(word);
+	};
+	for (long i = 0; i < mover->numArmorLocations; i++)
+		add(mover->armor[i].curArmor);
+	for (long i = 0; i < mover->numBodyLocations; i++)
+		add(mover->body[i].curInternalStructure);
+	netSession->sendToClients(gos_net::Delivery::ReliableOrdered, batch);
+}
+
+static void netApplyArmour (MultiPlayer* player, const netwire::ChunkBatch& batch) {
+
+	MoverPtr mover = (batch.subject < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[batch.subject] : NULL;
+	if (!mover || (batch.words.size() != (size_t)(mover->numArmorLocations + mover->numBodyLocations)))
+		return;
+	const auto get = [&batch](size_t i) {
+		float value = 0.0f;
+		memcpy(&value, &batch.words[i], 4);
+		return(value);
+	};
+	for (long i = 0; i < mover->numArmorLocations; i++) {
+		const float value = get(i);
+		if ((value >= 0.0f) && (value <= mover->armor[i].maxArmor))
+			mover->armor[i].curArmor = value;
+	}
+	for (long i = 0; i < mover->numBodyLocations; i++) {
+		const float value = get(mover->numArmorLocations + i);
+		if ((value >= 0.0f) && (value <= mover->body[i].maxInternalStructure))
+			mover->body[i].curInternalStructure = value;
+	}
+}
+
+//---------------------------------------------------------------------------
+
+// The host's own count of a commander's points, for all to see. What a machine's commander
+// spent is not taken from its own screen twice (applyWorldEvent).
+static void netHostResources (MultiPlayer* player, long commander, long points) {
+
+	player->playerInfo[commander].resourcePoints += points;
+	if (points > 0)
+		player->playerInfo[commander].resourcePointsGained += points;
+	addWorldEvent(player, netwire::WorldEventType::Resources, commander, 0, (unsigned long)(uint32_t)(int32_t)points);
+}
+
+static void netApplyRefused (MultiPlayer* player, const netwire::SupportEvent& event) {
+
+	netSupportCounts[4]++;
+	if (event.commander != player->commanderID)
+		return;
+	netSupportAsked = false;
+	LogisticsData::instance->addResourcePoints(event.cost);
+	player->refundResources(event.cost);
+	if (ControlGui::instance)
+		ControlGui::instance->unPressAllVehicleButtons();
+}
+
+static void netHostRefuse (MultiPlayer* player, long commander, long vehicleId, long cost) {
+
+	const Stuff::Vector3D nowhere(0.0f, 0.0f, 0.0f);
+	const netwire::SupportEvent event = netSupportEvent(netwire::SupportStage::Refused, commander, 0, vehicleId, (cost > 0) ? cost : 0, nowhere);
+	netApplyRefused(player, event);
+	netSendSupport(player, event);
+}
+
+// Every machine: the unit is there, not yet existing, while the VTOL flies it in.
+static bool netBeginVehicle (MultiPlayer* player, const netwire::SupportEvent& event) {
+
+	const Stuff::Vector3D where(event.x, event.y, event.z);
+	Stuff::Vector3D pos = where;
+	MoverPtr mover = BringInReinforcement(event.vehicleId, 255, event.commander, where, false);
+	if (!mover)
+		return(false);
+	player->reinforcements[event.commander][0] = mover->getNetRosterIndex();
+	MissionInterfaceManager::instance()->beginVtol(event.vehicleId, event.commander, &pos);
+	netSupportCounts[0]++;
+	return(true);
+}
+
+static void netBeginRecovery (MultiPlayer* player, const netwire::SupportEvent& event) {
+
+	Stuff::Vector3D pos(event.x, event.y, event.z);
+	player->reinforcements[event.commander][1] = event.rosterIndex;
+	strncpy(player->reinforcementPilot[event.commander], LogisticsData::instance->getBestPilot(player->moverRoster[event.rosterIndex]->tonnage), 31);
+	player->reinforcementPilot[event.commander][31] = 0;
+	MissionInterfaceManager::instance()->beginVtol(event.vehicleId, event.commander, &pos);
+	netSupportCounts[2]++;
+}
+
+static bool netSeenPlace (long commander, const Stuff::Vector3D& pos) {
+
+	int tileRow = -1, tileCol = -1;
+	land->worldToTile(pos, tileRow, tileCol);
+	if ((tileRow < 0) || (tileRow >= land->realVerticesMapSide) || (tileCol < 0) || (tileCol >= land->realVerticesMapSide))
+		return(false);
+	return(Commander::commanders[commander]->getTeam()->teamLineOfSight(pos, 0.0f));
+}
+
+static bool netSupportEnabled (const MultiPlayer* player, long vehicleId) {
+
+	switch (vehicleId) {
+		case 182: return(player->missionSettings.repairVehicle);
+		case 393: return(player->missionSettings.scoutCopter);
+		case 120: return(player->missionSettings.mineLayer);
+		case 147: return(player->missionSettings.recoveryTeam);
+		case 415: return(player->missionSettings.guardTower);
+	}
+	return(false);
+}
+
+// The host: a commander's request, from the network or from the host's own interface,
+// checked as the interface checks it there (canAddVehicle, canRecover).
+static void netHostRequest (MultiPlayer* player, long commander, long vehicleId, long rosterIndex, Stuff::Vector3D pos, bool recovery) {
+
+	const long cost = ControlGui::supportCost(vehicleId);
+	const bool own = (commander == player->commanderID);
+	bool allowed = (cost >= 0) && netSupportEnabled(player, vehicleId) && (recovery == (vehicleId == 147))
+		&& Commander::commanders[commander] && Commander::commanders[commander]->getTeam()
+		&& !MissionInterfaceManager::instance()->isVtolBusy(commander)
+		&& (own || (player->playerInfo[commander].resourcePoints >= cost));
+	if (allowed)
+		allowed = netSeenPlace(commander, pos);
+	if (allowed && recovery) {
+		MoverPtr mech = ((rosterIndex >= 0) && (rosterIndex < MAX_MULTIPLAYER_MOVERS)) ? player->moverRoster[rosterIndex] : NULL;
+		allowed = mech && (mech->getObjectClass() == BATTLEMECH) && mech->isDisabled() && !mech->isDestroyed();
+		// one wreck, one Karnov: a second would take it from whoever recovered it first
+		for (long i = 0; i < MAX_MC_PLAYERS; i++)
+			if (player->reinforcements[i][1] == rosterIndex)
+				allowed = false;
+	}
+	else if (allowed) {
+		allowed = GameMap->getPassable(pos) && !land->getWater(pos);
+		long free = 0;
+		for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
+			if (!player->moverRoster[i])
+				free++;
+		allowed = allowed && (free > 0);
+	}
+	if (!allowed) {
+		printf("[NET] commander %ld is refused vehicle %ld at %.0f, %.0f\n", commander, vehicleId, pos.x, pos.y);
+		netHostRefuse(player, commander, vehicleId, cost);
+		return;
+	}
+	pos.z = land->getTerrainElevation(pos);
+	netwire::SupportEvent event = netSupportEvent(recovery ? netwire::SupportStage::BeginRecovery : netwire::SupportStage::BeginVehicle, commander, rosterIndex, vehicleId, cost, pos);
+	if (recovery)
+		netBeginRecovery(player, event);
+	else {
+		if (!netBeginVehicle(player, event)) {
+			netHostRefuse(player, commander, vehicleId, cost);	// no vehicle left in the pool
+			return;
+		}
+		event.rosterIndex = (uint16_t)player->reinforcements[commander][0];
+		netSupportUnit[event.rosterIndex] = true;
+	}
+	if (!own)
+		netHostResources(player, commander, -cost);
+	netSendSupport(player, event);
+}
+
+void MultiPlayer::refundResources (long cost) {
+
+	if (iAmHost)
+		netHostResources(this, commanderID, cost);
+	else
+		playerInfo[commanderID].resourcePoints += cost;
+}
+
 void MultiPlayer::sendReinforcement (long vehicleID, long rosterIndex, const char pilotName[16], long commanderID, Stuff::Vector3D pos, unsigned char stage) {
 
+	if ((commanderID < 0) || (commanderID >= MAX_MC_PLAYERS))
+		return;
+	switch (stage) {
+		case (unsigned char)netwire::SupportStage::RequestVehicle:
+		case (unsigned char)netwire::SupportStage::RequestRecovery: {
+			const bool recovery = (stage == (unsigned char)netwire::SupportStage::RequestRecovery);
+			if (iAmHost) {
+				netHostRequest(this, commanderID, vehicleID, rosterIndex, pos, recovery);
+				break;
+			}
+			uint32_t words[netwire::SUPPORT_EVENT_WORDS];
+			const netwire::SupportEvent event = netSupportEvent((netwire::SupportStage)stage, commanderID, (rosterIndex == 255) ? 0 : rosterIndex, vehicleID, 0, pos);
+			if (!netSession || netSupportAsked || !netwire::encodeSupportEvent(event, words))
+				break;
+			netSupportAsked = true;
+			// an order with no unit: it is the commander's own
+			netwire::ChunkBatch batch;
+			batch.kind = netwire::ChunkKind::Order;
+			batch.words.assign(words, words + netwire::SUPPORT_EVENT_WORDS);
+			netSession->sendToHost(gos_net::Delivery::ReliableOrdered, batch);
+			break;
+		}
+		case (unsigned char)netwire::SupportStage::DropVehicle: {
+			if (!iAmHost || (rosterIndex < 0) || (rosterIndex >= MAX_MULTIPLAYER_MOVERS) || !moverRoster[rosterIndex])
+				break;
+			moverRoster[rosterIndex]->setExists(true);
+			netSupportCounts[1]++;
+			netSendSupport(this, netSupportEvent(netwire::SupportStage::DropVehicle, commanderID, rosterIndex, vehicleID, 0, pos));
+			break;
+		}
+		case (unsigned char)netwire::SupportStage::Recovered: {
+			if (!iAmHost || (rosterIndex < 0) || (rosterIndex >= MAX_MULTIPLAYER_MOVERS) || !moverRoster[rosterIndex])
+				break;
+			netSendSupport(this, netSupportEvent(netwire::SupportStage::Recovered, commanderID, rosterIndex, vehicleID, 0, pos));
+			netSupportCounts[3]++;
+			MissionInterfaceManager::instance()->recoverMech(commanderID, moverRoster[rosterIndex]);
+			netSendArmour(this, moverRoster[rosterIndex]);
+			break;
+		}
+		case 6: // resource points, in vehicleID
+			if (iAmHost)
+				netHostResources(this, commanderID, vehicleID);
+			else if (vehicleID < 0)
+				playerInfo[commanderID].resourcePoints += vehicleID;	// the button: the host takes them on the request
+			if (iAmHost && (commanderID == this->commanderID) && (vehicleID > 0))
+				LogisticsData::instance->addResourcePoints(vehicleID);
+			break;
+		default:
+			// Stage 7 dropped a dead unit from its team, on the icon's death animation. A wreck
+			// stays on the roster in single player too, and can still be recovered.
+			break;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1358,8 +1662,23 @@ void MultiPlayer::sendMoverUpdate (void) {
 
 //---------------------------------------------------------------------------
 
+// A turret's target, when it changes. The host fires it, but a client turns it to face.
 void MultiPlayer::sendTurretUpdate (void) {
 
+	static std::vector<GameObjectWatchID> last;
+	const long count = ObjectManager->getNumTurrets();
+	if ((long)last.size() != count)
+		last.assign(count, 0);
+	for (long i = 0; i < count; i++) {
+		TurretPtr turret = ObjectManager->getTurret(i);
+		if (turret->targetWID == last[i])
+			continue;
+		last[i] = turret->targetWID;
+		GameObjectPtr target = turret->targetWID ? ObjectManager->getByWatchID(turret->targetWID) : NULL;
+		// "Turrets may only target movers and camera drones": a drone a client need not face
+		const long index = (target && target->isMover()) ? ((MoverPtr)target)->getNetRosterIndex() : -1;
+		addWorldEvent(this, netwire::WorldEventType::TurretTarget, i, index + 1, 0);
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -1507,8 +1826,11 @@ static void applyNetCheck (MultiPlayer* player, const netwire::ChunkBatch& batch
 		if (!mover)
 			continue;
 		units++;
-		if ((uint32_t)mover->getStatus() != batch.words[i + 1])
+		if ((uint32_t)mover->getStatus() != batch.words[i + 1]) {
 			statusDiffers++;
+			if (statusDiffers <= 3)
+				printf("[NETCHECK] unit %u %s: status here %d, host %u\n", index, mover->getName(), (int)mover->getStatus(), batch.words[i + 1]);
+		}
 		// A wreck's armour no longer counts. A hit on a unit that is down takes another
 		// path once it has finished falling, which an animation decides on each machine.
 		const bool down = mover->isDisabled() || mover->isDestroyed() || (batch.words[i + 1] != OBJECT_STATUS_NORMAL);
@@ -1527,8 +1849,10 @@ static void applyNetCheck (MultiPlayer* player, const netwire::ChunkBatch& batch
 			farthest = distance;
 	}
 	printf("[NETCHECK] %ld units: status differs %ld, armour differs %ld, farthest %.0f\n", units, statusDiffers, armorDiffers, farthest);
-	printf("[NETWORLD] artillery %ld, mines %ld, fires %ld, captures %ld, kills and losses %ld, repairs %ld, script messages %ld, scores %ld\n",
-		netWorldApplied[0], netWorldApplied[1], netWorldApplied[2], netWorldApplied[3], netWorldApplied[4], netRepairsApplied, netWorldApplied[5], netWorldApplied[6]);
+	printf("[NETWORLD] artillery %ld, mines %ld, fires %ld, captures %ld, kills and losses %ld, repairs %ld, script messages %ld, scores %ld, resource changes %ld, pilot kills %ld, turret targets %ld\n",
+		netWorldApplied[0], netWorldApplied[1], netWorldApplied[2], netWorldApplied[3], netWorldApplied[4], netRepairsApplied, netWorldApplied[5], netWorldApplied[6], netWorldApplied[7], netWorldApplied[8], netWorldApplied[9]);
+	printf("[NETSUPPORT] vehicles begun %ld, dropped %ld, recoveries begun %ld, recovered %ld, refused %ld\n",
+		netSupportCounts[0], netSupportCounts[1], netSupportCounts[2], netSupportCounts[3], netSupportCounts[4]);
 	fflush(stdout);
 }
 
@@ -1755,6 +2079,9 @@ static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
 		}
 		if (chunk.cause == NET_CAUSE_REFIT_POINTS) {
 			target->burnRefitPoints(chunk.damage);
+			// as handleWeaponHit does on the host: out of points is the end of a truck
+			if (!target->getRefitPoints())
+				((MoverPtr)target)->disable(POWER_USED_UP);
 			return;
 		}
 	}
@@ -1847,6 +2174,88 @@ static void applyWorldEvent (MultiPlayer* player, const netwire::WorldEvent& eve
 				player->teamScore[event.a] += (int32_t)event.value;
 			netWorldApplied[6]++;
 			break;
+		case netwire::WorldEventType::Resources: {
+			if (event.a >= MAX_MC_PLAYERS)
+				return;
+			const long points = (int32_t)event.value;
+			// what this commander spent went at the button
+			if ((event.a != player->commanderID) || (points > 0)) {
+				player->playerInfo[event.a].resourcePoints += points;
+				if (points > 0)
+					player->playerInfo[event.a].resourcePointsGained += points;
+				if (event.a == player->commanderID)
+					LogisticsData::instance->addResourcePoints(points);
+			}
+			netWorldApplied[7]++;
+			break;
+		}
+		case netwire::WorldEventType::PilotKill: {
+			MoverPtr mover = (event.a < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[event.a] : NULL;
+			if (!mover || !mover->getPilot() || (event.b >= NUM_VEHICLE_CLASSES))
+				return;
+			mover->getPilot()->numMechKills[event.b][COMBAT_STAT_MISSION]++;
+			netWorldApplied[8]++;
+			break;
+		}
+		case netwire::WorldEventType::TurretTarget: {
+			if ((long)event.a >= ObjectManager->getNumTurrets())
+				return;
+			MoverPtr mover = (event.b && (event.b <= MAX_MULTIPLAYER_MOVERS)) ? player->moverRoster[event.b - 1] : NULL;
+			ObjectManager->getTurret(event.a)->targetWID = mover ? mover->getWatchID() : 0;
+			netWorldApplied[9]++;
+			break;
+		}
+	}
+}
+
+//---------------------------------------------------------------------------
+
+// Client: a support vehicle or a recovery, as the host decided.
+static void applySupport (MultiPlayer* player, const netwire::ChunkBatch& batch) {
+
+	if (batch.subject != netwire::NO_SUBJECT) {
+		netApplyArmour(player, batch);
+		return;
+	}
+	netwire::SupportEvent event;
+	if ((batch.words.size() != netwire::SUPPORT_EVENT_WORDS) || !netwire::decodeSupportEvent(batch.words.data(), event))
+		return;
+	if (event.commander == player->commanderID)
+		netSupportAsked = false;
+	const bool known = Commander::commanders[event.commander] && Commander::commanders[event.commander]->getTeam()
+		&& (ControlGui::supportCost(event.vehicleId) >= 0);
+	MoverPtr mover = (event.rosterIndex < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[event.rosterIndex] : NULL;
+	switch (event.stage) {
+		case netwire::SupportStage::BeginVehicle: {
+			if (!known || (event.vehicleId == 147))
+				return;
+			// a unit in another slot from the host's would get another unit's updates
+			if (mover || !netBeginVehicle(player, event) || (player->reinforcements[event.commander][0] != event.rosterIndex))
+				printf("[NET]: ERROR: support unit for slot %u is not in that slot here\n", (unsigned)event.rosterIndex);
+			break;
+		}
+		case netwire::SupportStage::DropVehicle:
+			if (!mover)
+				return;
+			mover->setExists(true);
+			netSupportCounts[1]++;
+			break;
+		case netwire::SupportStage::BeginRecovery:
+			if (!known || (event.vehicleId != 147) || !mover || (mover->getObjectClass() != BATTLEMECH))
+				return;
+			netBeginRecovery(player, event);
+			break;
+		case netwire::SupportStage::Recovered:
+			if (!mover || (mover->getObjectClass() != BATTLEMECH))
+				return;
+			netSupportCounts[3]++;
+			MissionInterfaceManager::instance()->recoverMech(event.commander, mover);
+			break;
+		case netwire::SupportStage::Refused:
+			netApplyRefused(player, event);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -1914,6 +2323,9 @@ static void applyHostBatch (MultiPlayer* player, const netwire::ChunkBatch& batc
 					applyWorldEvent(player, event);
 			break;
 		}
+		case netwire::ChunkKind::Support:
+			applySupport(player, batch);
+			break;
 		case netwire::ChunkKind::Check:
 			applyNetCheck(player, batch);
 			break;
@@ -1929,6 +2341,16 @@ static void applyClientOrder (MultiPlayer* player, const netsession::Received& r
 
 	const netwire::ChunkBatch& batch = received.batch;
 	if (batch.subject == netwire::NO_SUBJECT) {
+		if (batch.words.size() == netwire::SUPPORT_EVENT_WORDS) {
+			netwire::SupportEvent event;
+			if (!netwire::decodeSupportEvent(batch.words.data(), event)
+				|| ((event.stage != netwire::SupportStage::RequestVehicle) && (event.stage != netwire::SupportStage::RequestRecovery)))
+				return;
+			// whatever commander it names, it is the sender's
+			netHostRequest(player, received.commander, event.vehicleId, event.rosterIndex, Stuff::Vector3D(event.x, event.y, event.z), event.stage == netwire::SupportStage::RequestRecovery);
+			netOrdersApplied++;
+			return;
+		}
 		// a strike the client called: the host keeps the count, and it is theirs
 		if (batch.words.size() != 4)
 			return;
@@ -1938,8 +2360,15 @@ static void applyClientOrder (MultiPlayer* player, const netsession::Received& r
 		// more than five minutes is not a strike
 		const long seconds = (long)(int32_t)batch.words[3];
 		Stuff::Vector3D location;
-		if ((seconds < -1) || (seconds > 300) || !netStrikeLocation(strike, row, col, location))
+		const long cost = ControlGui::strikeCost(strike);
+		if ((cost < 0) || (seconds < -1) || (seconds > 300) || !netStrikeLocation(strike, row, col, location))
 			return;
+		const bool enabled = (strike == ARTILLERY_SENSOR) ? player->missionSettings.sensorProbe : player->missionSettings.airStrike;
+		if (!enabled || (player->playerInfo[received.commander].resourcePoints < cost)) {
+			netHostRefuse(player, received.commander, 0, cost);
+			return;
+		}
+		netHostResources(player, received.commander, -cost);
 		CallArtillery(received.commander, strike, location, seconds, false);
 		netOrdersApplied++;
 		return;
@@ -1974,6 +2403,8 @@ static void applyClientOrder (MultiPlayer* player, const netsession::Received& r
 	order.unpack();
 	order.origin = ORDER_ORIGIN_PLAYER;
 	netOrdersApplied++;
+	if ((order.code >= 0) && (order.code < NUM_TACTICAL_ORDERS))
+		netOrdersByCode[order.code]++;
 	if (batch.words[2]) {
 		mover->getPilot()->setExecutingQueue(FALSE);
 		mover->getPilot()->addQueuedTacOrder(order);
@@ -2046,6 +2477,7 @@ long MultiPlayer::updateClients (bool forceIt) {
 		return(MPLAYER_NO_ERR);
 
 	if (netSession) {
+		sendTurretUpdate();
 		sendMoverWeaponFireUpdate();
 		sendTurretWeaponFireUpdate();
 		sendMoverCriticalUpdate();
@@ -2110,7 +2542,8 @@ bool MultiPlayer::calcMissionStatus (void) {
 		for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
 			MoverPtr mover = moverRoster[i];
 			const long team = mover ? mover->getTeamId() : -1;
-			if (mover && (team >= 0) && (team < netrules::NUM_TEAMS) && mover->getExists() && !mover->isDisabled() && !mover->isDestroyed())
+			// a repair truck called in does not keep a team in the game
+			if (mover && !netSupportUnit[i] && (team >= 0) && (team < netrules::NUM_TEAMS) && mover->getExists() && !mover->isDisabled() && !mover->isDestroyed())
 				state.teams[team].liveUnits++;
 		}
 		for (long team = 0; team < MAX_TEAMS; team++) {
@@ -2174,6 +2607,21 @@ bool MultiPlayer::calcMissionStatus (void) {
 		if (playerInfo[i].commanderID > -1)
 			printf("[NETSCORE] commander %ld: kills %d, losses %d, team's buildings %ld, team's score %d\n", i, playerInfo[i].kills, playerInfo[i].losses, buildings[playerInfo[i].team], teamScore[playerInfo[i].team]);
 	printf("[NETSCORE] mines %ld\n", mines);
+	// compared where a run spends through the buttons, as a test that calls strikes does not
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if (playerInfo[i].commanderID > -1)
+			printf("[NETPOINTS] commander %ld: resource points %ld\n", i, playerInfo[i].resourcePoints);
+	long pilotKills = 0;
+	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
+		if (moverRoster[i] && moverRoster[i]->getPilot())
+			for (long j = 0; j < NUM_VEHICLE_CLASSES; j++)
+				pilotKills += moverRoster[i]->getPilot()->numMechKills[j][COMBAT_STAT_MISSION];
+	printf("[NETSCORE] pilot kills %ld\n", pilotKills);
+	if (iAmHost)
+		printf("[NETORDERS] move %ld, jump %ld, attack object %ld, attack point %ld, guard %ld, stop %ld, wait %ld, power down %ld, power up %ld, eject %ld, repair %ld, capture %ld\n",
+			netOrdersByCode[TACTICAL_ORDER_MOVETO_POINT], netOrdersByCode[TACTICAL_ORDER_JUMPTO_POINT], netOrdersByCode[TACTICAL_ORDER_ATTACK_OBJECT], netOrdersByCode[TACTICAL_ORDER_ATTACK_POINT],
+			netOrdersByCode[TACTICAL_ORDER_GUARD], netOrdersByCode[TACTICAL_ORDER_STOP], netOrdersByCode[TACTICAL_ORDER_WAIT], netOrdersByCode[TACTICAL_ORDER_POWERDOWN], netOrdersByCode[TACTICAL_ORDER_POWERUP],
+			netOrdersByCode[TACTICAL_ORDER_EJECT], netOrdersByCode[TACTICAL_ORDER_REFIT], netOrdersByCode[TACTICAL_ORDER_CAPTURE]);
 	fflush(stdout);
 	return(true);
 }

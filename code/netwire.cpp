@@ -1,5 +1,6 @@
 // code/netwire.cpp: see netwire.h
 
+#include <cmath>
 #include "netwire.h"
 
 #include <cstring>
@@ -102,7 +103,7 @@ bool validWelcome(const Welcome& m)
 bool validKind(ChunkKind kind)
 {
 	const uint8_t k = static_cast<uint8_t>(kind);
-	return k >= static_cast<uint8_t>(ChunkKind::Move) && k <= static_cast<uint8_t>(ChunkKind::Check);
+	return k >= static_cast<uint8_t>(ChunkKind::Move) && k <= static_cast<uint8_t>(ChunkKind::Support);
 }
 
 // Reads the type byte and checks it, for a decoder.
@@ -116,7 +117,7 @@ bool expectType(Reader& in, MessageType type)
 bool encodeWorldEvent(const WorldEvent& e, uint32_t words[WORLD_EVENT_WORDS])
 {
 	const uint8_t t = static_cast<uint8_t>(e.type);
-	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::Score)
+	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::TurretTarget)
 		|| e.a > MAX_WORLD_FIELD || e.b > MAX_WORLD_FIELD)
 		return false;
 	words[0] = static_cast<uint32_t>(t) | (static_cast<uint32_t>(e.a) << 8) | (static_cast<uint32_t>(e.b) << 20);
@@ -124,10 +125,55 @@ bool encodeWorldEvent(const WorldEvent& e, uint32_t words[WORLD_EVENT_WORDS])
 	return true;
 }
 
+static bool validSupportEvent(const SupportEvent& e)
+{
+	switch (e.stage) {
+		case SupportStage::RequestVehicle:
+		case SupportStage::BeginVehicle:
+		case SupportStage::DropVehicle:
+		case SupportStage::RequestRecovery:
+		case SupportStage::BeginRecovery:
+		case SupportStage::Recovered:
+		case SupportStage::Refused:
+			break;
+		default:
+			return false;
+	}
+	return e.commander < MAX_PLAYERS && e.cost >= 0 && std::isfinite(e.x) && std::isfinite(e.y) && std::isfinite(e.z);
+}
+
+bool encodeSupportEvent(const SupportEvent& e, uint32_t words[SUPPORT_EVENT_WORDS])
+{
+	if (!validSupportEvent(e))
+		return false;
+	words[0] = static_cast<uint32_t>(e.stage) | (static_cast<uint32_t>(e.commander) << 8) | (static_cast<uint32_t>(e.rosterIndex) << 16);
+	words[1] = e.vehicleId;
+	words[2] = static_cast<uint32_t>(e.cost);
+	std::memcpy(&words[3], &e.x, 4);
+	std::memcpy(&words[4], &e.y, 4);
+	std::memcpy(&words[5], &e.z, 4);
+	return true;
+}
+
+bool decodeSupportEvent(const uint32_t words[SUPPORT_EVENT_WORDS], SupportEvent& e)
+{
+	e.stage = static_cast<SupportStage>(words[0] & 0xFFu);
+	e.commander = static_cast<uint8_t>((words[0] >> 8) & 0xFFu);
+	e.rosterIndex = static_cast<uint16_t>(words[0] >> 16);
+	if (words[1] > 0xFFFFu)
+		return false;
+	e.vehicleId = static_cast<uint16_t>(words[1]);
+	e.cost = static_cast<int32_t>(words[2]);
+	std::memcpy(&e.x, &words[3], 4);
+	std::memcpy(&e.y, &words[4], 4);
+	std::memcpy(&e.z, &words[5], 4);
+	return validSupportEvent(e);
+}
+
 bool decodeWorldEvent(const uint32_t words[WORLD_EVENT_WORDS], WorldEvent& e)
 {
 	const uint8_t t = static_cast<uint8_t>(words[0] & 0xFFu);
-	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::Score))
+	if (t < static_cast<uint8_t>(WorldEventType::Artillery) || t > static_cast<uint8_t>(WorldEventType::TurretTarget))
 		return false;
 	e.type = static_cast<WorldEventType>(t);
 	e.a = static_cast<uint16_t>((words[0] >> 8) & MAX_WORLD_FIELD);

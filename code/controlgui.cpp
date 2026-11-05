@@ -2034,8 +2034,7 @@ void ControlGui::handleVehicleClick( int ID )
 
 				if ( MPlayer )
 				{
-					MPlayer->playerInfo[MPlayer->commanderID].resourcePoints += cost;
-					MPlayer->playerInfo[MPlayer->commanderID].resourcePointsGained += cost;
+					MPlayer->refundResources( cost );
 
 					if (!MPlayer->isHost())
 					{
@@ -2098,6 +2097,28 @@ const char* ControlGui::getVehicleName( long& ID)
 //	sprintf(s, "getvehiclename: ID = %d", ID);
 //	PAUSE((s));
 	return 0;
+}
+
+long ControlGui::supportCost( long vehicleTypeID )
+{
+	switch ( vehicleTypeID )
+	{
+		case 182:	return vehicleCosts[REPAIR_VEHICLE - LARGE_AIRSTRIKE];
+		case 393:	return vehicleCosts[PEGASUS_SCOUT - LARGE_AIRSTRIKE];
+		case 120:	return vehicleCosts[MINELAYER - LARGE_AIRSTRIKE];
+		case 147:	return vehicleCosts[RECOVERY_TEAM - LARGE_AIRSTRIKE];
+		case 415:	return vehicleCosts[GUARD_TOWER - LARGE_AIRSTRIKE];
+	}
+	return -1;
+}
+
+long ControlGui::strikeCost( long strikeType )
+{
+	if ( strikeType == ARTILLERY_LARGE )
+		return vehicleCosts[LARGE_AIRSTRIKE - LARGE_AIRSTRIKE];
+	if ( strikeType == ARTILLERY_SENSOR )
+		return vehicleCosts[SENSOR_PROBE - LARGE_AIRSTRIKE];
+	return -1;	// the interface has no button for any other
 }
 
 const char* ControlGui::getVehicleNameFromID (long ID) {

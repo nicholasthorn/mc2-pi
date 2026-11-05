@@ -826,7 +826,7 @@ long WeaponBolt::update (void)
 						if (GameMap->getMine(cellRow, cellCol) == 1)
 						{
 							ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPosition, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-							GameMap->setMine(cellRow, cellCol, 2);
+							SetOffMine(cellRow, cellCol);
 						}
 					}
 					
@@ -1078,7 +1078,7 @@ long WeaponBolt::update (void)
 						if (GameMap->getMine(cellRow, cellCol) == 1)
 						{
 							ObjectManager->createExplosion(MINE_EXPLOSION_ID, NULL, *targetPosition, MineSplashDamage, MineSplashRange * worldUnitsPerMeter);
-							GameMap->setMine(cellRow, cellCol, 2);
+							SetOffMine(cellRow, cellCol);
 						}
 					}
 					
