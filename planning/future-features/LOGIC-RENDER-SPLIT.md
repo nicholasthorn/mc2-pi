@@ -67,6 +67,28 @@ the worker uses node heights refreshed just before it starts.
 Running the same split on idle frames on the main thread needs only step 6 and
 has no races, but a burst has to fit about 6.5 ms per frame.
 
+### Built (branch `perf/vr-path-worker`)
+
+One thread, one batch of paths at a time, in VR only (`gos_PathsOnWorker`;
+`MC2_PATH_WORKER=0` or `1` overrides it). A step queues its paths, `startWorker` runs
+them after the step, and `finishWorker` waits before anything of the next step. The
+next step does not hold a frame up: with the worker still busy, the frame only draws
+and the step comes a frame or two later (`gos_GameStepHeldBack`).
+
+What had to change for it: the line-of-sight probe in `calcMoveGoal` no longer moves
+the unit (`losProbePosition`); on the worker `getLOSPosition` reads heights
+`startWorker` refreshed for every mover and turret; radio messages wait for the main
+thread; the heap stack is per thread. The last step of a mission starts no worker.
+
+ThreadSanitizer, 1,500 frames with the worker on: 0 reports touch path-finding, 16
+before the fix. 226 others do not involve it (mostly texture create and unlock) and
+are not reviewed one by one. Nothing in CI runs the worker, as it needs a headset or
+`MC2_PATH_WORKER=1`.
+
+Next limit: under `bench/mc2_19_heavy.fit` the game steps about 21 times a second,
+because path-finding itself takes about 50 ms in bursts. The pathfinder is the next
+target, not the threading.
+
 ## Option B: logic on its own thread
 
 **Large.** Not one blocker but the whole seam, with four hard parts.
@@ -117,7 +139,7 @@ rate should bring them close.
 
 ## Step 3 design: the retained mesh list
 
-Status: design only. Reasons are read from the code; gains are not measured.
+Status: built and measured on the Quest 2 (about 0.15 ms saved in `world_objects`); `MC2_MESH_LIST=0` turns it off. This section is the design as written before that. Instancing, which the list makes possible, is not built.
 
 **Moving transforms alone buys nothing on one thread.** A step frame must fit
 logic, render and present into one 13.9 ms slot. Work moved from logic into that
