@@ -165,5 +165,18 @@ if [ ${#reasons[@]} -eq 0 ]; then
 fi
 echo "FAIL $MISSION (${secs}s) lag ${LAG:-0} ms, loss ${LOSS:-0}%: $(printf '%s; ' "${reasons[@]}")"
 grep -hE "$BAD" "$LOG_DIR/host.log" "$LOG_DIR/client.log" | sort | uniq -c | sort -rn | head -10 | sed 's/^/    /'
+# a crash's frames, by name (gos_logfile.cpp prints module and offset, perhaps mid-line)
+for side in host client; do
+    grep -q 'CRASH: signal' "$LOG_DIR/$side.log" || continue
+    echo "    $side: $(grep -m1 -o 'CRASH: signal.*' "$LOG_DIR/$side.log")"
+    grep -o 'CRASH:   #[0-9]* .*' "$LOG_DIR/$side.log" | head -16 | while read -r _ number frame; do
+        offset="${frame##*+}"
+        case "$frame" in
+            mc2+*) where=$(addr2line -Cfpe "$GAME_DIR/mc2" "$offset" 2>/dev/null) ;;
+            *) where="" ;;
+        esac
+        echo "      $number $frame ${where}" | cut -c1-200
+    done
+done
 echo "    logs: $LOG_DIR/host.log $LOG_DIR/client.log"
 exit 1

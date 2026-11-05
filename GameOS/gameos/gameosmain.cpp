@@ -514,8 +514,9 @@ int main(int argc, char** argv)
         gos_LogFileStart();
 #endif
         gos_LogFileHeader();
-        gos_LogFileCatchCrashes();
     }
+    // on an automated run too: to stderr, and scripts/net_smoke.sh names the lines
+    gos_LogFileCatchCrashes();
     // -deterministic: -bench's fixed step and seed without its CSV, so two
     // -autoexit runs of a mission end in the same state (scripts/smoke.sh
     // --deterministic compares the [STATEHASH] lines). Takes no value, so it is

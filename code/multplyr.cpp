@@ -418,6 +418,7 @@ static void netClose (void) {
 
 static const float NET_WAIT_SECONDS = 300.0f;
 static long netOrdersApplied = 0;
+static bool netGameEnded = false;
 static long netRepairsApplied = 0;
 static long netOrdersByCode[NUM_TACTICAL_ORDERS] = {0};	// on the host
 static long netHoldsApplied = 0;
@@ -2491,6 +2492,13 @@ void MultiPlayer::processMessages (void) {
 		return;
 	netSession->update();
 	netsession::Received received;
+	// The results are up and the units are gone, so what is still on its way is for nobody,
+	// and a host closing its results is not a reason to close these.
+	if (netGameEnded) {
+		while (netSession->nextBatch(received))
+			;
+		return;
+	}
 	while (netSession->nextBatch(received)) {
 		if (iAmHost)
 			applyClientOrder(this, received);
@@ -2681,6 +2689,7 @@ int __cdecl sortPlayerRanks (const void* player1, const void* player2) {
 
 void MultiPlayer::logResults (void) {
 
+	netGameEnded = true;
 	calcPlayerRanks();
 	for (long i = 0; i < MAX_MC_PLAYERS; i++)
 		if (playerInfo[i].commanderID > -1)
