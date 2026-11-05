@@ -32,6 +32,10 @@
 #include"tgainfo.h"
 #endif
 
+#ifndef TXMCACHENAME_H
+#include"txmcachename.h"
+#endif
+
 #ifndef TERRAIN_H
 #include"terrain.h"
 #endif
@@ -122,6 +126,7 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 	else
 	{
 		quickLoad = true;
+		listHasPlainNames = false;
 
 		//Check for the magic list and then for all of the textures on the magic list.
 		FullPathFileName listPath;
@@ -135,6 +140,8 @@ long TerrainTextures::init (const char *fileName, const char *baseName)
 			{
 				char listName[1024];
 				listFile.readString((MemoryPtr)listName);
+				if (listName[0] && !txmCacheNameIsOld(listName))
+					listHasPlainNames = true;
 				if (!fileExists(listName) || !txmCacheMatchesSize(listName))
 				{
 					quickLoad = false;
@@ -1151,6 +1158,10 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 	long result = -1;
 	long txmResult = 0;
 
+	// What a transition's image is depends on this, so the cache file name does
+	// too (txmcachename.h)
+	const bool hasColorMap = (Terrain::terrainTextures2 != NULL);
+
 	if (nextTransition < MAX_MC2_TRANSITIONS)
 	{
 		//------------------------------------------------------
@@ -1180,13 +1191,14 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 		if (quickLoad)
 		{
 			char nameData[256];
-			sprintf(nameData,"%08u.%08u.txm",typeInfo,overlayInfo);
-
 			FullPathFileName testPath;
-			testPath.init(texturePath,nameData,"");
-
 			File txmFile;
-			long fr = txmFile.open(testPath);
+			long fr = -1;
+			if (txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,txmCacheUsesPlainName(hasColorMap,listHasPlainNames)))
+			{
+				testPath.init(texturePath,nameData,"");
+				fr = txmFile.open(testPath);
+			}
 			if (fr == NO_ERR)
 			{
 				long mipSize = TERRAIN_TXM_SIZE;
@@ -1414,12 +1426,13 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			// for all of the textures...
 			//
 			char nameData[256];
-			sprintf(nameData,"%08u.%08u.txm",typeInfo,overlayInfo);
+			const bool nameFits = txmCacheName(nameData,sizeof(nameData),typeInfo,overlayInfo,hasColorMap);
 
 			FullPathFileName testPath;
-			testPath.init(texturePath,nameData,"");
+			if (nameFits)
+				testPath.init(texturePath,nameData,"");
 
-			if (listTransitionFile)
+			if (nameFits && listTransitionFile)
 			{
 				listTransitionFile->writeString(testPath);
 				listTransitionFile->writeByte(0);
@@ -1428,10 +1441,14 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			MemoryPtr lzBuffer = (MemoryPtr)malloc(mipSize * mipSize * sizeof(DWORD) * 2);
 			long bufferSize = LZCompress(lzBuffer,ourRAM,(mipSize * mipSize * sizeof(DWORD)));
 
-			File txmFile;
-			txmFile.create(testPath);
-			txmFile.write(lzBuffer,bufferSize);
-			txmFile.close();
+			// A name that did not fit is not saved (the texture is still used)
+			if (nameFits)
+			{
+				File txmFile;
+				txmFile.create(testPath);
+				txmFile.write(lzBuffer,bufferSize);
+				txmFile.close();
+			}
 				
 			if (kmp == 0)
 				txmResult = result;
