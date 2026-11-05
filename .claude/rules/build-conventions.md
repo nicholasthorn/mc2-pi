@@ -81,6 +81,11 @@ When you can only build one locally, say which ones were not built.
 
 ## Dependencies
 
+- The network transport (GameNetworkingSockets, protobuf, BoringSSL) is not a
+  system package: `cmake/mc2_gns.cmake` builds pinned, hash-checked sources as
+  separate projects at build time, so the game's flags stay out of them.
+  `-DMC2_NET=OFF` leaves it out. A new GNS version means checking
+  `cmake/mc2_gns_boringssl_patch.cmake`, and its Windows backend is BCrypt.
 - Linux: system packages (`libsdl2-dev`, `libsdl2-mixer-dev`, `libsdl2-ttf-dev`,
   `zlib1g-dev`, `libglew-dev` / `libgles-dev`). `cmake/FindSDL2_*.cmake` fall back
   to pkg-config on distros without CMake config files.

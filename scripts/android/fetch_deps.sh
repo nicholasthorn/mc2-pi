@@ -19,7 +19,9 @@ fetch() {   # dir url sha256
         mv "$archive.part" "$archive"
     fi
     echo "$sum  $archive" | sha256sum -c --quiet -
-    [ -d "$DEPS/$dir" ] || tar -xzf "$archive" -C "$DEPS"
+    # --force-local: GNU tar would take the C: of a Windows path for a remote host.
+    # Xcode: symlinks that Git Bash cannot make, in files this build does not use.
+    [ -d "$DEPS/$dir" ] || tar --force-local --exclude='*/Xcode/*' -xzf "$archive" -C "$DEPS"
 }
 
 fetch $SDL2_DIR \
