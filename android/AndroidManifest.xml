@@ -17,6 +17,9 @@
     <uses-feature android:name="oculus.software.handtracking" android:required="false" />
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
 
+    <!-- multiplayer -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- the Khronos OpenXR loader (its AAR's manifest, merged by hand: the
          APK is linked without Gradle) -->
     <uses-permission android:name="org.khronos.openxr.permission.OPENXR" />

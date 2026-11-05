@@ -13,6 +13,14 @@ only a person can check; say which renderer each needs.
 Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 (`MC2_GLES=ON`, on the Pi or under `LIBGL_ALWAYS_SOFTWARE=1` on a PC).
 
+## Network transport
+
+- [ ] **Windows to Quest, or Windows to Linux** (#113). Windows uses BCrypt and the
+      others BoringSSL, so this proves their handshake agrees, which CI does not
+      (each job runs both ends on one platform). `net_ping server 27900` on one,
+      `net_ping client <its address> 27900` on the other; both ways round. On a
+      Quest: `scripts/android/net_ping.sh`. Allow UDP through Windows' firewall.
+
 ## In the game (any PC with a display)
 
 - [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click

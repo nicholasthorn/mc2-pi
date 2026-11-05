@@ -16,6 +16,11 @@ sudo apt install build-essential cmake ninja-build pkg-config git git-lfs \
 `libglew-dev` is only needed by the data tools' CMake files; the game itself
 links `libGLESv2` directly when `MC2_GLES=ON`.
 
+The first build also downloads and compiles the network transport's libraries
+(GameNetworkingSockets, protobuf, BoringSSL: pinned versions, `cmake/mc2_gns.cmake`),
+which needs no packages but is slow on a Pi. For a build with no network, or without
+them, configure with `-DMC2_NET=OFF`.
+
 ```
 mkdir build64 && cd build64
 cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_GLES=ON ..
