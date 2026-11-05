@@ -31,9 +31,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       legacy movement stays. Quitting mid-game is not expected to be tidy yet.
 - [ ] **A Windows peer** (phase 2). The same, one end on Windows: also proves the BCrypt
       handshake in the game (see "Network transport").
-- [ ] **A Quest as client** (phase 2). `-netjoin` from a PC host, through `args.txt`, worn and
-      in the app. Measure the client's step against a single-player run of `mc2_19`: the plan's
-      question of how much cheaper a client is.
+- [x] **A Quest as host and as client, unworn** (2026-11-05, Quest 2, PC in WSL, home Wi-Fi): played
+      and measured, with armour never differing. See "On a Quest 2" in `future-features/NETWORKING.md`.
+      `-netjoin wait` on the Quest and `-netcall <its address>` on a host in WSL, which it cannot reach.
+- [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
+      mechs look right, do orders given by hand with the controllers work, and does taking the headset
+      off and on leave the game running? Also whether the app quits by itself at the end.
 
 ## In the game (any PC with a display)
 

@@ -142,7 +142,8 @@ detailed conventions.
 - **The whole engine builds with `-DLINUX_BUILD`, on Windows too.** `PLATFORM_WINDOWS`
   is the real "this is MSVC" flag. `PATH_SEPARATOR` is therefore `/` everywhere.
 - **Networking is a vertical slice, with no UI.** `-nethost <players> -netlisten [port]`
-  and `-netjoin <address>[:port]` play a mission between processes (`multplyr.cpp`,
+  and `-netjoin <address>[:port]` play a mission between processes (or, for a host that cannot
+  be reached, as in WSL, `-netcall <address>` and `-netjoin wait`) (`multplyr.cpp`,
   `code/netsession.*`, `code/netwire.*`, `GameOS/gameos/gos_net*`); `-nethost` alone runs a
   host's code with no network. `code/mp*.cpp` are still UI stubs, and most `MultiPlayer`
   methods are empty. `cmake/mc2_gns.cmake` downloads and builds the libraries
