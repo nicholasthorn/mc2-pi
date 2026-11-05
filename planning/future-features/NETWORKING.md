@@ -617,10 +617,10 @@ among team 1's turrets on m09: 92 shots fired, 83 target changes reached the cli
 finished with the same resource points. `bench/net_support.fit` also passes under 100 ms and 2% loss, and all three under ASan + UBSan,
 which found an out-of-bounds read the first time a turret fired: a rear torso hit used as a body location, on any turret shot.
 
-Not settled: one local run of `net_support.fit` ended with the host's segmentation fault and no backtrace, and 14 more under a debugger did
-not repeat it. CI then caught a client crashing on a null radio message when the pilots of every queued message had died (`gamesound.cpp`),
-in the plain battle, now fixed. That fits the first crash, whose log ended among sounds, but is not proof of it. Nobody has watched any of this
-(`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
+Not settled: **a rare host crash.** `net_support.fit` has ended twice with the host's segmentation fault, once locally and once on arm64 in CI,
+each time just after the client asked for a recovery, with no backtrace. Another 38 local games did not repeat it. Its cause is unknown. It is not
+the null radio message also fixed here, since the second came after that fix. A crash in an automated run now prints a backtrace, and
+`net_smoke.sh` names the frames. Nobody has watched any of this (`HARDWARE-TESTS.md`). A repair bay's points are checked by no run, as no stock map used
 in a test has been shown to have one. Windows and arm64 have only what CI runs.
 
 ### On a Quest 2 (2026-11-05)

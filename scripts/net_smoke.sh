@@ -129,9 +129,16 @@ fi
 if [ "$SUPPORT" = 1 ]; then
     # support vehicles and a recovery, seen on the client, and paid for alike at both ends
     support=$(grep '^\[NETSUPPORT\]' "$LOG_DIR/client.log" | tail -1)
-    for what in 'vehicles begun' 'dropped' 'recoveries begun' 'recovered'; do
+    for what in 'vehicles begun' 'dropped'; do
         echo "$support" | grep -Eq "$what [1-9]" || reasons+=("no $what on the client: $support")
     done
+    # only if a side had a mech of its own down to call one for, which a battle does not promise
+    if grep -q '^\[NET\] calling recovery' "$LOG_DIR/host.log" "$LOG_DIR/client.log"; then
+        echo "$support" | grep -q 'refused 0' && ! echo "$support" | grep -Eq 'recoveries begun [1-9]' \
+            && reasons+=("a recovery was called and not begun: $support")
+    else
+        echo "    note: no recovery was called in this run"
+    fi
     orders=$(grep '^\[NETORDERS\]' "$LOG_DIR/host.log")
     for what in move jump 'attack object' 'attack point' guard stop wait 'power down' 'power up' eject; do
         echo "$orders" | grep -Eq "$what [1-9]" || reasons+=("no $what order applied: $orders")
