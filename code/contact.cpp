@@ -1314,7 +1314,8 @@ void SensorSystemManager::addTeamSensor (long teamId, SensorSystemPtr sensor)
 
 void SensorSystemManager::removeTeamSensor (long teamId, SensorSystemPtr sensor) {
 
-	if (teamId == -1)
+	// as addTeamSensor: a team not in the mission never had one
+	if ((teamId < 0) || (teamId >= Team::numTeams))
 		return;
 	teamSensors[teamId]->removeSensor(sensor);
 	sensor->setMaster(NULL);

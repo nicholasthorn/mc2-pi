@@ -21,6 +21,23 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       `net_ping client <its address> 27900` on the other; both ways round. On a
       Quest: `scripts/android/net_ping.sh`. Allow UDP through Windows' firewall.
 
+## Multiplayer
+
+- [ ] **Two machines on one network, in windows** (phase 2). GL on both, then a Pi or GLES
+      build on one. On one: `./mc2 -mission mc2_m08 -nethost 2 -netlisten 27815`. On the other:
+      `./mc2 -mission mc2_m08 -netjoin <its address>:27815`. Allow UDP 27815 through a firewall.
+      Order units on both, from both. Do the other side's mechs walk smoothly, or stutter and
+      warp? Do shots, hits and explosions look right on the client? That answers whether the
+      legacy movement stays. Quitting mid-game is not expected to be tidy yet.
+- [ ] **A Windows peer** (phase 2). The same, one end on Windows: also proves the BCrypt
+      handshake in the game (see "Network transport").
+- [x] **A Quest as host and as client, unworn** (2026-11-05, Quest 2, PC in WSL, home Wi-Fi): played
+      and measured, with armour never differing. See "On a Quest 2" in `future-features/NETWORKING.md`.
+      `-netjoin wait` on the Quest and `-netcall <its address>` on a host in WSL, which it cannot reach.
+- [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
+      mechs look right, do orders given by hand with the controllers work, and does taking the headset
+      off and on leave the game running? Also whether the app quits by itself at the end.
+
 ## In the game (any PC with a display)
 
 - [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click

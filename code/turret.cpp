@@ -1163,7 +1163,8 @@ long Turret::updateWeaponFireChunks (long which)
 
 		if (chunk.targetType == 0) 
 		{
-			GameObjectPtr target = (GameObjectPtr)MPlayer->moverRoster[chunk.targetId];
+			// the field can hold more than the roster does
+			GameObjectPtr target = (chunk.targetId < MAX_MULTIPLAYER_MOVERS) ? (GameObjectPtr)MPlayer->moverRoster[chunk.targetId] : NULL;
 			//----------------------------------------------------------------------------
 			// Mover targets could be NULL now, since we free them when they're destroyed.
 			if (target) 
@@ -1178,11 +1179,8 @@ long Turret::updateWeaponFireChunks (long which)
 		else if (chunk.targetType == 1) 
 		{
 			GameObjectPtr target = ObjectManager->findByPartId(chunk.targetId);
-			if (target == NULL) 
-			{
-				DebugWeaponFireChunk (&chunk, NULL, this);
-				Assert(FALSE, 0, " Turret.updateWeaponFireChunks: NULL Terrain Target (save wfchunk.dbg file) ");
-			}
+			if (target == NULL)
+				continue;
 			handleWeaponFire(chunk.weaponIndex,
 							 target,
 							 NULL,
@@ -1194,11 +1192,8 @@ long Turret::updateWeaponFireChunks (long which)
 		else if (chunk.targetType == 2) 
 		{
 			GameObjectPtr target = ObjectManager->findByPartId(chunk.targetId);
-			if (target == NULL) 
-			{
-				DebugWeaponFireChunk (&chunk, NULL, this);
-				Assert(FALSE, 0, " Turret.updateWeaponFireChunks: NULL Special Target (save wfchunk.dbg file) ");
-			}
+			if (target == NULL)
+				continue;
 			handleWeaponFire(chunk.weaponIndex,
 							 target,
 							 NULL,
@@ -1215,8 +1210,6 @@ long Turret::updateWeaponFireChunks (long which)
 			targetPoint.z = (float)0;
 			handleWeaponFire(chunk.weaponIndex, NULL, &targetPoint, chunk.hit, 0.0, 0, 0);
 		}
-		else
-			Fatal(0, " Mover.updateWeaponFireChunk: bad targetType ");
 	}
 
 	numWeaponFireChunks[which] = 0;

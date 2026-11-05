@@ -3601,11 +3601,10 @@ long GroundVehicle::update (void)
 			curPos.z = 0.0;
 			curPos.Subtract(curPos, correctPos);
 			float posDelta = curPos.GetLength();
+			// MoveChunk::unpack has refused a cell off the map
 			if (posDelta > MPlayer->warpFactor)
 				newPosition = correctPos;
 				//vel.Subtract(correctPos, curPos);
-			if (!GameMap->inBounds(moveChunk.stepPos[0][0], moveChunk.stepPos[0][1]))
-				Fatal(0, " gvehicl.update: newMoveChunk stepPos not on map! ");
 		}
 		newMoveChunk = false;
 	}
@@ -4156,8 +4155,7 @@ long GroundVehicle::buildStatusChunk (void) {
 				statusChunk.targetType = STATUSCHUNK_TARGET_TERRAIN;
 				statusChunk.targetId = curTarget->getPartId();
 				}
-			else
-				Fatal(curTarget->getObjectClass(), " GroundVehicle.buildStatusChunk: bad target object class ");
+			// a camera drone, say: a client has no use for it, and the game must not end
 		}
 	}
 
@@ -4193,7 +4191,8 @@ long GroundVehicle::handleStatusChunk (long updateAge, unsigned long chunk) {
 		if (statusChunk.targetType > STATUSCHUNK_TARGET_NONE) {
 			switch (statusChunk.targetType) {
 				case STATUSCHUNK_TARGET_MOVER:
-					if (MPlayer->moverRoster[statusChunk.targetId])
+					// the field can hold more than the roster does
+					if ((statusChunk.targetId < MAX_MULTIPLAYER_MOVERS) && MPlayer->moverRoster[statusChunk.targetId])
 						lastTargetId = MPlayer->moverRoster[statusChunk.targetId]->getPartId();
 					break;
 				case STATUSCHUNK_TARGET_TERRAIN:

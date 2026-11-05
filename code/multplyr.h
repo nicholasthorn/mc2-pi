@@ -1508,6 +1508,20 @@ class MultiPlayer : public MultiPlayerState {
 		// host's side of the multiplayer code in one process.
 		void startLocalHost (long numPlayers);
 
+		// A real game (-nethost <players> -netlisten [port], -netjoin <address>[:port]).
+		// Each waits until everyone has joined, and ends the game if it cannot be had.
+		// With dialAddress, the host calls a client that waits (-netcall), and with a NULL
+		// address, a client waits to be called (-netjoin wait).
+		void hostNetGame (long numPlayers, unsigned short port, const char* missionName, const char* dialAddress = NULL, unsigned short dialPort = 0);
+
+		void joinNetGame (const char* address, unsigned short port, const char* missionName);
+
+		// After the mission has loaded, before it starts: waits for everyone else's.
+		void waitForNetStart (void);
+
+		// True with connections to other players, false for -nethost alone.
+		bool isNetworked (void);
+
 		// How many movers each commander brings, by the number of players.
 		static long moversPerCommander (long numPlayers) {
 			static const long movers[MAX_MC_PLAYERS] = {12, 12, 12, 9, 7, 6, 5, 4};
@@ -1548,8 +1562,10 @@ class MultiPlayer : public MultiPlayerState {
 		// for write purposes....
 		MC2Player* getPlayerInfo( long commanderID )
 		{
-			// Networking is stubbed: the multiplayer screens read and write
-			// player info unchecked, so hand them a blank record, not NULL.
+			// With no network: the multiplayer screens read and write player
+			// info unchecked, so hand them a blank record, not NULL.
+			if (inSession && (commanderID >= 0) && (commanderID < MAX_MC_PLAYERS))
+				return &playerInfo[commanderID];
 			static MC2Player blankPlayer;
 			memset(&blankPlayer, 0, sizeof(blankPlayer));
 			return &blankPlayer;
@@ -1692,6 +1708,16 @@ class MultiPlayer : public MultiPlayerState {
 
 		long addCaptureBuildingChunk (BuildingPtr building, long prevCommanderID, long newCommanderID);
 
+		// Over the network, what addArtilleryChunk and the like have queued.
+		void flushWorldEvents (void);
+
+		// The HQ that decides this mode for this player: an enemy's base, or the first
+		// of the hill or the territories. NULL if the map has none.
+		BuildingPtr hqToTake (void);
+
+		// For a test: the host's team takes that HQ, as a capture would.
+		void stageHqCapture (void);
+
 		long addEndMissionChunk (void);
 
 		long grabWorldChunks (unsigned long* packedChunkBuffer);
@@ -1709,6 +1735,9 @@ class MultiPlayer : public MultiPlayerState {
 		long addWeaponHitChunk (WeaponHitChunkPtr chunk);
 
 		long addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr shotInfo, bool isRefit = false);
+
+		// In the weapon hit stream, in order. The chunk's own format is Mover::addCriticalHitChunk's.
+		void addCriticalHitToStream (MoverPtr mover, unsigned char chunkData);
 
 		void grabWeaponHitChunks (unsigned long* packedChunkBuffer, long numChunks);
 
@@ -1887,6 +1916,14 @@ void ResetNetworking (void);
 void ShutdownNetworking (void);
 
 extern MultiPlayer* MPlayer;
+
+// Repair points as a weapon hit chunk can carry them. Over a network both ends must
+// spend the same, so the host rounds before it spends rather than only when it sends.
+inline float netRefitPoints (float points) {
+	if (points > 255.0f)
+		points = 255.0f;
+	return(MPlayer ? (float)((unsigned long)(points * 4.0f)) * 0.25f : points);
+}
 
 // True on a multiplayer host. Its view must not change the game for everyone,
 // so code that only runs for what the camera sees also runs off camera here.

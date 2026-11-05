@@ -36,12 +36,14 @@ statically, so its licence is listed although there is no zlib DLL.
 
 ## The network transport
 
-Built with the game but not yet linked into it: the game does not call it until
-multiplayer play arrives. Windows uses the system's BCrypt in place of BoringSSL.
+Compiled into the game in every package and the Quest APK. Windows uses the
+system's BCrypt in place of BoringSSL.
 
 | Library | Licence | File |
 |---|---|---|
 | GameNetworkingSockets 1.6.1, patched (`cmake/mc2_gns_boringssl_patch.cmake`) | BSD-3-Clause | `GameNetworkingSockets.txt` |
+| curve25519-donna, ed25519-donna, in GameNetworkingSockets | Public domain | `GameNetworkingSockets-bundled.txt` |
+| sha1-wpa, in GameNetworkingSockets | BSD | `GameNetworkingSockets-bundled.txt` |
 | protobuf 21.12 | BSD-3-Clause | `protobuf.txt` |
 | BoringSSL 0.20260929.0 | Apache-2.0 | `BoringSSL.txt` |
 

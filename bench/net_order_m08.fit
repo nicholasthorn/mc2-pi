@@ -1,0 +1,26 @@
+FITini
+// A client's unit, under the order the interface gives, walks to the host's base on the
+// capture base map mc2_m08 and takes it, so the client's team must win:
+//   scripts/net_smoke.sh --mission mc2_m08 --scenario bench/net_order_m08.fit --expect-winner 1 --world-events no
+// The host's base is at 4672, 5397. The gap puts the client's line a few hundred units
+// away from it, at the nearest, and the host's far enough off not to block the capture. Nobody takes damage.
+
+[Bench]
+st Mission = "mc2_m08"
+l Frames = 20000
+l Gather = 12
+f ArenaX = 3672.0
+f ArenaY = 4497.0
+f LineGap = 2000.0
+f Spacing = 90.0
+b Pain = FALSE
+l ReorderEvery = 0
+l NetOrderCaptureAt = 60
+l NumSegments = 1
+
+[Segment0]
+st Name = "capture"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend
