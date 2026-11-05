@@ -704,8 +704,10 @@ Not settled by phase 2, against its exit criterion:
   `-autoexit`. The host stays fixed-step, so a run is repeatable on one machine.
   All three configurations and every game mode nightly and on PRs that change
   multiplayer code (`scripts/ci_multiplayer.sh`); other code PRs run one battle sanitized.
+  Nightly and on demand also: `mc2_m01` to `mc2_m10` with `-nethost` (`mc2_m02a` and `mc2_m02b`
+  not run), and five repeats of `bench/net_support.fit`.
 - **Network conditions (CI):** GNS's simulator at, say, 0, 100 and 250 ms with
-  0, 2 and 5% loss.
+  0, 2 and 5% loss. CI runs 0 ms with no loss and 100 ms with 2%; nightly also 250 ms with 5%.
 - **Convergence, in place of a desync check:** at the end of a run, and regularly
   in debug builds, host and client log per-mover alive state and armour, and
   position within a tolerance. CI compares the logs.
