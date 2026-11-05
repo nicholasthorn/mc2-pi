@@ -110,6 +110,8 @@ cp -r "$SRC/shaders" "$STAGE/"
 cp "$SRC/license.txt" "$SRC/dist/INSTALL.md" "$STAGE/"
 mkdir -p "$STAGE/licenses"
 cp "$SRC/dist/licenses/README.md" "$SRC/dist/licenses/pl_mpeg.txt" "$SRC/dist/licenses/stb.txt" "$STAGE/licenses/"
+cp "$SRC/dist/licenses/GameNetworkingSockets.txt" "$SRC/dist/licenses/GameNetworkingSockets-bundled.txt" \
+    "$SRC/dist/licenses/protobuf.txt" "$SRC/dist/licenses/BoringSSL.txt" "$STAGE/licenses/"
 if [ $WINDOWS -eq 1 ]; then
     cp "$SRC"/dist/licenses/windows/*.txt "$STAGE/licenses/"
 fi

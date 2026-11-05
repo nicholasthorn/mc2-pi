@@ -20,6 +20,7 @@
 #include "dartlry.h"
 #include "tacordr.h"
 #include "terrain.h"
+#include "multplyr.h"
 
 #include <gameos.hpp>
 
@@ -33,6 +34,8 @@
 
 extern bool neverEndingStory;
 extern bool ShowMovers;
+
+void HandlePlayerOrder (MoverPtr mover, TacticalOrderPtr tacOrder);
 
 namespace {
 
@@ -133,7 +136,9 @@ void gather (void) {
 			const float y = arena.y + ((float)i - 0.5f * (float)(units.size() - 1)) * scenario.spacing;
 			units[i]->setAwake(true);
 			Stuff::Vector3D to = onGround(x, y);
-			units[i]->setTeleportPosition(to);
+			// a client hears where they went from the host
+			if (!MPlayer || MPlayer->isServer())
+				units[i]->setTeleportPosition(to);
 			fighters.push_back(units[i]);
 		}
 	}
@@ -161,7 +166,19 @@ void orderAttacks (void) {
 				bestDistance = d;
 			}
 		}
-		if (best) {
+		// over the network each player orders their own, and a client's go by the host
+		if (MPlayer && MPlayer->isNetworked() && (m->getCommander() != Commander::home))
+			continue;
+		if (best && MPlayer && MPlayer->isNetworked() && !MPlayer->isServer()) {
+			TacticalOrder order;
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_ATTACK_OBJECT, false);
+			order.targetWID = best->getWatchID();
+			order.attackParams.type = ATTACK_TO_DESTROY;
+			order.attackParams.method = ATTACKMETHOD_RANGED;
+			order.attackParams.pursue = true;
+			HandlePlayerOrder(m, &order);
+		}
+		else if (best) {
 			const long origin = (m->getTeam() == Team::home) ? ORDER_ORIGIN_PLAYER : ORDER_ORIGIN_COMMANDER;
 			m->getPilot()->orderAttackObject(false, origin, best, ATTACK_TO_DESTROY, ATTACKMETHOD_RANGED,
 				FIRERANGE_OPTIMAL, -1, -1, TACORDER_PARAM_PURSUE);
@@ -375,8 +392,9 @@ void BenchDirector::update (const char* missionName) {
 		loaded = true;
 	}
 
-	// a battle that never ends and, unless the scenario says, nobody loses
-	neverEndingStory = true;
+	// a battle that never ends and, unless the scenario says, nobody loses; over the
+	// network it is played to the end
+	neverEndingStory = !(MPlayer && MPlayer->isNetworked());
 	for (long t = 0; t < MAX_TEAMS; t++)
 		Team::noPain[t] = !scenario.pain;
 	ShowMovers = true;

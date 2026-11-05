@@ -215,6 +215,12 @@ class Gate : public TerrainObject
 		TeamPtr getTeam (void); 
 
 			
+		// TerrainObject's would read this as a TerrainObjectType
+		virtual float getDamageLevel (void)
+		{
+			return ((GateTypePtr)getObjectType())->getDamageLvl();
+		}
+
 		virtual float getDestructLevel (void)
 		{
 			return ((GateTypePtr)getObjectType())->getDamageLvl() - damage;

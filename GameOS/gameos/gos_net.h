@@ -98,7 +98,8 @@ private:
 // so limits and identity are the caller's until internet play. Returns null, with
 // the reason in error if given, when the library will not start. connectTimeoutMs
 // over 0 sets how long a connection may take to start, for every transport in the
-// process. Built only with MC2_NET.
+// process. A build without MC2_NET always returns null. For testing, MC2_NET_LAG_MS and
+// MC2_NET_LOSS_PERCENT in the environment make this end lag or lose what it sends.
 std::unique_ptr<Transport> createGnsTransport(std::string* error = nullptr, int connectTimeoutMs = 0);
 
 }

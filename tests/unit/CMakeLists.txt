@@ -47,6 +47,7 @@ add_executable(mc2_tests
     test_pqueue.cpp
     test_netwire.cpp
     test_gos_net.cpp
+    test_netsession.cpp
     test_gos_net_gns.cpp
     test_tga_readers.cpp
     test_move_save_bounds.cpp
@@ -90,6 +91,7 @@ add_executable(mc2_tests
     ${MC2_SRC}/code/benchscenario.cpp
     ${MC2_SRC}/code/uismokewalk.cpp
     ${MC2_SRC}/code/netwire.cpp
+    ${MC2_SRC}/code/netsession.cpp
     ${MC2_SRC}/code/iconsheet.cpp
 )
 
@@ -115,7 +117,7 @@ set_source_files_properties(
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp test_iconsheet.cpp
     test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_tga_readers.cpp test_move_save_bounds.cpp
-    test_netwire.cpp test_gos_net.cpp test_gos_net_gns.cpp
+    test_netwire.cpp test_netsession.cpp test_gos_net.cpp test_gos_net_gns.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
     ${MC2_SRC}/GameOS/gameos/utils/frame_stats.cpp
@@ -128,6 +130,7 @@ set_source_files_properties(
     ${MC2_SRC}/code/benchscenario.cpp
     ${MC2_SRC}/code/uismokewalk.cpp
     ${MC2_SRC}/code/netwire.cpp
+    ${MC2_SRC}/code/netsession.cpp
     ${MC2_SRC}/GameOS/gameos/gos_net.cpp
     ${MC2_SRC}/code/iconsheet.cpp
     ${MC2_SRC}/GameOS/gameos/utils/jpeg_decode.cpp

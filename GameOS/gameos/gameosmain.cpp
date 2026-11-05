@@ -92,7 +92,7 @@ void __stdcall gos_SetExitCode(int code)
 
 const char* __stdcall gos_GetBenchScenario()
 {
-    return g_bench ? g_bench_scenario : NULL;
+    return g_bench_scenario;
 }
 
 void __stdcall gos_BenchSegment(const char* name)

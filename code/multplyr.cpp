@@ -135,6 +135,17 @@ long cLoadString (HINSTANCE hInstance,  UINT uID, LPTSTR lpBuffer, int nBufferMa
 
 #include"gamesound.h"
 
+#include"netsession.h"
+
+#include<algorithm>
+#include<cctype>
+#include<chrono>
+#include<cmath>
+#include<memory>
+#include<string>
+#include<thread>
+#include<vector>
+
 #define	MAX_MSG_SIZE		10240
 
 extern CPrefs prefs;
@@ -217,8 +228,12 @@ void ResetNetworking (void) {
 
 //-----------------------------------------------------------------------------
 
+static void netClose (void);
+
 void ShutdownNetworking (void) {
 
+	// before the game's heap goes, which is where these came from
+	netClose();
 }
 
 //***************************************************************************
@@ -374,12 +389,165 @@ void MultiPlayer::startLocalHost (long numPlayers) {
 
 void MultiPlayer::initUpdateFrequencies() {
 
+	moverUpdateFrequency = 0.2f;
+	worldUpdateFrequency = 5.0f;	// the convergence check
+	warpFactor = 300.0f;			// about seven cells: enough for a late update, not for a teleport
+}
+
+//---------------------------------------------------------------------------
+// The network game: what connects the MultiPlayer methods to the transport.
+//---------------------------------------------------------------------------
+
+// Null in a game with no network (-nethost alone, and everything else).
+static std::unique_ptr<gos_net::Transport> netTransport;
+static std::unique_ptr<netsession::Session> netSession;
+
+static void netClose (void) {
+
+	netSession.reset();
+	netTransport.reset();
+}
+
+static const float NET_WAIT_SECONDS = 300.0f;
+static long netOrdersApplied = 0;
+static const uint32_t NET_SWEEP_AWAKE = 0x10000u;	// on a unit's index in a sweep
+static const long NET_TURRET_SUBJECT = MAX_MULTIPLAYER_MOVERS;	// a WeaponFire batch's subject from here is a turret
+
+static double netNow (void) {
+
+	return(std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count());
+}
+
+// Until done, or the time is up. GNS keeps the connections alive on its own thread.
+template<class Done>
+static bool netWait (Done done) {
+
+	const double giveUp = netNow() + NET_WAIT_SECONDS;
+	while (netNow() < giveUp) {
+		netSession->update();
+		if (done())
+			return(true);
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+	return(false);
+}
+
+static unsigned long netHash (unsigned long hash, const char* text) {
+
+	for (; *text; text++) {
+		hash ^= (unsigned char)tolower((unsigned char)*text);
+		hash = (hash * 16777619u) & 0xFFFFFFFFu;
+	}
+	return(hash);
+}
+
+static const char* netRejectName (netwire::RejectReason reason) {
+
+	switch (reason) {
+		case netwire::RejectReason::WrongVersion: return("another version of the game");
+		case netwire::RejectReason::WrongData: return("another mission");
+		case netwire::RejectReason::GameFull: return("the game is full");
+		case netwire::RejectReason::WrongRoster: return("other units in the mission");
+		default: return("unknown");
+	}
+}
+
+//---------------------------------------------------------------------------
+
+void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char* missionName) {
+
+	std::string error;
+	netTransport = gos_net::createGnsTransport(&error);
+	if (!netTransport)
+		Fatal(0, (std::string(" -netlisten: no network: ") + error).c_str());
+	netSession.reset(new netsession::Session(*netTransport));
+	if (!netSession->host(port, (uint8_t)numPlayers, (uint32_t)netHash(2166136261u, missionName)))
+		Fatal(port, " -netlisten: cannot listen on this port ");
+	startLocalHost(numPlayers);
+	initUpdateFrequencies();
+	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
+	fflush(stdout);
+	if (!netWait([]() { return netSession->allJoined(); }))
+		Fatal(0, " -netlisten: not everyone joined in time ");
+}
+
+//---------------------------------------------------------------------------
+
+void MultiPlayer::joinNetGame (const char* address, unsigned short port, const char* missionName) {
+
+	std::string error;
+	netTransport = gos_net::createGnsTransport(&error);
+	if (!netTransport)
+		Fatal(0, (std::string(" -netjoin: no network: ") + error).c_str());
+	netSession.reset(new netsession::Session(*netTransport));
+	if (!netSession->join(address, port, (uint32_t)netHash(2166136261u, missionName), "player"))
+		Fatal(0, " -netjoin: needs an IP address ");
+	printf("[NET] joining %s at %s port %d\n", missionName, address, (int)port);
+	fflush(stdout);
+	const bool answered = netWait([]() {
+		return netSession->joined() || netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None);
+	});
+	if (!answered || netSession->hostLost())
+		Fatal(0, " -netjoin: no answer from the host ");
+	if (netSession->rejected() != netwire::RejectReason::None)
+		Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+	startLocalHost(netSession->numPlayers());
+	iAmHost = false;
+	commanderID = netSession->commander();
+	initUpdateFrequencies();
+	printf("[NET] joined as commander %ld of %d\n", commanderID, (int)netSession->numPlayers());
+	fflush(stdout);
+}
+
+//---------------------------------------------------------------------------
+
+void MultiPlayer::waitForNetStart (void) {
+
+	if (!netSession)
+		return;
+
+	// the units must be the same on every machine, in the same order: the roster
+	// index is what names a unit on the wire
+	unsigned long hash = 2166136261u;
+	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
+		if (moverRoster[i]) {
+			char line[64];
+			sprintf(line, "%ld %ld ", i, moverRoster[i]->getCommanderId());
+			hash = netHash(hash, line);
+			hash = netHash(hash, moverRoster[i]->getName() ? moverRoster[i]->getName() : "");
+		}
+
+	if (iAmHost) {
+		netSession->setRosterHash((uint32_t)hash);
+		if (!netWait([]() { return netSession->allReady(); }) || !netSession->start())
+			Fatal(0, " -netlisten: not everyone loaded the mission ");
+		}
+	else {
+		netSession->sendReady((uint32_t)hash);
+		const bool answered = netWait([]() {
+			return netSession->started() || netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None);
+		});
+		if (!answered || netSession->hostLost())
+			Fatal(0, " -netjoin: the host did not start the mission ");
+		if (netSession->rejected() != netwire::RejectReason::None)
+			Fatal(0, (std::string(" -netjoin: refused: ") + netRejectName(netSession->rejected())).c_str());
+	}
+	printf("[NET] mission start\n");
+	fflush(stdout);
+}
+
+//---------------------------------------------------------------------------
+
+bool MultiPlayer::isNetworked (void) {
+
+	return(netSession != nullptr);
 }
 
 //---------------------------------------------------------------------------
 
 long MultiPlayer::update (void) {
 
+	processMessages();
 	if (iAmHost)
 		updateClients();
 	return(MPLAYER_NO_ERR);
@@ -747,15 +915,40 @@ long MultiPlayer::grabWorldChunks (unsigned long* packedChunkBuffer) {
 long MultiPlayer::addWeaponHitChunk (WeaponHitChunkPtr chunk) {
 
 	weaponHitLoad++;
-	return(0);
+	if (!netSession)
+		return(0);
+	if (numWeaponHitChunks == MAX_WEAPONHIT_CHUNKS)
+		sendWeaponHitUpdate();
+	chunk->pack();
+	weaponHitChunks[numWeaponHitChunks++] = chunk->data;
+	return(numWeaponHitChunks);
 }
 
 //---------------------------------------------------------------------------
 
 long MultiPlayer::addWeaponHitChunk (GameObjectPtr target, WeaponShotInfoPtr shotInfo, bool isRefit) {
 
-	weaponHitLoad++;
-	return(0);
+	if (!netSession) {
+		weaponHitLoad++;
+		return(0);
+	}
+	WeaponHitChunk chunk;
+	chunk.init();
+	chunk.build(target, shotInfo, isRefit);
+	return(addWeaponHitChunk(&chunk));
+}
+
+//---------------------------------------------------------------------------
+
+// A word in the weapon hit stream with the target type a chunk never uses: a critical hit.
+static const unsigned long NET_STREAM_CRITICAL = 3;
+
+void MultiPlayer::addCriticalHitToStream (MoverPtr mover, unsigned char chunkData) {
+
+	moverCriticalLoad++;
+	if (numWeaponHitChunks == MAX_WEAPONHIT_CHUNKS)
+		sendWeaponHitUpdate();
+	weaponHitChunks[numWeaponHitChunks++] = NET_STREAM_CRITICAL | (((unsigned long)mover->getNetRosterIndex() & WEAPONHITCHUNK_MOVERINDEX_MASK) << WEAPONHITCHUNK_TARGETTYPE_BITS) | ((unsigned long)chunkData << (WEAPONHITCHUNK_TARGETTYPE_BITS + WEAPONHITCHUNK_MOVERINDEX_BITS));
 }
 
 //---------------------------------------------------------------------------
@@ -872,6 +1065,23 @@ void MultiPlayer::sendPlayerOrder (TacticalOrderPtr tacOrder,
 								   MoverGroupPtr* groupList,
    								   bool queuedOrder) {
 
+	if (!netSession || iAmHost)
+		return;
+	for (long i = 0; i < numMovers; i++) {
+		MoverPtr mover = moverList[i];
+		if (!mover || (mover->getNetRosterIndex() < 0))
+			continue;
+		TacticalOrder order = *tacOrder;
+		order.attackParams.range = (FireRangeType)mover->attackRange;
+		order.pack(NULL, NULL);
+		netwire::ChunkBatch batch;
+		batch.kind = netwire::ChunkKind::Order;
+		batch.subject = (uint16_t)mover->getNetRosterIndex();
+		batch.words.push_back((uint32_t)order.data[0]);
+		batch.words.push_back((uint32_t)order.data[1]);
+		batch.words.push_back(queuedOrder ? 1u : 0u);
+		netSession->sendToHost(gos_net::Delivery::ReliableOrdered, batch);
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -900,6 +1110,25 @@ void MultiPlayer::sendPlayerArtillery (long strikeType, Stuff::Vector3D location
 
 void MultiPlayer::sendMoverUpdate (void) {
 
+	if (!netSession)
+		return;
+	// newest wins, so a sweep carries its number, and all of it fits in one packet
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::Move;
+	static uint32_t sweep = 0;	// moverUpdateId is 16 bits: it would wrap in hours, and look old
+	batch.words.push_back(++sweep);
+	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
+		MoverPtr mover = moverRoster[i];
+		if (!mover || !mover->getExists() || !mover->getPilot())
+			continue;
+		mover->buildMoveChunk();
+		mover->buildStatusChunk();
+		// a unit that sleeps on a client neither moves nor fires there
+		batch.words.push_back((uint32_t)i | (mover->getAwake() ? NET_SWEEP_AWAKE : 0u));
+		batch.words.push_back((uint32_t)mover->moveChunk.data);
+		batch.words.push_back((uint32_t)mover->statusChunk.data);
+	}
+	netSession->sendToClients(gos_net::Delivery::Unreliable, batch);
 }
 
 //---------------------------------------------------------------------------
@@ -912,30 +1141,154 @@ void MultiPlayer::sendTurretUpdate (void) {
 
 void MultiPlayer::sendMoverWeaponFireUpdate (void) {
 
+	if (!netSession)
+		return;
+	unsigned long buffer[MAX_WEAPONFIRE_CHUNKS];
+	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
+		MoverPtr mover = moverRoster[i];
+		if (!mover)
+			continue;
+		const long count = mover->grabWeaponFireChunks(CHUNK_SEND, buffer, MAX_WEAPONFIRE_CHUNKS);
+		if (count < 1)
+			continue;
+		moverWeaponFireLoad += count;
+		netwire::ChunkBatch batch;
+		batch.kind = netwire::ChunkKind::WeaponFire;
+		batch.subject = (uint16_t)i;
+		batch.words.assign(buffer, buffer + count);
+		netSession->sendToClients(gos_net::Delivery::ReliableUnordered, batch);
+	}
 }
 
 //---------------------------------------------------------------------------
 
 void MultiPlayer::sendTurretWeaponFireUpdate (void) {
 
+	if (!netSession)
+		return;
+	unsigned long buffer[MAX_WEAPONFIRE_CHUNKS];
+	for (long i = 0; i < ObjectManager->getNumTurrets(); i++) {
+		TurretPtr turret = ObjectManager->getTurret(i);
+		const long count = turret->grabWeaponFireChunks(CHUNK_SEND, buffer);
+		if (count < 1)
+			continue;
+		turret->clearWeaponFireChunks(CHUNK_SEND);
+		turretWeaponFireLoad += count;
+		netwire::ChunkBatch batch;
+		batch.kind = netwire::ChunkKind::WeaponFire;
+		batch.subject = (uint16_t)(NET_TURRET_SUBJECT + i);
+		batch.words.assign(buffer, buffer + count);
+		netSession->sendToClients(gos_net::Delivery::ReliableUnordered, batch);
+	}
 }
 
 //---------------------------------------------------------------------------
 
+// Radio only: critical hits go with the weapon hits (addCriticalHitToStream).
 void MultiPlayer::sendMoverCriticalUpdate (void) {
 
+	if (!netSession)
+		return;
+	unsigned char radio[MAX_RADIO_CHUNKS];
+	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
+		MoverPtr mover = moverRoster[i];
+		if (!mover)
+			continue;
+		const long radioCount = mover->grabRadioChunks(CHUNK_SEND, radio);
+		if (radioCount > 0) {
+			mover->clearRadioChunks(CHUNK_SEND);
+			netwire::ChunkBatch batch;
+			batch.kind = netwire::ChunkKind::Radio;
+			batch.subject = (uint16_t)i;
+			batch.words.assign(radio, radio + radioCount);
+			netSession->sendToClients(gos_net::Delivery::ReliableUnordered, batch);
+		}
+	}
 }
 
 //---------------------------------------------------------------------------
 
 void MultiPlayer::sendWeaponHitUpdate (void) {
 
+	if (!netSession || (numWeaponHitChunks < 1))
+		return;
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::WeaponHit;
+	batch.words.assign(weaponHitChunks, weaponHitChunks + numWeaponHitChunks);
+	numWeaponHitChunks = 0;
+	netSession->sendToClients(gos_net::Delivery::ReliableOrdered, batch);
 }
 
 //---------------------------------------------------------------------------
 
 void MultiPlayer::sendWorldUpdate (void) {
 
+}
+
+//---------------------------------------------------------------------------
+// The convergence check: what each unit should look like, for a client to compare.
+//---------------------------------------------------------------------------
+
+static uint32_t netArmorTotal (MoverPtr mover) {
+
+	float total = 0.0f;
+	for (long i = 0; i < mover->numArmorLocations; i++)
+		total += mover->armor[i].curArmor;
+	return((uint32_t)(total * 4.0f));
+}
+
+static void sendNetCheck (MultiPlayer* player) {
+
+	netwire::ChunkBatch batch;
+	batch.kind = netwire::ChunkKind::Check;
+	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
+		MoverPtr mover = player->moverRoster[i];
+		if (!mover)
+			continue;
+		const Stuff::Vector3D position = mover->getPosition();
+		batch.words.push_back((uint32_t)i);
+		batch.words.push_back((uint32_t)mover->getStatus());
+		batch.words.push_back(netArmorTotal(mover));
+		batch.words.push_back((uint32_t)(int32_t)position.x);
+		batch.words.push_back((uint32_t)(int32_t)position.y);
+	}
+	netSession->sendToClients(gos_net::Delivery::ReliableOrdered, batch);
+}
+
+// [NETCHECK] says how far this client is from what the host just sent. Armour is
+// exact, since hits come in order on the same lane as the check. Status and position
+// come by unreliable updates, so they may lag by one.
+static void applyNetCheck (MultiPlayer* player, const netwire::ChunkBatch& batch) {
+
+	long units = 0, statusDiffers = 0, armorDiffers = 0;
+	float farthest = 0.0f;
+	for (size_t i = 0; (i + 5) <= batch.words.size(); i += 5) {
+		const uint32_t index = batch.words[i];
+		MoverPtr mover = (index < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[index] : NULL;
+		if (!mover)
+			continue;
+		units++;
+		if ((uint32_t)mover->getStatus() != batch.words[i + 1])
+			statusDiffers++;
+		// A wreck's armour no longer counts. A hit on a unit that is down takes another
+		// path once it has finished falling, which an animation decides on each machine.
+		const bool down = mover->isDisabled() || mover->isDestroyed() || (batch.words[i + 1] != OBJECT_STATUS_NORMAL);
+		if (!down && (netArmorTotal(mover) != batch.words[i + 2])) {
+			armorDiffers++;
+			if (armorDiffers <= 3)
+				printf("[NETCHECK] unit %u %s: armour here %.2f (status %d), host %.2f (status %u)\n", index, mover->getName(), netArmorTotal(mover) * 0.25f, (int)mover->getStatus(), batch.words[i + 2] * 0.25f, batch.words[i + 1]);
+		}
+		if (down)
+			continue;	// nor does where it fell
+		const Stuff::Vector3D position = mover->getPosition();
+		const float dx = position.x - (float)(int32_t)batch.words[i + 3];
+		const float dy = position.y - (float)(int32_t)batch.words[i + 4];
+		const float distance = sqrt(dx * dx + dy * dy);
+		if (distance > farthest)
+			farthest = distance;
+	}
+	printf("[NETCHECK] %ld units: status differs %ld, armour differs %ld, farthest %.0f\n", units, statusDiffers, armorDiffers, farthest);
+	fflush(stdout);
 }
 
 //---------------------------------------------------------------------------
@@ -1094,6 +1447,169 @@ void MultiPlayer::handleWorldUpdate (NETPLAYER sender, MCMSG_WorldUpdate* msg) {
 
 //---------------------------------------------------------------------------
 
+// A weapon hit chunk from the network: unpack and the code after it end the game on
+// a value the host would never send.
+static bool validWeaponHitData (unsigned long data) {
+
+	unsigned long fields = data;
+	const unsigned long targetType = (fields & WEAPONHITCHUNK_TARGETTYPE_MASK);
+	fields >>= WEAPONHITCHUNK_TARGETTYPE_BITS;
+	if ((fields & WEAPONHITCHUNK_DAMAGE_MASK) > (255 * 4))
+		return(false);
+	fields >>= WEAPONHITCHUNK_DAMAGE_BITS;
+	switch (targetType) {
+		case WEAPONHITCHUNK_TARGET_MOVER: {
+			if ((fields & WEAPONHITCHUNK_MOVERINDEX_MASK) >= MAX_MULTIPLAYER_MOVERS)
+				return(false);
+			fields >>= WEAPONHITCHUNK_MOVERINDEX_BITS + WEAPONHITCHUNK_CAUSE_BITS;
+			const long hitLocation = (long)(fields & WEAPONHITCHUNK_HITLOCATION_MASK) - 2;
+			return((hitLocation > -2) && (hitLocation < 12));
+		}
+		case WEAPONHITCHUNK_TARGET_TERRAIN:
+			return(true);
+		case WEAPONHITCHUNK_TARGET_SPECIAL:
+			fields >>= WEAPONHITCHUNK_SPECIALID_BITS;
+			return((fields & WEAPONHITCHUNK_SPECIALTYPE_MASK) == WEAPONHITCHUNK_SPECIAL_CAMERADRONE);
+	}
+	return(false);
+}
+
+//---------------------------------------------------------------------------
+
+static void applyWeaponHit (MultiPlayer* player, unsigned long data) {
+
+	static const float entryQuadTable[4] = {0.0f, 180.0f, -90.0f, 90.0f};
+
+	if ((data & WEAPONHITCHUNK_TARGETTYPE_MASK) == NET_STREAM_CRITICAL) {
+		const unsigned long index = (data >> WEAPONHITCHUNK_TARGETTYPE_BITS) & WEAPONHITCHUNK_MOVERINDEX_MASK;
+		const unsigned long critical = (data >> (WEAPONHITCHUNK_TARGETTYPE_BITS + WEAPONHITCHUNK_MOVERINDEX_BITS)) & 0xFF;
+		MoverPtr mover = (index < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[index] : NULL;
+		const unsigned long space = critical & 0x0F;	// 15 is the whole location
+		if (mover && (mover->getObjectClass() == BATTLEMECH) && ((critical >> 4) < (unsigned long)mover->numBodyLocations)
+			&& ((space < MAX_CRITSPACES_PER_BODYLOCATION) || (space == 15)))
+			((BattleMechPtr)mover)->handleCriticalHit(critical >> 4, space);
+		return;
+	}
+	if (!validWeaponHitData(data))
+		return;
+	WeaponHitChunk chunk;
+	chunk.init();
+	chunk.data = data;
+	chunk.unpack();
+	// a repair: phase 3. As a hit it would take armour off.
+	if (chunk.refit)
+		return;
+	GameObjectPtr target = NULL;
+	if (chunk.targetType == WEAPONHITCHUNK_TARGET_MOVER)
+		target = (GameObjectPtr)player->moverRoster[chunk.targetId];
+	else
+		target = ObjectManager->findByPartId(chunk.targetId);
+	if (!target)
+		return;
+	WeaponShotInfo shot;
+	shot.attackerWID = 0;
+	shot.masterId = chunk.cause;
+	shot.damage = chunk.damage;
+	shot.hitLocation = chunk.hitLocation;
+	shot.entryAngle = entryQuadTable[chunk.entryAngle];
+	target->handleWeaponHit(&shot, false);
+}
+
+//---------------------------------------------------------------------------
+
+// Client: what the host sent. The roster indices and chunks are the host's, and are
+// still checked: a bad one must not end the game here.
+static void applyHostBatch (MultiPlayer* player, const netwire::ChunkBatch& batch) {
+
+	static uint32_t lastSweep = 0;
+	unsigned long buffer[MAX_WEAPONFIRE_CHUNKS];
+
+	MoverPtr mover = (batch.subject < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[batch.subject] : NULL;
+
+	switch (batch.kind) {
+		case netwire::ChunkKind::Move: {
+			if (batch.words.empty() || ((int32_t)(batch.words[0] - lastSweep) <= 0))
+				break;
+			lastSweep = batch.words[0];
+			for (size_t i = 1; (i + 3) <= batch.words.size(); i += 3) {
+				const uint32_t index = batch.words[i] & ~NET_SWEEP_AWAKE;
+				MoverPtr unit = (index < MAX_MULTIPLAYER_MOVERS) ? player->moverRoster[index] : NULL;
+				if (!unit || !unit->getPilot())
+					continue;
+				// GameObject's: Mover's also orders a power up, which is the host's to send
+				unit->GameObject::setAwake((batch.words[i] & NET_SWEEP_AWAKE) != 0);
+				unit->handleMoveChunk(batch.words[i + 1]);
+				unit->handleStatusChunk(0, batch.words[i + 2]);
+			}
+			break;
+		}
+		case netwire::ChunkKind::WeaponFire: {
+			const size_t count = batch.words.size();
+			if (count > MAX_WEAPONFIRE_CHUNKS)
+				break;
+			std::copy(batch.words.begin(), batch.words.end(), buffer);
+			if (mover) {
+				// a sleeping unit does not empty its queue, and a full one is Fatal
+				if ((mover->numWeaponFireChunks[CHUNK_RECEIVE] + (long)count) < MAX_WEAPONFIRE_CHUNKS)
+					mover->addWeaponFireChunks(CHUNK_RECEIVE, buffer, (long)count);
+				}
+			else if ((batch.subject >= NET_TURRET_SUBJECT) && ((batch.subject - NET_TURRET_SUBJECT) < ObjectManager->getNumTurrets())) {
+				TurretPtr turret = ObjectManager->getTurret(batch.subject - NET_TURRET_SUBJECT);
+				if ((turret->numWeaponFireChunks[CHUNK_RECEIVE] + (long)count) < MAX_WEAPONFIRE_CHUNKS)
+					turret->addWeaponFireChunks(CHUNK_RECEIVE, buffer, (long)count);
+			}
+			break;
+		}
+		case netwire::ChunkKind::Radio: {
+			if (!mover)
+				break;
+			for (size_t i = 0; i < batch.words.size(); i++)
+				if (batch.words[i] < RADIO_MESSAGE_COUNT)
+					mover->addRadioChunk(CHUNK_RECEIVE, (unsigned char)batch.words[i]);
+			break;
+		}
+		case netwire::ChunkKind::WeaponHit:
+			for (size_t i = 0; i < batch.words.size(); i++)
+				applyWeaponHit(player, batch.words[i]);
+			break;
+		case netwire::ChunkKind::Check:
+			applyNetCheck(player, batch);
+			break;
+		default:
+			break;
+	}
+}
+
+//---------------------------------------------------------------------------
+
+// Host: an order from a client, who may only order their own units.
+static void applyClientOrder (MultiPlayer* player, const netsession::Received& received) {
+
+	const netwire::ChunkBatch& batch = received.batch;
+	if ((batch.subject >= MAX_MULTIPLAYER_MOVERS) || (batch.words.size() != 3))
+		return;
+	MoverPtr mover = player->moverRoster[batch.subject];
+	if (!mover || !mover->getPilot() || (mover->getCommanderId() != received.commander))
+		return;
+	if (!TacticalOrder::validPacked(batch.words[0], batch.words[1]))
+		return;
+	TacticalOrder order;
+	order.init();
+	order.data[0] = batch.words[0];
+	order.data[1] = batch.words[1];
+	order.unpack();
+	order.origin = ORDER_ORIGIN_PLAYER;
+	netOrdersApplied++;
+	if (batch.words[2]) {
+		mover->getPilot()->setExecutingQueue(FALSE);
+		mover->getPilot()->addQueuedTacOrder(order);
+		}
+	else
+		mover->handleTacticalOrder(order);
+}
+
+//---------------------------------------------------------------------------
+
 void MultiPlayer::handlePlayerLeftSession (NETPLAYER leftPlayer) {
 
 }
@@ -1122,6 +1638,22 @@ bool MultiPlayer::processGameMessage (NETMESSAGE* msg) {
 
 void MultiPlayer::processMessages (void) {
 
+	if (!netSession)
+		return;
+	netSession->update();
+	netsession::Received received;
+	while (netSession->nextBatch(received)) {
+		if (iAmHost)
+			applyClientOrder(this, received);
+		else
+			applyHostBatch(this, received.batch);
+	}
+	if (!iAmHost && netSession->hostLost() && !hostLeft) {
+		hostLeft = true;
+		printf("[NET] the host has gone\n");
+		fflush(stdout);
+		quitGame = true;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1138,6 +1670,28 @@ long MultiPlayer::updateClients (bool forceIt) {
 
 	if (!mission || !mission->isActive())
 		return(MPLAYER_NO_ERR);
+
+	if (netSession) {
+		sendMoverWeaponFireUpdate();
+		sendTurretWeaponFireUpdate();
+		sendMoverCriticalUpdate();
+		sendWeaponHitUpdate();
+		// on their own clock, not the frame
+		const double now = netNow();
+		static double nextMoverUpdate = 0.0, nextCheck = 0.0;
+		if (forceIt || (now >= nextMoverUpdate)) {
+			nextMoverUpdate = now + moverUpdateFrequency;
+			sendMoverUpdate();
+		}
+		if (forceIt || (now >= nextCheck)) {
+			nextCheck = now + worldUpdateFrequency;
+			sendNetCheck(this);
+		}
+		if ((turn % 600) == 0)
+			printf("[NET] turn %ld: sent weapon fire %ld (turrets %ld), weapon hit %ld, critical hit %ld; orders from clients %ld; %d clients\n",
+				(long)turn, moverWeaponFireLoad + turretWeaponFireLoad, turretWeaponFireLoad, weaponHitLoad, moverCriticalLoad, netOrdersApplied, netSession->connectedClients());
+		return(MPLAYER_NO_ERR);
+	}
 
 	// Nobody to send to yet, so empty the queues the game fills for clients (a
 	// full weapon fire queue is Fatal), and log what they held.
@@ -1159,8 +1713,45 @@ long MultiPlayer::updateClients (bool forceIt) {
 
 bool MultiPlayer::calcMissionStatus (void) {
 
-	// No win conditions yet, and true would end the mission on its first frame.
-	return(false);
+	// With no network: no win conditions yet, and true would end the mission on its
+	// first frame. Phase 3 has the game modes; for now the last team standing wins.
+	if (!netSession)
+		return(false);
+
+	long winner = netwire::NO_WINNER;
+	if (iAmHost) {
+		// not before anyone has had time to arrive
+		if (scenarioTime < 10.0f)
+			return(false);
+		bool alive[MAX_TEAMS] = {false};
+		long teamsAlive = 0;
+		for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++) {
+			MoverPtr mover = moverRoster[i];
+			if (!mover || !mover->getExists() || mover->isDisabled() || mover->isDestroyed() || (mover->getTeamId() < 0))
+				continue;
+			if (!alive[mover->getTeamId()]) {
+				alive[mover->getTeamId()] = true;
+				teamsAlive++;
+				winner = mover->getTeamId();
+			}
+		}
+		if (teamsAlive > 1)
+			return(false);
+		if (teamsAlive == 0)
+			winner = netwire::NO_WINNER;
+		updateClients(true);
+		netSession->endGame((uint8_t)winner);
+		}
+	else {
+		if (!netSession->gameOver())
+			return(false);
+		winner = netSession->winningTeam();
+	}
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		playerInfo[i].winner = (playerInfo[i].commanderID > -1) && (playerInfo[i].team == winner);
+	printf("[NET] game over: team %ld wins\n", winner);
+	fflush(stdout);
+	return(true);
 }
 
 //-----------------------------------------------------------------------------
@@ -1224,6 +1815,7 @@ long MultiPlayer::saveTranscript (const char* fileName, bool debugging) {
 
 void MultiPlayer::destroy (void) {
 
+	netClose();
 }
 
 //---------------------------------------------------------------------------

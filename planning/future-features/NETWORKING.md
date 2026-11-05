@@ -3,7 +3,9 @@
 Status: proposal; phase 0 built (see "Phase 0 results"). Phase 1 nearly built: the
 wire format (`code/netwire.*`), the transport interface (`GameOS/gameos/gos_net.*`) and
 a real backend on GameNetworkingSockets, in every configuration (`cmake/mc2_gns.cmake`).
-Nothing in the game calls them yet, and a Windows peer has not met another platform's.
+A Windows peer has not met another platform's. Phase 2's vertical slice runs on one PC
+(see "Phase 2 results"): two processes play a battle to its result. It has not been on
+a real network or a headset, and nobody has watched it.
 Revised 2026-11-04 from a read of `pi-port` at `bec9e85` and of current library
 and Meta docs; replaces the feasibility study of 2026-10-29. Apart from phase 0,
 nothing here has been run: code findings are from reading it. Line numbers are
@@ -495,6 +497,63 @@ Not settled by phase 0:
 - `Team::home` and `Commander::home` are not audited for host versus player.
 - Host cost off camera: buildings update everywhere, and at night their lights can
   fill the world light table. Measure on a Quest in phase 2.
+
+### Phase 2 results
+
+`mc2 -mission <map> -nethost 2 -netlisten [port]` hosts and waits for the other player,
+`mc2 -mission <map> -netjoin <address>[:port]` joins. No UI. `code/netsession.*` is the
+join, the load barrier and the start, without the game, so tests run it on a loopback.
+`scripts/net_smoke.sh` is the test: a host and a client on one machine, under Xvfb and
+llvmpipe, fight `bench/net_m08.fit` (12 units a side, damage on) until one team is left.
+Each side orders its own units, so the client's go by the network to the host.
+
+Run on Linux x64 with GCC, desktop GL, on one machine, the lag and loss from GNS's own
+simulator on what each end sends:
+
+| Each way | Result | Weapon hits | Client orders | Armour differs | Position error |
+|---|---|---|---|---|---|
+| None | Played to a result, both agree | 791 at turn 2400 | 165 at turn 2400 | 0 at every check | 14 at the end |
+| 100 ms, 2% loss | Played to a result, both agree | 920 | 358 | 0 at every check | 153 at worst, usually about 30 |
+| 250 ms, 5% loss | Played to a result, both agree | 810 | 284 | 0 at every check | 166 at worst, usually under 70 |
+
+Positions are world units, and a cell is about 43. The largest figure in any run, about
+12,000 to 13,000, is the check that falls during the host's opening teleport. A check every
+five seconds compares each live unit on the client with the host's.
+
+- **Movement: keep the legacy step-following for now.** Its error under 250 ms and 5% loss
+  stays within a few cells, inside the warp distance (300). This is from numbers only: nobody
+  has seen whether it looks acceptable, so snapshot interpolation stays the fallback. The
+  decision is not final until someone has watched it.
+- **Critical hits go in the weapon hit stream.** As per-unit chunks they reached the client
+  in another order from the hits, and what a critical hit destroys decides where the next hit
+  lands, so armour drifted apart. With one ordered stream it does not.
+- **Armour is compared only for live units.** A hit on a unit that is down takes another path
+  once it has finished falling, which an animation decides on each machine. That difference is
+  real and left alone, since a wreck's armour changes nothing.
+- **Bad data no longer ends the game on the paths this uses.** Roster indices are bounded, and
+  `TacticalOrder::validPacked` checks a client's order before `unpack`, which ends the game on a
+  bad target. The host checks that a client owns the unit it orders. A client that sends what
+  only a host may send is dropped, as is one whose reliable queue is full.
+- **A found bug, not a network one:** `Gate` and `Turret` inherited a `getDamageLevel` that read
+  their type as the wrong class, also in single player. Only the mouse-over check for rock clumps
+  and a debug string use it on them, so play does not change.
+
+Not settled by phase 2, against its exit criterion:
+
+- **The Quest client step is not measured,** and the game has not run a network game on a Quest.
+- **Only on one machine.** Real Wi-Fi, two machines, x64 with arm64 and a Windows peer are not run.
+- **Sound, effects and movement on the client have not been looked at.** The check covers armour,
+  status and position.
+- Not sent yet, all phase 3: buildings, gates and turrets changing state beyond the hits on them,
+  mines, artillery, capture, repair and recovery (a client ignores a refit chunk, so its armour
+  differs after a repair), reinforcements, turret targets. World chunks are still stubs.
+- The host checks one win condition, the last team standing, and a mission script's result is not
+  sent. Ending goes straight to quitting: there is no results screen or lobby to return to.
+- A client that leaves is not replaced, and a host that leaves ends the game for the client.
+- The data check in `Hello` is only the mission's name. The roster hash at the load barrier catches
+  other units, but not other weapon or terrain data.
+- The exit on `-autoexit` crashed in the heap before the network closed in `ShutdownNetworking`, and
+  has not since, sanitized or not. Which object it was was not traced.
 
 ## Verification
 

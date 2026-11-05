@@ -22,6 +22,8 @@ on:
       - "cmake/**"
       - "**/CMakeLists.txt"
       - "scripts/smoke.sh"
+      - "scripts/net_smoke.sh"
+      - "bench/net_m08.fit"
       - "scripts/build_gamedata.sh"
       - ".github/workflows/smoke.yml"
 
@@ -194,6 +196,12 @@ jobs:
           scripts/smoke.sh --game-dir gamedata --missions "mc2_m08" --frames 3000 \
             --ui "" --nethost 2 --scenario "$PWD/bench/nethost_m08.fit" --timeout 1200 \
             --log-dir smoke-logs/nethost-battle
+      - name: Multiplayer, two processes
+        # A host and a client on this machine play a battle to its result, on a
+        # clean network and then at the plan's bar: 100 ms each way and 2% loss.
+        run: |
+          scripts/net_smoke.sh --game-dir gamedata --log-dir smoke-logs/net
+          scripts/net_smoke.sh --game-dir gamedata --lag-ms 100 --loss-percent 2 --log-dir smoke-logs/net-lag
       - uses: actions/upload-artifact@v7
         if: always()
         with:
