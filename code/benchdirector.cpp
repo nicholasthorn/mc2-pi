@@ -20,6 +20,12 @@
 #include "dartlry.h"
 #include "tacordr.h"
 #include "terrain.h"
+#include "multplyr.h"
+#include "bldng.h"
+#include "controlgui.h"
+#include "missiongui.h"
+#include "logisticsdata.h"
+#include "move.h"
 
 #include <gameos.hpp>
 
@@ -33,6 +39,8 @@
 
 extern bool neverEndingStory;
 extern bool ShowMovers;
+
+void HandlePlayerOrder (MoverPtr mover, TacticalOrderPtr tacOrder);
 
 namespace {
 
@@ -133,7 +141,9 @@ void gather (void) {
 			const float y = arena.y + ((float)i - 0.5f * (float)(units.size() - 1)) * scenario.spacing;
 			units[i]->setAwake(true);
 			Stuff::Vector3D to = onGround(x, y);
-			units[i]->setTeleportPosition(to);
+			// a client hears where they went from the host
+			if (!MPlayer || MPlayer->isServer())
+				units[i]->setTeleportPosition(to);
 			fighters.push_back(units[i]);
 		}
 	}
@@ -142,11 +152,13 @@ void gather (void) {
 }
 
 // Every fighter attacks the nearest enemy fighter in the arena.
+MoverPtr netRepairTarget = NULL;	// waiting for a truck: not to be sent back into the battle
+
 void orderAttacks (void) {
 
 	for (size_t i = 0; i < fighters.size(); i++) {
 		MoverPtr m = fighters[i];
-		if (!canFight(m) || !m->getPilot())
+		if (!canFight(m) || !m->getPilot() || (m == netRepairTarget))
 			continue;
 		MoverPtr best = NULL;
 		float bestDistance = 0.0f;
@@ -161,7 +173,19 @@ void orderAttacks (void) {
 				bestDistance = d;
 			}
 		}
-		if (best) {
+		// over the network each player orders their own, and a client's go by the host
+		if (MPlayer && MPlayer->isNetworked() && (m->getCommander() != Commander::home))
+			continue;
+		if (best && MPlayer && MPlayer->isNetworked() && !MPlayer->isServer()) {
+			TacticalOrder order;
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_ATTACK_OBJECT, false);
+			order.targetWID = best->getWatchID();
+			order.attackParams.type = ATTACK_TO_DESTROY;
+			order.attackParams.method = ATTACKMETHOD_RANGED;
+			order.attackParams.pursue = true;
+			HandlePlayerOrder(m, &order);
+		}
+		else if (best) {
 			const long origin = (m->getTeam() == Team::home) ? ORDER_ORIGIN_PLAYER : ORDER_ORIGIN_COMMANDER;
 			m->getPilot()->orderAttackObject(false, origin, best, ATTACK_TO_DESTROY, ATTACKMETHOD_RANGED,
 				FIRERANGE_OPTIMAL, -1, -1, TACORDER_PARAM_PURSUE);
@@ -280,7 +304,285 @@ void strike (void) {
 		return;
 	float dx, dy;
 	BenchScenario::strikeOffset(strikes++, scenario.strikeRadius, dx, dy);
-	CallArtillery(Commander::home->getId(), ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3, false);
+	// a client asks the host for it, as the interface does
+	if (MPlayer && MPlayer->isNetworked() && !MPlayer->isServer())
+		MPlayer->sendPlayerArtillery(ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3);
+	else
+		CallArtillery(Commander::home->getId(), ARTILLERY_LARGE, onGround(arena.x + dx, arena.y + dy), 3, false);
+}
+
+// A client's nearest unit to the HQ that decides this mode gets the order the interface
+// gives (missiongui.cpp), which goes by the host like any other.
+void orderCapture (void) {
+
+	BuildingPtr hq = MPlayer->hqToTake();
+	if (!hq) {
+		printf("[NET] no HQ to order a capture of\n");
+		return;
+	}
+	Stuff::Vector3D at = hq->getPosition();
+	MoverPtr nearest = NULL;
+	for (size_t i = 0; i < fighters.size(); i++) {
+		MoverPtr m = fighters[i];
+		if (!canFight(m) || (m->getCommander() != Commander::home))
+			continue;
+		if (!nearest || (m->distanceFrom(at) < nearest->distanceFrom(at)))
+			nearest = m;
+	}
+	if (!nearest)
+		return;
+	TacticalOrder order;
+	order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_CAPTURE);
+	order.targetWID = hq->getWatchID();
+	order.attackParams.type = ATTACK_NONE;
+	order.attackParams.method = ATTACKMETHOD_RAMMING;
+	order.attackParams.pursue = true;
+	order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+	printf("[NET] ordering %s to take the HQ at %.0f, %.0f, from %.0f away\n", nearest->getName(), at.x, at.y, nearest->distanceFrom(at));
+	fflush(stdout);
+	HandlePlayerOrder(nearest, &order);
+}
+
+// On the host, what nothing else in a two-minute battle is sure to do, to test that
+// it reaches a client: a mine between the lines, a repair, and a building changing hands.
+void netEvents (void) {
+
+	if (!MPlayer || !MPlayer->isNetworked())
+		return;
+	if (!MPlayer->isServer()) {
+		// a client's hold position, for its own units, keeping the range they have
+		for (size_t i = 0; i < fighters.size(); i++)
+			if (fighters[i]->getCommander() == Commander::home)
+				fighters[i]->setSelected(true);
+		MPlayer->sendHoldPosition();
+		for (size_t i = 0; i < fighters.size(); i++)
+			fighters[i]->setSelected(false);
+		return;
+	}
+
+	int row = 0, col = 0;
+	land->worldToCell(onGround(arena.x, arena.y + scenario.spacing * (float)(strikes++ % 8 - 4)), row, col);
+	GameMap->setMine(row, col, 1);
+	MPlayer->addMineChunk(row, col, 1, 1, 0);
+
+	for (size_t i = 0; i < fighters.size(); i++) {
+		MoverPtr m = fighters[i];
+		if (!canFight(m))
+			continue;
+		float missing = 0.0f;
+		for (long j = 0; j < m->numArmorLocations; j++)
+			missing += m->armor[j].maxArmor - m->armor[j].curArmor;
+		if (missing < 1.0f)
+			continue;
+		float used = 0.0f;
+		const float points = 16.0f;
+		m->refit(points, used);
+		WeaponShotInfo info;
+		info.init(0, -5, points, 0, 0.0f);
+		MPlayer->addWeaponHitChunk(m, &info, true);
+		break;
+	}
+
+	for (long i = 0; i < ObjectManager->getNumBuildings(); i++) {
+		BuildingPtr building = ObjectManager->getBuilding(i);
+		if (!building || !building->getExists() || building->isDisabled() || (building->getCommanderId() == Commander::home->getId()))
+			continue;
+		// an HQ can decide the game
+		if (building->getObjectType()->getObjTypeNum() == GENERIC_HQ_BUILDING_OBJNUM)
+			continue;
+		MPlayer->addCaptureBuildingChunk(building, building->getCommanderId(), Commander::home->getId());
+		building->setCommanderId(Commander::home->getId());
+		building->setTeamId(Team::home->getId(), false);
+		break;
+	}
+}
+
+// Each side, through the buttons and the click the interface gives: a repair truck, a scout,
+// a minelayer, a guard tower, then the recovery of a mech of its own that is down. A truck
+// repairs whatever of its side needs it, under the order the interface gives.
+void netSupport (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked())
+		return;
+	static long step = 0;
+	static const int buttons[4] = { ControlGui::REPAIR_VEHICLE, ControlGui::PEGASUS_SCOUT, ControlGui::MINELAYER, ControlGui::GUARD_TOWER };
+	MissionInterfaceManager* iface = MissionInterfaceManager::instance();
+	const long self = Commander::home->getId();
+	if (iface->isVtolBusy(self))
+		return;
+
+	// A truck of ours and something of ours that needs it, which waits for it. The order again
+	// only long after, as a second one interrupts a repair. A unit with a truck on the way says
+	// it needs none (needsRefit), so on the host wait for the truck to let go.
+	static long cyclesWaiting = 0;
+	if (netRepairTarget && (!canFight(netRepairTarget) || (!netRepairTarget->refitBuddyWID && !netRepairTarget->needsRefit())))
+		netRepairTarget = NULL;
+	for (long i = 0; i < Team::home->getRosterSize(); i++) {
+		MoverPtr truck = Team::home->getMover(i);
+		if (!truck || (truck->getCommander() != Commander::home) || !truck->getExists() || truck->isDisabled() || !truck->isRefit() || !truck->getPilot())
+			continue;
+		if (!netRepairTarget) {
+			for (size_t j = 0; j < fighters.size(); j++)
+				if (canFight(fighters[j]) && (fighters[j]->getCommander() == Commander::home) && fighters[j]->needsRefit()) {
+					netRepairTarget = fighters[j];
+					TacticalOrder stay;
+					stay.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_STOP, true);
+					HandlePlayerOrder(netRepairTarget, &stay);
+					cyclesWaiting = 0;
+					break;
+				}
+		}
+		if (netRepairTarget && ((cyclesWaiting++ % 4) == 0)) {
+			TacticalOrder order;
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_REFIT, false);
+			order.targetWID = netRepairTarget->getWatchID();
+			printf("[NET] ordering %s to repair %s\n", truck->getName(), netRepairTarget->getName());
+			HandlePlayerOrder(truck, &order);
+		}
+		break;
+	}
+
+	if (step < 4) {
+		for (size_t i = 0; i < fighters.size(); i++) {
+			MoverPtr m = fighters[(i + step) % fighters.size()];
+			if (!canFight(m) || (m->getCommander() != Commander::home))
+				continue;
+			Stuff::Vector3D at = m->getPosition();
+			at.x += scenario.spacing;
+			if (!GameMap->getPassable(at) || land->getWater(at))
+				continue;
+			printf("[NET] calling support %ld at %.0f, %.0f\n", step, at.x, at.y);
+			iface->callSupportAt(buttons[step++], at, NULL);
+			return;
+		}
+		return;
+	}
+	if (step > 4)
+		return;
+	for (size_t i = 0; i < fighters.size(); i++) {
+		MoverPtr m = fighters[i];
+		if ((m->getObjectClass() != BATTLEMECH) || (m->getCommander() != Commander::home) || !m->isDisabled() || m->isDestroyed()
+			|| !Team::home->teamLineOfSight(m->getPosition(), 0.0f))
+			continue;
+		printf("[NET] calling recovery of %s\n", m->getName());
+		iface->callSupportAt(ControlGui::RECOVERY_TEAM, m->getPosition(), m);
+		step++;
+		return;
+	}
+}
+
+// Something for a repair truck to fix, on a run with no fighting.
+void netDamage (void) {
+
+	for (long commander = 0; commander < MAX_MC_PLAYERS; commander++)
+		for (size_t i = 0; i < fighters.size(); i++) {
+			MoverPtr m = fighters[i];
+			if (!canFight(m) || (m->getCommanderId() != commander))
+				continue;
+			WeaponShotInfo shot;
+			shot.init(0, -3, 20.0f, m->calcHitLocation(NULL, -1, ATTACKSOURCE_ARTILLERY, 0), 0.0f);
+			m->handleWeaponHit(&shot, true);
+			break;
+		}
+}
+
+// A client's minelayer, once it is here: laying is a mode of a move.
+void netLayMines (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked() || MPlayer->isServer())
+		return;
+	for (long i = 0; i < Team::home->getRosterSize(); i++) {
+		MoverPtr m = Team::home->getMover(i);
+		if (!m || (m->getCommander() != Commander::home) || !m->getExists() || m->isDisabled() || (m->getObjectType()->getObjTypeNum() != 120))
+			continue;
+		Stuff::Vector3D to = m->getPosition();
+		to.x += scenario.spacing * 2.0f;
+		to.z = land->getTerrainElevation(to);
+		TacticalOrder order;
+		order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_MOVETO_POINT, false);
+		order.setWayPoint(0, to);
+		order.moveParams.wayPath.mode[0] = TRAVEL_MODE_SLOW;
+		order.moveParams.mode = MOVE_MODE_MINELAYING;
+		printf("[NET] ordering %s to lay mines to %.0f, %.0f\n", m->getName(), to.x, to.y);
+		HandlePlayerOrder(m, &order);
+		return;
+	}
+}
+
+// A client's units get, one kind at a time, every kind of order the interface can give, built
+// as it builds them (missiongui.cpp). The ones that take a repair truck, an HQ or a repair bay
+// come from the other tests. The host counts what it applied: [NETORDERS].
+void netEveryOrder (void) {
+
+	if (!Commander::home || !MPlayer || !MPlayer->isNetworked() || MPlayer->isServer())
+		return;
+	static long step = 0;
+	std::vector<MoverPtr> mine, theirs;
+	for (size_t i = 0; i < fighters.size(); i++)
+		if (canFight(fighters[i]))
+			((fighters[i]->getCommander() == Commander::home) ? mine : theirs).push_back(fighters[i]);
+	if (mine.empty() || theirs.empty())
+		return;
+	MoverPtr unit = mine[step % mine.size()];
+	Stuff::Vector3D beside = unit->getPosition();
+	beside.x += scenario.spacing;
+	beside.z = land->getTerrainElevation(beside);
+	TacticalOrder order;
+	switch (step) {
+		case 0:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_MOVETO_POINT, false);
+			order.setWayPoint(0, beside);
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+			break;
+		case 1:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_JUMPTO_POINT, false);
+			order.moveParams.wait = false;
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_JUMP;
+			order.setWayPoint(0, beside);
+			break;
+		case 2:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_ATTACK_OBJECT);
+			order.targetWID = theirs[0]->getWatchID();
+			order.attackParams.type = ATTACK_TO_DESTROY;
+			order.attackParams.method = ATTACKMETHOD_RANGED;
+			order.attackParams.range = FIRERANGE_OPTIMAL;
+			order.attackParams.pursue = true;
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+			break;
+		case 3:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_ATTACK_POINT);
+			order.attackParams.targetPoint = beside;
+			order.attackParams.type = ATTACK_TO_DESTROY;
+			order.attackParams.method = ATTACKMETHOD_RANGED;
+			order.attackParams.range = FIRERANGE_OPTIMAL;
+			order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
+			break;
+		case 4:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_GUARD);
+			order.targetWID = mine[(step + 1) % mine.size()]->getWatchID();
+			break;
+		case 5:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_STOP, true);
+			break;
+		case 6:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_WAIT, false);
+			break;
+		case 7:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_POWERDOWN, true);
+			break;
+		case 8:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_POWERUP, true);
+			unit = mine[7 % mine.size()];	// the one that powered down
+			break;
+		case 9:
+			order.init(ORDER_ORIGIN_PLAYER, TACTICAL_ORDER_EJECT, true);
+			break;
+		default:
+			return;
+	}
+	printf("[NET] order %ld to %s\n", step, unit->getName());
+	step++;
+	HandlePlayerOrder(unit, &order);
 }
 
 void moveCamera (void) {
@@ -375,8 +677,9 @@ void BenchDirector::update (const char* missionName) {
 		loaded = true;
 	}
 
-	// a battle that never ends and, unless the scenario says, nobody loses
-	neverEndingStory = true;
+	// a battle that never ends and, unless the scenario says, nobody loses; over the
+	// network it is played to the end
+	neverEndingStory = !(MPlayer && MPlayer->isNetworked());
 	for (long t = 0; t < MAX_TEAMS; t++)
 		Team::noPain[t] = !scenario.pain;
 	ShowMovers = true;
@@ -387,6 +690,9 @@ void BenchDirector::update (const char* missionName) {
 	if ((frame >= 2) && (scenario.reorderEvery > 0) && ((frame - 2) % scenario.reorderEvery == 0))
 		orderAttacks();
 
+	if (MPlayer && MPlayer->isNetworked() && !MPlayer->isServer() && (scenario.netOrderCaptureAt > 0) && (scenario.netOrderCaptureAt == frame))
+		orderCapture();
+
 	const long seg = scenario.segmentAt(frame);
 	if (seg != segment) {
 		segment = seg;
@@ -396,6 +702,38 @@ void BenchDirector::update (const char* missionName) {
 	const BenchSegment& s = scenario.segments[seg];
 	if ((s.strikeEvery > 0) && ((frame - s.start) % s.strikeEvery == 0))
 		strike();
+	if ((scenario.netEventsEvery > 0) && (frame > 2) && (frame % scenario.netEventsEvery == 0))
+		netEvents();
+	// By the game's clock, as the flights and the time limit are: frames would run out on a slow machine
+	static float nextSupport = 0.0f, nextOrder = 0.0f, nextLay = 0.0f;
+	if ((scenario.netLayMinesSeconds > 0.0f) && (scenarioTime >= nextLay)) {
+		if (nextLay > 0.0f)
+			netLayMines();
+		nextLay = scenarioTime + scenario.netLayMinesSeconds;
+	}
+	if ((scenario.netSupportSeconds > 0.0f) && (scenarioTime >= nextSupport)) {
+		if (nextSupport > 0.0f)
+			netSupport();
+		nextSupport = scenarioTime + scenario.netSupportSeconds;
+	}
+	if ((scenario.netEveryOrderSeconds > 0.0f) && (scenarioTime >= nextOrder)) {
+		if (nextOrder > 0.0f)
+			netEveryOrder();
+		nextOrder = scenarioTime + scenario.netEveryOrderSeconds;
+	}
+	if (MPlayer && MPlayer->isNetworked() && (frame == 1) && (scenario.netResourcePoints >= 0)) {
+		for (long i = 0; i < MAX_MC_PLAYERS; i++)
+			MPlayer->playerInfo[i].resourcePoints = scenario.netResourcePoints;
+		LogisticsData::instance->setResourcePoints(scenario.netResourcePoints);
+	}
+	if (MPlayer && MPlayer->isNetworked() && MPlayer->isServer()) {
+		if (scenario.netTimeLimit > 0.0f)
+			MPlayer->missionSettings.timeLimit = scenario.netTimeLimit;
+		if ((scenario.netCaptureHqAt > 0) && (scenario.netCaptureHqAt == frame))
+			MPlayer->stageHqCapture();
+		if ((scenario.netDamageAt > 0) && (scenario.netDamageAt == frame))
+			netDamage();
+	}
 	for (long i = 0; i < scenario.numSegments; i++)
 		if (scenario.segments[i].shot == frame)
 			gos_BenchScreenshot(scenario.segments[i].name);

@@ -93,6 +93,9 @@ scripts/smoke.sh --game-dir ../mc2game --build-dir build [--missions "mc2_01 mc2
 # ... and each mission twice with a fixed step and seed, failing if the end states differ
 scripts/smoke.sh --game-dir ../mc2game --build-dir build --ui "" --deterministic
 
+# Multiplayer: a host and a client on this machine play a battle to its result
+scripts/net_smoke.sh --game-dir ../mc2game --build-dir build [--lag-ms 100 --loss-percent 2]
+
 # Benchmark (on the Pi, own display): -bench runs, results.csv with p50/p95/p99 and the CPU split
 scripts/bench.sh --game-dir ../mc2game --build-dir build --renderers gpu --label "fan on"
 # CPU profile of gameplay frames (perf, frame-pointer build: -DMC2_FRAME_POINTERS=ON)
@@ -113,8 +116,11 @@ Full setup: `BUILD-LINUX.md`, `BUILD-WIN.md`, `BUILD-PI.md`.
 
 CI (`.github/workflows/ci.yml`) builds all four configurations, runs the unit
 tests on each, and validates the shaders on every push to `pi-port` and every PR.
-`.github/workflows/smoke.yml` runs five missions nightly, on demand and on PRs
-that touch code, on x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan.
+`.github/workflows/smoke.yml` runs five missions nightly, on demand and on PRs that touch
+code, on x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan. The multiplayer battles
+run with them nightly, on demand and on PRs that change multiplayer code
+(`scripts/ci_multiplayer.sh`); other code PRs run the two-process battle only sanitized,
+without the game modes.
 `ci.yml` also runs the unit tests under ASan + UBSan and cppcheck on changed
 files; both workflows skip a push that changes only docs or only merges
 `pi-port` in (`scripts/ci_skip.sh`);
@@ -137,7 +143,14 @@ detailed conventions.
   `buildShaderHeader()`; shader files never contain `#version`.
 - **The whole engine builds with `-DLINUX_BUILD`, on Windows too.** `PLATFORM_WINDOWS`
   is the real "this is MSVC" flag. `PATH_SEPARATOR` is therefore `/` everywhere.
-- **Networking does not exist.** `code/mp*.cpp` and `multplyr.cpp` are UI stubs.
+- **Networking is a vertical slice, with no UI.** `-nethost <players> -netlisten [port]`
+  and `-netjoin <address>[:port]` play a mission between processes (or, for a host that cannot
+  be reached, as in WSL, `-netcall <address>` and `-netjoin wait`; to find a host on the local
+  network, `-netjoin lan`) (`multplyr.cpp`, `code/netsession.*`, `code/netwire.*`, `code/netlan.*`,
+  `GameOS/gameos/gos_net*`); `-nethost` alone runs a
+  host's code with no network. `code/mp*.cpp` are still UI stubs, and the `MultiPlayer`
+  methods behind the lobby are empty. `cmake/mc2_gns.cmake` downloads and builds the libraries
+  (`-DMC2_NET=OFF` leaves them out).
 
 ## Testing
 

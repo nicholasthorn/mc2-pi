@@ -4,6 +4,10 @@ Preparing 3rdparties:
 One can also use 3rdparty.zip package in the repo for simpler setup, it contains all needed 3rdparty libraries
 If you select to do it then skip directly to **Compiling mc2**
 
+The network transport's libraries are not part of `3rdparty`: the first build downloads and compiles
+GameNetworkingSockets and protobuf (pinned versions, `cmake/mc2_gns.cmake`), with Windows' own BCrypt for
+crypto. It takes a few minutes. For a build with no network, or without them, configure with `-DMC2_NET=OFF`.
+
 zlib
 ----
 

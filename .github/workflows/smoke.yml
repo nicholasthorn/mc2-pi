@@ -4,6 +4,14 @@ name: Smoke
 # hang, GL/shader error or STOP line: scripts/smoke.sh. Nightly, on demand, and
 # on PRs that touch code (the batch check in .claude/rules/agent-workflow.md);
 # not per push: it needs the built game data and takes several minutes.
+#
+# What a run covers:
+#   - nightly, on demand, and PRs that change multiplayer code
+#     (scripts/ci_multiplayer.sh): everything, on all three configurations.
+#   - other code PRs: the five missions on all three and the replay; of the
+#     multiplayer steps, the host and the two-process battle on the sanitized job,
+#     no game modes. Sanitized because most multiplayer crashes so far were found
+#     there, with the stack that names them.
 
 on:
   schedule:
@@ -22,6 +30,9 @@ on:
       - "cmake/**"
       - "**/CMakeLists.txt"
       - "scripts/smoke.sh"
+      - "scripts/net_smoke.sh"
+      - "scripts/ci_multiplayer.sh"
+      - "bench/net*.fit"
       - "scripts/build_gamedata.sh"
       - ".github/workflows/smoke.yml"
 
@@ -50,6 +61,7 @@ jobs:
       actions: read
     outputs:
       skip: ${{ steps.gate.outputs.skip }}
+      multiplayer: ${{ steps.multiplayer.outputs.multiplayer }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -68,6 +80,17 @@ jobs:
               --workflow smoke.yml | tee -a "$GITHUB_OUTPUT"
           else
             echo skip=false | tee -a "$GITHUB_OUTPUT"
+          fi
+      - name: Multiplayer code changed?
+        id: multiplayer
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          AFTER: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            bash scripts/ci_multiplayer.sh "origin/$BASE_REF" "$AFTER" | tee -a "$GITHUB_OUTPUT"
+          else
+            echo multiplayer=true | tee -a "$GITHUB_OUTPUT"
           fi
 
   data:
@@ -122,7 +145,7 @@ jobs:
 
   smoke:
     name: Smoke ${{ matrix.name }}
-    needs: data
+    needs: [changes, data]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -188,12 +211,46 @@ jobs:
       - name: Multiplayer host (no network)
         # The host's side of the multiplayer code on two-player maps. Units idle
         # on mc2_m09; the scenario makes them fight on mc2_m08, damage on.
+        if: needs.changes.outputs.multiplayer != 'false' || matrix.sanitize
         run: |
           scripts/smoke.sh --game-dir gamedata --missions "mc2_m09" --frames 3000 \
             --ui "" --nethost 2 --timeout 1200 --log-dir smoke-logs/nethost
           scripts/smoke.sh --game-dir gamedata --missions "mc2_m08" --frames 3000 \
             --ui "" --nethost 2 --scenario "$PWD/bench/nethost_m08.fit" --timeout 1200 \
             --log-dir smoke-logs/nethost-battle
+      - name: Multiplayer, two processes
+        # A host and a client on this machine play a battle to its result, on a
+        # clean network and then at the plan's bar: 100 ms each way and 2% loss.
+        if: needs.changes.outputs.multiplayer != 'false' || matrix.sanitize
+        run: |
+          scripts/net_smoke.sh --game-dir gamedata --log-dir smoke-logs/net
+          scripts/net_smoke.sh --game-dir gamedata --lag-ms 100 --loss-percent 2 --log-dir smoke-logs/net-lag
+      - name: Multiplayer, the game modes
+        # Each of the stock maps' modes, on a map of that mode. Where an HQ decides it,
+        # the host's team takes one partway in, so it must win.
+        if: needs.changes.outputs.multiplayer != 'false'
+        run: |
+          capture="--scenario $PWD/bench/net_capture.fit --expect-winner 0 --world-events no"
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 $capture --log-dir smoke-logs/net-capture-base
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m05 $capture --log-dir smoke-logs/net-king-of-the-hill
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m06 $capture --log-dir smoke-logs/net-last-on-the-hill
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m07 $capture --log-dir smoke-logs/net-territories
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m04 --scenario "$PWD/bench/net_timed.fit" \
+            --world-events no --log-dir smoke-logs/net-last-man-standing
+          # support vehicles, a recovery and every kind of order, a repair truck, turrets firing
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m09 --scenario "$PWD/bench/net_turret.fit" --expect-turrets \
+            --world-events no --frames 200000 --log-dir smoke-logs/net-turret
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_support.fit" --support \
+            --world-events no --frames 200000 --log-dir smoke-logs/net-support
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_repair.fit" --expect-repairs \
+            --world-events no --frames 200000 --log-dir smoke-logs/net-repair
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_order_m08.fit" \
+            --expect-winner 1 --world-events no --dial --log-dir smoke-logs/net-ordered-capture-base
+          # found by asking the local network, not by address
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_capture.fit" \
+            --expect-winner 0 --world-events no --lan --log-dir smoke-logs/net-found-on-lan
+          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m05 --scenario "$PWD/bench/net_order_m05.fit" \
+            --expect-winner 1 --world-events no --log-dir smoke-logs/net-ordered-hill
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -441,6 +441,15 @@ void Turret::setDamage (float newDamage)
 }
  
 //---------------------------------------------------------------------------
+// A hit location is an armour location, and three of those, the rear torso, have no body
+// location of their own. So far the bolt picks its own hot spot on a mech (WeaponBolt::connect).
+static unsigned long turretTargetHotSpot (BattleMechPtr mech, long hitLocation) {
+
+	if ((hitLocation < 0) || (hitLocation >= NUM_MECH_BODY_LOCATIONS))
+		return(0);
+	return(mech->body[hitLocation].hotSpotNumber);
+}
+
 long Turret::updateAnimations (void)
 {
 	long canFire = 0;
@@ -1163,7 +1172,8 @@ long Turret::updateWeaponFireChunks (long which)
 
 		if (chunk.targetType == 0) 
 		{
-			GameObjectPtr target = (GameObjectPtr)MPlayer->moverRoster[chunk.targetId];
+			// the field can hold more than the roster does
+			GameObjectPtr target = (chunk.targetId < MAX_MULTIPLAYER_MOVERS) ? (GameObjectPtr)MPlayer->moverRoster[chunk.targetId] : NULL;
 			//----------------------------------------------------------------------------
 			// Mover targets could be NULL now, since we free them when they're destroyed.
 			if (target) 
@@ -1178,11 +1188,8 @@ long Turret::updateWeaponFireChunks (long which)
 		else if (chunk.targetType == 1) 
 		{
 			GameObjectPtr target = ObjectManager->findByPartId(chunk.targetId);
-			if (target == NULL) 
-			{
-				DebugWeaponFireChunk (&chunk, NULL, this);
-				Assert(FALSE, 0, " Turret.updateWeaponFireChunks: NULL Terrain Target (save wfchunk.dbg file) ");
-			}
+			if (target == NULL)
+				continue;
 			handleWeaponFire(chunk.weaponIndex,
 							 target,
 							 NULL,
@@ -1194,11 +1201,8 @@ long Turret::updateWeaponFireChunks (long which)
 		else if (chunk.targetType == 2) 
 		{
 			GameObjectPtr target = ObjectManager->findByPartId(chunk.targetId);
-			if (target == NULL) 
-			{
-				DebugWeaponFireChunk (&chunk, NULL, this);
-				Assert(FALSE, 0, " Turret.updateWeaponFireChunks: NULL Special Target (save wfchunk.dbg file) ");
-			}
+			if (target == NULL)
+				continue;
 			handleWeaponFire(chunk.weaponIndex,
 							 target,
 							 NULL,
@@ -1215,8 +1219,6 @@ long Turret::updateWeaponFireChunks (long which)
 			targetPoint.z = (float)0;
 			handleWeaponFire(chunk.weaponIndex, NULL, &targetPoint, chunk.hit, 0.0, 0, 0);
 		}
-		else
-			Fatal(0, " Mover.updateWeaponFireChunk: bad targetType ");
 	}
 
 	numWeaponFireChunks[which] = 0;
@@ -1477,7 +1479,7 @@ void Turret::fireWeapon (GameObjectPtr target, long weaponId) {
 					if (aimLocation == -1)
 						hitLocation = target->calcHitLocation(this, weaponMasterId, ATTACKSOURCE_WEAPONFIRE, ATTACK_TO_DESTROY);
 					if (target->getObjectClass() == BATTLEMECH)
-						targetHotSpot = ((BattleMechPtr)target)->body[hitLocation].hotSpotNumber;
+						targetHotSpot = turretTargetHotSpot((BattleMechPtr)target, hitLocation);
 					}
 				else
 					hitLocation = -1;
@@ -1592,7 +1594,7 @@ void Turret::fireWeapon (GameObjectPtr target, long weaponId) {
 
 			if (target) {
 				if (target->getObjectClass() == BATTLEMECH)
-					targetHotSpot = ((BattleMechPtr)target)->body[hitLocation].hotSpotNumber;
+					targetHotSpot = turretTargetHotSpot((BattleMechPtr)target, hitLocation);
 				weaponFX->connect(this, target, &shotInfo, sourceHotSpot, targetHotSpot);
 				printFireWeaponDebugInfo(target, NULL, attackChance, hitRoll, &shotInfo);
 			}
@@ -1871,7 +1873,7 @@ long Turret::handleWeaponFire (long weaponIndex,
 				Assert(hitLocation != -2, 0, " Turret.handleWeaponFire: Bad Hit Location ");
 				unsigned long targetHotSpot = 0;
 				if (target && (target->getObjectClass() == BATTLEMECH))
-					targetHotSpot = ((BattleMechPtr)target)->body[hitLocation].hotSpotNumber;
+					targetHotSpot = turretTargetHotSpot((BattleMechPtr)target, hitLocation);
 	
 				WeaponShotInfo curShotInfo;
 				curShotInfo.init(this->getWatchID(),
@@ -1907,7 +1909,7 @@ long Turret::handleWeaponFire (long weaponIndex,
 			if (target) {
 				unsigned long targetHotSpot = 0;
 				if (target->getObjectClass() == BATTLEMECH)
-					targetHotSpot = ((BattleMechPtr)target)->body[hitLocation].hotSpotNumber;
+					targetHotSpot = turretTargetHotSpot((BattleMechPtr)target, hitLocation);
 				weaponFX->connect(this, target, &shotInfo, 0, targetHotSpot);
 				}
 			else {

@@ -17,6 +17,12 @@
     <uses-feature android:name="oculus.software.handtracking" android:required="false" />
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
 
+    <!-- multiplayer -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- to hear a game announced on the local network: MC2Activity holds the lock -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <!-- the Khronos OpenXR loader (its AAR's manifest, merged by hand: the
          APK is linked without Gradle) -->
     <uses-permission android:name="org.khronos.openxr.permission.OPENXR" />

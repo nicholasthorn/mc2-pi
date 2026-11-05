@@ -54,6 +54,14 @@ bool bindEye(int eye);
 // At the end of a frame: shows the frame in the headset and returns true,
 // or returns false when the caller should swap the window instead.
 bool present(int width, int height);
+// The interface need not redraw at the headset's rate: a mission's changes
+// only with a game step. hudFrame, before each frame's drawing, says whether the
+// game stepped. hudDue, for a mission about to draw it, says whether to, and
+// lets later frames rest; present() then shows the quad's last image. hudResting:
+// nothing is to touch the window this frame. MC2_XR_HUD_EVERY_FRAME=1 turns it off.
+void hudFrame(bool gameStepped);
+bool hudDue();
+bool hudResting();
 // The runtime asked the app to quit (the session is exiting).
 bool exitRequested();
 // Seconds between game updates in VR (MC2_XR_LOGIC_HZ, default 30), or 0
@@ -84,6 +92,9 @@ inline int eyeViews(gosVREyeView*) { return 0; }
 inline void eyeImageSize(int, int& width, int& height) { width = height = 0; }
 inline bool bindEye(int) { return false; }
 inline bool present(int, int) { return false; }
+inline void hudFrame(bool) {}
+inline bool hudDue() { return true; }
+inline bool hudResting() { return false; }
 inline bool exitRequested() { return false; }
 inline double logicStep() { return 0.0; }
 inline bool active() { return false; }

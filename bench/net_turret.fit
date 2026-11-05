@@ -1,0 +1,24 @@
+FITini
+// Turrets at work: both sides on mc2_m09 stand among team 1's turrets, so they fire on team 0,
+// and a client must see them turn to their targets and take the same hits as the host.
+//   scripts/net_smoke.sh --mission mc2_m09 --scenario bench/net_turret.fit --expect-turrets --world-events no --frames 200000
+
+[Bench]
+st Mission = "mc2_m09"
+l Frames = 200000
+l Gather = 12
+f LineGap = 300.0
+f Spacing = 60.0
+b Pain = TRUE
+f ArenaX = -5300.0
+f ArenaY = -700.0
+l ReorderEvery = 0
+f NetTimeLimit = 60.0
+l NumSegments = 1
+
+[Segment0]
+st Name = "turrets"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend

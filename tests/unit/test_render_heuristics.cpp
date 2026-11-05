@@ -30,18 +30,21 @@ TEST_CASE("LODSwitchDistance: no flip-flop inside the band")
 	CHECK(d > LODSwitchDistance(1000.0f, 1, 1));			// at LOD 1: stays 1
 }
 
-TEST_CASE("GPUMeshBlended: fading shapes and the translucent compass, not cut-outs")
+TEST_CASE("GPUMeshBlended: fading shapes, spinning markers and the translucent compass, not cut-outs")
 {
 	// solid, and a cut-out (a tree)
-	CHECK_FALSE(GPUMeshBlended(0xff, false, false));
-	CHECK_FALSE(GPUMeshBlended(0xff, true, false));
+	CHECK_FALSE(GPUMeshBlended(0xff, false, false, false));
+	CHECK_FALSE(GPUMeshBlended(0xff, true, false, false));
 	// fading, whatever the texture
-	CHECK(GPUMeshBlended(0x80, false, false));
-	CHECK(GPUMeshBlended(0x80, true, false));
-	CHECK(GPUMeshBlended(0x00, false, false));
+	CHECK(GPUMeshBlended(0x80, false, false, false));
+	CHECK(GPUMeshBlended(0x80, true, false, false));
+	CHECK(GPUMeshBlended(0x00, false, false, false));
 	// the compass with an alpha texture; the sky, also a HUD element, has none
-	CHECK(GPUMeshBlended(0xff, true, true));
-	CHECK_FALSE(GPUMeshBlended(0xff, false, true));
+	CHECK(GPUMeshBlended(0xff, true, true, false));
+	CHECK_FALSE(GPUMeshBlended(0xff, false, true, false));
+	// a spinning marker must not write depth, with an alpha texture or a solid one
+	CHECK(GPUMeshBlended(0xff, true, false, true));
+	CHECK(GPUMeshBlended(0xff, false, false, true));
 }
 
 TEST_CASE("PointBoxDistanceSquared")

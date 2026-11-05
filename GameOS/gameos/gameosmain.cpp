@@ -92,7 +92,7 @@ void __stdcall gos_SetExitCode(int code)
 
 const char* __stdcall gos_GetBenchScenario()
 {
-    return g_bench ? g_bench_scenario : NULL;
+    return g_bench_scenario;
 }
 
 void __stdcall gos_BenchSegment(const char* name)
@@ -378,7 +378,9 @@ extern bool g_disable_quads;
 static void draw_screen( void )
 {
     g_disable_quads = false;
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    const bool hudResting = gos_xr::hudResting();   // keeps the window's frame
+    if(!hudResting)
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glCullFace(GL_FRONT);
     //CHECK_GL_ERROR;
     
@@ -390,7 +392,8 @@ static void draw_screen( void )
 
     // TODO: reset all states to sane defaults!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     glDepthMask(GL_TRUE);
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    if(!hudResting)
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     // VR: wait for the headset's frame and find the eyes before drawing
     gos_xr::beginFrame();
@@ -514,8 +517,9 @@ int main(int argc, char** argv)
         gos_LogFileStart();
 #endif
         gos_LogFileHeader();
-        gos_LogFileCatchCrashes();
     }
+    // on an automated run too: to stderr, and scripts/net_smoke.sh names the lines
+    gos_LogFileCatchCrashes();
     // -deterministic: -bench's fixed step and seed without its CSV, so two
     // -autoexit runs of a mission end in the same state (scripts/smoke.sh
     // --deterministic compares the [STATEHASH] lines). Takes no value, so it is
@@ -615,6 +619,7 @@ int main(int argc, char** argv)
         static const long shot_frame = getenv("MC2_SHOT_FRAME") ? atol(getenv("MC2_SHOT_FRAME")) : -1;
         if(g_bench && g_gameplay_started && frame_count == shot_frame)
             g_bench_shot = "shot";
+        gos_xr::hudFrame(run_logic);
         draw_screen();
 		uint64_t capture_ticks = 0;
         if(!g_bench_shot.empty()) {

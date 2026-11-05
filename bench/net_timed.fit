@@ -1,0 +1,22 @@
+FITini
+// A battle between two processes that a short time limit ends, whoever is left, for a
+// mode decided by units or score at the end:
+//   scripts/net_smoke.sh --mission mc2_m04 --scenario bench/net_timed.fit --world-events no
+// Not a performance benchmark.
+
+[Bench]
+l Frames = 20000
+l Gather = 12
+f LineGap = 500.0
+f Spacing = 90.0
+b Pain = TRUE
+l ReorderEvery = 150
+f NetTimeLimit = 45.0
+l NumSegments = 1
+
+[Segment0]
+st Name = "battle"
+l Start = 0
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend

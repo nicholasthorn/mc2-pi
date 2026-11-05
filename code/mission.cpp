@@ -304,9 +304,6 @@ extern __int64 x;
 #define ProfileTime(x,y)	y;
 #endif
 
-// -bench: time y as a named stage, its own "<name>_ms" [BENCH] key and CSV
-// column (gos_BenchStageId). Used to estimate the cost of VR stereo.
-#define BenchStage(name,y)	{ static const int benchId_ = gos_BenchStageId(name); gos_BenchStageStart(benchId_); y; gos_BenchStageStop(benchId_); }
 
 long GameVisibleVertices		= 60;
 float BaseHeadShotElevation		= 1.0f;
@@ -948,12 +945,15 @@ long Mission::render (void)
 		
 		static const int benchUiRender = gos_BenchStageId("ui_render");
 		gos_BenchStageStart(benchUiRender);
-		FloatHelp::renderAll();
-	
 		currentFloatHelp = 0;
+
+		if (gos_VRHudDue())
+		{
+			FloatHelp::renderAll();
 	
-		if (missionInterface)
-			missionInterface->render();
+			if (missionInterface)
+				missionInterface->render();
+		}
 		gos_BenchStageStop(benchUiRender);
 
 		if (KillAmbientLight) {

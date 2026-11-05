@@ -174,6 +174,7 @@ TG_MultiShapePtr TG_TypeMultiShape::CreateFrom (void)
 	newShape->myMultiType = this;
 	
 	newShape->isHudElement = false;
+	newShape->isMarker = false;
 	
 	return newShape;
 }	
@@ -1690,7 +1691,7 @@ long TG_MultiShape::TransformMultiShape (Stuff::Point3D *pos, Stuff::UnitQuatern
         x=GetCycles();
 #endif
 
-        listOfShapes[i].node->MultiTransformShape(&shapeToClip,&backFacePoint,listOfShapes[i].parentNode,isHudElement,alphaValue,isClamped);
+        listOfShapes[i].node->MultiTransformShape(&shapeToClip,&backFacePoint,listOfShapes[i].parentNode,isHudElement,alphaValue,isClamped,isMarker);
 
         if (useShadows && d_useShadows)
         {
@@ -1739,7 +1740,7 @@ void TG_MultiShape::Render (bool refreshTextures, float forceZ)
 			shapeToClip.Multiply(listOfShapes[i].shapeToWorld, TG_Shape::s_worldToClip);
 		
             Stuff::Matrix4D shape2world(listOfShapes[i].shapeToWorld);
-			listOfShapes[i].node->Render(forceZ,isHudElement,alphaValue,isClamped, &shapeToClip, &shape2world);
+			listOfShapes[i].node->Render(forceZ,isHudElement,alphaValue,isClamped, &shapeToClip, &shape2world, isMarker);
 		}
 	}
 }	

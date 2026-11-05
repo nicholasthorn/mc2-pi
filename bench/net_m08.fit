@@ -1,0 +1,28 @@
+FITini
+// A battle on the two-player map mc2_m08 between two processes, played to the end:
+// each side orders its own units, a client's orders go by the host.
+//   scripts/net_smoke.sh --game-dir <dir> --build-dir <dir>
+// Not a performance benchmark.
+
+[Bench]
+st Mission = "mc2_m08"
+l Frames = 200000
+l Gather = 12
+f LineGap = 500.0
+f Spacing = 90.0
+b Pain = TRUE
+f ArenaX = 4416.0
+f ArenaY = 5483.0
+l ReorderEvery = 150
+l NetEventsEvery = 300
+f NetTimeLimit = 180.0
+l NetResourcePoints = 1000000
+l NumSegments = 1
+
+[Segment0]
+st Name = "battle"
+l Start = 0
+l StrikeEvery = 300
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 50, 0, 1400
+FITend

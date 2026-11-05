@@ -22,6 +22,7 @@
 #include "utils/tga_writer.h"
 #include "utils/vr_controls.h"
 #include "utils/vr_eye.h"
+#include "utils/vr_hud.h"
 
 #include <EGL/egl.h>
 #include <SDL2/SDL.h>
@@ -117,6 +118,13 @@ struct State {
     PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC renderbufferStorageMultisample = nullptr;
     bool running = false;
     bool exit = false;
+    // MC2_XR_HUD_EVERY_FRAME=1 redraws the interface on every headset frame
+    bool hudEveryFrame = false;
+    bool hudRestAllowed = false;    // a mission's interface asked last frame (hudDue)
+    bool hudIsDue = true;           // this frame's interface is to be drawn
+    bool hudChanged = true;         // a game step since it last reached the headset
+    int framesSinceHud = 0;
+    bool quadHasImage = false;      // the quad's swapchain has a released image
     // this frame
     bool frameBegun = false;
     XrFrameState frame = {};
@@ -855,6 +863,8 @@ bool copyFrame(int width, int height)
     glBlitFramebuffer(0, 0, width, height, 0, 0, g.quad.width, g.quad.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     release(g.quad);
+    g.quadHasImage = true;
+    g.hudChanged = false;
     return true;
 }
 
@@ -1077,6 +1087,8 @@ bool init()
     readDebugSettings();
     const char* eyesEnv = getenv("MC2_XR_EYES");
     g.useEyes = !(eyesEnv && eyesEnv[0] == '0');
+    const char* hudEnv = getenv("MC2_XR_HUD_EVERY_FRAME");
+    g.hudEveryFrame = hudEnv && hudEnv[0] == '1';
     const char* msaaEnv = getenv("MC2_XR_MSAA");
     const int samples = msaaEnv ? atoi(msaaEnv) : 4;
     g.framebufferTexture2DMultisample = (PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC)
@@ -1132,7 +1144,12 @@ void beginFrame()
 
     XrFrameWaitInfo waitInfo = xrStruct<XrFrameWaitInfo>(XR_TYPE_FRAME_WAIT_INFO);
     g.frame = xrStruct<XrFrameState>(XR_TYPE_FRAME_STATE);
-    if(!ok(xrWaitFrame(g.session, &waitInfo, &g.frame), "xrWaitFrame"))
+    // -bench: pacing, not work, though it is inside render_ms
+    static const int benchWait = gos_BenchStageId("xr_wait");
+    gos_BenchStageStart(benchWait);
+    const XrResult waited = xrWaitFrame(g.session, &waitInfo, &g.frame);
+    gos_BenchStageStop(benchWait);
+    if(!ok(waited, "xrWaitFrame"))
         return;
     XrFrameBeginInfo beginInfo = xrStruct<XrFrameBeginInfo>(XR_TYPE_FRAME_BEGIN_INFO);
     if(!ok(xrBeginFrame(g.session, &beginInfo), "xrBeginFrame"))
@@ -1203,7 +1220,12 @@ bool bindEye(int eye)
         return false;
     }
     Image& image = g.eyes[eye];
-    if(!image.acquired && !acquire(image)) {
+    // -bench: can wait for the compositor to give the image back
+    static const int benchAcquire = gos_BenchStageId("xr_acquire");
+    gos_BenchStageStart(benchAcquire);
+    const bool acquired = image.acquired || acquire(image);
+    gos_BenchStageStop(benchAcquire);
+    if(!acquired) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return false;
     }
@@ -1249,7 +1271,7 @@ bool present(int width, int height)
     // something decides whether the pointer is on the interface (pollInput)
     if(g.actionSet != XR_NULL_HANDLE && g.useEyes) {
         collectAlpha();
-        requestAlpha(width, height);
+        requestAlpha(width, height);    // a resting window still holds its interface
     }
 
     XrCompositionLayerProjectionView projViews[2];
@@ -1272,7 +1294,8 @@ bool present(int width, int height)
         projection.views = projViews;
         layers[layerCount++] = (XrCompositionLayerBaseHeader*)&projection;
     }
-    if(g.frame.shouldRender && copyFrame(width, height)) {
+    // a resting interface: the quad's last image is still what it shows
+    if(g.frame.shouldRender && (g.hudIsDue ? copyFrame(width, height) : g.quadHasImage)) {
         quad.space = g.space;
         quad.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
         quad.subImage.swapchain = g.quad.swapchain;
@@ -1295,8 +1318,35 @@ bool present(int width, int height)
     endInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
     endInfo.layerCount = layerCount;
     endInfo.layers = layers;
+    static const int benchEnd = gos_BenchStageId("xr_end");
+    gos_BenchStageStart(benchEnd);
     ok(xrEndFrame(g.session, &endInfo), "xrEndFrame");
+    gos_BenchStageStop(benchEnd);
     return true;
+}
+
+void hudFrame(bool gameStepped)
+{
+    g.hudChanged = g.hudChanged || gameStepped;
+    const bool rest = vr_hud::rests({g.hudRestAllowed, g.useEyes, g.hudEveryFrame, g.quadHasImage,
+                                     g.hudChanged, gameStepped, g.framesSinceHud});
+    g.hudRestAllowed = false;
+    g.hudIsDue = !rest;
+    if(g.hudIsDue)
+        g.framesSinceHud = 0;
+    else
+        ++g.framesSinceHud;
+}
+
+bool hudDue()
+{
+    g.hudRestAllowed = true;
+    return g.hudIsDue;
+}
+
+bool hudResting()
+{
+    return !g.hudIsDue;
 }
 
 bool exitRequested()

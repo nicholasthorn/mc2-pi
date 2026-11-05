@@ -54,7 +54,9 @@ A batch is 3 to 5 commits or one finished logical step.
 - CI then does the batch checks: `ci.yml` (four configurations, unit tests
   also under ASan + UBSan, shader validation, cppcheck on changed files) and,
   when code changed, `smoke.yml` (five missions at 3000 frames on x64 desktop
-  GL, arm64 GLES and x64 sanitized). Do not repeat those locally.
+  GL, arm64 GLES and x64 sanitized; the multiplayer steps in full only when
+  `scripts/ci_multiplayer.sh` says multiplayer code changed, otherwise a
+  sanitized battle and no game modes). Do not repeat those locally.
 - **Review while CI runs, not after it.** As soon as the batch is pushed, run
   `/simplify`, then `/code-review` on the commits since the last batch. Never
   wait for a green run to start reviewing: review and CI check different

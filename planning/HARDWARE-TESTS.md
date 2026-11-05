@@ -13,6 +13,41 @@ only a person can check; say which renderer each needs.
 Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 (`MC2_GLES=ON`, on the Pi or under `LIBGL_ALWAYS_SOFTWARE=1` on a PC).
 
+## Network transport
+
+- [ ] **Windows to Quest, or Windows to Linux** (#113). Windows uses BCrypt and the
+      others BoringSSL, so this proves their handshake agrees, which CI does not
+      (each job runs both ends on one platform). `net_ping server 27900` on one,
+      `net_ping client <its address> 27900` on the other; both ways round. On a
+      Quest: `scripts/android/net_ping.sh`. Allow UDP through Windows' firewall.
+
+## Multiplayer
+
+- [ ] **Two machines on one network, in windows** (phase 2). GL on both, then a Pi or GLES
+      build on one. On one: `./mc2 -mission mc2_m08 -nethost 2 -netlisten 27815`. On the other:
+      `./mc2 -mission mc2_m08 -netjoin <its address>:27815`. Allow UDP 27815 through a firewall.
+      Order units on both, from both. Do the other side's mechs walk smoothly, or stutter and
+      warp? Do shots, hits and explosions look right on the client? That answers whether the
+      legacy movement stays. Quitting mid-game is not expected to be tidy yet.
+- [ ] **A Windows peer** (phase 2). The same, one end on Windows: also proves the BCrypt
+      handshake in the game (see "Network transport").
+- [x] **A Quest as host and as client, unworn** (2026-11-05, Quest 2, PC in WSL, home Wi-Fi): played
+      and measured, with armour never differing. See "On a Quest 2" in `future-features/NETWORKING.md`.
+      `-netjoin wait` on the Quest and `-netcall <its address>` on a host in WSL, which it cannot reach.
+- [ ] **A game found on the network** (phase 4). Two machines on one network, the same data:
+      `./mc2 -mission mc2_m08 -nethost 2 -netlisten` on one, `./mc2 -mission mc2_m08 -netjoin lan` on
+      the other. It should find and join within a few seconds. A Quest as each end, as its Wi-Fi drops
+      broadcasts without the lock in `MC2Activity`. Then a router with client isolation, which should
+      fail to find it, and joining by address is the way round. WSL cannot host for this (NAT).
+- [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
+      click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
+      both screens; order the truck to repair; down a mech and call the Karnov; check the points on
+      screen after each, and after the Stop button. At the end, the results screen: names, team,
+      laurels on the winner, and Close quits. Tests check the state of all this, not how it looks.
+- [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
+      mechs look right, do orders given by hand with the controllers work, and does taking the headset
+      off and on leave the game running? Also whether the app quits by itself at the end.
+
 ## In the game (any PC with a display)
 
 - [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click
@@ -78,6 +113,22 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       it: judge the pay, prices and lance sizes, whether enemies come at you, and
       whether the contract and repair lines read well.
 
+## VR interface between game steps (#127)
+
+The interface only rests in a headset session, so no desktop run covers it.
+
+- [x] **Quest 2, a mission played** (2026-11-05, fine): the interface updates promptly, health bars,
+      timers and flashes run at the right speed (they advance per draw, and were
+      probably about 2.4 times too fast before this), and floating help shows
+      without ghosting.
+- [x] **Pointing at the interface and at the world** stays right.
+- [x] **The interface at 1280x960 in a mission** (2026-11-05): judged right on the
+      Quest 2, with the size set by hand in `options.cfg`.
+- [ ] **The same with the default:** the logistics screens and a mission started from
+      them, on a headset whose `options.cfg` says nothing or 800x600.
+- [x] **Leaving a mission or opening the options screen:** one frame of the old
+      interface at most.
+
 ## STOP message box (#46)
 
 - [ ] **Windows:** a `STOP` (e.g. `-mission nosuchmission`) shows the box
@@ -103,6 +154,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## On the Quest (VR, `future-features/VR-TABLETOP.md`)
 
+- [ ] **Bomber target marker and explosions** (branch `fix/bomber-marker-explosion`).
+      Call a strike, then another close by: while the first marker spins, the
+      second's explosion shows whole, with no square in it, and the marker's
+      rings look soft rather than black-edged. Checked on the desktop with
+      `MC2_VR_PATHS=1`, which never showed the square itself, so only the
+      headset can confirm that part.
 - [ ] **Game camera's field of view** (PR #86, `future-features/VR-FOV.md`).
       Done on a Quest 2: the log line, world clicks near the horizon and past
       the terrain's edge, the frame rate against `MC2_XR_FOV=0`. Still to see:
