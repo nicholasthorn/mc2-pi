@@ -502,8 +502,9 @@ static uint32_t netHashFile (uint32_t hash, const char* path, unsigned long& tot
 }
 
 // What the mech bay buys from, read as LogisticsData::initComponents, initPilots and
-// initVariants read it: the components, each pilot, and each mech's sheet. A game without
-// quickstart makes everyone's units from these (MultiPlayer::addNetForces).
+// initVariants read it (a change to how they find their files belongs here too): the
+// components, each pilot, and each mech's sheet. A game without quickstart makes everyone's
+// units from these (MultiPlayer::addNetForces).
 static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 
 	char path[1024];
@@ -1099,10 +1100,6 @@ void MultiPlayer::joinNetLobby (const char* address, unsigned short port, char* 
 //---------------------------------------------------------------------------
 
 // Everyone in the lobby, where the screens read them. A slot is a commander until the launch.
-// What netShowLobbyPlayers last put in each slot's C-Bills, or -1 for nobody shown: anything
-// else there is the host's edit on the parameters screen (aPlayerParams).
-static int32_t netShownCBills[MAX_MC_PLAYERS] = {-1, -1, -1, -1, -1, -1, -1, -1};
-
 static void netShowLobbyPlayers (MultiPlayer* player, const netwire::LobbyState& state) {
 
 	bool here[MAX_MC_PLAYERS] = {false};
@@ -1115,7 +1112,6 @@ static void netShowLobbyPlayers (MultiPlayer* player, const netwire::LobbyState&
 		// what each player has to spend (LogisticsMissionInfo::setMultiplayer): the host's to
 		// set, so never held back below, where the host's own place waits on its own clicks
 		info.cBills = lobbyPlayer.cBills;
-		netShownCBills[lobbyPlayer.slot] = lobbyPlayer.cBills;
 		// what was just clicked is not undone while the host answers
 		if ((lobbyPlayer.slot == player->commanderID) && (netNow() < netChoiceUntil))
 			continue;
@@ -1129,10 +1125,8 @@ static void netShowLobbyPlayers (MultiPlayer* player, const netwire::LobbyState&
 		info.ready = lobbyPlayer.ready;
 	}
 	for (long i = 0; i < MAX_MC_PLAYERS; i++)
-		if (!here[i]) {
+		if (!here[i])
 			player->playerInfo[i].commanderID = -1;
-			netShownCBills[i] = -1;
-		}
 }
 
 // What a client's screens show of the map the host chose, from its own copy of the map. The
@@ -1203,13 +1197,6 @@ static void netLobbyTickHost (MultiPlayer* player) {
 	const int32_t cBills = (settings.defaultCBills > 0) ? (int32_t)settings.defaultCBills : 0;
 	const int32_t dropWeight = (settings.dropWeight > 0) ? (int32_t)settings.dropWeight : 0;
 	const netwire::LobbyState& state = netRules->state();
-	// The host's edits of one player's C-Bills first: a new amount for everyone, below, then
-	// replaces them all, and the screen shows that.
-	for (long slot = 0; slot < MAX_MC_PLAYERS; slot++) {
-		const long edited = player->playerInfo[slot].cBills;
-		if ((netShownCBills[slot] >= 0) && (edited != netShownCBills[slot]))
-			netRules->setPlayerCBills((uint8_t)slot, (edited > 0) ? (int32_t)edited : 0);
-	}
 	if ((state.timeLimit != timeLimit) || (state.resourcePoints != points) || (state.flags != flags)
 		|| (state.cBills != cBills) || (state.dropWeight != dropWeight))
 		netRules->setSettings(timeLimit, points, flags, cBills, dropWeight);
@@ -1768,7 +1755,6 @@ static void netEnterLobby (MultiPlayer* player, bool isHost, long commander) {
 	netLobbyMapHash = 0;
 	netChoiceUntil = 0.0;
 	netSentRevision = 0;
-	std::fill(netShownCBills, netShownCBills + MAX_MC_PLAYERS, -1);
 }
 
 bool MultiPlayer::hostSession (char* newSessionName, char* playerName, long mxPlayers) {
@@ -2460,6 +2446,13 @@ void MultiPlayer::sendPlayerCID (NETPLAYER receiver, unsigned char subType, char
 
 void MultiPlayer::sendPlayerUpdate (NETPLAYER receiver, long stage, long newCommanderID) {
 
+	// The host giving a player other C-Bills on their row (aPlayerParams): what the screen
+	// wrote there goes to the lobby. Unchanged, it is no change.
+	if (netLobbyOpen && iAmHost && netRules && (newCommanderID >= 0) && (newCommanderID < MAX_MC_PLAYERS)
+			&& netRules->player((uint8_t)newCommanderID)) {
+		const long cBills = playerInfo[newCommanderID].cBills;
+		netRules->setPlayerCBills((uint8_t)newCommanderID, (cBills > 0) ? (int32_t)cBills : 0);
+	}
 	// This player's own place, from the parameters screen or the prefs screen (which says -1).
 	if (!netLobbyOpen || (commanderID < 0) || ((newCommanderID != commanderID) && (newCommanderID != -1)))
 		return;
@@ -2494,16 +2487,22 @@ void MultiPlayer::sendMissionSettingsUpdate (NETPLAYER receiver) {
 
 //---------------------------------------------------------------------------
 
-// To everyone, or a team (team below 0 is everyone). It shows here when the host sends it back.
-void MultiPlayer::sendChat (NETPLAYER receiver, char team, char* chatMessage) {
+// It shows here, as everywhere, when the host sends it back. A line with nothing in it is not sent.
+static void netSendChat (uint8_t team, uint8_t flags, const char* text) {
 
-	if (!netSession || !chatMessage)
+	if (!netSession)
 		return;
 	netwire::Chat chat;
-	chat.team = ((team >= 0) && (team < MAX_MC_PLAYERS)) ? (uint8_t)team : netwire::CHAT_EVERYONE;
-	chat.text = netwire::chatText(chatMessage);
-	if (!chat.text.empty())
-		netSession->sendChat(chat);
+	chat.team = team;
+	chat.flags = flags;
+	chat.text = netwire::chatText(text);
+	netSession->sendChat(chat);
+}
+
+// To everyone, or a team (team below 0 is everyone).
+void MultiPlayer::sendChat (NETPLAYER receiver, char team, char* chatMessage) {
+
+	netSendChat(((team >= 0) && (team < MAX_MC_PLAYERS)) ? (uint8_t)team : netwire::CHAT_EVERYONE, 0, chatMessage);
 }
 
 // A line about a player, from this machine's strings: resID's text has one %s, the name.
@@ -2515,11 +2514,7 @@ void MultiPlayer::sendPlayerActionChat(NETPLAYER receiver, const char* playerNam
 	char text[512];
 	cLoadString(resID, format, 255);
 	snprintf(text, sizeof(text), format, playerName);
-	netwire::Chat chat;
-	chat.flags = netwire::CHAT_ABOUT_PLAYER;
-	chat.text = netwire::chatText(text);
-	if (!chat.text.empty())
-		netSession->sendChat(chat);
+	netSendChat(netwire::CHAT_EVERYONE, netwire::CHAT_ABOUT_PLAYER, text);
 }
 
 
@@ -3864,7 +3859,8 @@ long MultiPlayer::updateClients (bool forceIt) {
 			nextCheck = now + worldUpdateFrequency;
 			sendNetCheck(this);
 		}
-		if ((turn % 600) == 0)
+		// and once more at the end (forceIt), as a short battle can be over before turn 600
+		if (((turn % 600) == 0) || forceIt)
 			printf("[NET] turn %ld: sent weapon fire %ld (turrets %ld), weapon hit %ld, critical hit %ld; orders from clients %ld, holds %ld; %d clients\n",
 				(long)turn, moverWeaponFireLoad + turretWeaponFireLoad, turretWeaponFireLoad, weaponHitLoad, moverCriticalLoad, netOrdersApplied, netHoldsApplied, netSession->connectedClients());
 		return(MPLAYER_NO_ERR);
@@ -4128,11 +4124,10 @@ void MultiPlayer::getChatMessages( char** buffer, long* playerIDs, long& count )
 			continue;
 		strncpy(currentChatMessages[count], chat.text.c_str(), MAX_CHAT_LENGTH - 1);
 		currentChatMessages[count][MAX_CHAT_LENGTH - 1] = 0;
-		currentChatMessagePlayerIDs[count] = chat.from
+		buffer[count] = currentChatMessages[count];
+		playerIDs[count] = chat.from
 			| ((chat.flags & netwire::CHAT_ABOUT_PLAYER) ? 0x01000000 : 0)
 			| (teamLine ? 0x10000000 : 0);
-		buffer[count] = currentChatMessages[count];
-		playerIDs[count] = currentChatMessagePlayerIDs[count];
 		printf("[NETCHAT] commander %d%s: %s\n", (int)chat.from, teamLine ? ", to its team" : "", currentChatMessages[count]);
 		fflush(stdout);
 		count++;

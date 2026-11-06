@@ -2222,6 +2222,7 @@ int aPlayerParams::handleMessage( unsigned long message, unsigned long who )
 				
 			 	MC2Player* pInfo = MPlayer->getPlayerInfo( commanderID );
 				pInfo->cBills += increment;
+				MPlayer->sendPlayerUpdate( 0, 5, commanderID );
 				
 				char text[256];
 				sprintf(text, "%ld", pInfo->cBills/5000 * (5) ); // need to round to nearest 5000
@@ -2237,6 +2238,7 @@ int aPlayerParams::handleMessage( unsigned long message, unsigned long who )
 
 				MC2Player* pInfo = MPlayer->getPlayerInfo( commanderID );
 				pInfo->cBills -= increment;
+				MPlayer->sendPlayerUpdate( 0, 5, commanderID );
 
 				char text[256];
 				sprintf(text, "%ld", pInfo->cBills/5000 * (5) );

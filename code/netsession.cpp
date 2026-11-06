@@ -298,11 +298,7 @@ void Session::handleHost(const Event& event)
 				drop(event.connection, "bad chat");
 				break;
 			}
-			// who said it is the host's to say
-			chat.from = client->commander;
-			keepChat(chat);
-			if (encode(chat, scratch_))
-				sendAll(Delivery::ReliableOrdered, scratch_);
+			relayChat(std::move(chat), client->commander);
 		}
 		else if (type == MessageType::ChunkBatch) {
 			Received received;
@@ -626,15 +622,20 @@ void Session::keepChat(Chat chat)
 	chatInbox_.push_back(std::move(chat));
 }
 
+// Who said it is the host's to say, whatever a client put in.
+bool Session::relayChat(Chat chat, uint8_t from)
+{
+	chat.from = from;
+	if (!encode(chat, scratch_))
+		return false;
+	keepChat(chat);
+	return sendAll(Delivery::ReliableOrdered, scratch_);
+}
+
 bool Session::sendChat(Chat chat)
 {
-	if (isHost_) {
-		chat.from = commander_;
-		if (!encode(chat, scratch_))
-			return false;
-		keepChat(chat);
-		return sendAll(Delivery::ReliableOrdered, scratch_);
-	}
+	if (isHost_)
+		return relayChat(std::move(chat), commander_);
 	return joined_ && encode(chat, scratch_)
 		&& transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
 }

@@ -159,6 +159,7 @@ private:
 	Client* findClient(gos_net::ConnectionId connection);
 	bool sendAll(gos_net::Delivery delivery, const std::vector<uint8_t>& message);
 	void keepChat(netwire::Chat chat);
+	bool relayChat(netwire::Chat chat, uint8_t from);
 
 	gos_net::Transport& transport_;
 	bool isHost_ = false;

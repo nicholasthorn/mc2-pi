@@ -82,15 +82,19 @@ namespace {
 // The name goes into the game's chat and player lists, which are 2001 code with
 // signed char: printable ASCII only, and no % in case one reaches a format string.
 // The same goes for any text a message carries, at its own length.
+bool carriable(char c)
+{
+	const uint8_t b = static_cast<uint8_t>(c);
+	return b >= 0x20u && b <= 0x7Eu && b != '%';
+}
+
 bool validName(const std::string& name, size_t maxLength = MAX_NAME_LENGTH)
 {
 	if (name.size() > maxLength)
 		return false;
-	for (char c : name) {
-		const uint8_t b = static_cast<uint8_t>(c);
-		if (b < 0x20u || b > 0x7Eu || b == '%')
+	for (char c : name)
+		if (!carriable(c))
 			return false;
-	}
 	return true;
 }
 
@@ -586,10 +590,8 @@ bool decode(const void* data, size_t size, Chat& m)
 std::string chatText(const char* typed)
 {
 	std::string text;
-	for (; typed && *typed && text.size() < MAX_CHAT_TEXT_LENGTH; typed++) {
-		const uint8_t b = static_cast<uint8_t>(*typed);
-		text += (b < 0x20u || b > 0x7Eu || b == '%') ? '?' : *typed;
-	}
+	for (; typed && *typed && text.size() < MAX_CHAT_TEXT_LENGTH; typed++)
+		text += carriable(*typed) ? *typed : '?';
 	return text;
 }
 
