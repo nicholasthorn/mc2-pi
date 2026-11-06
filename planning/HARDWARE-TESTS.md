@@ -66,6 +66,13 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       the mission: are each side's mechs the ones bought, with the pilots given, in its colours, on
       its side of the map? Two players who buy several mechs each: do they start apart, not on top
       of each other? A test walks this with one mech each, by the screens' handlers.
+- [ ] **Chat and C-Bills per player, by hand** (phase 4). In the lobby, type a line on each side:
+      does it show on both, with the right name and colour? A team line: does only that team see it?
+      As host, change one player's C-Bills with the spinners on their row: does that client's mech
+      bay have that much to spend, and does changing the amount for everyone then reset it? With
+      Quickstart off, does the pilot screen say "X is ready to launch." on the other side when one
+      launches, and does a client see the host's "about to start" line on Launch? Chat in play
+      (Enter): does it reach the other side?
 - [ ] **The same on a Quest, by controller** (phase 4). Whether the screens can be used at all.
       The Quest's multicast lock is still held for the app's whole life.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
