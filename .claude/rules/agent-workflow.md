@@ -80,11 +80,13 @@ A batch is 3 to 5 commits or one finished logical step.
   GL, arm64 GLES and x64 sanitized; the multiplayer steps in full only when
   `scripts/ci_multiplayer.sh` says multiplayer code changed, otherwise a
   sanitized battle and no game modes). Do not repeat those locally.
-- **Review while CI runs, not after it.** As soon as the batch is pushed, run
-  `/simplify`, then `/code-review` on the commits since the last batch. Never
-  wait for a green run to start reviewing: review and CI check different
-  things, and waiting only adds the CI time to every batch. Fix what review
-  finds, or say why not, in the next push.
+- **Review while CI runs, not after it.** In the same turn as the push that
+  starts CI (opening the draft PR, or a later batch's push), start
+  `/simplify`, then `/code-review` on the commits since the last batch. Do not
+  wait for CI to pass, or for the branch to be clean, before starting them:
+  review and CI check different things, and waiting only adds the CI time to
+  every batch. A red CI run and review findings are fixed together, in the
+  next push.
 - The app reports the CI result. A red run is fixed before the next batch.
 - After a green run, a push that changes only docs (`*.md`, `planning/`,
   `.claude/`), or only merges `pi-port` in, skips both workflows
@@ -102,9 +104,10 @@ only when CI's round trip is the slower path:
 
 ## Tier 3: the PR
 
-- `/code-review high` on the whole branch, started right after the last code
-  push, while CI runs on it. Fix real findings; list the ones you defer in
-  the PR description.
+- `/simplify`, then `/code-review high` on the whole branch, started in the
+  same turn as the last code push, while CI runs on it. Do not wait for CI to
+  pass first. Fix real findings; list the ones you defer in the PR
+  description.
 - Mark the PR ready once both are done: review findings handled and CI green
   on the final push.
 - The PR description says what was verified where (which renderer, which

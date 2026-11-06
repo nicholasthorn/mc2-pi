@@ -178,8 +178,8 @@ Details in `.claude/rules/agent-workflow.md`. In short:
   build matrix and the five-mission smoke; never wait for green to start
   review. Local `check.sh --level batch` only for crash debugging or
   GLES-only changes.
-- **The PR:** `/code-review high` on the branch alongside CI on the last
-  push; mark it ready when both are done.
+- **The PR:** `/simplify` and `/code-review high` on the branch, started with
+  the last push, not after CI is green; mark it ready when both are done.
 
 Once coverage is measured, the threshold is a **ratchet**:
 
