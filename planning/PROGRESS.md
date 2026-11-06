@@ -14,6 +14,7 @@ belongs in commit messages and PRs.
 - [x] GLES texture upload repacking for 8-bit channel-count mismatches
 - [x] Multiplayer between processes (`-nethost`, `-netjoin`): every game mode, order, support vehicle and recovery, turrets, results (`future-features/NETWORKING.md`)
 - [x] Multiplayer from the main menu on the local network: host, browse, join, lobby, launch, results, and back for another game, tested through the screens by a walker, not yet by hand or on a Quest
+- [x] Mech selection in a network game: with Quickstart off each player buys designer variants and gives them pilots, the host checks them, and every machine makes everyone's units; tested through the screens by a walker, not yet by hand
 - [x] arm64: `-fsigned-char`, portable heap caller capture, GCC 12 fixes
 - [x] Clang and MSVC build fixes
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)
@@ -538,7 +539,7 @@ change, not as a bug fix.
 
 ## Known issues
 
-- Network games from the screens have no mech selection, chat, shared insignia, locking or booting, no sign on a client that a launch is counting down, and only the local network: no joining by address (`future-features/NETWORKING.md`). The other screens' stubs still return a blank player record, an empty name and no players instead of NULL.
+- Network games from the screens have mech selection for designer variants only (no mech lab changes, no all tech), and no chat, shared insignia, locking or booting, no sign on a client that a launch is counting down, and only the local network: no joining by address (`future-features/NETWORKING.md`). The other screens' stubs still return a blank player record, an empty name and no players instead of NULL.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -549,6 +550,7 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-06: Mech selection in a network game (branch `mp-phase4-screens`): the host can untick Quickstart and set C-Bills and drop weight; each player goes through the briefing, mech bay, purchase and pilot screens, and Launch there sends their force by name (`netwire::Force`, protocol 12). The host checks it against what the mech bay allows (`code/netforce.*`, unit tested), sends everyone's, and each machine loads the map with none of its units and makes everyone's in the same order. `net_smoke --mechs` plays a battle that way on x64 desktop GL, in `smoke.yml`. Designer variants only, one C-Bills amount for all, and no person has clicked through it yet.
 - 2026-11-05: Multiplayer from the main menu (branch `mp-phase4-screens`): the original connection, browser and parameters screens run a real game, with the menu's button on. `net_smoke --screens` plays a battle through them, twice in a process with `--again`, and `--lobby-leaving` leaves and rejoins a lobby, on x64 desktop GL, also under ASan + UBSan. Protocol 11. A player's name and colours go through the prefs screen. A failed host, a different map, or the host going in a lobby, while loading or in play no longer strand the player or close the game, and the wait for others to load no longer stops the frames. No person has clicked through them yet.
 - 2026-11-05: Multiplayer lobby review fixes (branch `mp-phase4-lobby`): nobody waits for a player lost while loading, a launch reaches everyone it can, a client refuses a launch with no map and a map name that is a path, a ready no longer outlives a settings change, and `-netlobby` works with `-netcall`. Protocol 9. Two on one team and the look of a lobby's colours are still not run.
 - 2026-11-06: A pilot's message no longer asks for the CD on Windows when the data has no movies (branch `fix/pilot-portrait-no-cd`). With no pilot video the game shows a still portrait from `data/movies/`, and data built with `--no-movies`, as in the `-full` packages, has none, so `mc2_01` on the Windows `-full` package showed "insert the CD", and Cancel ended the game. A missing portrait now draws no picture, as Linux already did. Built on Windows MSVC (Release) only.

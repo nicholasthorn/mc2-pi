@@ -1529,6 +1529,9 @@ class MultiPlayer : public MultiPlayerState {
 		// Who loads what, from playerInfo: a team per commander, unless a lobby put two on one.
 		// The number of players.
 		long commandersForLoad (char commandersToLoad[MAX_MC_PLAYERS][3]);
+		// In a game without quickstart, once the mission has loaded with none of the map's units:
+		// every player's chosen units, the same on every machine. How many were made.
+		long addNetForces (void);
 
 		// True with connections to other players, false for -nethost alone.
 		bool isNetworked (void);

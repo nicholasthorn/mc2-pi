@@ -57,6 +57,8 @@ public:
 	LogisticsVariant*	getVariant( int ID );
 	LogisticsVariant*	getVariant( const char* mechName );
 	LogisticsVariant*	getVariant( const char* pCSVFileNaem, int VariantNum );
+	// a variant the data has, not one a player made: by its chassis's file and its number there
+	LogisticsVariant*	getDesignerVariant( const char* chassisFileName, int fileID );
 	int					removeVariant( const char* varName );
 
 

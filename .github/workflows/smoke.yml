@@ -252,6 +252,8 @@ jobs:
             --screens --again --world-events no --log-dir smoke-logs/net-screens
           scripts/net_smoke.sh --game-dir gamedata --screens --lobby-leaving --log-dir smoke-logs/net-leaving
           scripts/net_smoke.sh --game-dir gamedata --screens --host-quits --log-dir smoke-logs/net-host-quits
+          # quickstart off: each player buys a mech, gives it a pilot and launches from the pilot screen
+          scripts/net_smoke.sh --game-dir gamedata --mechs --log-dir smoke-logs/net-mechs
       - name: Multiplayer, the game modes
         # Each of the stock maps' modes, on a map of that mode. Where an HQ decides it,
         # the host's team takes one partway in, so it must win.

@@ -282,6 +282,16 @@ void Session::handleHost(const Event& event)
 			if (haveRosterHash_)
 				judgeReady(event.connection);
 		}
+		else if (type == MessageType::Force) {
+			Force force;
+			if (!launched_ || startSent_ || client->sentForce || !decode(event.data.data(), event.data.size(), force)
+				|| force.commander != client->commander) {
+				drop(event.connection, "bad force");
+				break;
+			}
+			client->sentForce = true;
+			forceInbox_.push_back(std::move(force));
+		}
 		else if (type == MessageType::ChunkBatch) {
 			Received received;
 			if (!startSent_ || !decode(event.data.data(), event.data.size(), received.batch)
@@ -393,6 +403,16 @@ void Session::handleClient(const Event& event)
 			numPlayers_ = launch.numPlayers;
 			lobbyLaunch_ = launch;
 			launched_ = true;
+			break;
+		}
+		case MessageType::Force: {
+			Force force;
+			// the first word on each commander is the host's; there is no other
+			if (launched_ && !started_ && decode(event.data.data(), event.data.size(), force)
+				&& force.commander < numPlayers_ && !haveForce_[force.commander]) {
+				haveForce_[force.commander] = true;
+				forces_[force.commander] = std::move(force);
+			}
 			break;
 		}
 		case MessageType::Start: {
@@ -540,6 +560,45 @@ bool Session::sendToHost(Delivery delivery, const ChunkBatch& batch)
 {
 	return started_ && encode(batch, scratch_)
 		&& transport_.send(server_, delivery, scratch_.data(), scratch_.size());
+}
+
+bool Session::sendForce(const Force& force)
+{
+	if (!launched_ || !encode(force, scratch_))
+		return false;
+	if (isHost_) {
+		if (startSent_ || force.commander >= numPlayers_ || haveForce_[force.commander])
+			return false;
+		// what it says is what it holds, as a client holds what it hears
+		haveForce_[force.commander] = true;
+		forces_[force.commander] = force;
+		return sendAll(Delivery::ReliableOrdered, scratch_);
+	}
+	if (started_ || forceSent_ || force.commander != commander_)
+		return false;
+	// once sent it stands; one that could not be sent can be tried again
+	forceSent_ = transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
+	return forceSent_;
+}
+
+bool Session::nextForce(Force& out)
+{
+	if (forceInbox_.empty())
+		return false;
+	out = std::move(forceInbox_.front());
+	forceInbox_.pop_front();
+	return true;
+}
+
+bool Session::hasForce(uint8_t commander) const
+{
+	return commander < MAX_PLAYERS && haveForce_[commander];
+}
+
+const Force& Session::force(uint8_t commander) const
+{
+	static const Force none;
+	return hasForce(commander) ? forces_[commander] : none;
 }
 
 bool Session::nextBatch(Received& out)

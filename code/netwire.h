@@ -24,7 +24,7 @@ namespace netwire {
 // Raise on any change to a message's layout. Two things must never change, so
 // that a host can refuse a client of any version: Hello opens with the type byte
 // and the protocol (peekProtocol), and Welcome's layout stays as it is.
-constexpr uint16_t PROTOCOL_VERSION = 11;
+constexpr uint16_t PROTOCOL_VERSION = 12;
 
 constexpr size_t MAX_NAME_LENGTH = 31;
 constexpr size_t MAX_BATCH_CHUNKS = 1024;	// the largest game queue, MAX_WEAPONHIT_CHUNKS
@@ -43,7 +43,8 @@ enum class MessageType : uint8_t {
 	LanAnnounce = 8,
 	LobbyState = 9,
 	LobbyChoice = 10,
-	LobbyLaunch = 11
+	LobbyLaunch = 11,
+	Force = 12
 };
 
 enum class RejectReason : uint8_t {
@@ -204,7 +205,8 @@ enum LobbyFlags : uint16_t {
 	LOBBY_RESOURCE_BUILDINGS = 1u << 7,
 	LOBBY_RESOURCE_FOR_MECHS = 1u << 8,
 	LOBBY_UNLIMITED_AMMO = 1u << 9,
-	LOBBY_ALL_FLAGS = (1u << 10) - 1u
+	LOBBY_QUICKSTART = 1u << 10,	// the map's own units; without it each player chooses theirs (Force)
+	LOBBY_ALL_FLAGS = (1u << 11) - 1u
 };
 
 struct LobbyPlayer {
@@ -225,6 +227,8 @@ struct LobbyState {
 	int32_t timeLimit = NO_TIME_LIMIT;	// seconds
 	int32_t resourcePoints = 0;
 	uint16_t flags = 0;			// LobbyFlags
+	int32_t cBills = 0;			// what each player has to buy units with, when they choose them
+	int32_t dropWeight = 0;		// tons a player's units may weigh together; 0 for no limit
 	std::vector<LobbyPlayer> players;
 };
 
@@ -243,6 +247,25 @@ struct LobbyChoice {
 struct LobbyLaunch {
 	uint8_t numPlayers = 0;		// 1 to MAX_PLAYERS
 	uint8_t commanders[MAX_PLAYERS] = { NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER, NO_COMMANDER };
+};
+
+// The units a player chose, in a game without quickstart: a client sends its own once it has
+// launched from the mech bay, and the host sends everyone's, its own among them, once it has them
+// all. Each machine makes the units from its own data, so a unit is named, not described: a
+// designer variant by its chassis's file and its number there, and the pilot by file. These are
+// names to look up, never paths to open.
+constexpr size_t MAX_FORCE_UNITS = 12;		// the most a mech bay's force holds
+constexpr size_t MAX_FORCE_TEXT_LENGTH = 63;
+
+struct ForceUnit {
+	std::string chassis;		// LogisticsChassis::fileName
+	uint8_t variant = 0;		// LogisticsVariant::getFileID
+	std::string pilot;			// LogisticsPilot::getFileName
+};
+
+struct Force {
+	uint8_t commander = 0;		// below MAX_PLAYERS: from a client, its own (the host checks)
+	std::vector<ForceUnit> units;
 };
 
 // FNV-1a: fixed for good, as both ends of a game compare it. Run it on from one piece to the next.
@@ -303,6 +326,7 @@ bool encode(const LanAnnounce& message, std::vector<uint8_t>& out);
 bool encode(const LobbyState& message, std::vector<uint8_t>& out);
 bool encode(const LobbyChoice& message, std::vector<uint8_t>& out);
 bool encode(const LobbyLaunch& message, std::vector<uint8_t>& out);
+bool encode(const Force& message, std::vector<uint8_t>& out);
 
 // Each decoder returns false, and leaves message unusable, unless the whole of
 // data is one valid message of that type.
@@ -317,6 +341,7 @@ bool decode(const void* data, size_t size, LanAnnounce& message);
 bool decode(const void* data, size_t size, LobbyState& message);
 bool decode(const void* data, size_t size, LobbyChoice& message);
 bool decode(const void* data, size_t size, LobbyLaunch& message);
+bool decode(const void* data, size_t size, Force& message);
 
 }
 

@@ -588,7 +588,8 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 			break;
 
 		case MP_QUICKSTART:
-			// on for good until a game can have mech selection: its screens have no network yet
+			MPlayer->missionSettings.quickStart ^= 1;
+			MPParameterScreen::resetCheckBoxes();
 			break;
 
 		}
@@ -1155,15 +1156,13 @@ void MPParameterScreen::update()
 			
 		}
 		
-		// A game with the map's own units has no use for these until there is mech selection.
-		static const int unusedButtons[] = { MP_ALLTECH, MP_VARIANTS, MP_INCREMENT_DROPWEIGHT, MP_DECREMENT_DROPWEIGHT, MP_INCREMENT_CBILLS, MP_DECREMENT_CBILLS };
+		// Players buy designer variants from their faction's list: no mech lab changes or all tech yet.
+		static const int unusedButtons[] = { MP_ALLTECH, MP_VARIANTS };
 		for ( int i = 0; i < (int)(sizeof(unusedButtons) / sizeof(unusedButtons[0])); i++ )
 		{
 			if ( getButton( unusedButtons[i] ) )
 				getButton( unusedButtons[i] )->showGUIWindow( false );
 		}
-		edits[0].setReadOnly( true );
-		edits[1].setReadOnly( true );
 
 		int oldEditFocus = -1;
 		for ( int i = 0; i < editCount; i++ )

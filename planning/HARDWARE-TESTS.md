@@ -58,6 +58,14 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       options that do nothing yet are hidden, and is what is left tidy (labels with no controls)? The
       load screen while waiting for a slower machine; close the host in play: does the client get to
       the main menu with a message? A client with another version of a map: the message, and Ready off.
+- [ ] **Mech selection in a game from the main menu, by hand** (phase 4). As above, but the host
+      unticks Quickstart and sets the C-Bills (and the drop weight) before Launch. Each player then
+      goes through the briefing, buys mechs, puts them in the force, gives each a pilot and presses
+      Launch on the pilot screen, which waits for the other. Does each screen show the right C-Bills
+      and drop weight, can a client not change them, and does the first to launch see it waiting? In
+      the mission: are each side's mechs the ones bought, with the pilots given, in its colours, on
+      its side of the map? Two players who buy several mechs each: do they start apart, not on top
+      of each other? A test walks this with one mech each, by the screens' handlers.
 - [ ] **The same on a Quest, by controller** (phase 4). Whether the screens can be used at all.
       The Quest's multicast lock is still held for the app's whole life.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
