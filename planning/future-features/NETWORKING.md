@@ -660,18 +660,25 @@ In slices, as it is large: finding a game and the data check first, then the lob
   three cells apart, on ground a mech can stand on and well inside the map; a commander the map has no places for starts in its middle. The offsets are whole
   multiples of a spacing a float holds exactly, so every machine finds the same spots. Once the host has launched it cannot leave the pilot screen, so after
   five minutes it stops waiting: whoever has not chosen plays with no units, and a client that has heard nothing gives up on the host five minutes later.
-  `net_smoke --mechs` walks it, one Atlas each, on x64 desktop GL. Not yet: variants made in the mech lab and all tech (both still hidden), C-Bills set per
-  player, a check that a client bought from its faction's list, and any sign on the pilot screen of who is still choosing. The data hash does not cover the mech
-  and pilot files, so a client with other ones has its units refused, or made otherwise on its own screen, rather than being stopped in the lobby. Each run
+  `net_smoke --mechs` walks it, one Atlas each, on x64 desktop GL. Not yet: variants made in the mech lab and all tech (both still hidden), and a check
+  that a client bought from its faction's list. Each run
   of the test buys one mech a side, so the rings, a refused force and a player leaving while choosing are unit tested but not played.
-- **Off for now on the parameters screen:** locking a game, booting a player, adding an AI, and
-  chat, so a client has no sign that a launch is counting down. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
+- **Chat:** the 2001 chat window works on the lobby and logistics screens, and should in play, where no run has tried it (`netwire::Chat`, protocol 13). A client sends its line to the
+  host, which sends every line, its own among them, to everyone with who said it; nobody shows a line until it comes back, so all see the same order. A
+  team's line reaches every machine and only that team's shows it, so it is no secret from someone reading the traffic. What is typed is cut to 127
+  characters, and anything not printable ASCII, or a %, becomes a '?'. The 2001 code's own lines come with it: the pilot screen's "X is ready to launch."
+  says who has chosen, and the host's "about to start" and "launch aborted" say what a launch is doing. A line on its way as a launch renumbers everyone can
+  show under the other number's name. There is no limit on how often a client may send.
+- **C-Bills per player:** the host's spinners on a player's row give that player another amount (`LobbyPlayer::cBills`), and a new amount for everyone
+  replaces them all, as the 2001 screen did. The host checks each force against its own player's amount.
+- **Off for now on the parameters screen:** locking a game, booting a player and adding an AI. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
 - **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
   look on the units. A client with another copy of a map stops with a message naming it, which no run has reached, as a game directory's maps are in its FST.
 - **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.
 - **The data check:** `Hello` now carries a hash of the mission, `object2.pak` and `gamesys.fit`, where it had only the mission's name, so other
-  data is refused when joining. It does not cover the whole mod set, as the mission's art and scripts are not in it.
+  data is refused when joining. It also covers what the mech bay buys from, as `LogisticsData` reads it: `compbas.csv`, `pilots.csv` and each pilot's
+  file, and `buildings.csv` and each mech's sheet. It does not cover the whole mod set, as the mission's art and scripts are not in it.
 
 ### On a Quest 2 (2026-11-05)
 

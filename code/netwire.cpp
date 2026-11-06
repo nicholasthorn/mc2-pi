@@ -82,15 +82,19 @@ namespace {
 // The name goes into the game's chat and player lists, which are 2001 code with
 // signed char: printable ASCII only, and no % in case one reaches a format string.
 // The same goes for any text a message carries, at its own length.
+bool carriable(char c)
+{
+	const uint8_t b = static_cast<uint8_t>(c);
+	return b >= 0x20u && b <= 0x7Eu && b != '%';
+}
+
 bool validName(const std::string& name, size_t maxLength = MAX_NAME_LENGTH)
 {
 	if (name.size() > maxLength)
 		return false;
-	for (char c : name) {
-		const uint8_t b = static_cast<uint8_t>(c);
-		if (b < 0x20u || b > 0x7Eu || b == '%')
+	for (char c : name)
+		if (!carriable(c))
 			return false;
-	}
 	return true;
 }
 
@@ -188,7 +192,7 @@ bool peekType(const void* data, size_t size, MessageType& type)
 	if (size < 1)
 		return false;
 	const uint8_t t = *static_cast<const uint8_t*>(data);
-	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::Force))
+	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::Chat))
 		return false;
 	type = static_cast<MessageType>(t);
 	return true;
@@ -326,7 +330,8 @@ static bool validLobbyState(const LobbyState& m)
 	bool slotTaken[MAX_PLAYERS] = {};
 	for (const LobbyPlayer& player : m.players) {
 		if (player.slot >= MAX_PLAYERS || slotTaken[player.slot] || !validName(player.name)
-			|| player.team >= MAX_PLAYERS || player.baseColor >= MAX_LOBBY_COLORS || player.stripeColor >= MAX_LOBBY_COLORS)
+			|| player.team >= MAX_PLAYERS || player.baseColor >= MAX_LOBBY_COLORS || player.stripeColor >= MAX_LOBBY_COLORS
+			|| player.cBills < 0)
 			return false;
 		slotTaken[player.slot] = true;
 	}
@@ -359,6 +364,7 @@ bool encode(const LobbyState& m, std::vector<uint8_t>& out)
 		w.u8(player.baseColor);
 		w.u8(player.stripeColor);
 		w.u8(player.ready ? 1 : 0);
+		w.u32(static_cast<uint32_t>(player.cBills));
 	}
 	return true;
 }
@@ -393,6 +399,7 @@ bool decode(const void* data, size_t size, LobbyState& m)
 		player.baseColor = in.u8();
 		player.stripeColor = in.u8();
 		const uint8_t ready = in.u8();
+		player.cBills = static_cast<int32_t>(in.u32());
 		if (!in.ok() || ready > 1)
 			return false;
 		player.ready = (ready != 0);
@@ -542,6 +549,50 @@ bool decode(const void* data, size_t size, Force& m)
 		m.units.push_back(std::move(unit));
 	}
 	return in.finished() && validForce(m);
+}
+
+static bool validChat(const Chat& m)
+{
+	return m.from < MAX_PLAYERS && (m.team < MAX_PLAYERS || m.team == CHAT_EVERYONE)
+		&& (m.flags & ~CHAT_ABOUT_PLAYER) == 0 && !m.text.empty() && validName(m.text, MAX_CHAT_TEXT_LENGTH);
+}
+
+bool encode(const Chat& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (!validChat(m))
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::Chat));
+	w.u8(m.from);
+	w.u8(m.team);
+	w.u8(m.flags);
+	w.u8(static_cast<uint8_t>(m.text.size()));
+	w.bytes(m.text.data(), m.text.size());
+	return true;
+}
+
+bool decode(const void* data, size_t size, Chat& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::Chat))
+		return false;
+	m.from = in.u8();
+	m.team = in.u8();
+	m.flags = in.u8();
+	if (!readShortText(in, m.text, MAX_CHAT_TEXT_LENGTH))
+		return false;
+	return in.finished() && validChat(m);
+}
+
+std::string chatText(const char* typed)
+{
+	std::string text;
+	for (; typed && *typed && text.size() < MAX_CHAT_TEXT_LENGTH; typed++)
+		text += carriable(*typed) ? *typed : '?';
+	return text;
 }
 
 bool encode(const Hello& m, std::vector<uint8_t>& out)

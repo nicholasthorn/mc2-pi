@@ -49,6 +49,9 @@ struct LobbyEvent {
 // best, players level share a rank, and the next rank skips past them.
 void rankPlayers(const long* standings, int count, long* ranks);
 
+// the most chat lines that wait to be shown (Session::nextChat)
+constexpr size_t MAX_CHAT_INBOX = 64;
+
 class Session {
 public:
 	explicit Session(gos_net::Transport& transport) : transport_(transport) {}
@@ -121,6 +124,13 @@ public:
 	bool hasForce(uint8_t commander) const;
 	const netwire::Force& force(uint8_t commander) const;
 
+	// Chat, at either end, from joining on. A host sends each line, its own and its clients',
+	// to everyone with who it came from, and keeps it to show; a client shows only what comes
+	// back. from is put in by the host, whatever a client says. The oldest lines go when more
+	// than MAX_CHAT_INBOX wait.
+	bool sendChat(netwire::Chat chat);
+	bool nextChat(netwire::Chat& out);
+
 	// either: the other end is gone (client), and a game over was announced
 	bool hostLost() const { return hostLost_; }
 	bool gameOver() const { return gameOver_; }
@@ -148,6 +158,8 @@ private:
 	void judgeReady(gos_net::ConnectionId connection);
 	Client* findClient(gos_net::ConnectionId connection);
 	bool sendAll(gos_net::Delivery delivery, const std::vector<uint8_t>& message);
+	void keepChat(netwire::Chat chat);
+	bool relayChat(netwire::Chat chat, uint8_t from);
 
 	gos_net::Transport& transport_;
 	bool isHost_ = false;
@@ -182,6 +194,7 @@ private:
 	bool gameOver_ = false;
 	uint8_t winningTeam_ = netwire::NO_WINNER;
 	std::deque<Received> inbox_;
+	std::deque<netwire::Chat> chatInbox_;
 	std::vector<uint8_t> scratch_;
 };
 

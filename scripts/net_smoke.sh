@@ -267,6 +267,9 @@ if [ "$LOBBY" = 1 ]; then
             reasons+=("host and client made other units ($LOG_DIR/force.diff)")
         fi
         grep -q 'sent units this game does not allow' "$LOG_DIR/host.log" && reasons+=("the host refused a client's units")
+        # each said so on the pilot screen, and the other saw it in its chat
+        grep -q '^\[NETCHAT\] commander 1: WalkClient is ready to launch' "$LOG_DIR/host.log" || reasons+=("the client's ready line did not reach the host's chat")
+        grep -q '^\[NETCHAT\] commander 0: WalkHost is ready to launch' "$LOG_DIR/client.log" || reasons+=("the host's ready line did not reach the client's chat")
     fi
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then

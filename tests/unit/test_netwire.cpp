@@ -412,6 +412,97 @@ TEST_CASE("ChunkBatch: a count that disagrees with the size is refused")
 	CHECK_FALSE(decode(badKind, sizeof(badKind), back));
 }
 
+TEST_CASE("Chat: exact bytes and round trip")
+{
+	Chat chat;
+	chat.from = 3;
+	chat.team = 1;
+	chat.flags = CHAT_ABOUT_PLAYER;
+	chat.text = "Hi";
+	std::vector<uint8_t> out;
+	REQUIRE(encode(chat, out));
+	const std::vector<uint8_t> expected = { 13, 3, 1, 1, 2, 'H', 'i' };
+	CHECK(out == expected);
+	Chat back;
+	REQUIRE(decode(out.data(), out.size(), back));
+	CHECK(back.from == 3);
+	CHECK(back.team == 1);
+	CHECK(back.flags == CHAT_ABOUT_PLAYER);
+	CHECK(back.text == "Hi");
+
+	// to everyone, at the longest
+	chat.team = CHAT_EVERYONE;
+	chat.flags = 0;
+	chat.text = std::string(MAX_CHAT_TEXT_LENGTH, 'x');
+	REQUIRE(encode(chat, out));
+	REQUIRE(decode(out.data(), out.size(), back));
+	CHECK(back.team == CHAT_EVERYONE);
+	CHECK(back.text.size() == MAX_CHAT_TEXT_LENGTH);
+}
+
+TEST_CASE("Chat: what no game sends is refused")
+{
+	Chat good;
+	good.text = "gg";
+	std::vector<uint8_t> out;
+	REQUIRE(encode(good, out));
+
+	Chat chat = good;
+	chat.text.clear();
+	CHECK_FALSE(encode(chat, out));
+	chat = good;
+	chat.text = std::string(MAX_CHAT_TEXT_LENGTH + 1, 'x');
+	CHECK_FALSE(encode(chat, out));
+	chat = good;
+	chat.text = "100%";		// it reaches 2001 code that may take it for a format
+	CHECK_FALSE(encode(chat, out));
+	chat = good;
+	chat.text = "tab\there";
+	CHECK_FALSE(encode(chat, out));
+	chat = good;
+	chat.from = MAX_PLAYERS;
+	CHECK_FALSE(encode(chat, out));
+	chat = good;
+	chat.team = MAX_PLAYERS;
+	CHECK_FALSE(encode(chat, out));
+	chat = good;
+	chat.flags = 2;
+	CHECK_FALSE(encode(chat, out));
+
+	// and the same, from the network
+	REQUIRE(encode(good, out));
+	Chat back;
+	std::vector<uint8_t> bad = out;
+	bad[1] = MAX_PLAYERS;
+	CHECK_FALSE(decode(bad.data(), bad.size(), back));
+	bad = out;
+	bad[5] = '%';
+	CHECK_FALSE(decode(bad.data(), bad.size(), back));
+	bad = out;
+	bad[4] = 0;		// no text
+	bad.resize(5);
+	CHECK_FALSE(decode(bad.data(), bad.size(), back));
+	for (size_t n = 0; n < out.size(); n++)
+		CHECK_FALSE(decode(out.data(), n, back));
+	out.push_back('x');
+	CHECK_FALSE(decode(out.data(), out.size(), back));
+}
+
+TEST_CASE("chatText: what was typed, as a line a Chat can carry")
+{
+	CHECK(chatText("Hello there") == "Hello there");
+	CHECK(chatText("100% sure\tnow") == "100? sure?now");
+	CHECK(chatText("caf\xc3\xa9") == "caf??");
+	CHECK(chatText("") == "");
+	CHECK(chatText(nullptr) == "");
+	const std::string longer(MAX_CHAT_TEXT_LENGTH + 40, 'y');
+	CHECK(chatText(longer.c_str()) == std::string(MAX_CHAT_TEXT_LENGTH, 'y'));
+	Chat chat;
+	chat.text = chatText("50% off \x01\x7f");
+	std::vector<uint8_t> out;
+	CHECK(encode(chat, out));
+}
+
 TEST_CASE("a message of the wrong type is refused")
 {
 	std::vector<uint8_t> out;
@@ -487,6 +578,7 @@ static void decodeAll(const std::vector<uint8_t>& bytes)
 	decodeAndCheck<Ready>(bytes);
 	decodeAndCheck<Start>(bytes);
 	decodeAndCheck<EndGame>(bytes);
+	decodeAndCheck<Chat>(bytes);
 }
 
 TEST_CASE("garbage never crashes a decoder")
@@ -500,7 +592,7 @@ TEST_CASE("garbage never crashes a decoder")
 			b = static_cast<uint8_t>(nextRandom(seed));
 		// a valid type byte half the time, to get past the first check
 		if (!bytes.empty() && (nextRandom(seed) & 1u))
-			bytes[0] = static_cast<uint8_t>(1u + nextRandom(seed) % 6u);
+			bytes[0] = static_cast<uint8_t>(1u + nextRandom(seed) % static_cast<uint32_t>(MessageType::Chat));
 		decodeAll(bytes);
 	}
 }
@@ -516,11 +608,16 @@ TEST_CASE("damaged valid messages never crash a decoder")
 	Welcome w;
 	w.numPlayers = 8;
 	w.commanderId = 7;
+	Chat c;
+	c.from = 2;
+	c.team = 1;
+	c.text = "Over the ridge, now";
 
-	std::vector<std::vector<uint8_t>> valid(3);
+	std::vector<std::vector<uint8_t>> valid(4);
 	REQUIRE(encode(h, valid[0]));
 	REQUIRE(encode(b, valid[1]));
 	REQUIRE(encode(w, valid[2]));
+	REQUIRE(encode(c, valid[3]));
 
 	uint32_t seed = 777u;
 	for (int i = 0; i < 20000; i++) {
