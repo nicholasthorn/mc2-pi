@@ -119,18 +119,22 @@ bool Lobby::setMap(const std::string& map, uint32_t mapHash, uint8_t maxTeams)
 	return true;
 }
 
-bool Lobby::setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags)
+bool Lobby::setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags, int32_t cBills, int32_t dropWeight)
 {
 	LobbyState trial = state_;
 	trial.timeLimit = timeLimit;
 	trial.resourcePoints = resourcePoints;
 	trial.flags = flags;
+	trial.cBills = cBills;
+	trial.dropWeight = dropWeight;
 	std::vector<uint8_t> out;
 	if (!encode(trial, out))
 		return false;
 	state_.timeLimit = timeLimit;
 	state_.resourcePoints = resourcePoints;
 	state_.flags = flags;
+	state_.cBills = cBills;
+	state_.dropWeight = dropWeight;
 	clearReady();
 	changed();
 	readyFrom_ = state_.revision;

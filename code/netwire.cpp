@@ -187,7 +187,7 @@ bool peekType(const void* data, size_t size, MessageType& type)
 	if (size < 1)
 		return false;
 	const uint8_t t = *static_cast<const uint8_t*>(data);
-	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::LobbyLaunch))
+	if (t < static_cast<uint8_t>(MessageType::Hello) || t > static_cast<uint8_t>(MessageType::Force))
 		return false;
 	type = static_cast<MessageType>(t);
 	return true;
@@ -319,7 +319,8 @@ bool decode(const void* data, size_t size, LanAnnounce& m)
 static bool validLobbyState(const LobbyState& m)
 {
 	if (m.maxPlayers < 1 || m.maxPlayers > MAX_PLAYERS || m.players.size() > m.maxPlayers
-		|| !validMapName(m.map) || m.timeLimit < NO_TIME_LIMIT || m.resourcePoints < 0 || (m.flags & ~LOBBY_ALL_FLAGS) != 0)
+		|| !validMapName(m.map) || m.timeLimit < NO_TIME_LIMIT || m.resourcePoints < 0 || (m.flags & ~LOBBY_ALL_FLAGS) != 0
+		|| m.cBills < 0 || m.dropWeight < 0)
 		return false;
 	bool slotTaken[MAX_PLAYERS] = {};
 	for (const LobbyPlayer& player : m.players) {
@@ -346,6 +347,8 @@ bool encode(const LobbyState& m, std::vector<uint8_t>& out)
 	w.u32(static_cast<uint32_t>(m.timeLimit));
 	w.u32(static_cast<uint32_t>(m.resourcePoints));
 	w.u16(m.flags);
+	w.u32(static_cast<uint32_t>(m.cBills));
+	w.u32(static_cast<uint32_t>(m.dropWeight));
 	w.u8(static_cast<uint8_t>(m.players.size()));
 	for (const LobbyPlayer& player : m.players) {
 		w.u8(player.slot);
@@ -374,6 +377,8 @@ bool decode(const void* data, size_t size, LobbyState& m)
 	m.timeLimit = static_cast<int32_t>(in.u32());
 	m.resourcePoints = static_cast<int32_t>(in.u32());
 	m.flags = in.u16();
+	m.cBills = static_cast<int32_t>(in.u32());
+	m.dropWeight = static_cast<int32_t>(in.u32());
 	const size_t count = in.u8();
 	if (!in.ok() || count > MAX_PLAYERS)
 		return false;
@@ -477,6 +482,81 @@ bool decode(const void* data, size_t size, LobbyLaunch& m)
 	if (!in.bytes(m.commanders, MAX_PLAYERS))
 		return false;
 	return in.finished() && validLobbyLaunch(m);
+}
+
+// A name to look up in the data: as validName, longer, and never empty.
+static bool validForceText(const std::string& text)
+{
+	if (text.empty() || text.size() > MAX_FORCE_TEXT_LENGTH)
+		return false;
+	for (char c : text) {
+		const uint8_t b = static_cast<uint8_t>(c);
+		if (b < 0x20u || b > 0x7Eu || b == '%')
+			return false;
+	}
+	return true;
+}
+
+static bool validForce(const Force& m)
+{
+	if (m.commander >= MAX_PLAYERS || m.units.size() > MAX_FORCE_UNITS)
+		return false;
+	for (const ForceUnit& unit : m.units)
+		if (!validForceText(unit.chassis) || !validForceText(unit.pilot))
+			return false;
+	return true;
+}
+
+static bool readForceText(Reader& in, std::string& text)
+{
+	const size_t length = in.u8();
+	if (!in.ok() || length == 0 || length > MAX_FORCE_TEXT_LENGTH || length > in.remaining())
+		return false;
+	text.resize(length);
+	return in.bytes(&text[0], length);
+}
+
+bool encode(const Force& m, std::vector<uint8_t>& out)
+{
+	out.clear();
+	if (!validForce(m))
+		return false;
+	Writer w(out);
+	w.u8(static_cast<uint8_t>(MessageType::Force));
+	w.u8(m.commander);
+	w.u8(static_cast<uint8_t>(m.units.size()));
+	for (const ForceUnit& unit : m.units) {
+		w.u8(static_cast<uint8_t>(unit.chassis.size()));
+		w.bytes(unit.chassis.data(), unit.chassis.size());
+		w.u8(unit.variant);
+		w.u8(static_cast<uint8_t>(unit.pilot.size()));
+		w.bytes(unit.pilot.data(), unit.pilot.size());
+	}
+	return true;
+}
+
+bool decode(const void* data, size_t size, Force& m)
+{
+	if (size > MAX_MESSAGE_SIZE)
+		return false;
+	Reader in(data, size);
+	if (!expectType(in, MessageType::Force))
+		return false;
+	m.commander = in.u8();
+	const size_t count = in.u8();
+	if (!in.ok() || count > MAX_FORCE_UNITS)
+		return false;
+	m.units.clear();
+	for (size_t i = 0; i < count; i++) {
+		ForceUnit unit;
+		if (!readForceText(in, unit.chassis))
+			return false;
+		unit.variant = in.u8();
+		if (!readForceText(in, unit.pilot))
+			return false;
+		m.units.push_back(std::move(unit));
+	}
+	return in.finished() && validForce(m);
 }
 
 bool encode(const Hello& m, std::vector<uint8_t>& out)

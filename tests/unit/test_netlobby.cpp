@@ -289,7 +289,7 @@ TEST_CASE("Lobby: commanders run from 0 with no gaps, whoever left")
 TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 {
 	Lobby lobby = twoPlayers();
-	lobby.setSettings(600, 3000, LOBBY_AIRSTRIKE | LOBBY_MINELAYER);
+	lobby.setSettings(600, 3000, LOBBY_AIRSTRIKE | LOBBY_MINELAYER | LOBBY_QUICKSTART, 250000, 180);
 	std::vector<uint8_t> out;
 	REQUIRE(encode(lobby.state(), out));
 	LobbyState state;
@@ -300,7 +300,9 @@ TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 	CHECK(state.mapHash == MAP_HASH);
 	CHECK(state.timeLimit == 600);
 	CHECK(state.resourcePoints == 3000);
-	CHECK(state.flags == (LOBBY_AIRSTRIKE | LOBBY_MINELAYER));
+	CHECK(state.flags == (LOBBY_AIRSTRIKE | LOBBY_MINELAYER | LOBBY_QUICKSTART));
+	CHECK(state.cBills == 250000);
+	CHECK(state.dropWeight == 180);
 	REQUIRE(state.players.size() == 2);
 	CHECK(state.players[1].slot == 1);
 	CHECK(state.players[1].name == "Ace");
@@ -378,6 +380,15 @@ TEST_CASE("Lobby messages: what no game sends is refused, whole or cut short")
 	CHECK_FALSE(encode(state, out));
 	state = good;
 	state.resourcePoints = -1;
+	CHECK_FALSE(encode(state, out));
+	state = good;
+	state.cBills = -1;
+	CHECK_FALSE(encode(state, out));
+	state = good;
+	state.dropWeight = -1;
+	CHECK_FALSE(encode(state, out));
+	state = good;
+	state.flags = LOBBY_ALL_FLAGS + 1u;
 	CHECK_FALSE(encode(state, out));
 	state = good;
 	state.maxPlayers = 1;	// fewer than are in it
@@ -787,6 +798,136 @@ TEST_CASE("Without a lobby, lobby messages are not a thing a client may send")
 		client.update();
 	}
 	CHECK(host.connectedClients() == 0);
+}
+
+namespace {
+
+Force forceOf(uint8_t commander, const char* pilot)
+{
+	Force force;
+	force.commander = commander;
+	ForceUnit unit;
+	unit.chassis = "data\\objects\\atlas.csv";
+	unit.pilot = pilot;
+	force.units.push_back(unit);
+	return force;
+}
+
+// a lobby of the host and two clients, launched
+void launchThree(LobbyGame& game)
+{
+	game.sayState({ 0, 1, 2 });
+	LobbyLaunch launch;
+	launch.numPlayers = 3;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	launch.commanders[2] = 2;
+	REQUIRE(game.host.launch(launch));
+	game.pump();
+}
+
+}
+
+TEST_CASE("Forces: each client sends its own, and the host tells everyone everyone's")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	netsession::Session& bo = game.addClient("Bo");
+	Force out;
+	CHECK_FALSE(ace.sendForce(forceOf(1, "pmw00031")));	// not before the launch
+	launchThree(game);
+	REQUIRE(ace.launched());
+
+	REQUIRE(ace.sendForce(forceOf(1, "pmw00031")));
+	CHECK_FALSE(ace.sendForce(forceOf(1, "pmw00031")));	// once
+	CHECK_FALSE(bo.sendForce(forceOf(1, "pmw00032")));	// not another's
+	REQUIRE(bo.sendForce(forceOf(2, "pmw00032")));
+	game.pump();
+	REQUIRE(game.host.nextForce(out));
+	CHECK(out.commander == 1);
+	CHECK(out.units[0].pilot == "pmw00031");
+	REQUIRE(game.host.nextForce(out));
+	CHECK(out.commander == 2);
+	CHECK_FALSE(game.host.nextForce(out));
+
+	CHECK_FALSE(ace.hasForce(0));
+	REQUIRE(game.host.sendForce(forceOf(0, "pmw00040")));
+	REQUIRE(game.host.sendForce(forceOf(1, "pmw00031")));
+	REQUIRE(game.host.sendForce(forceOf(2, "pmw00032")));
+	game.pump();
+	for (netsession::Session* client : { &ace, &bo }) {
+		REQUIRE(client->hasForce(0));
+		REQUIRE(client->hasForce(2));
+		CHECK(client->force(0).units[0].pilot == "pmw00040");
+		CHECK(client->force(1).units[0].pilot == "pmw00031");
+		CHECK_FALSE(client->hasForce(3));
+		CHECK(client->force(3).units.empty());
+	}
+
+	// the host's first word stands
+	REQUIRE(game.host.sendForce(forceOf(0, "pmw00099")));
+	game.pump();
+	CHECK(ace.force(0).units[0].pilot == "pmw00040");
+
+	// and none after the start
+	game.host.setRosterHash(0x77u);
+	REQUIRE(ace.sendReady(0x77u));
+	REQUIRE(bo.sendReady(0x77u));
+	game.pump();
+	REQUIRE(game.host.start());
+	CHECK_FALSE(game.host.sendForce(forceOf(0, "pmw00040")));
+}
+
+TEST_CASE("Forces: a client that sends another's, or a second, by its own socket is dropped")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	netsession::Session& bo = game.addClient("Bo");
+	launchThree(game);
+	REQUIRE(bo.launched());
+
+	std::vector<uint8_t> bytes;
+	REQUIRE(encode(forceOf(2, "pmw00031"), bytes));	// Bo's, from Ace
+	REQUIRE(game.transports[0]->send(ace.serverConnection(), gos_net::Delivery::ReliableOrdered, bytes.data(), bytes.size()));
+	game.pump();
+	CHECK_FALSE(game.host.clientConnected(1));
+	CHECK(game.host.clientConnected(2));
+
+	REQUIRE(bo.sendForce(forceOf(2, "pmw00032")));
+	game.pump();
+	REQUIRE(game.transports[1]->send(bo.serverConnection(), gos_net::Delivery::ReliableOrdered, bytes.data(), bytes.size()));
+	game.pump();
+	CHECK_FALSE(game.host.clientConnected(2));
+	Force out;
+	REQUIRE(game.host.nextForce(out));	// the first was taken
+	CHECK(out.commander == 2);
+}
+
+TEST_CASE("Forces: a client cannot send one before a launch, or speak for the host")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	std::vector<uint8_t> bytes;
+	REQUIRE(encode(forceOf(1, "pmw00031"), bytes));
+	REQUIRE(game.transports[0]->send(ace.serverConnection(), gos_net::Delivery::ReliableOrdered, bytes.data(), bytes.size()));
+	game.pump();
+	CHECK(game.host.connectedClients() == 0);
+
+	// and a host's force for a commander past the game is not taken
+	LobbyGame other;
+	netsession::Session& bo = other.addClient("Bo");
+	other.sayState({ 0, 1 });
+	LobbyLaunch launch;
+	launch.numPlayers = 2;
+	launch.commanders[0] = 0;
+	launch.commanders[1] = 1;
+	REQUIRE(other.host.launch(launch));
+	other.pump();
+	CHECK_FALSE(other.host.sendForce(forceOf(2, "pmw00031")));
+	REQUIRE(encode(forceOf(5, "pmw00031"), bytes));
+	REQUIRE(other.hostTransport->send(bo.serverConnection(), gos_net::Delivery::ReliableOrdered, bytes.data(), bytes.size()));
+	other.pump();
+	CHECK_FALSE(bo.hasForce(5));
 }
 
 TEST_CASE("A lobby-less game plays as it did: no events pile up")

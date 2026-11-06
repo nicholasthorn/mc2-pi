@@ -111,6 +111,15 @@ public:
 	gos_net::ConnectionId serverConnection() const { return server_; }
 	bool sendToHost(gos_net::Delivery delivery, const netwire::ChunkBatch& batch);
 
+	// The units each player chose, between a launch and the start, in a game without quickstart.
+	// A client sends its own once, for its commander in the game; the host takes each with
+	// nextForce, judges it, and sends every player's, its own among them. A client that sends
+	// another's, a second, or one outside that time is dropped.
+	bool sendForce(const netwire::Force& force);
+	bool nextForce(netwire::Force& out);	// host
+	bool hasForce(uint8_t commander) const;	// client: the host's word on that commander's units
+	const netwire::Force& force(uint8_t commander) const;
+
 	// either: the other end is gone (client), and a game over was announced
 	bool hostLost() const { return hostLost_; }
 	bool gameOver() const { return gameOver_; }
@@ -124,6 +133,7 @@ private:
 		bool hello = false;
 		bool ready = false;
 		bool sentReady = false;		// and its hash, until the host has its own to compare
+		bool sentForce = false;
 		uint32_t rosterHash = 0;
 		uint8_t commander = 0;
 	};
@@ -154,6 +164,10 @@ private:
 	netwire::LobbyState lobbyState_;		// client
 	bool hasLobbyState_ = false;
 	netwire::LobbyLaunch lobbyLaunch_;
+	std::deque<netwire::Force> forceInbox_;	// host
+	bool forceSent_ = false;				// client
+	bool haveForce_[netwire::MAX_PLAYERS] = {};
+	netwire::Force forces_[netwire::MAX_PLAYERS];
 
 	gos_net::ConnectionId server_ = gos_net::INVALID_CONNECTION;	// client
 	std::string name_;

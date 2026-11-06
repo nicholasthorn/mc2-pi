@@ -38,7 +38,7 @@ public:
 	// nothing changed, for what a state could not carry to the clients. A map says how many
 	// teams it takes: whoever is on a team past that goes to its last.
 	bool setMap(const std::string& map, uint32_t mapHash, uint8_t maxTeams = netwire::MAX_PLAYERS);
-	bool setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags);
+	bool setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flags, int32_t cBills = 0, int32_t dropWeight = 0);
 
 	// The host's own place needs no ready: starting is its say. If not, why not.
 	bool canStart(std::string* why = nullptr) const;
