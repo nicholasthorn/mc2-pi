@@ -167,8 +167,10 @@ and run tests:
 
 Details in `.claude/rules/agent-workflow.md`. In short:
 
-- **One worktree per session or feature**, off the latest `pi-port`, with its
-  own build directories.
+- **Two permanent worktrees per session**, `../mc2-wt<N>a` and `b`, claimed
+  with `git worktree lock` and kept with their build directories. Each new
+  branch starts off the latest `pi-port` inside a free one, so builds stay
+  incremental.
 - **Every commit:** `scripts/check.sh --build-dir <dir>`: incremental build,
   unit tests, shader validation, cppcheck on changed files, diff hygiene.
 - **Every 3 to 5 commits:** push to a draft PR (opened after the first

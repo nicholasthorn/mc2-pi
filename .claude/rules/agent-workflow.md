@@ -5,21 +5,44 @@ on GitHub CI, through a draft PR opened early. The goal is fast commits
 without letting untested or tangled code pile up, and without several
 sessions queueing for the same WSL CPUs to repeat what CI does anyway.
 
-## Setup: one worktree per session or feature
+## Setup: two permanent worktrees per session
 
-- Start each session or feature in its own worktree off the latest `pi-port`:
-  `git fetch pi && git worktree add ../mc2-<name> -b <name> pi/pi-port`.
-- Build in directories that belong to that worktree only, one per renderer
-  (e.g. `~/build-<name>-gl`, `~/build-<name>-gles` on Linux / WSL), configured
-  once with `cmake -S ../mc2-<name> -B ~/build-<name>-gles -G Ninja
+A new worktree means a new build directory, and so a build from scratch:
+about 11 minutes on Windows, half of it the network libraries. Worktrees are
+therefore kept and reused. Each session works in a pair of permanent
+worktrees, and a new branch goes inside a free one, where the build then
+recompiles only what differs from that worktree's last branch.
+
+- **Pairs.** The worktrees are `../mc2-wt<N>a` and `../mc2-wt<N>b`. Each keeps
+  its own build directories for good, one per renderer: `build64` inside it
+  on Windows, `~/build-wt<N>a-gl` and `~/build-wt<N>a-gles` on Linux / WSL,
+  configured once with `cmake -S ../mc2-wt<N>a -B ~/build-wt<N>a-gles -G Ninja
   -DCMAKE_BUILD_TYPE=RelWithDebInfo -DMC2_GLES=ON` (`=OFF` for desktop GL).
+- **Claim a pair when the session starts.** `git worktree list` shows which
+  worktrees are locked. Take the lowest `N` whose two worktrees are both
+  unlocked, and lock them with the session's name:
+  `git worktree lock --reason "<session>" ../mc2-wt<N>a` (and `b`). If every
+  pair is locked, add a new one with
+  `git worktree add --detach ../mc2-wt<N>a pi/pi-port` (and `b`) and configure
+  its build directories; only its first build is a full one.
+- **A new branch goes in a free worktree of the pair.** Free means no
+  uncommitted changes and its branch pushed or landed:
+  `git -C ../mc2-wt<N>a fetch pi && git -C ../mc2-wt<N>a switch -c <name> pi/pi-port`.
+  Two worktrees let a session start the next branch while the last one waits
+  on CI or review.
 - On Windows + WSL: a worktree made by Windows git stores a `C:/` path that
   WSL's git cannot follow. `scripts/check.sh` falls back to Windows `git.exe`
   through interop; git 2.48+ on both sides with
   `git config worktree.useRelativePaths true` avoids the problem.
-- Never edit, build or run in a worktree or build directory another session
-  is using. The main checkout is the user's.
-- When the branch has landed: `git worktree remove ../mc2-<name>`.
+- Never edit, build or run in a worktree or build directory locked by another
+  session. The main checkout is the user's. A lock whose session has ended is
+  cleared by the user, not by another session.
+- **When the session ends:** leave both worktrees clean (work is committed and
+  pushed, or dropped only with the user's say-so), detach them with
+  `git switch --detach pi/pi-port` so they hold no branch, and
+  `git worktree unlock` both. Do not remove them.
+- When a branch has landed, delete it locally (`git branch -d <name>`) once no
+  worktree has it checked out.
 - WSL is one machine shared by every session: same `/tmp`, same process
   list, same CPUs. To wait for your own command, run it in the background
   and wait for that process; never poll with `pgrep -f smoke.sh` or similar,
