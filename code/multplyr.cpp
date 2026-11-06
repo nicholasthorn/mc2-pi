@@ -434,7 +434,9 @@ static double netStartGiveUp = 0.0;
 // it waits for them all. Once sent, both ends read them from netSession.
 static netwire::Force netForces[MAX_MC_PLAYERS];
 static bool netHaveForce[MAX_MC_PLAYERS] = {false};
+static bool netOwnForceChosen = false;	// this player has pressed Launch on the pilot screen
 static bool netOwnForceSent = false;
+static double netForcesGiveUp = 0.0;	// past this, nobody who has not chosen is waited for
 static_assert(netforce::LOGISTICS_UNITS == MAX_MULTIPLAYER_MECHS_IN_LOGISTICS, "the host checks what the mech bay allows");
 
 static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, long a, long b, unsigned long value);
@@ -1124,6 +1126,7 @@ static void netLobbyLaunched (MultiPlayer* player, const netwire::LobbyState& st
 		netForces[i] = netwire::Force();
 		netHaveForce[i] = false;
 	}
+	netOwnForceChosen = false;
 	netOwnForceSent = false;
 }
 
@@ -1306,6 +1309,14 @@ static netwire::Force netOwnForce (long commander) {
 		unit.chassis = (const char*)(*iter)->getFileName();
 		unit.variant = (uint8_t)(*iter)->getVariant()->getFileID();
 		unit.pilot = (const char*)(*iter)->getPilot()->getFileName();
+		// a name a message cannot carry would leave the whole force unsent, and everyone waiting
+		netwire::Force trial;
+		trial.units.push_back(unit);
+		std::vector<uint8_t> out;
+		if (!netwire::encode(trial, out)) {
+			printf("[NETFORCE] leaving out %s: its name cannot be sent\n", unit.chassis.c_str());
+			continue;
+		}
 		force.units.push_back(unit);
 	}
 	return(force);
@@ -1325,17 +1336,21 @@ static void netSendOwnForce (MultiPlayer* player) {
 
 	if (!netSession || netOwnForceSent || player->missionSettings.quickStart)
 		return;
-	netOwnForceSent = true;
+	if (!netOwnForceChosen) {
+		netOwnForceChosen = true;
+		netForcesGiveUp = netNow() + NET_WAIT_SECONDS;
+	}
 	const netwire::Force force = netOwnForce(player->commanderID);
-	netLogForce("chose, for", force);
 	if (player->isHost()) {
 		netForces[force.commander] = force;
 		netHaveForce[force.commander] = true;
+		netOwnForceSent = true;
 	}
-	else if (!netSession->sendForce(force)) {
-		printf("[NET] could not send this player's units\n");
-		fflush(stdout);
-	}
+	else
+		netOwnForceSent = netSession->sendForce(force);
+	// one that could not go yet is tried again each frame (MultiPlayer::playersReadyToLoad)
+	if (netOwnForceSent)
+		netLogForce("chose, for", force);
 }
 
 // True once every player's units are known here: on the host, when it has heard from everyone
@@ -1352,8 +1367,15 @@ static bool netForcesReady (MultiPlayer* player) {
 			return(false);
 		}
 		for (long i = 0; i < players; i++)
-			if (!netSession->hasForce((uint8_t)i))
+			if (!netSession->hasForce((uint8_t)i)) {
+				// the host gives up on others before this, so a host that has not said by now never will
+				if (netNow() > netForcesGiveUp + NET_WAIT_SECONDS) {
+					printf("[NET] the host never sent everyone's units\n");
+					fflush(stdout);
+					player->hostLeft = true;
+				}
 				return(false);
+			}
 		return(true);
 	}
 	// the host's own goes out last of all, with everyone's
@@ -1376,9 +1398,15 @@ static bool netForcesReady (MultiPlayer* player) {
 		netForces[force.commander] = force;
 		netHaveForce[force.commander] = true;
 	}
+	// The host cannot leave the pilot screen once it has launched, so someone who never does is
+	// not waited for past a while: they play with none, as someone who has gone.
+	const bool givingUp = (netNow() > netForcesGiveUp);
 	for (long i = 0; i < players; i++)
-		if (!netHaveForce[i] && ((i == 0) || netSession->clientConnected((uint8_t)i)))
-			return(false);
+		if (!netHaveForce[i] && netSession->clientConnected((uint8_t)i)) {
+			if (!givingUp)
+				return(false);
+			printf("[NETFORCE] commander %ld never chose its units: it has none\n", i);
+		}
 	// whoever has gone has none (netForces holds an empty one for them, from the launch)
 	for (long i = 0; i < players; i++) {
 		netForces[i].commander = (uint8_t)i;
@@ -1404,7 +1432,31 @@ static std::vector<netforce::Spot> netStartPlaces (long commander) {
 		spot.y = part->position.y;
 		places.push_back(spot);
 	}
+	// a map with none for this commander: the middle, rather than no units at all
+	if (places.empty()) {
+		netforce::Spot middle;
+		middle.x = land->mapTopLeft3d.x + land->worldUnitsMapSide * 0.5f;
+		middle.y = land->mapTopLeft3d.y - land->worldUnitsMapSide * 0.5f;
+		places.push_back(middle);
+	}
 	return(places);
+}
+
+// Somewhere a unit can start: well inside the map, on ground a mech can stand on.
+static bool netSpotUsable (const netforce::Spot& spot) {
+
+	const float margin = 256.0f;
+	const float left = land->mapTopLeft3d.x + margin;
+	const float right = land->mapTopLeft3d.x + land->worldUnitsMapSide - margin;
+	const float top = land->mapTopLeft3d.y - margin;
+	const float bottom = land->mapTopLeft3d.y - land->worldUnitsMapSide + margin;
+	if ((spot.x < left) || (spot.x > right) || (spot.y > top) || (spot.y < bottom))
+		return(false);
+	Stuff::Vector3D at;
+	at.x = spot.x;
+	at.y = spot.y;
+	at.z = 0.0f;
+	return(GameMap->getPassable(at) && !land->getWater(at));
 }
 
 long MultiPlayer::addNetForces (void) {
@@ -1416,8 +1468,10 @@ long MultiPlayer::addNetForces (void) {
 	// every machine the same units in the same order: the roster index names a unit on the wire
 	for (long commander = 0; commander < players; commander++) {
 		const netwire::Force& force = netSession->force((uint8_t)commander);
-		const std::vector<netforce::Spot> spots = netforce::placeUnits(netStartPlaces(commander), force.units.size(), 128.0f);
-		printf("[NETFORCE] commander %ld: %d units, %d places\n", commander, (int)force.units.size(), (int)spots.size());
+		const std::vector<netforce::Spot> places = netStartPlaces(commander);
+		// 128 world units, three cells, a float holds exactly: every machine finds the same spots
+		const std::vector<netforce::Spot> spots = netforce::placeUnits(places, force.units.size(), 128.0f, netSpotUsable);
+		printf("[NETFORCE] commander %ld: %d units, %d places\n", commander, (int)force.units.size(), (int)places.size());
 		for (size_t i = 0; i < force.units.size(); i++) {
 			const netwire::ForceUnit& unit = force.units[i];
 			LogisticsVariant* variant = netFindVariant(unit);
@@ -1459,7 +1513,9 @@ long MultiPlayer::addNetForces (void) {
 				continue;
 			}
 			((BattleMech*)mover)->cBills = variant->getCost();
-			strncpy(((BattleMech*)mover)->variantName, (const char*)variant->getName(), 63);
+			char* variantName = ((BattleMech*)mover)->variantName;
+			strncpy(variantName, (const char*)variant->getName(), sizeof(((BattleMech*)mover)->variantName) - 1);
+			variantName[sizeof(((BattleMech*)mover)->variantName) - 1] = 0;
 			added++;
 		}
 	}
@@ -1889,7 +1945,11 @@ bool MultiPlayer::playersReadyToLoad (void) {
 	// The pilot screen asks each frame, and goes on to load once this is true: in a network game,
 	// once everyone has launched and their units are known here.
 	if (netSession && netLoading && !missionSettings.quickStart)
+	{
+		if (netOwnForceChosen && !netOwnForceSent)
+			netSendOwnForce(this);
 		return(netOwnForceSent && netForcesReady(this));
+	}
 	return(true);
 }
 

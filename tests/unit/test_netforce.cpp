@@ -130,23 +130,65 @@ TEST_CASE("Units per player: the mech bay's share, never more than a force holds
 	CHECK(netforce::unitsPerPlayer(0) == 12);
 }
 
-TEST_CASE("Units start on the map's places, then in rows beside them")
+namespace {
+
+Spot at(float x, float y)
 {
-	std::vector<Spot> places(2);
-	places[0].x = 100.0f;
-	places[0].y = 200.0f;
-	places[1].x = 300.0f;
-	places[1].y = 200.0f;
-	const std::vector<Spot> spots = netforce::placeUnits(places, 5, 64.0f);
-	REQUIRE(spots.size() == 5);
-	CHECK(spots[0].x == 100.0f);
-	CHECK(spots[1].x == 300.0f);
-	CHECK(spots[2].x == 164.0f);
-	CHECK(spots[3].x == 364.0f);
-	CHECK(spots[4].x == 228.0f);
-	CHECK(spots[4].y == 200.0f);
-	CHECK(netforce::placeUnits({}, 3, 64.0f).empty());
-	CHECK(netforce::placeUnits(places, 0, 64.0f).empty());
+	Spot spot;
+	spot.x = x;
+	spot.y = y;
+	return spot;
+}
+
+bool anywhere(const Spot&)
+{
+	return true;
+}
+
+}
+
+TEST_CASE("Units start on the map's places, then in rings round them, never on one another")
+{
+	std::vector<Spot> places;
+	places.push_back(at(1000.0f, 2000.0f));
+	places.push_back(at(3000.0f, 2000.0f));
+	const std::vector<Spot> spots = netforce::placeUnits(places, 12, 128.0f, anywhere);
+	REQUIRE(spots.size() == 12);
+	CHECK(spots[0].x == 1000.0f);
+	CHECK(spots[1].x == 3000.0f);
+	// then the first ring round the first place, a whole spacing out
+	CHECK(spots[2].x == 872.0f);
+	CHECK(spots[2].y == 1872.0f);
+	for (size_t i = 0; i < spots.size(); i++)
+		for (size_t j = i + 1; j < spots.size(); j++)
+			CHECK_FALSE((spots[i].x == spots[j].x && spots[i].y == spots[j].y));
+	CHECK(netforce::placeUnits(std::vector<Spot>(), 3, 128.0f, anywhere).empty());
+	CHECK(netforce::placeUnits(places, 0, 128.0f, anywhere).empty());
+}
+
+TEST_CASE("Units start only where the game can use: not off the map, not on blocked ground")
+{
+	std::vector<Spot> places;
+	places.push_back(at(100.0f, 100.0f));	// near the corner
+	// the map starts at 0, and a strip at x 228 is blocked
+	auto usable = [](const Spot& s) { return s.x >= 0.0f && s.y >= 0.0f && s.x != 228.0f; };
+	const std::vector<Spot> spots = netforce::placeUnits(places, 12, 128.0f, usable);
+	REQUIRE(spots.size() == 12);
+	for (const Spot& spot : spots) {
+		CHECK(spot.x >= 0.0f);
+		CHECK(spot.y >= 0.0f);
+		CHECK(spot.x != 228.0f);
+	}
+}
+
+TEST_CASE("With nowhere usable, units go on their places rather than nowhere")
+{
+	std::vector<Spot> places;
+	places.push_back(at(100.0f, 100.0f));
+	auto nowhere = [](const Spot&) { return false; };
+	const std::vector<Spot> spots = netforce::placeUnits(places, 2, 128.0f, nowhere);
+	REQUIRE(spots.size() == 2);
+	CHECK(spots[1].x == 100.0f);
 }
 
 TEST_CASE("Force: round trip")

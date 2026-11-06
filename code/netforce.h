@@ -50,9 +50,14 @@ struct Spot {
 	float y = 0.0f;
 };
 
-// Where a player's units start: on the places the map gives that player's units, in order, and
-// past the last of them in rows beside the places, a spacing apart. None with no places.
-std::vector<Spot> placeUnits(const std::vector<Spot>& places, size_t count, float spacing);
+// Where a player's units start: on the places the map gives that player's units, in order, then
+// in square rings round them a spacing apart, each spot one the game can use (on the map, not
+// blocked) and no nearer another unit than half the spacing. Every machine works this out for
+// itself, so the offsets are whole multiples of the spacing: with a spacing a float holds
+// exactly, every machine gets the same spots. A unit with no spot left goes on the place it
+// would have had. None with no places.
+using SpotUsable = std::function<bool(const Spot&)>;
+std::vector<Spot> placeUnits(const std::vector<Spot>& places, size_t count, float spacing, const SpotUsable& usable);
 
 }
 

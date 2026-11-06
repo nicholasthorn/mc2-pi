@@ -656,11 +656,14 @@ In slices, as it is large: finding a game and the data check first, then the lob
   data. The host checks a client's against what the mech bay allows (`code/netforce.*`: designer variants its data has, known pilots, none twice, no more units,
   C-Bills or tons than the game gives), and gives one that fails no units at all. Once it has everyone's, or they have gone, it sends them all, and the pilot
   screen moves on. Every machine then loads the map with none of its units (`MISSION_LOAD_MP_LOGISTICS`) and makes everyone's, in commander order, so the
-  roster check at the start still holds. A player's units start on the places the map gives that commander's own units, then in rows beside them.
+  roster check at the start still holds. A player's units start on the places the map gives that commander's own units, then in square rings round them,
+  three cells apart, on ground a mech can stand on and well inside the map; a commander the map has no places for starts in its middle. The offsets are whole
+  multiples of a spacing a float holds exactly, so every machine finds the same spots. Once the host has launched it cannot leave the pilot screen, so after
+  five minutes it stops waiting: whoever has not chosen plays with no units, and a client that has heard nothing gives up on the host five minutes later.
   `net_smoke --mechs` walks it, one Atlas each, on x64 desktop GL. Not yet: variants made in the mech lab and all tech (both still hidden), C-Bills set per
   player, a check that a client bought from its faction's list, and any sign on the pilot screen of who is still choosing. The data hash does not cover the mech
-  and pilot files, so a client with other ones has its units refused, or made otherwise on its own screen, rather than being stopped in the lobby. A second game in
-  one process keeps what was bought in the first; no run has tried it.
+  and pilot files, so a client with other ones has its units refused, or made otherwise on its own screen, rather than being stopped in the lobby. Each run
+  of the test buys one mech a side, so the rings, a refused force and a player leaving while choosing are unit tested but not played.
 - **Off for now on the parameters screen:** locking a game, booting a player, adding an AI, and
   chat, so a client has no sign that a launch is counting down. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
 - **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.

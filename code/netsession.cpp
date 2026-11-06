@@ -576,8 +576,9 @@ bool Session::sendForce(const Force& force)
 	}
 	if (started_ || forceSent_ || force.commander != commander_)
 		return false;
-	forceSent_ = true;
-	return transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
+	// once sent it stands; one that could not be sent can be tried again
+	forceSent_ = transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
+	return forceSent_;
 }
 
 bool Session::nextForce(Force& out)

@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
+#include <cstdlib>
 
 using namespace netwire;
 
@@ -59,16 +61,39 @@ size_t unitsPerPlayer(int players)
 	return static_cast<size_t>((players > 0) ? std::min(LOGISTICS_UNITS / players, force) : force);
 }
 
-std::vector<Spot> placeUnits(const std::vector<Spot>& places, size_t count, float spacing)
+// the rings: as many as a full force could need round one place, and some to spare for blocked ground
+static const int PLACE_RINGS = 4;
+
+std::vector<Spot> placeUnits(const std::vector<Spot>& places, size_t count, float spacing, const SpotUsable& usable)
 {
 	std::vector<Spot> spots;
 	if (places.empty())
 		return spots;
+	const float half = spacing * 0.5f;
+	auto taken = [&](const Spot& at) {
+		for (const Spot& spot : spots)
+			if (std::fabs(spot.x - at.x) < half && std::fabs(spot.y - at.y) < half)
+				return true;
+		return false;
+	};
+	// every place first, then the ring at 1 round each, then at 2, ...: (dx, dy) on a square's edge
+	std::vector<Spot> candidates;
+	for (int ring = 0; ring <= PLACE_RINGS; ring++)
+		for (const Spot& place : places)
+			for (int dy = -ring; dy <= ring; dy++)
+				for (int dx = -ring; dx <= ring; dx++) {
+					if (std::max(std::abs(dx), std::abs(dy)) != ring)
+						continue;
+					Spot spot = place;
+					spot.x += spacing * static_cast<float>(dx);
+					spot.y += spacing * static_cast<float>(dy);
+					candidates.push_back(spot);
+				}
+	size_t next = 0;
 	for (size_t i = 0; i < count; i++) {
-		Spot spot = places[i % places.size()];
-		const size_t row = i / places.size();
-		spot.x += spacing * static_cast<float>(row);
-		spots.push_back(spot);
+		while (next < candidates.size() && (taken(candidates[next]) || !usable(candidates[next])))
+			next++;
+		spots.push_back((next < candidates.size()) ? candidates[next] : places[i % places.size()]);
 	}
 	return spots;
 }
