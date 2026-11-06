@@ -185,6 +185,28 @@ TEST_CASE("Lobby: a map or settings that no state could carry are refused, and c
 	CHECK(encode(lobby.state(), out));
 }
 
+TEST_CASE("Lobby: a choice can rename its player; no name leaves it as it is")
+{
+	Lobby lobby = twoPlayers();
+	LobbyChoice choice = readyOn(lobby, 1);
+	CHECK(lobby.applyChoice(1, choice));
+	CHECK(lobby.player(1)->name == "Ace");
+
+	uint32_t last = lobby.state().revision;
+	choice.name = "Bo";
+	CHECK(lobby.applyChoice(1, choice));
+	CHECK(lobby.player(1)->name == "Bo");
+	CHECK(lobby.state().revision != last);
+
+	last = lobby.state().revision;
+	CHECK(lobby.applyChoice(1, choice));	// the same again
+	CHECK(lobby.state().revision == last);
+
+	choice.name = "100%";	// no state could carry it
+	CHECK_FALSE(lobby.applyChoice(1, choice));
+	CHECK(lobby.player(1)->name == "Bo");
+}
+
 TEST_CASE("Lobby: nobody is on a team past what the map takes")
 {
 	Lobby lobby(4);
@@ -291,6 +313,7 @@ TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 	choice.stripeColor = 5;
 	choice.ready = true;
 	choice.mapHash = MAP_HASH;
+	choice.name = "Bo";
 	REQUIRE(encode(choice, out));
 	LobbyChoice backChoice;
 	REQUIRE(decode(out.data(), out.size(), backChoice));
@@ -300,6 +323,7 @@ TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
 	CHECK(backChoice.stripeColor == 5);
 	CHECK(backChoice.ready);
 	CHECK(backChoice.mapHash == MAP_HASH);
+	CHECK(backChoice.name == "Bo");
 
 	LobbyLaunch launch;
 	launch.numPlayers = 2;

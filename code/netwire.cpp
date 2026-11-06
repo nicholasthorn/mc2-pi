@@ -238,7 +238,7 @@ static bool validMapName(const std::string& name)
 static bool validAnnounce(const LanAnnounce& m)
 {
 	return m.gamePort != 0 && m.maxPlayers >= 1 && m.maxPlayers <= MAX_PLAYERS && m.numPlayers <= m.maxPlayers
-		&& validName(m.name) && validMapName(m.map) && !m.map.empty();
+		&& validName(m.name) && validMapName(m.map);	// a lobby's map can still be to choose
 }
 
 bool encode(const LanQuery& m, std::vector<uint8_t>& out)
@@ -397,7 +397,7 @@ bool decode(const void* data, size_t size, LobbyState& m)
 
 static bool validLobbyChoice(const LobbyChoice& m)
 {
-	return m.team < MAX_PLAYERS && m.baseColor < MAX_LOBBY_COLORS && m.stripeColor < MAX_LOBBY_COLORS;
+	return m.team < MAX_PLAYERS && m.baseColor < MAX_LOBBY_COLORS && m.stripeColor < MAX_LOBBY_COLORS && validName(m.name);
 }
 
 bool encode(const LobbyChoice& m, std::vector<uint8_t>& out)
@@ -413,6 +413,8 @@ bool encode(const LobbyChoice& m, std::vector<uint8_t>& out)
 	w.u8(m.stripeColor);
 	w.u8(m.ready ? 1 : 0);
 	w.u32(m.mapHash);
+	w.u8(static_cast<uint8_t>(m.name.size()));
+	w.bytes(m.name.data(), m.name.size());
 	return true;
 }
 
@@ -429,7 +431,7 @@ bool decode(const void* data, size_t size, LobbyChoice& m)
 	m.stripeColor = in.u8();
 	const uint8_t ready = in.u8();
 	m.mapHash = in.u32();
-	if (!in.finished() || ready > 1)
+	if (!readShortText(in, m.name) || !in.finished() || ready > 1)
 		return false;
 	m.ready = (ready != 0);
 	return validLobbyChoice(m);

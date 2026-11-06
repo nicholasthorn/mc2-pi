@@ -217,8 +217,12 @@ void MPParameterScreen::begin()
 	bDisconnectDlg = 0;
 
 	MPlayer->initParametersScreen();
+	mapName = "";	// so a client joining another lobby on the same map shows its picture
 
-	if ( MPlayer->isHost() )
+	// a new lobby has no map yet, and setMission ends the game on one it cannot open
+	if ( !strlen( MPlayer->missionSettings.map ) )
+		;
+	else if ( MPlayer->isHost() )
 		setMission( MPlayer->missionSettings.map, (status != UP && status != NEXT) ? 1 : 0 );
 	else
 		setMissionClientOnly( MPlayer->missionSettings.map );
@@ -584,8 +588,7 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 			break;
 
 		case MP_QUICKSTART:
-			MPlayer->missionSettings.quickStart ^= 1;
-			MPParameterScreen::resetCheckBoxes();
+			// on for good until a game can have mech selection: its screens have no network yet
 			break;
 
 		}
@@ -822,7 +825,13 @@ void MPParameterScreen::update()
 			else
 				LogisticsData::instance->setPurchaseFile( pPurchaseFiles[faction] );
 			LogisticsData::instance->setCurrentMission( MPlayer->missionSettings.map );
-			MPlayer->sendMissionSetup(0, 6, NULL);
+			if ( !MPlayer->launchNetLobby() )
+			{
+				MPlayer->setInProgress( false );
+				delayTime = 0.f;
+				bWaitingToStart = 0;
+				return;
+			}
 
 			status = NEXT;
 			
@@ -1126,9 +1135,11 @@ void MPParameterScreen::update()
 
 			getButton( MP_QUICKSTART )->disable( 0 );
 
-			getButton( MP_LOCKGAME )->showGUIWindow( true );
-			getButton( MP_BOOTPLAYER )->showGUIWindow( true );
-			getButton( MP_BOOTPLAYER )->disable( false );
+			// not in a network game yet
+			getButton( MP_LOCKGAME )->showGUIWindow( false );
+			getButton( MP_BOOTPLAYER )->showGUIWindow( false );
+			if ( getButton( 102/*add ai player*/ ) )
+				getButton( 102/*add ai player*/ )->showGUIWindow( false );
 
 
 
@@ -1144,6 +1155,16 @@ void MPParameterScreen::update()
 			
 		}
 		
+		// A game with the map's own units has no use for these until there is mech selection.
+		static const int unusedButtons[] = { MP_ALLTECH, MP_VARIANTS, MP_INCREMENT_DROPWEIGHT, MP_DECREMENT_DROPWEIGHT, MP_INCREMENT_CBILLS, MP_DECREMENT_CBILLS };
+		for ( int i = 0; i < (int)(sizeof(unusedButtons) / sizeof(unusedButtons[0])); i++ )
+		{
+			if ( getButton( unusedButtons[i] ) )
+				getButton( unusedButtons[i] )->showGUIWindow( false );
+		}
+		edits[0].setReadOnly( true );
+		edits[1].setReadOnly( true );
+
 		int oldEditFocus = -1;
 		for ( int i = 0; i < editCount; i++ )
 		{
@@ -1937,16 +1958,9 @@ void aPlayerParams::update()
 	}
 	else
 	{
-		if ( MPlayer->isHost() )
-		{
-			CBillsSpinnerUpButton.showGUIWindow( 1 );
-			CBillsSpinnerDownButton.showGUIWindow( 1 );
-		}
-		else
-		{
-			CBillsSpinnerUpButton.showGUIWindow( 0 );
-			CBillsSpinnerDownButton.showGUIWindow( 0 );
-		}
+		// nobody spends C-Bills until there is mech selection
+		CBillsSpinnerUpButton.showGUIWindow( 0 );
+		CBillsSpinnerDownButton.showGUIWindow( 0 );
 		teamNumberDropList.disable( 0 );
 		factionDropList.disable( 0 );
 		rects[2].showGUIWindow( 1 );
@@ -2009,7 +2023,7 @@ void aPlayerParams::update()
 
 		if ( (commanderID == MPlayer->commanderID || MPlayer->isHost() ) )
 		{
-			edit.setReadOnly( 0 );
+			edit.setReadOnly( 1 );
 			bool bHasFocus = edit.hasFocus();
 			edit.update();
 			if ( bHasFocus && !edit.hasFocus() )

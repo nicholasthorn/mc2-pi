@@ -26,6 +26,7 @@
 #ifndef LOGISTICS_H
 #include"logistics.h"
 #endif
+#include"missionbegin.h"
 
 #ifndef GAMESOUND_H
 #include"gamesound.h"
@@ -1740,16 +1741,7 @@ void __stdcall InitializeGameEngine()
 					MPlayer->startLocalHost(netHostPlayers);
 				MultiPlayTeamId = MPlayer->playerInfo[MPlayer->commanderID].team;
 				MultiPlayCommanderId = MPlayer->commanderID;
-				long players = 0;
-				// a team per commander, and only as many as there are players
-				for (long i = 0; i < MAX_MC_PLAYERS; i++) {
-					if (MPlayer->playerInfo[i].commanderID > -1)
-						players++;
-					for (long j = 0; j < 3; j++)
-						commandersToLoad[i][j] = MPlayer->playerInfo[i].commanderID;
-					// and a lobby can put two on one team
-					commandersToLoad[i][1] = MPlayer->playerInfo[i].team;
-				}
+				const long players = MPlayer->commandersForLoad(commandersToLoad);
 				mission->init(missionName, MISSION_LOAD_MP_QUICKSTART, 0, NULL, commandersToLoad, MultiPlayer::moversPerCommander(players));
 				MPlayer->waitForNetStart();
 			}
@@ -2248,14 +2240,28 @@ void __stdcall DoGameLogic()
 				}
 				else if (MPlayer && MPlayer->isNetworked() && (result != mis_PLAYING))
 				{
-					// The results, then out: there is no lobby to go back to yet. Someone who
-					// left the game has no results, and nor does a game whose host has gone.
+					// The results, then on (Logistics::update). Someone who left the game has no
+					// results, and nor does a game whose host has gone: from a command line that
+					// is the end, and from the menu it goes back to it, saying who has gone.
 					printf("[NET] mission over, result %ld\n", result);
 					fflush(stdout);
 					if (aborted || MPlayer->hostLeft)
 					{
+						const bool hostGone = !aborted;
+						static char hostName[MAXLEN_PLAYER_NAME];
+						strncpy(hostName, MPlayer->playerInfo[0].name, MAXLEN_PLAYER_NAME - 1);
 						mission->destroy();
-						quitGame = true;
+						if (justStartMission)
+							quitGame = true;
+						else
+						{
+							mcTextureManager->flush(true);
+							MPlayer->closeSession();
+							aborted = true;		// what has Logistics::start end this MultiPlayer
+							logistics->start(log_SPLASH);
+							if (hostGone && logistics->getMissionBegin())
+								logistics->getMissionBegin()->beginSplash(hostName);
+						}
 					}
 					else
 					{

@@ -12,7 +12,8 @@ belongs in commit messages and PRs.
 - [x] Linux build on Ubuntu 22.04 / GCC 11 (pkg-config fallbacks for SDL2_mixer/ttf) through 26.04 / GCC 15
 - [x] OpenGL ES 3.1 renderer behind `-DMC2_GLES=ON` (Raspberry Pi 4/400); desktop GL unchanged
 - [x] GLES texture upload repacking for 8-bit channel-count mismatches
-- [x] Multiplayer between processes, no UI (`-nethost`, `-netjoin`): every game mode, order, support vehicle and recovery, turrets, results (`future-features/NETWORKING.md`)
+- [x] Multiplayer between processes (`-nethost`, `-netjoin`): every game mode, order, support vehicle and recovery, turrets, results (`future-features/NETWORKING.md`)
+- [x] Multiplayer from the main menu on the local network: host, browse, join, lobby, launch, results, and back for another game, tested through the screens by a walker, not yet by hand or on a Quest
 - [x] arm64: `-fsigned-char`, portable heap caller capture, GCC 12 fixes
 - [x] Clang and MSVC build fixes
 - [x] Back-ported crash/UB fixes from `mc2-opengl-remastered` (two batches)
@@ -537,7 +538,7 @@ change, not as a bug fix.
 
 ## Known issues
 
-- Networked play has no UI: `-nethost`, `-netlisten` and `-netjoin` play a mission between processes (`future-features/NETWORKING.md`). The multiplayer screens (`code/mp*.cpp`) are unreachable because the main menu's Multiplayer button is disabled; the `MultiPlayer` stubs now return a blank player record, an empty name and no players instead of NULL, so the screens would not crash if reached.
+- Network games from the screens have no mech selection, chat, shared insignia, locking or booting, no sign on a client that a launch is counting down, and only the local network: no joining by address (`future-features/NETWORKING.md`). The other screens' stubs still return a blank player record, an empty name and no players instead of NULL.
 - Sound: doppler not implemented (alariq README). Stereo panning works since #4 (`fa0188e`); nobody has recorded checking it by ear.
 - Some files may still be written outside the user config directory (alariq README TODO).
 - WSLg's D3D12 GL driver shows a white screen with desktop GL; use `LIBGL_ALWAYS_SOFTWARE=1`.
@@ -548,6 +549,8 @@ change, not as a bug fix.
 
 Newest first. `YYYY-MM-DD: what (commit or PR)`.
 
+- 2026-11-05: Multiplayer from the main menu (branch `mp-phase4-screens`): the original connection, browser and parameters screens run a real game, with the menu's button on. `net_smoke --screens` plays a battle through them, twice in a process with `--again`, and `--lobby-leaving` leaves and rejoins a lobby, on x64 desktop GL, also under ASan + UBSan. Protocol 11. A player's name and colours go through the prefs screen. A failed host, a different map, or the host going in a lobby, while loading or in play no longer strand the player or close the game, and the wait for others to load no longer stops the frames. No person has clicked through them yet.
+- 2026-11-05: Multiplayer lobby review fixes (branch `mp-phase4-lobby`): nobody waits for a player lost while loading, a launch reaches everyone it can, a client refuses a launch with no map and a map name that is a path, a ready no longer outlives a settings change, and `-netlobby` works with `-netcall`. Protocol 9. Two on one team and the look of a lobby's colours are still not run.
 - 2026-11-06: A pilot's message no longer asks for the CD on Windows when the data has no movies (branch `fix/pilot-portrait-no-cd`). With no pilot video the game shows a still portrait from `data/movies/`, and data built with `--no-movies`, as in the `-full` packages, has none, so `mc2_01` on the Windows `-full` package showed "insert the CD", and Cancel ended the game. A missing portrait now draws no picture, as Linux already did. Built on Windows MSVC (Release) only.
 - 2026-11-06: Sessions keep two permanent worktrees instead of one per branch (branch `docs/worktree-slots`, `.claude/rules/agent-workflow.md`): a fresh worktree built from scratch, about 11 minutes on Windows, half of it the network libraries. A session claims a pair `../mc2-wt<N>a`/`b` with `git worktree lock`, starts each branch inside a free one so its build stays incremental, and detaches and unlocks them when it ends.
 - 2026-11-05: VR path-finding runs on a worker thread, and a game step waits for it instead of holding the frame (branch `perf/vr-path-worker`). Also meshes skip the per-vertex transform in VR and draw from a list kept until the next step. Quest 2, mc2_19: frames over 20 ms from about 75 to about 11 per run, logic p99 15.6 to 5.8 ms; with full detail and more units (`bench/mc2_19_heavy.fit`) 41 to 71 fps, though the game then steps about 21 times a second. Path-finding is the next limit. Line of sight in `calcMoveGoal` no longer moves the unit (ThreadSanitizer). Details: `planning/future-features/LOGIC-RENDER-SPLIT.md`.

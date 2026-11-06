@@ -31,6 +31,10 @@ const char* const SCREEN_NAMES[(int)UiScreen::Count] = {
 	"mechlopedia-history",
 	"save",
 	"load",
+	"mp-connection",
+	"mp-browser",
+	"mp-params",
+	"mp-prefs",
 };
 
 bool isOptions(UiScreen s)
@@ -103,8 +107,39 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::OpenSave;
 		if (to == UiScreen::Load)
 			return UiAction::OpenLoad;
+		if (to == UiScreen::MpConnection)
+			return UiAction::OpenMultiplayer;
 		if (hasMainMenuButton(to))
 			return UiAction::ReturnToGame;
+		break;
+	case UiScreen::MpConnection:
+		if (to == UiScreen::MpBrowser)
+			return UiAction::MpBrowse;
+		if (to == UiScreen::MpParams)
+			return UiAction::MpHost;
+		if (to == UiScreen::MainMenu)
+			return UiAction::MainMenu;
+		break;
+	case UiScreen::MpBrowser:
+		if (to == UiScreen::MpConnection)
+			return UiAction::Previous;
+		if (to == UiScreen::MpParams)
+			return UiAction::MpJoin;
+		break;
+	case UiScreen::MpParams:
+		if (to == UiScreen::Mission)
+			return UiAction::MpLaunch;
+		if (to == UiScreen::MpConnection || to == UiScreen::MpBrowser)
+			return UiAction::MpLeave;
+		if (to == UiScreen::MainMenu)
+			return UiAction::MpAwaitHostGone;
+		if (to == UiScreen::MpPrefs)
+			return UiAction::MpOpenPrefs;
+		break;
+	case UiScreen::MpPrefs:
+		// Accept, which sends the name; the colour has gone as it was picked
+		if (to == UiScreen::MpParams)
+			return UiAction::Next;
 		break;
 	case UiScreen::Save:
 		// saving (and Cancel) goes back to the logistics screen the main menu
@@ -180,6 +215,10 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::WinMission;
 		if (to == UiScreen::OptionsGraphics)
 			return UiAction::MissionOptions;
+		if (to == UiScreen::MpConnection)
+			return UiAction::MpAwaitGameEnd;
+		if (to == UiScreen::MainMenu)
+			return UiAction::MpAwaitHostGone;
 		break;
 	case UiScreen::Salvage:
 		if (to == UiScreen::PilotReview || to == UiScreen::Promotion
@@ -222,6 +261,14 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MechLab, "swap", UiAction::SwapVariant },
 	{ UiScreen::MechLab, "own", UiAction::OwnVariant },
 	{ UiScreen::MechLab, "accept", UiAction::LabAccept },
+	{ UiScreen::MpParams, "map", UiAction::MpPickMap },
+	{ UiScreen::MpBrowser, "pause", UiAction::MpPause },
+	{ UiScreen::MpParams, "pause", UiAction::MpPause },
+	{ UiScreen::Mission, "pause", UiAction::MpPause },
+	{ UiScreen::MpPrefs, "name", UiAction::MpPrefsName },
+	{ UiScreen::MpPrefs, "colour", UiAction::MpPrefsColour },
+	{ UiScreen::MpParams, "others", UiAction::MpOthers },
+	{ UiScreen::MpParams, "alone", UiAction::MpAlone },
 };
 
 } // namespace

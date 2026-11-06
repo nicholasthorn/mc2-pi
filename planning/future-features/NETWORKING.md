@@ -643,9 +643,16 @@ In slices, as it is large: finding a game and the data check first, then the lob
   only by its own: a plain game's data hash has its mission in it. Unit tested on the loopback.
 - **A lobby with nobody at the screen:** `-netlobby` on both ends goes through it for real. The host takes `-mission` and `-nethost N`, a client needs
   no mission and learns it from the host, everyone is ready as soon as they can be, and the game launches when all N are in. Between two processes,
-  on x64 desktop GL, also with a host that calls its client (`-netcall`, `-netjoin wait`). The screens, mech selection and the main menu's button are the next slices.
-- **Left for the lobby:** `netGameEnded` and other statics in `multplyr.cpp` hold for the process, so a second game in one needs them reset. The
-  Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
+  on x64 desktop GL, also with a host that calls its client (`-netcall`, `-netjoin wait`). Mech selection is the next slice.
+- **The screens:** the original connection, browser and parameters screens run a game on the local network. `hostSession` and `joinSession` open the same
+  lobby as `-netlobby`, and `MultiPlayer::update` runs it each frame until the host launches, a local choice standing for a second while the host answers.
+  `beginMission` then loads as a game from the command line does, with no stage messages. At the end of a game each goes back to the connection screen with a
+  new `MultiPlayer`, as a session cannot go back to being a lobby. `net_smoke --screens` walks all this with `-uismoke`: no person has yet.
+- **Trouble from the menu:** the host going in a lobby, while loading or in play takes a client to the main menu, which says so; the wait for others to load
+  is a frame at a time behind the load screen (`pollNetStart`), and whoever leaves meanwhile is not waited for. From a command line these still end the process.
+- **Off for now on the parameters screen:** mech selection (quickstart stays on, and its controls are hidden), locking a game, booting a player, adding an AI, and
+  chat, so a client has no sign that a launch is counting down. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
+- **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
   look on the units. A client with another copy of a map stops with a message naming it, which no run has reached, as a game directory's maps are in its FST.
 - **Known and left:** ammo is not in the state a host sends after a repair, so a client's ammo display can differ from the host's. The host decides all firing.
