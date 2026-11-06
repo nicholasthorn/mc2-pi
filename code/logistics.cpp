@@ -514,7 +514,15 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 		useUnlimitedAmmo = MPlayer->missionSettings.unlimitedAmmo;
 		if (mission)
 			mission->destroy();
-		mission->init(MPlayer->missionSettings.map, MISSION_LOAD_MP_QUICKSTART, 0, NULL, netCommanders, MultiPlayer::moversPerCommander(players));
+		if (MPlayer->missionSettings.quickStart)
+			mission->init(MPlayer->missionSettings.map, MISSION_LOAD_MP_QUICKSTART, 0, NULL, netCommanders, MultiPlayer::moversPerCommander(players));
+		else {
+			// none of the map's units, and then the ones each player chose, known here already
+			// (PilotReadyScreen waits for them)
+			mission->init(MPlayer->missionSettings.map, MISSION_LOAD_MP_LOGISTICS, 0, NULL, netCommanders, MultiPlayer::moversPerCommander(players));
+			MPlayer->addNetForces();
+			mission->missionInterface->initMechs();	// the force bar has this player's, as for a single player
+		}
 		// and it starts once everyone has loaded: Logistics::update
 		return(1);
 	}

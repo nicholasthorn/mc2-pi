@@ -887,6 +887,20 @@ LogisticsVariant* LogisticsData::getVariant( const char* pCSVFileName, int Varia
 	return NULL;
 }
 
+LogisticsVariant* LogisticsData::getDesignerVariant( const char* chassisFileName, int fileID )
+{
+	for( VARIANT_LIST::EIterator iter = variants.Begin(); !iter.IsDone(); iter++ )
+	{
+		if ( (*iter)->isDesignerMech() && (*iter)->getFileID() == fileID
+			&& (*iter)->getFileName().Compare( chassisFileName, 0 ) == 0 )
+		{
+			return *iter;
+		}
+	}
+
+	return NULL;
+}
+
 void LogisticsData::removeMechsInForceGroup()
 {
 	if ( !inventory.Count() )

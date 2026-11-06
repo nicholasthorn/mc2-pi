@@ -588,7 +588,12 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 			break;
 
 		case MP_QUICKSTART:
-			// on for good until a game can have mech selection: its screens have no network yet
+			// the host's say: a client's own copy follows the lobby's state
+			if ( MPlayer->isHost() )
+			{
+				MPlayer->missionSettings.quickStart ^= 1;
+				MPParameterScreen::resetCheckBoxes();
+			}
 			break;
 
 		}
@@ -1155,15 +1160,23 @@ void MPParameterScreen::update()
 			
 		}
 		
-		// A game with the map's own units has no use for these until there is mech selection.
-		static const int unusedButtons[] = { MP_ALLTECH, MP_VARIANTS, MP_INCREMENT_DROPWEIGHT, MP_DECREMENT_DROPWEIGHT, MP_INCREMENT_CBILLS, MP_DECREMENT_CBILLS };
+		// Players buy designer variants from their faction's list, with what the host gives: no
+		// mech lab changes or all tech yet. A game with the map's own units buys nothing.
+		static const int unusedButtons[] = { MP_ALLTECH, MP_VARIANTS };
 		for ( int i = 0; i < (int)(sizeof(unusedButtons) / sizeof(unusedButtons[0])); i++ )
 		{
 			if ( getButton( unusedButtons[i] ) )
 				getButton( unusedButtons[i] )->showGUIWindow( false );
 		}
-		edits[0].setReadOnly( true );
-		edits[1].setReadOnly( true );
+		const bool bHostBuys = MPlayer->isHost() && !MPlayer->missionSettings.quickStart;
+		static const int buyingButtons[] = { MP_INCREMENT_DROPWEIGHT, MP_DECREMENT_DROPWEIGHT, MP_INCREMENT_CBILLS, MP_DECREMENT_CBILLS };
+		for ( int i = 0; i < (int)(sizeof(buyingButtons) / sizeof(buyingButtons[0])); i++ )
+		{
+			if ( getButton( buyingButtons[i] ) )
+				getButton( buyingButtons[i] )->showGUIWindow( bHostBuys );
+		}
+		edits[0].setReadOnly( !bHostBuys );
+		edits[1].setReadOnly( !bHostBuys );
 
 		int oldEditFocus = -1;
 		for ( int i = 0; i < editCount; i++ )
