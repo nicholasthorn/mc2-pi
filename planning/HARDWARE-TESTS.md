@@ -66,6 +66,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
+      `--no-movies` (the Windows `-full` package), play `mc2_01` until the first
+      pilot message: no "insert the CD" box, and the video box beside the pilot
+      stays empty. CI's smoke runs only on Linux, where the box never showed.
 - [ ] **HUD at 1920x1080 and 2560x1440** (`hud-centre`). The HUD is centred. Click
       the force icons, minimap and command buttons: each reacts where it is
       drawn. A pilot video shows at the top right, framed, not off-screen. GL or

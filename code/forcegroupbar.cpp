@@ -27,9 +27,6 @@ StaticInfo*  ForceGroupBar::s_coverIcon = NULL;
 
 extern bool useLeftRightMouseProfile;
 extern char CDInstallPath[];
-void EnterWindowMode();
-void EnterFullScreenMode();
-void __stdcall ExitGameOS();
 
 #define BOTTOM_OFFSET	5 * Environment.screenHeight/640.f
 
@@ -482,41 +479,11 @@ bool ForceGroupBar::setPilotVideo( const char* pVideo, MechWarrior* pPilot )
 						strcat(actualPath,realMovieName);
 						strcat(actualPath,".tga");
 
-						bool fileThere = fileExists(actualPath);
-						if (fileThere)
+						// The portrait only decorates the pilot's message, and data built
+						// with --no-movies (the -full packages) has none: draw no picture
+						// rather than ask for a CD that does not exist.
+						if (fileExists(actualPath))
 							ForceGroupIcon::pilotVideoTexture = gos_NewTextureFromFile( gos_Texture_Solid, actualPath, 0 );
-
-						bool openFailed = false;
-						while (!fileThere)
-						{
-							openFailed = true;
-							EnterWindowMode();
-
-							char data[2048];
-							char msg[1024];
-							char msg1[512];
-							char title[256];
-							cLoadString(IDS_MC2_movieMISSING,msg1,511);
-							cLoadString(IDS_MC2_CDMISSING,msg,1023);
-							cLoadString(IDS_MC2_MISSING_TITLE,title,255);
-							sprintf(data,msg1,(const char*)path,msg);
-							DWORD result = MessageBox(NULL,data,title,MB_OKCANCEL | MB_ICONWARNING);
-							if (result == IDCANCEL)
-							{
-								ExitGameOS();
-								return 1; 
-							}
-							// no dialog was shown (Linux has none), so nobody can fix this and press OK
-							if (result != IDOK)
-								break;
-
-							fileThere = fileExists(actualPath);
-							if (fileThere)
-								ForceGroupIcon::pilotVideoTexture = gos_NewTextureFromFile( gos_Texture_Solid, actualPath, 0 );
-						}
-
-						if (openFailed && (Environment.fullScreen == 0) && prefs.fullScreen)
-							EnterFullScreenMode();
 					}
 				}
 
