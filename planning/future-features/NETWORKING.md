@@ -643,14 +643,25 @@ In slices, as it is large: finding a game and the data check first, then the lob
   only by its own: a plain game's data hash has its mission in it. Unit tested on the loopback.
 - **A lobby with nobody at the screen:** `-netlobby` on both ends goes through it for real. The host takes `-mission` and `-nethost N`, a client needs
   no mission and learns it from the host, everyone is ready as soon as they can be, and the game launches when all N are in. Between two processes,
-  on x64 desktop GL, also with a host that calls its client (`-netcall`, `-netjoin wait`). Mech selection is the next slice.
+  on x64 desktop GL, also with a host that calls its client (`-netcall`, `-netjoin wait`). It always plays the map's own units.
 - **The screens:** the original connection, browser and parameters screens run a game on the local network. `hostSession` and `joinSession` open the same
   lobby as `-netlobby`, and `MultiPlayer::update` runs it each frame until the host launches, a local choice standing for a second while the host answers.
   `beginMission` then loads as a game from the command line does, with no stage messages. At the end of a game each goes back to the connection screen with a
   new `MultiPlayer`, as a session cannot go back to being a lobby. `net_smoke --screens` walks all this with `-uismoke`: no person has yet.
 - **Trouble from the menu:** the host going in a lobby, while loading or in play takes a client to the main menu, which says so; the wait for others to load
   is a frame at a time behind the load screen (`pollNetStart`), and whoever leaves meanwhile is not waited for. From a command line these still end the process.
-- **Off for now on the parameters screen:** mech selection (quickstart stays on, and its controls are hidden), locking a game, booting a player, adding an AI, and
+- **Mech selection:** the host can untick Quickstart and set the C-Bills and drop weight, which the lobby's state carries (protocol 12). Each player then goes
+  through the briefing, the mech bay and purchase, and the pilot screen, as in a single mission. Launch on the pilot screen sends that player's force: each
+  unit named by its chassis's file, its designer variant's number and its pilot's file (`netwire::Force`), not described, so each machine makes it from its own
+  data. The host checks a client's against what the mech bay allows (`code/netforce.*`: designer variants its data has, known pilots, none twice, no more units,
+  C-Bills or tons than the game gives), and gives one that fails no units at all. Once it has everyone's, or they have gone, it sends them all, and the pilot
+  screen moves on. Every machine then loads the map with none of its units (`MISSION_LOAD_MP_LOGISTICS`) and makes everyone's, in commander order, so the
+  roster check at the start still holds. A player's units start on the places the map gives that commander's own units, then in rows beside them.
+  `net_smoke --mechs` walks it, one Atlas each, on x64 desktop GL. Not yet: variants made in the mech lab and all tech (both still hidden), C-Bills set per
+  player, a check that a client bought from its faction's list, and any sign on the pilot screen of who is still choosing. The data hash does not cover the mech
+  and pilot files, so a client with other ones has its units refused, or made otherwise on its own screen, rather than being stopped in the lobby. A second game in
+  one process keeps what was bought in the first; no run has tried it.
+- **Off for now on the parameters screen:** locking a game, booting a player, adding an AI, and
   chat, so a client has no sign that a launch is counting down. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
 - **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
