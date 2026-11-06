@@ -1,0 +1,33 @@
+FITini
+// README media: media/night.webp (6 s from the "close" segment) and
+// media/lasers.jpg (its shot). Night battle, searchlights on.
+[Bench]
+st Mission = "mc2_19"
+l Frames = 1200
+l Gather = 20
+f LineGap = 500.0
+f Spacing = 90.0
+l ReorderEvery = 90
+f StrikeRadius = 300.0
+b Follow = TRUE
+f ScreenX = 0.5
+f ScreenY = 0.38
+l NumSegments = 2
+
+[Segment0]
+st Name = "warmup"
+l Start = 0
+l NumKeys = 2
+f[6] Key0 = 0, 0, 0, 30, 0, 850
+f[6] Key1 = 449, 0, 0, 30, 60, 850
+
+[Segment1]
+st Name = "close"
+l Start = 450
+l Shot = 800
+l NumKeys = 3
+f[6] Key0 = 450, 0, 0, 30, 60, 850
+f[6] Key1 = 825, 0, 0, 30, 110, 850
+f[6] Key2 = 1199, 0, 0, 30, 160, 850
+
+FITend

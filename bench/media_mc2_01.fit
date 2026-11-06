@@ -1,0 +1,41 @@
+FITini
+// README media: media/strike.jpg (the "strike" shot).
+[Bench]
+st Mission = "mc2_01"
+l Frames = 1350
+l Gather = 12
+f LineGap = 450.0
+f Spacing = 90.0
+l ReorderEvery = 90
+f StrikeRadius = 250.0
+b Follow = TRUE
+f ScreenX = 0.5
+f ScreenY = 0.42
+l NumSegments = 3
+
+[Segment0]
+st Name = "warmup"
+l Start = 0
+l NumKeys = 2
+f[6] Key0 = 0, 0, 0, 32, 0, 800
+f[6] Key1 = 299, 0, 0, 32, 45, 800
+
+[Segment1]
+st Name = "close"
+l Start = 300
+l Shot = 600
+l NumKeys = 3
+f[6] Key0 = 300, 0, 0, 32, 45, 800
+f[6] Key1 = 600, 0, 0, 32, 90, 800
+f[6] Key2 = 899, 0, 0, 32, 135, 800
+
+[Segment2]
+st Name = "strike"
+l Start = 900
+l Shot = 1200
+l StrikeEvery = 20
+l NumKeys = 2
+f[6] Key0 = 900, 0, 0, 40, 135, 1100
+f[6] Key1 = 1349, 0, 0, 40, 202, 1100
+
+FITend

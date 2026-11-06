@@ -1,0 +1,45 @@
+FITini
+// README media: media/town.jpg (the "y0" shot). The player's lance is moved
+// to the palace (ArenaX/Y) and nobody is gathered: no fight, just the town
+// seen from four sides.
+[Bench]
+st Mission = "mc2_22"
+l Frames = 400
+l Gather = 0
+f ArenaX = 3770.0
+f ArenaY = 3400.0
+f LineGap = 300.0
+f Spacing = 120.0
+l ReorderEvery = 100000
+b Follow = TRUE
+l NumSegments = 4
+
+[Segment0]
+st Name = "y0"
+l Start = 0
+l Shot = 60
+l NumKeys = 1
+f[6] Key0 = 0, 0, 0, 32, 0, 1000
+
+[Segment1]
+st Name = "y90"
+l Start = 100
+l Shot = 160
+l NumKeys = 1
+f[6] Key0 = 100, 0, 0, 32, 90, 1000
+
+[Segment2]
+st Name = "y180"
+l Start = 200
+l Shot = 260
+l NumKeys = 1
+f[6] Key0 = 200, 0, 0, 32, 180, 1000
+
+[Segment3]
+st Name = "y270"
+l Start = 300
+l Shot = 360
+l NumKeys = 1
+f[6] Key0 = 300, 0, 0, 32, 270, 1000
+
+FITend
