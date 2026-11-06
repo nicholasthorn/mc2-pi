@@ -120,7 +120,9 @@ tests on each, and validates the shaders on every push to `pi-port` and every PR
 code, on x64 desktop GL, arm64 GLES, and x64 under ASan + UBSan. The multiplayer battles
 run with them nightly, on demand and on PRs that change multiplayer code
 (`scripts/ci_multiplayer.sh`); other code PRs run the two-process battle only sanitized,
-without the game modes.
+without the game modes. Nightly and on-demand runs add the rest of the campaign, the other
+multiplayer maps and, on the sanitized job, a 250 ms, 5% loss battle and repeats of the
+support battle.
 `ci.yml` also runs the unit tests under ASan + UBSan and cppcheck on changed
 files; both workflows skip a push that changes only docs or only merges
 `pi-port` in (`scripts/ci_skip.sh`);

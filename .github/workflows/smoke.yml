@@ -7,11 +7,15 @@ name: Smoke
 #
 # What a run covers:
 #   - nightly, on demand, and PRs that change multiplayer code
-#     (scripts/ci_multiplayer.sh): everything, on all three configurations.
+#     (scripts/ci_multiplayer.sh): every step below, on all three configurations,
+#     except as the last item says.
 #   - other code PRs: the five missions on all three and the replay; of the
 #     multiplayer steps, the host and the two-process battle on the sanitized job,
 #     no game modes. Sanitized because most multiplayer crashes so far were found
 #     there, with the stack that names them.
+#   - nightly and on demand only: the steps named "Exhaustive", which look for
+#     what a PR's run is too short to find. Nobody waits on these. Their network
+#     steps run on the sanitized job only, for the reason above.
 
 on:
   schedule:
@@ -47,6 +51,20 @@ concurrency:
 
 env:
   MISSIONS: "mc2_01 mc2_03 mc2_10 mc2_17 mc2_24"
+  # The rest of the campaign, for the nightly run.
+  OTHER_MISSIONS: >-
+    mc2_02 mc2_04 mc2_05 mc2_06 mc2_07 mc2_08 mc2_09 mc2_11 mc2_12 mc2_13
+    mc2_14 mc2_15 mc2_16 mc2_18 mc2_19 mc2_20 mc2_21 mc2_22 mc2_23
+  # The multiplayer maps, each with the host's code and no scenario. mc2_m09 is
+  # in the multiplayer host step; mc2_m02a and mc2_m02b have never been run.
+  OTHER_NET_MAPS: "mc2_m01 mc2_m02 mc2_m03 mc2_m04 mc2_m05 mc2_m06 mc2_m07 mc2_m08 mc2_m10"
+  # The support battle, shared by its game-modes line and the nightly repeats so
+  # the two stay the same battle. github.workspace, not "$PWD" as in the steps:
+  # this is set before any shell runs.
+  SUPPORT_BATTLE: >-
+    --mission mc2_m08 --scenario ${{ github.workspace }}/bench/net_support.fit --support
+    --world-events no --frames 200000
+  SUPPORT_REPEATS: 5
 
 jobs:
   # A push to a PR that, since a commit that already passed this workflow,
@@ -147,6 +165,9 @@ jobs:
     name: Smoke ${{ matrix.name }}
     needs: [changes, data]
     runs-on: ${{ matrix.os }}
+    # A hang is killed per mission (--timeout), but many hangs in a row could run
+    # to GitHub's 6 hours. Slowest so far: about 45 minutes on a PR, 74 nightly.
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 90 || 180 }}
     strategy:
       fail-fast: false
       matrix:
@@ -190,6 +211,7 @@ jobs:
             -DMC2_SANITIZE=${{ matrix.sanitize }}
           cmake --build build --target mc2 mc2res_64 -- -k 0   # report every failing file
       - uses: actions/cache/restore@v6
+        id: gamedata
         with:
           path: gamedata
           key: ${{ needs.data.outputs.key }}
@@ -245,8 +267,7 @@ jobs:
           # support vehicles, a recovery and every kind of order, a repair truck, turrets firing
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m09 --scenario "$PWD/bench/net_turret.fit" --expect-turrets \
             --world-events no --frames 200000 --log-dir smoke-logs/net-turret
-          scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_support.fit" --support \
-            --world-events no --frames 200000 --log-dir smoke-logs/net-support
+          scripts/net_smoke.sh --game-dir gamedata $SUPPORT_BATTLE --log-dir smoke-logs/net-support
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_repair.fit" --expect-repairs \
             --world-events no --frames 200000 --log-dir smoke-logs/net-repair
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m08 --scenario "$PWD/bench/net_order_m08.fit" \
@@ -262,6 +283,39 @@ jobs:
             --expect-winner 0 --world-events no --dial --lobby --log-dir smoke-logs/net-lobby-dial
           scripts/net_smoke.sh --game-dir gamedata --mission mc2_m05 --scenario "$PWD/bench/net_order_m05.fit" \
             --expect-winner 1 --world-events no --log-dir smoke-logs/net-ordered-hill
+      # Nightly and on demand. These run after a failure above, so one problem does
+      # not hide another, but not without the game data, which is only restored
+      # after a good build.
+      - name: Exhaustive, the rest of the campaign
+        if: ${{ !cancelled() && steps.gamedata.outcome == 'success' && github.event_name != 'pull_request' }}
+        run: >
+          scripts/smoke.sh --game-dir gamedata --missions "$OTHER_MISSIONS" --ui ""
+          --frames 3000 --timeout 1200 --log-dir smoke-logs/campaign
+      - name: Exhaustive, the multiplayer maps
+        if: ${{ !cancelled() && steps.gamedata.outcome == 'success' && github.event_name != 'pull_request' }}
+        run: >
+          scripts/smoke.sh --game-dir gamedata --missions "$OTHER_NET_MAPS" --frames 3000
+          --ui "" --nethost 2 --timeout 1200 --log-dir smoke-logs/nethost-maps
+      - name: Exhaustive, a bad network
+        # The far end of the plan's range. NETWORKING.md has this battle playing
+        # to a result with no armour differences.
+        if: ${{ !cancelled() && steps.gamedata.outcome == 'success' && github.event_name != 'pull_request' && matrix.sanitize }}
+        run: >
+          scripts/net_smoke.sh --game-dir gamedata --lag-ms 250 --loss-percent 5
+          --log-dir smoke-logs/net-bad
+      - name: Exhaustive, the support battle again
+        # Two processes do not play a battle the same way twice, and some crashes
+        # need a rare moment: one here took a vehicle killed in the few seconds
+        # before its VTOL landed, and 50 local games missed it. Every repeat runs,
+        # so a failure shows how often it happens.
+        if: ${{ !cancelled() && steps.gamedata.outcome == 'success' && github.event_name != 'pull_request' && matrix.sanitize }}
+        run: |
+          failed=0
+          for i in $(seq "$SUPPORT_REPEATS"); do
+            scripts/net_smoke.sh --game-dir gamedata $SUPPORT_BATTLE --log-dir "smoke-logs/net-support-repeat-$i" || failed=$((failed + 1))
+          done
+          echo "support battle: $failed of $SUPPORT_REPEATS failed"
+          [ "$failed" -eq 0 ]
       - uses: actions/upload-artifact@v7
         if: always()
         with:
