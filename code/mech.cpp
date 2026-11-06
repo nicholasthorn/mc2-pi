@@ -5455,7 +5455,7 @@ bool BattleMech::crashAvoidanceSystem (void) {
 	int cellR, cellC;
 	land->worldToCell(newPosition, cellR, cellC);
 	bool reachedEnd;
-	bool blockReachedEnd;
+	bool blockReachedEnd = false;	// getPathRangeBlocked() does not always set it
 	//-------------------------
 	// To avoid corner stops...
 	bool clippingCorner = false;
