@@ -9,6 +9,7 @@
 #include "netsession.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 using namespace netwire;
@@ -284,6 +285,56 @@ TEST_CASE("Lobby: commanders run from 0 with no gaps, whoever left")
 	CHECK(commanders[1] == NO_COMMANDER);
 	CHECK(commanders[2] == 1);
 	CHECK(commanders[3] == 2);
+}
+
+TEST_CASE("Lobby: each player's C-Bills, which a new amount for everyone replaces")
+{
+	Lobby lobby = twoPlayers();
+	REQUIRE(lobby.setSettings(0, 0, 0, 150000, 0));
+	CHECK(lobby.player(0)->cBills == 150000);
+	CHECK(lobby.player(1)->cBills == 150000);
+
+	// one player given more takes everyone's ready back, as any change of terms does
+	REQUIRE(lobby.applyChoice(1, readyOn(lobby, 1)));
+	REQUIRE(lobby.player(1)->ready);
+	const uint32_t before = lobby.state().revision;
+	REQUIRE(lobby.setPlayerCBills(1, 300000));
+	CHECK(lobby.player(1)->cBills == 300000);
+	CHECK(lobby.player(0)->cBills == 150000);
+	CHECK_FALSE(lobby.player(1)->ready);
+	CHECK(lobby.state().revision != before);
+	// the same again is no change
+	const uint32_t after = lobby.state().revision;
+	REQUIRE(lobby.setPlayerCBills(1, 300000));
+	CHECK(lobby.state().revision == after);
+
+	// nobody there, or below nothing
+	CHECK_FALSE(lobby.setPlayerCBills(3, 1000));
+	CHECK_FALSE(lobby.setPlayerCBills(1, -5));
+	CHECK(lobby.player(1)->cBills == 300000);
+
+	// other settings leave it; a new amount for everyone does not
+	REQUIRE(lobby.setSettings(600, 0, 0, 150000, 0));
+	CHECK(lobby.player(1)->cBills == 300000);
+	REQUIRE(lobby.setSettings(600, 0, 0, 200000, 0));
+	CHECK(lobby.player(0)->cBills == 200000);
+	CHECK(lobby.player(1)->cBills == 200000);
+
+	// and whoever joins later has the amount for everyone
+	REQUIRE(lobby.addPlayer(2, "Bo"));
+	CHECK(lobby.player(2)->cBills == 200000);
+
+	// which the state carries to the clients
+	REQUIRE(lobby.setPlayerCBills(2, 50000));
+	std::vector<uint8_t> out;
+	REQUIRE(encode(lobby.state(), out));
+	LobbyState state;
+	REQUIRE(decode(out.data(), out.size(), state));
+	REQUIRE(state.players.size() == 3);
+	CHECK(state.players[2].cBills == 50000);
+	CHECK(state.players[1].cBills == 200000);
+	state.players[2].cBills = -1;
+	CHECK_FALSE(encode(state, out));
 }
 
 TEST_CASE("LobbyState, LobbyChoice and LobbyLaunch: round trips")
@@ -934,6 +985,94 @@ TEST_CASE("Forces: a client cannot send one before a launch, or speak for the ho
 	REQUIRE(other.hostTransport->send(bo.serverConnection(), gos_net::Delivery::ReliableOrdered, bytes.data(), bytes.size()));
 	other.pump();
 	CHECK_FALSE(bo.hasForce(5));
+}
+
+TEST_CASE("Chat: the host sends every line to everyone, saying who it came from")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	netsession::Session& bo = game.addClient("Bo");
+	Chat chat;
+	chat.text = "Ready when you are";
+	chat.from = 2;	// not who Ace is: the host says who
+	REQUIRE(ace.sendChat(chat));
+	game.pump();
+	// nobody shows it until it comes back from the host, Ace included, so all see one order
+	for (netsession::Session* session : { &game.host, &ace, &bo }) {
+		Chat back;
+		REQUIRE(session->nextChat(back));
+		CHECK(back.from == 1);
+		CHECK(back.text == "Ready when you are");
+		CHECK(back.team == CHAT_EVERYONE);
+		CHECK_FALSE(session->nextChat(back));
+	}
+
+	// the host's own, a team's line and a line about a player
+	chat.text = "Team only";
+	chat.team = 1;
+	chat.flags = CHAT_ABOUT_PLAYER;
+	chat.from = 1;
+	REQUIRE(game.host.sendChat(chat));
+	game.pump();
+	for (netsession::Session* session : { &game.host, &ace, &bo }) {
+		Chat back;
+		REQUIRE(session->nextChat(back));
+		CHECK(back.from == 0);
+		CHECK(back.team == 1);
+		CHECK(back.flags == CHAT_ABOUT_PLAYER);
+	}
+
+	// it goes on after a launch, and by the new numbers
+	launchThree(game);
+	chat = Chat();
+	chat.text = "gl hf";
+	REQUIRE(bo.sendChat(chat));
+	game.pump();
+	Chat back;
+	REQUIRE(ace.nextChat(back));
+	CHECK(back.from == 2);
+
+	// a line that cannot be sent is not
+	chat.text = "";
+	CHECK_FALSE(bo.sendChat(chat));
+	CHECK_FALSE(game.host.sendChat(chat));
+}
+
+TEST_CASE("Chat: a bad line drops its client, and the oldest go when too many wait")
+{
+	LobbyGame game;
+	netsession::Session& ace = game.addClient("Ace");
+	netsession::Session& bo = game.addClient("Bo");
+	std::vector<uint8_t> bytes = { static_cast<uint8_t>(MessageType::Chat), 1, CHAT_EVERYONE, 0, 1, '%' };
+	REQUIRE(game.transports[0]->send(ace.serverConnection(), gos_net::Delivery::ReliableOrdered, bytes.data(), bytes.size()));
+	game.pump();
+	CHECK_FALSE(game.host.clientConnected(1));
+	CHECK(game.host.clientConnected(2));
+	Chat back;
+	CHECK_FALSE(bo.nextChat(back));
+
+	// a client that hears from no host takes none; one sent before joining is not sent
+	Chat chat;
+	chat.text = "early";
+	gos_net::LoopbackNetwork network;
+	std::unique_ptr<gos_net::Transport> lone = network.createTransport();
+	netsession::Session nobody(*lone);
+	CHECK_FALSE(nobody.sendChat(chat));
+
+	for (size_t i = 0; i < netsession::MAX_CHAT_INBOX + 5; i++) {
+		chat.text = "line " + std::to_string(i);
+		REQUIRE(game.host.sendChat(chat));
+	}
+	game.pump();
+	size_t count = 0;
+	std::string first;
+	while (bo.nextChat(back)) {
+		if (count == 0)
+			first = back.text;
+		count++;
+	}
+	CHECK(count == netsession::MAX_CHAT_INBOX);
+	CHECK(first == "line 5");
 }
 
 TEST_CASE("A lobby-less game plays as it did: no events pile up")

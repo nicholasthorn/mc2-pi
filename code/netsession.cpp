@@ -292,6 +292,18 @@ void Session::handleHost(const Event& event)
 			client->sentForce = true;
 			forceInbox_.push_back(std::move(force));
 		}
+		else if (type == MessageType::Chat) {
+			Chat chat;
+			if (!decode(event.data.data(), event.data.size(), chat)) {
+				drop(event.connection, "bad chat");
+				break;
+			}
+			// who said it is the host's to say
+			chat.from = client->commander;
+			keepChat(chat);
+			if (encode(chat, scratch_))
+				sendAll(Delivery::ReliableOrdered, scratch_);
+		}
 		else if (type == MessageType::ChunkBatch) {
 			Received received;
 			if (!startSent_ || !decode(event.data.data(), event.data.size(), received.batch)
@@ -413,6 +425,12 @@ void Session::handleClient(const Event& event)
 				haveForce_[force.commander] = true;
 				forces_[force.commander] = std::move(force);
 			}
+			break;
+		}
+		case MessageType::Chat: {
+			Chat chat;
+			if (joined_ && decode(event.data.data(), event.data.size(), chat))
+				keepChat(std::move(chat));
 			break;
 		}
 		case MessageType::Start: {
@@ -599,6 +617,35 @@ const Force& Session::force(uint8_t commander) const
 {
 	static const Force none;
 	return hasForce(commander) ? forces_[commander] : none;
+}
+
+void Session::keepChat(Chat chat)
+{
+	if (chatInbox_.size() == MAX_CHAT_INBOX)
+		chatInbox_.pop_front();
+	chatInbox_.push_back(std::move(chat));
+}
+
+bool Session::sendChat(Chat chat)
+{
+	if (isHost_) {
+		chat.from = commander_;
+		if (!encode(chat, scratch_))
+			return false;
+		keepChat(chat);
+		return sendAll(Delivery::ReliableOrdered, scratch_);
+	}
+	return joined_ && encode(chat, scratch_)
+		&& transport_.send(server_, Delivery::ReliableOrdered, scratch_.data(), scratch_.size());
+}
+
+bool Session::nextChat(Chat& out)
+{
+	if (chatInbox_.empty())
+		return false;
+	out = std::move(chatInbox_.front());
+	chatInbox_.pop_front();
+	return true;
 }
 
 bool Session::nextBatch(Received& out)

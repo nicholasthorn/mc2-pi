@@ -47,6 +47,7 @@ bool Lobby::addPlayer(uint8_t slot, const std::string& name)
 	while (added.baseColor < MAX_LOBBY_COLORS - 1 && colorTaken[added.baseColor])
 		added.baseColor++;
 	added.stripeColor = added.baseColor;
+	added.cBills = state_.cBills;
 
 	// a name the message could not carry would leave the whole state unsendable
 	LobbyState trial;
@@ -133,8 +134,26 @@ bool Lobby::setSettings(int32_t timeLimit, int32_t resourcePoints, uint16_t flag
 	state_.timeLimit = timeLimit;
 	state_.resourcePoints = resourcePoints;
 	state_.flags = flags;
+	// a new amount for everyone replaces what the host gave each, as the 2001 screen did
+	if (cBills != state_.cBills)
+		for (LobbyPlayer& player : state_.players)
+			player.cBills = cBills;
 	state_.cBills = cBills;
 	state_.dropWeight = dropWeight;
+	clearReady();
+	changed();
+	readyFrom_ = state_.revision;
+	return true;
+}
+
+bool Lobby::setPlayerCBills(uint8_t slot, int32_t cBills)
+{
+	LobbyPlayer* player = findPlayer(slot);
+	if (!player || cBills < 0)
+		return false;
+	if (player->cBills == cBills)
+		return true;
+	player->cBills = cBills;
 	clearReady();
 	changed();
 	readyFrom_ = state_.revision;
