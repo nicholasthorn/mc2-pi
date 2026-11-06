@@ -10,18 +10,19 @@ the **Raspberry Pi 4/400**, through an OpenGL ES 3.1 renderer and an arm64
 build, and it is **playable in VR on a Meta Quest 2**, standalone, with the
 Touch controllers.
 
-![An artillery strike landing on a battle in mission 17](media/battle.webp)
-
 | | |
 |---|---|
-| ![Mechs and vehicles under artillery fire in mission 1](media/strike.jpg) | ![Laser and missile fire across a mission 17 battlefield](media/lasers.jpg) |
+| ![Artillery strikes landing on a battle between mechs and vehicles in mission 17](media/battle.webp) | ![A night battle lit by searchlights, with laser and missile fire, in mission 19](media/night.webp) |
+| *Artillery on a battle in mission 17* | *Searchlights, lasers and missiles at night in mission 19* |
+| ![Mechs under artillery fire in mission 1](media/strike.jpg) | ![Mechs trading laser and missile fire at night in mission 19](media/lasers.jpg) |
 | *Artillery on the first campaign mission* | *Lasers and missiles, with shadows and detail textures on* |
-| ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | ![Mechs standing among temple-like buildings and banners in mission 22](media/town.jpg) |
-| *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | *A quieter moment: mechs among the buildings of mission 22* |
+| ![A desert battle in the Omnitech Desert Fox campaign](media/omnitech.jpg) | ![Mechs standing among palace buildings and banners in mission 22](media/town.jpg) |
+| *The fan-made [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech) and its Desert Fox campaign* | *A quieter moment: mechs among the palace buildings of mission 22* |
 
-Scripted battles from the desktop build at 1920x1080
-(`scripts/bench.sh --scenario`). The
-game data, and Omnitech's, are not in this repository.
+Scripted battles (`bench/media_*.fit`) from the v0.5.0-rc1 Linux package at
+1280x800, the resolution where the HUD reads best; Omnitech's from an
+earlier build at 1920x1080. The game data, and Omnitech's, are not in this
+repository.
 
 The main branch is called `pi-port` and the repository `mc2-pi` for
 historical reasons: the Pi port is where this started.

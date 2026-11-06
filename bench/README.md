@@ -142,3 +142,35 @@ In VR the stages inside `world_render` add up both eyes. Read `render_ms` less
   The camera circles the fight the whole run (one turn a minute). Segments
   change its height: `overview` (high, 600 frames), `engage` (medium, 1200),
   `closeup` (low, 600), `effects` (artillery every 20 frames, 1200).
+- `media_mc2_01.fit`, `media_mc2_17.fit`, `media_mc2_19.fit`,
+  `media_mc2_22.fit`: the README's clips and stills (`media/`), each file
+  says which. Not benchmarks.
+
+## README media
+
+Shot at 1280x800 (`ResolutionX` / `ResolutionY` in the game directory's
+`options.cfg`, with shadows, detail textures and high object detail on), on
+Mesa llvmpipe under Xvfb. Stills are the scenarios' own screenshots:
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 SDL_AUDIODRIVER=dummy xvfb-run -a -s "-screen 0 1280x800x24" \
+  ./mc2 -mission mc2_19 -autoexit 1200 -bench frames.csv -benchscenario media_mc2_19.fit
+ffmpeg -i frames_close.tga -q:v 3 lasers.jpg
+```
+
+A clip is a recording of the Xvfb screen. Start `Xvfb :87 -screen 0
+1280x800x24`, run the game as above with `DISPLAY=:87`, and once the log
+shows `[MISSION]`, record with
+`ffmpeg -f x11grab -framerate 60 -video_size 1280x800 -i :87 -c:v libx264 -qp 0 raw.mkv`.
+The game draws fewer than 60 frames a second, so the recording repeats
+frames; dropping every repeat leaves one frame per game frame, which played
+at 30 a second is the game's own speed:
+
+```bash
+ffmpeg -i raw.mkv -vf "mpdecimate=hi=1:lo=1:frac=0,setpts=N/30/TB" -r 30 -qp 0 dec.mkv
+ffmpeg -ss <start s> -t 6 -i dec.mkv -vf "fps=15,scale=720:450:flags=lanczos" \
+  -c:v libwebp -quality 60 -compression_level 6 -loop 0 -an night.webp
+```
+
+Recording starts a few seconds into the run, so `dec.mkv` lacks the first
+frames: count from its end to find a segment.
