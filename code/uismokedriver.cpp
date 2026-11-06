@@ -408,6 +408,14 @@ const char* UiSmokeDriver::press(UiAction action)
 		return (currentScreen() == UiScreen::MainMenu) ? NULL : NOT_YET;
 	case UiAction::MpAwaitGameEnd:
 		return NULL;
+	case UiAction::MpChooseMechs:
+		// the host's checkbox; a client's screen follows the lobby, so there is nothing to do there
+		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
+			if (MPlayer->isHost() && MPlayer->missionSettings.quickStart)
+				params->handleMessage(aMSG_LEFTMOUSEDOWN, 219);	// MP_QUICKSTART, in mpparameterscreen.cpp
+			return NULL;
+		}
+		return "screen is gone";
 	case UiAction::MpPickMap:
 		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
 			const char* name = getenv("MC2_UISMOKE_MAP");

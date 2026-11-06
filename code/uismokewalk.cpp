@@ -127,7 +127,8 @@ UiAction uiRoute(UiScreen from, UiScreen to)
 			return UiAction::MpJoin;
 		break;
 	case UiScreen::MpParams:
-		if (to == UiScreen::Mission)
+		// with quickstart off, a launch leads to the briefing and the mech bay
+		if (to == UiScreen::Mission || to == UiScreen::Briefing)
 			return UiAction::MpLaunch;
 		if (to == UiScreen::MpConnection || to == UiScreen::MpBrowser)
 			return UiAction::MpLeave;
@@ -269,6 +270,7 @@ const ScreenAction SCREEN_ACTIONS[] = {
 	{ UiScreen::MpPrefs, "colour", UiAction::MpPrefsColour },
 	{ UiScreen::MpParams, "others", UiAction::MpOthers },
 	{ UiScreen::MpParams, "alone", UiAction::MpAlone },
+	{ UiScreen::MpParams, "mechs", UiAction::MpChooseMechs },
 };
 
 } // namespace

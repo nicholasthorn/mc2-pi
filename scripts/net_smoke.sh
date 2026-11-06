@@ -32,6 +32,7 @@ SCREENS=0
 AGAIN=0
 LEAVING=0
 HOST_QUITS=0
+MECHS=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -58,6 +59,7 @@ while [ $# -gt 0 ]; do
         --again) AGAIN=1; shift ;;
         --lobby-leaving) LEAVING=1; shift ;;
         --host-quits) HOST_QUITS=1; LEAVING=1; shift ;;
+        --mechs) MECHS=1; SCREENS=1; LOBBY=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -120,6 +122,13 @@ if [ "$SCREENS" = 1 ]; then
     PREFS="mp-prefs,mp-prefs+name,mp-prefs+colour,mp-params"
     HOST_GAME="mp-params,$PREFS,mp-params+map,mission,mp-connection"
     CLIENT_GAME="mp-browser,mp-params,$PREFS,mission,mp-connection"
+    # --mechs: the host turns quickstart off, and each player buys a mech, puts it in the force,
+    # gives it a pilot and launches from the pilot screen
+    if [ "$MECHS" = 1 ]; then
+        BUY="briefing,mechbay,mechpurchase+buy,mechbay+add,pilotready+pilot,mission,mp-connection"
+        HOST_GAME="mp-params,$PREFS,mp-params+map,mp-params+mechs,$BUY"
+        CLIENT_GAME="mp-browser,mp-params,$PREFS,$BUY"
+    fi
     HOST_WALK="mainmenu,mp-connection,$HOST_GAME"
     CLIENT_WALK="mainmenu,mp-connection,$CLIENT_GAME"
     if [ "$AGAIN" = 1 ]; then
@@ -247,6 +256,17 @@ if [ "$LOBBY" = 1 ]; then
         # what each chose on the prefs screen reached the game
         grep -q '^\[NETLOBBY\] commander 0: WalkHost, team [0-9]*, colours 5 ' "$LOG_DIR/client.log" || reasons+=("the host's name and colour did not reach the client")
         grep -q '^\[NETLOBBY\] commander 1: WalkClient, team [0-9]*, colours 9 ' "$LOG_DIR/host.log" || reasons+=("the client's name and colour did not reach the host")
+    fi
+    if [ "$MECHS" = 1 ]; then
+        # each played the mechs it bought, and both made the same units for everyone
+        grep -q '^\[NETFORCE\] everyone' "$LOG_DIR/host.log" || reasons+=("the host never had everyone's units")
+        for c in 0 1; do
+            grep -q "^\[NETFORCE\] commander $c: [1-9][0-9]* units, [1-9]" "$LOG_DIR/host.log" || reasons+=("commander $c had no units placed")
+        done
+        if ! diff <(grep '^\[NETFORCE\] commander [0-9]*: ' "$LOG_DIR/host.log") <(grep '^\[NETFORCE\] commander [0-9]*: ' "$LOG_DIR/client.log") > "$LOG_DIR/force.diff"; then
+            reasons+=("host and client made other units ($LOG_DIR/force.diff)")
+        fi
+        grep -q 'sent units this game does not allow' "$LOG_DIR/host.log" && reasons+=("the host refused a client's units")
     fi
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then

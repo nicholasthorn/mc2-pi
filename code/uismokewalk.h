@@ -99,6 +99,7 @@ enum class UiAction {
 	MpLeave,			// lobby: back, answering yes to the disconnect question
 	MpAwaitHostGone,	// lobby or mission: the host leaves, and the game goes back to the main menu
 	MpAwaitGameEnd,		// mission: played out by a scenario, its results close, and back to the connection screen
+	MpChooseMechs,		// lobby: the host turns quickstart off, so each player buys their own units
 	// in-screen actions
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force
