@@ -27,6 +27,7 @@ public:
 	// False if the port is taken, say by another host on this machine. A host still works
 	// without a beacon: it is reached by its address.
 	bool open(uint16_t port = DISCOVERY_PORT) { return socket_.open(port); }
+	void close() { socket_.close(); }
 	bool isOpen() const { return socket_.isOpen(); }
 	uint16_t port() const { return socket_.port(); }
 

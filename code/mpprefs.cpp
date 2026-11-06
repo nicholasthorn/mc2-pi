@@ -162,7 +162,9 @@ void MPPrefs::begin()
 	sprintf(findString,"%s*.tga",path2insignia);
 
 	WIN32_FIND_DATA	findResult;
-	HANDLE searchHandle = FindFirstFile(findString,&findResult); 
+	HANDLE searchHandle = FindFirstFile(findString,&findResult);
+	// no insignia at all is no reason to read what the search did not fill in
+	if ( searchHandle != INVALID_HANDLE_VALUE )
 	do
 	{
 		// 24 or 32 bit files
@@ -359,7 +361,8 @@ void MPPrefs::setColor( unsigned long color )
 	const MC2Player* players = MPlayer->getPlayers(playerCount);
 	for( int i = 0; i < playerCount; i++ )
 	{
-		if ( MPlayer->colors[players[i].baseColor[BASECOLOR_SELF]] == color && i != MPlayer->commanderID )
+		// (the list has no gaps, where commanders can)
+		if ( MPlayer->colors[players[i].baseColor[BASECOLOR_SELF]] == color && players[i].commanderID != MPlayer->commanderID )
 		{
 			soundSystem->playDigitalSample(LOG_WRONGBUTTON);
 			return;

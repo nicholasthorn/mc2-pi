@@ -26,6 +26,11 @@
 #include <salvagemecharea.h>
 #include <pilotreviewarea.h>
 #include <mechlopedia.h>
+#include <mpconnectiontype.h>
+#include <mpgamebrowser.h>
+#include <mpparameterscreen.h>
+#include <mpprefs.h>
+#include <multplyr.h>
 #include <abutton.h>
 #include <aedit.h>
 
@@ -50,6 +55,12 @@ long g_frames = 0;
 std::chrono::steady_clock::time_point g_last;	// previous update()
 UiScreen g_from = UiScreen::Unknown;	// the screen the last action left
 bool g_labAccept = false;	// mechlab+accept: leave the mech lab by Accept
+UiAction g_retry = UiAction::None;	// a step that waits on another player: tried each frame, with the walk held
+float g_retryWaited = 0.0f;
+bool g_sawHostGone = false;
+
+// what press() says of a step that cannot happen yet, but will
+const char* const NOT_YET = "not yet";
 
 void finish(const char* line, bool failed)
 {
@@ -274,6 +285,14 @@ UiScreen UiSmokeDriver::currentScreen()
 		return UiScreen::MechPurchase;
 	if (dynamic_cast<PilotReadyScreen*>(screen))
 		return UiScreen::PilotReady;
+	if (dynamic_cast<MPConnectionType*>(screen))
+		return UiScreen::MpConnection;
+	if (dynamic_cast<MPGameBrowser*>(screen))
+		return UiScreen::MpBrowser;
+	if (dynamic_cast<MPParameterScreen*>(screen))
+		return UiScreen::MpParams;
+	if (dynamic_cast<MPPrefs*>(screen))
+		return UiScreen::MpPrefs;
 	return UiScreen::Unknown;
 }
 
@@ -290,6 +309,127 @@ const char* UiSmokeDriver::press(UiAction action)
 	switch (action) {
 	case UiAction::OpenOptions:
 		return pressButton(menu, MM_MSG_OPTIONS);
+	case UiAction::OpenMultiplayer:
+		return pressButton(menu, MM_MSG_MULTIPLAYER);
+	case UiAction::MpBrowse:
+		// the screen must have come up on the local network's panel, whose button this is
+		if (MPConnectionType* connection = dynamic_cast<MPConnectionType*>(screen)) {
+			if (connection->pPanel != &connection->lanPanel)
+				return "the screen is not showing the local network's panel";
+			connection->lanPanel.handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID);
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::MpHost:
+		if (MPConnectionType* connection = dynamic_cast<MPConnectionType*>(screen)) {
+			if (connection->pPanel != &connection->lanPanel)
+				return "the screen is not showing the local network's panel";
+			connection->lanPanel.handleMessage(aMSG_LEFTMOUSEDOWN, LAN_PANEL_FIRST_BUTTON_ID + 1);
+			connection->hostDlg.edits[0].setEntry("uismoke");
+			connection->hostDlg.handleMessage(aMSG_LEFTMOUSEDOWN, LogisticsScreen::YES);
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::MpJoin:
+		if (MPGameBrowser* browser = dynamic_cast<MPGameBrowser*>(screen)) {
+			// the first with room: a game that has just ended can still be listed for a moment
+			for (long i = 0; i < browser->gameList.GetItemCount(); i++) {
+				const MC2Session* game = (const MC2Session*)((aGameListItem*)browser->gameList.GetItem(i))->getSession();
+				if (game->inProgress || (game->numPlayers >= game->maxPlayers))
+					continue;
+				browser->gameList.SelectItem(i);
+				screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_NEXT);
+				return (screen->getStatus() == LogisticsScreen::RUNNING) ? NOT_YET : NULL;
+			}
+			return NOT_YET;
+		}
+		return NULL;	// on its way to the next screen
+	case UiAction::MpLaunch:
+		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
+			if (params->getStatus() != LogisticsScreen::RUNNING)
+				return NULL;
+			if (MPlayer->isHost()) {
+				aButton* launch = params->getButton(MB_MSG_NEXT);
+				if (!launch || !launch->isEnabled())
+					return NOT_YET;
+				params->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_NEXT);
+				return NULL;
+			}
+			// its ready button acts only on the mouse: what its update() does for a click
+			MC2Player* me = MPlayer->getPlayerInfo(MPlayer->commanderID);
+			if (MPlayer->missionSettings.map[0] && !me->ready) {
+				me->ready = 1;
+				MPlayer->sendPlayerUpdate(0, 5, MPlayer->commanderID);
+			}
+			return NOT_YET;
+		}
+		return NULL;
+	case UiAction::MpOpenPrefs:
+		return pressButton(screen, 120);	// MP_PLAYER_PREFS, in mpparameterscreen.cpp
+	case UiAction::MpPrefsName:
+		if (MPPrefs* prefsScreen = dynamic_cast<MPPrefs*>(screen)) {
+			prefsScreen->comboBox[0].EditBox().setEntry(MPlayer->isHost() ? "WalkHost" : "WalkClient");
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::MpPrefsColour:
+		if (MPPrefs* prefsScreen = dynamic_cast<MPPrefs*>(screen)) {
+			// colour rectangles start at 3 (FIRST_COLOR_RECT in mpprefs.cpp), as a click on one
+			prefsScreen->setColor(prefsScreen->rects[3 + (MPlayer->isHost() ? 5 : 9)].getColor());
+			return NULL;
+		}
+		return "screen is gone";
+	case UiAction::MpPause:
+		// by the clock, where a hold counts frames: for another player to see what changed
+		return (g_retryWaited >= 10.0f) ? NULL : NOT_YET;
+	case UiAction::MpOthers:
+	case UiAction::MpAlone: {
+		long players = 0;
+		MPlayer->getPlayers(players);
+		return ((players > 1) == (action == UiAction::MpOthers)) ? NULL : NOT_YET;
+	}
+	case UiAction::MpLeave:
+		if (!screen)
+			return "screen is gone";
+		screen->handleMessage(aMSG_LEFTMOUSEDOWN, MB_MSG_PREV);
+		return pressButton(LogisticsOKDialog::instance(), LogisticsScreen::YES);
+	case UiAction::MpAwaitHostGone:
+		// the main menu comes up saying so, and waits for OK
+		if (begin->bSplash && menu && menu->bHostLeftDlg) {
+			if (!g_sawHostGone) {
+				g_sawHostGone = true;
+				printf("[UISMOKE] told that the host has gone\n");
+				fflush(stdout);
+				// its one button has no id to press by
+				LogisticsOneButtonDialog::instance()->handleMessage(aMSG_LEFTMOUSEDOWN, LogisticsScreen::YES);
+			}
+			return NOT_YET;
+		}
+		return (currentScreen() == UiScreen::MainMenu) ? NULL : NOT_YET;
+	case UiAction::MpAwaitGameEnd:
+		return NULL;
+	case UiAction::MpPickMap:
+		if (MPParameterScreen* params = dynamic_cast<MPParameterScreen*>(screen)) {
+			const char* name = getenv("MC2_UISMOKE_MAP");
+			if (!name || !*name)
+				return "mp-params+map needs MC2_UISMOKE_MAP (a map's file name)";
+			if (!params->getButton(101))
+				return "button not found";
+			params->handleMessage(aMSG_LEFTMOUSEDOWN, 101);
+			MPLoadMap& dialog = params->mpLoadMap;
+			for (long i = 0; i < dialog.mapList.GetItemCount(); i++) {
+				aLocalizedListItem* item = (aLocalizedListItem*)dialog.mapList.GetItem(i);
+				// a heading for each kind of game has no file behind it
+				const char* file = item->getHiddenText();
+				if (file && (0 == S_stricmp(file, name))) {
+					dialog.mapList.SelectItem(i);
+					dialog.updateMapInfo();
+					return pressButton(&dialog, LogisticsScreen::YES);
+				}
+			}
+			return "no such map in the list";
+		}
+		return "screen is gone";
 	case UiAction::NewCampaign:
 		return pressButton(menu, MM_MSG_NEW_CAMPAIGN);
 	case UiAction::OptionsTab0:
@@ -526,6 +666,9 @@ void UiSmokeDriver::update()
 		// a longer hold, to take pictures of the screens
 		if (const char* hold = getenv("MC2_UISMOKE_HOLD"))
 			g_walk.holdFrames = atol(hold);
+		// a step can wait on another player, who is loading under a sanitizer
+		if (const char* timeout = getenv("MC2_UISMOKE_TIMEOUT"))
+			g_walk.timeoutSeconds = (float)atof(timeout);
 		printf("[UISMOKE] walk of %ld screens: %s\n", g_walk.numSteps(), text);
 		fflush(stdout);
 		g_last = std::chrono::steady_clock::now();
@@ -538,6 +681,20 @@ void UiSmokeDriver::update()
 	g_last = now;
 
 	++g_frames;
+	if (g_retry != UiAction::None) {
+		g_retryWaited += dt;
+		const char* why = press(g_retry);
+		if ((why == NOT_YET) && (g_retryWaited > g_walk.timeoutSeconds))
+			why = "waited too long for another player";
+		if (why == NOT_YET)
+			return;
+		g_retry = UiAction::None;
+		if (why) {
+			snprintf(line, sizeof(line), "FAIL: %s", why);
+			finish(line, true);
+		}
+		return;
+	}
 	const UiScreen current = currentScreen();
 	const UiSmokeWalk::Result r = g_walk.update(current, dt);
 	switch (r.event) {
@@ -552,7 +709,11 @@ void UiSmokeDriver::update()
 	case UiSmokeWalk::Event::Act:
 		if (*uiActionName(r.action)) {
 			// in-screen action: the screen stays
-			if (const char* why = press(r.action)) {
+			g_retryWaited = 0.0f;	// a pause counts from here, not from the last wait
+			const char* why = press(r.action);
+			if (why == NOT_YET) {
+				g_retry = r.action;
+			} else if (why) {
 				snprintf(line, sizeof(line), "FAIL: cannot %s on %s: %s",
 						uiActionName(r.action), uiScreenName(r.screen), why);
 				finish(line, true);
@@ -560,10 +721,14 @@ void UiSmokeDriver::update()
 				printf("[ACTION] %s+%s\n", uiScreenName(r.screen), uiActionName(r.action));
 				fflush(stdout);
 			}
-		} else if (const char* why = press(r.action)) {
-			snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
-					uiScreenName(g_from), uiScreenName(r.screen), why);
-			finish(line, true);
+		} else if (const char* why = (g_retryWaited = 0.0f, press(r.action))) {
+			if (why == NOT_YET) {
+				g_retry = r.action;
+			} else {
+				snprintf(line, sizeof(line), "FAIL: cannot go from %s to %s: %s",
+						uiScreenName(g_from), uiScreenName(r.screen), why);
+				finish(line, true);
+			}
 		}
 		break;
 	case UiSmokeWalk::Event::Done:

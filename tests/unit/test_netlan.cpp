@@ -72,8 +72,8 @@ TEST_CASE("LanAnnounce: what no game announces is refused")
 	a.gamePort = 0;
 	CHECK_FALSE(encode(a, out));
 	a = someGame();
-	a.map = "";
-	CHECK_FALSE(encode(a, out));
+	a.map = "";		// a lobby that has not chosen one yet is still a game to join
+	CHECK(encode(a, out));
 	for (const char* path : { "../../secret", "a/b", "a\\b", "c:map", "..", "a.b", " map", "map ", "con", "NUL", "com1", "LPT9" }) {
 		a = someGame();
 		a.map = path;

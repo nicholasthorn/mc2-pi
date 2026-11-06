@@ -69,7 +69,9 @@ TEST_CASE("routes are the buttons a player presses") {
 		const bool results = s == UiScreen::Salvage || s == UiScreen::PilotReview
 				|| s == UiScreen::Promotion || s == UiScreen::MissionSelection;
 		const UiAction expected = results ? UiAction::WinMission
-				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions : UiAction::None;
+				: s == UiScreen::OptionsGraphics ? UiAction::MissionOptions
+				: s == UiScreen::MpConnection ? UiAction::MpAwaitGameEnd
+				: s == UiScreen::MainMenu ? UiAction::MpAwaitHostGone : UiAction::None;
 		CHECK(uiRoute(UiScreen::Mission, s) == expected);
 	}
 	CHECK(uiRoute(UiScreen::OptionsHotkeys, UiScreen::Mission) == UiAction::OptionsCancel);
@@ -122,6 +124,24 @@ TEST_CASE("Mechlopedia, main menu from logistics, save and load") {
 	CHECK(uiRoute(UiScreen::MissionSelection, UiScreen::Mission) == UiAction::Next);
 	CHECK(uiScreenAction(UiScreen::Load, "pick", 4) == UiAction::PickSave);
 	CHECK(uiScreenAction(UiScreen::Load, "name", 4) == UiAction::None);
+}
+
+TEST_CASE("multiplayer: into a lobby by hosting or joining, and from it to the mission") {
+	CHECK(uiRoute(UiScreen::MainMenu, UiScreen::MpConnection) == UiAction::OpenMultiplayer);
+	CHECK(uiRoute(UiScreen::MpConnection, UiScreen::MpParams) == UiAction::MpHost);
+	CHECK(uiRoute(UiScreen::MpConnection, UiScreen::MpBrowser) == UiAction::MpBrowse);
+	CHECK(uiRoute(UiScreen::MpBrowser, UiScreen::MpParams) == UiAction::MpJoin);
+	CHECK(uiRoute(UiScreen::MpBrowser, UiScreen::MpConnection) == UiAction::Previous);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::Mission) == UiAction::MpLaunch);
+	CHECK(uiScreenAction(UiScreen::MpParams, "map", 3) == UiAction::MpPickMap);
+	// and out again: by leaving, because the host left, or because the game ended
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpConnection) == UiAction::MpLeave);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpBrowser) == UiAction::MpLeave);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MpPrefs) == UiAction::MpOpenPrefs);
+	CHECK(uiRoute(UiScreen::MpPrefs, UiScreen::MpParams) == UiAction::Next);
+	CHECK(uiScreenAction(UiScreen::MpPrefs, "name", 4) == UiAction::MpPrefsName);
+	CHECK(uiRoute(UiScreen::MpParams, UiScreen::MainMenu) == UiAction::MpAwaitHostGone);
+	CHECK(uiRoute(UiScreen::Mission, UiScreen::MpConnection) == UiAction::MpAwaitGameEnd);
 }
 
 TEST_CASE("in-screen actions belong to one screen each") {

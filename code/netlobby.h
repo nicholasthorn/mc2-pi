@@ -31,6 +31,7 @@ public:
 	// in it is out of range, or the colour is someone else's. Ready only sticks with the map's
 	// hash, so nobody can be ready on a map they lack, and in answer to the latest map and
 	// settings, so a ready on its way as the host changes them does not count for the new ones.
+	// A choice can also rename the player.
 	bool applyChoice(uint8_t slot, const netwire::LobbyChoice& choice);
 
 	// The host's. Each takes everyone's ready back: they agreed to something else. False, with

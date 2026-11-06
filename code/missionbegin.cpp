@@ -726,7 +726,8 @@ const char* MissionBegin::update()
 		if ( pCurScreen->getStatus() == LogisticsScreen::GOTOSPLASH || ( MPlayer && MPlayer->hostLeft ) )
 		{
 			pCurScreen->end();
-			beginSplash();
+			// says who has gone, as a host's own game that will not start has nobody to name
+			beginSplash( ( MPlayer && MPlayer->hostLeft && !MPlayer->isHost() ) ? MPlayer->playerInfo[0].name : NULL );
 			if ( MPlayer &&  MPlayer->hostLeft )
 			{
 				MPlayer->closeSession();
@@ -1255,11 +1256,18 @@ void MissionBegin::beginAtConnectionScreen()
 	}
 	curScreenX = 0;
 	curScreenY = 1;
+	// the slide that led to the load screen stopped with the game loading, and render
+	// would look a screen to the left of this one for it
+	leftAnim.end();
+	rightAnim.end();
+	upAnim.end();
+	downAnim.end();
 	screens[curScreenX][curScreenY]->beginFadeIn( 1.0 );
 	bReadyToLoad = 0;
 	bDone = 0;
 
 	LogisticsData::instance->startMultiPlayer();
+	screens[curScreenX][curScreenY]->begin();	// it was left at NEXT, on the way to the game
 
 	ChatWindow::init();
 

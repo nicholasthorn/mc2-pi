@@ -30,6 +30,8 @@ MPPrefs:
 **************************************************************************************************/
 class MPPrefs: public LogisticsScreen
 {
+	friend class UiSmokeDriver;	// -uismoke names a player and picks a colour
+
 	public:
 
 		MPPrefs();

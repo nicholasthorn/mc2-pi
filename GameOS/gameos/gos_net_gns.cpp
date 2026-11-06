@@ -259,6 +259,9 @@ void onStatusChanged(SteamNetConnectionStatusChangedCallback_t* info)
 	}
 	case k_ESteamNetworkingConnectionState_ClosedByPeer:
 	case k_ESteamNetworkingConnectionState_ProblemDetectedLocally: {
+		// whoever is reading the log after a game that fell apart wants to know why
+		printf("[NET] connection closed: %d, %s\n", info->m_info.m_eEndReason, info->m_info.m_szEndDebug);
+		fflush(stdout);
 		const auto owner = g_connections.find(connection);
 		if (owner != g_connections.end())
 			owner->second->onLost(connection);

@@ -54,6 +54,7 @@ Stuff::Vector3D arena;
 float viewX = 0.0f, viewY = 0.0f;	// what the camera keys are relative to
 float aimX = 0.0f, aimY = 0.0f;		// framing offset of the aim point from it
 std::vector<MoverPtr> fighters;		// both sides, in the arena
+float nextSupport = 0.0f, nextOrder = 0.0f, nextLay = 0.0f;	// by the game's clock
 
 // Exists, is on a team, and can still fight.
 bool canFight (MoverPtr m) {
@@ -655,6 +656,15 @@ void moveCamera (void) {
 
 }
 
+void BenchDirector::missionEnded (void) {
+
+	frame = 0;
+	segment = -1;
+	strikes = 0;
+	fighters.clear();
+	nextSupport = nextOrder = nextLay = 0.0f;
+}
+
 void BenchDirector::update (const char* missionName) {
 
 	// state as left by the previous frame's updates, on every fixed-step frame
@@ -705,7 +715,6 @@ void BenchDirector::update (const char* missionName) {
 	if ((scenario.netEventsEvery > 0) && (frame > 2) && (frame % scenario.netEventsEvery == 0))
 		netEvents();
 	// By the game's clock, as the flights and the time limit are: frames would run out on a slow machine
-	static float nextSupport = 0.0f, nextOrder = 0.0f, nextLay = 0.0f;
 	if ((scenario.netLayMinesSeconds > 0.0f) && (scenarioTime >= nextLay)) {
 		if (nextLay > 0.0f)
 			netLayMines();

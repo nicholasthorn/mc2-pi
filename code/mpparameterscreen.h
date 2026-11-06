@@ -127,6 +127,7 @@ private:
 
 class MPParameterScreen : public LogisticsScreen
 {
+	friend class UiSmokeDriver;	// -uismoke picks a map from the list
 public:
 	
 	MPParameterScreen();

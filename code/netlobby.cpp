@@ -74,15 +74,18 @@ void Lobby::removePlayer(uint8_t slot)
 bool Lobby::applyChoice(uint8_t slot, const LobbyChoice& choice)
 {
 	LobbyPlayer* player = findPlayer(slot);
-	if (!player || choice.team >= maxTeams_ || choice.baseColor >= MAX_LOBBY_COLORS || choice.stripeColor >= MAX_LOBBY_COLORS)
+	std::vector<uint8_t> out;
+	if (!player || !encode(choice, out) || choice.team >= maxTeams_)
 		return false;
 	for (const LobbyPlayer& other : state_.players)
 		if (other.slot != slot && other.baseColor == choice.baseColor)
 			return false;
 	const bool ready = choice.ready && !state_.map.empty() && (choice.mapHash == state_.mapHash) && (choice.revision >= readyFrom_);
 	// the same again is no change: a client answers each new state, and must not start a loop
-	if (player->team == choice.team && player->baseColor == choice.baseColor && player->stripeColor == choice.stripeColor && player->ready == ready)
+	const std::string& name = choice.name.empty() ? player->name : choice.name;
+	if (player->team == choice.team && player->baseColor == choice.baseColor && player->stripeColor == choice.stripeColor && player->ready == ready && player->name == name)
 		return true;
+	player->name = name;
 	player->team = choice.team;
 	player->baseColor = choice.baseColor;
 	player->stripeColor = choice.stripeColor;

@@ -35,6 +35,10 @@ enum class UiScreen {
 	MechlopediaHistory,
 	Save,				// "save game" dialog (LogisticsSaveDialog::begin)
 	Load,				// "load game" dialog (LogisticsSaveDialog::beginLoad)
+	MpConnection,		// multiplayer: how to connect (MPConnectionType)
+	MpBrowser,			// multiplayer: the games on the local network (MPGameBrowser)
+	MpParams,			// multiplayer: a lobby, its map and players (MPParameterScreen)
+	MpPrefs,			// multiplayer: this player's name and colours (MPPrefs)
 	Count
 };
 
@@ -80,6 +84,21 @@ enum class UiAction {
 	OpenLoad,			// main menu "Load Game"
 	SaveAccept,			// save dialog "Save": back to the logistics screen
 	LoadAccept,			// load dialog "Load"
+	OpenMultiplayer,	// main menu "Multiplayer"
+	MpBrowse,			// connection screen, local network panel: look for games
+	MpHost,				// connection screen, local network panel: host, naming the game
+	MpJoin,				// browser: join the first game, once there is one
+	MpLaunch,			// lobby: the host launches once it can, a client says it is ready
+	MpPickMap,			// lobby: the map named by MC2_UISMOKE_MAP, from the host's map list
+	MpOpenPrefs,		// lobby: this player's name and colours
+	MpPrefsName,		// prefs: a name for this player, by whether it hosts
+	MpPrefsColour,		// prefs: a base colour, by whether it hosts
+	MpPause,			// browser: some seconds, for another player to see that this one left
+	MpOthers,			// lobby: wait for someone else to be in it
+	MpAlone,			// lobby: wait for them to have left
+	MpLeave,			// lobby: back, answering yes to the disconnect question
+	MpAwaitHostGone,	// lobby or mission: the host leaves, and the game goes back to the main menu
+	MpAwaitGameEnd,		// mission: played out by a scenario, its results close, and back to the connection screen
 	// in-screen actions
 	BuyMech,			// mechpurchase+buy: buy the first variant that fits
 	AddToForce,			// mechbay+add: put the selected mech in the force

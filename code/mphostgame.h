@@ -38,6 +38,7 @@ protected:
 
 class MPHostGame : public LogisticsDialog
 {
+	friend class UiSmokeDriver;	// -uismoke names the game
 public:
 	
 	MPHostGame();

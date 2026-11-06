@@ -43,7 +43,23 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on
       screen after each, and after the Stop button. At the end, the results screen: names, team,
-      laurels on the winner, and Close quits. Tests check the state of all this, not how it looks.
+      laurels on the winner, and Close (from `-mission`, it quits; from the menu, back to the
+      connection screen). Tests check the state of all this, not how it looks.
+- [ ] **A game from the main menu, by hand** (phase 4). Two windows or machines, no flags. Multiplayer,
+      Local network: host on one (name it, Load Map), Join on the other, pick the game. On the
+      parameters screen: is everything readable, do hidden buttons leave odd gaps, does each player's
+      team list work, does the client's Ready press and show on the host, does Launch count down and
+      stop if someone un-readies? Are the two sides in different colours in the mission? Then leave a
+      lobby each way, and play a second game after the results. On the prefs screen: a name, base and
+      stripe colours, the mech turning in them, a colour someone has being refused, Cancel; does the
+      insignia list work (each player's insignia is not sent to the others yet)? A test walks all this
+      by calling the screens' handlers, and sets a client's ready itself, so the mouse is not covered.
+      Also: the connection screen opens on Local Network with the Zone and TCP/IP tabs off; the host
+      options that do nothing yet are hidden, and is what is left tidy (labels with no controls)? The
+      load screen while waiting for a slower machine; close the host in play: does the client get to
+      the main menu with a message? A client with another version of a map: the message, and Ready off.
+- [ ] **The same on a Quest, by controller** (phase 4). Whether the screens can be used at all.
+      The Quest's multicast lock is still held for the app's whole life.
 - [ ] **A Quest in a network game, worn.** Same as above with someone in it: do the other side's
       mechs look right, do orders given by hand with the controllers work, and does taking the headset
       off and on leave the game running? Also whether the app quits by itself at the end.

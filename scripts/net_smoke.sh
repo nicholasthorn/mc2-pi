@@ -28,6 +28,10 @@ WORLD_EVENTS=yes
 DIAL=0
 LAN=0
 LOBBY=0
+SCREENS=0
+AGAIN=0
+LEAVING=0
+HOST_QUITS=0
 SUPPORT=0
 EXPECT_REPAIRS=0
 EXPECT_TURRETS=0
@@ -50,6 +54,10 @@ while [ $# -gt 0 ]; do
         --dial) DIAL=1; shift ;;
         --lan) LAN=1; shift ;;
         --lobby) LOBBY=1; shift ;;
+        --screens) SCREENS=1; LOBBY=1; shift ;;
+        --again) AGAIN=1; shift ;;
+        --lobby-leaving) LEAVING=1; shift ;;
+        --host-quits) HOST_QUITS=1; LEAVING=1; shift ;;
         --support) SUPPORT=1; shift ;;
         --expect-repairs) EXPECT_REPAIRS=1; shift ;;
         --expect-turrets) EXPECT_TURRETS=1; shift ;;
@@ -100,9 +108,41 @@ HOST_MISSION=(-mission "$MISSION"); CLIENT_MISSION=(-mission "$MISSION")
 if [ "$LOBBY" = 1 ]; then
     HOST_ARGS+=(-netlobby); CLIENT_MISSION=(-netlobby)
 fi
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${HOST_MISSION[@]}" "${COMMON[@]}" -nethost 2 "${HOST_ARGS[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
+# --screens: as players do, from the main menu: the host names a game and picks the map, and the
+# client finds it on the local network. One run at a time on a machine, as for --lan.
+HOST_NET=(-nethost 2 "${HOST_ARGS[@]}")
+CLIENT_NET=("${CLIENT_ARGS[@]}")
+# Each walk ends at the connection screen, where the end of a game leads. --again: both go round
+# once more and play a second game.
+if [ "$SCREENS" = 1 ]; then
+    export MC2_UISMOKE_MAP="$MISSION" MC2_UISMOKE_TIMEOUT=$((TIMEOUT / 2))
+    HOST_MISSION=(); CLIENT_MISSION=()
+    PREFS="mp-prefs,mp-prefs+name,mp-prefs+colour,mp-params"
+    HOST_GAME="mp-params,$PREFS,mp-params+map,mission,mp-connection"
+    CLIENT_GAME="mp-browser,mp-params,$PREFS,mission,mp-connection"
+    HOST_WALK="mainmenu,mp-connection,$HOST_GAME"
+    CLIENT_WALK="mainmenu,mp-connection,$CLIENT_GAME"
+    if [ "$AGAIN" = 1 ]; then
+        HOST_WALK="$HOST_WALK,$HOST_GAME"
+        CLIENT_WALK="$CLIENT_WALK,$CLIENT_GAME"
+    fi
+    # --lobby-leaving: no game. The client joins, leaves and joins again; then the host leaves.
+    if [ "$LEAVING" = 1 ]; then
+        # with pauses, so that each sees what the other did before it moves on
+        HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+others,mp-params+alone,mp-params+others,mp-params+pause,mp-connection"
+        CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mp-params+pause,mp-browser,mp-browser+pause,mp-params,mainmenu"
+    fi
+    # --host-quits: in play, the host's process ends, and the client goes back to its main menu
+    if [ "$HOST_QUITS" = 1 ]; then
+        HOST_WALK="mainmenu,mp-connection,mp-params,mp-params+map,mission,mission+pause"
+        CLIENT_WALK="mainmenu,mp-connection,mp-browser,mp-params,mission,mainmenu"
+    fi
+    HOST_NET=(-uismoke "$HOST_WALK")
+    CLIENT_NET=(-uismoke "$CLIENT_WALK")
+fi
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${HOST_MISSION[@]}" "${COMMON[@]}" "${HOST_NET[@]}" ) > "$LOG_DIR/host.log" 2>&1 &
 host_pid=$!
-( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${CLIENT_MISSION[@]}" "${COMMON[@]}" "${CLIENT_ARGS[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
+( cd "$GAME_DIR" && "${RUN[@]}" timeout -s KILL "$TIMEOUT" ./mc2 "${CLIENT_MISSION[@]}" "${COMMON[@]}" "${CLIENT_NET[@]}" ) > "$LOG_DIR/client.log" 2>&1 &
 client_pid=$!
 start=$(date +%s)
 wait "$host_pid"; host_rc=$?
@@ -113,6 +153,27 @@ BAD='OpenGL Error|: ERROR: |STOP: |FATAL|runtime error: |ERROR: AddressSanitizer
 reasons=()
 [ "$host_rc" -eq 0 ] || reasons+=("host exit status $host_rc")
 [ "$client_rc" -eq 0 ] || reasons+=("client exit status $client_rc")
+if [ "$LEAVING" = 1 ]; then
+    for side in host client; do
+        n=$(grep -cE "$BAD" "$LOG_DIR/$side.log")
+        [ "$n" -gt 0 ] && reasons+=("$side: $n error line(s)")
+    done
+    grep -q '^\[UISMOKE\] told that the host has gone' "$LOG_DIR/client.log" || reasons+=("the client was not told the host has gone")
+    if [ "$HOST_QUITS" = 1 ]; then
+        grep -q '^\[NET\] the host has gone$' "$LOG_DIR/client.log" || reasons+=("the client did not see the host go in play")
+    else
+        grep -q '^\[NET\] the host has gone from the lobby' "$LOG_DIR/client.log" || reasons+=("the client did not see the host go")
+        [ "$(grep -c '^\[NET\] in the lobby as commander' "$LOG_DIR/client.log")" -eq 2 ] || reasons+=("the client did not join twice")
+    fi
+    if [ ${#reasons[@]} -eq 0 ]; then
+        [ "$HOST_QUITS" = 1 ] && echo "PASS host quits (${secs}s)" || echo "PASS lobby leaving (${secs}s)"
+        exit 0
+    fi
+    echo "FAIL lobby leaving (${secs}s): $(printf '%s; ' "${reasons[@]}")"
+    grep -hE "$BAD|CRASH|UISMOKE" "$LOG_DIR/host.log" "$LOG_DIR/client.log" | head -20 | sed 's/^/    /'
+    echo "    logs: $LOG_DIR/host.log $LOG_DIR/client.log"
+    exit 1
+fi
 for side in host client; do
     log="$LOG_DIR/$side.log"
     n=$(grep -cE "$BAD" "$log")
@@ -121,6 +182,11 @@ for side in host client; do
     grep -q '^\[NET\] game over' "$log" || reasons+=("$side: played to no result")
     grep -q '^\[NETRESULT\] rank' "$log" || reasons+=("$side: no results table")
     grep -q '^\[NET\] results closed' "$log" || reasons+=("$side: the results screen never finished")
+    if [ "$AGAIN" = 1 ]; then
+        [ "$(grep -c '^\[NET\] results closed' "$log")" -eq 2 ] || reasons+=("$side: did not play two games")
+        # what the first game's results loaded went with its mission
+        grep -q 'Bad texture handle' "$log" && reasons+=("$side: a texture from the first game was used in the second")
+    fi
 done
 if [ "$WORLD_EVENTS" = yes ]; then
     grep -q '^\[NET\] turn .* weapon hit [1-9]' "$LOG_DIR/host.log" || reasons+=("no weapon hits: the battle did not happen")
@@ -177,6 +243,11 @@ if [ "$LOBBY" = 1 ]; then
         reasons+=("host and client came out of the lobby differently ($LOG_DIR/lobby.diff)")
     fi
     grep -q "^\[NET\] launched as commander 1 of 2, on $MISSION" "$LOG_DIR/client.log" || reasons+=("the client did not launch on $MISSION")
+    if [ "$SCREENS" = 1 ]; then
+        # what each chose on the prefs screen reached the game
+        grep -q '^\[NETLOBBY\] commander 0: WalkHost, team [0-9]*, colours 5 ' "$LOG_DIR/client.log" || reasons+=("the host's name and colour did not reach the client")
+        grep -q '^\[NETLOBBY\] commander 1: WalkClient, team [0-9]*, colours 9 ' "$LOG_DIR/host.log" || reasons+=("the client's name and colour did not reach the host")
+    fi
 fi
 if [ -n "$EXPECT_WINNER" ] && ! echo "$hostwin" | grep -q "team $EXPECT_WINNER wins"; then
     reasons+=("expected team $EXPECT_WINNER to win: $hostwin")

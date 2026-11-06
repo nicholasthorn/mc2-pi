@@ -139,6 +139,7 @@ long cLoadString (HINSTANCE hInstance,  UINT uID, LPTSTR lpBuffer, int nBufferMa
 #include"netrules.h"
 #include"netlan.h"
 #include"netlobby.h"
+#include"benchdirector.h"
 
 #include<algorithm>
 #include<cctype>
@@ -157,6 +158,7 @@ extern bool quitGame;
 
 extern float loadProgress;
 extern bool aborted;
+extern bool justStartMission;
 
 //***************************************************************************
 
@@ -232,12 +234,12 @@ void ResetNetworking (void) {
 
 //-----------------------------------------------------------------------------
 
-static void netClose (void);
+static void netCloseAll (void);
 
 void ShutdownNetworking (void) {
 
 	// before the game's heap goes, which is where these came from
-	netClose();
+	netCloseAll();
 }
 
 //***************************************************************************
@@ -375,6 +377,10 @@ void MultiPlayer::init (void) {
 
 long MultiPlayer:: setup (void) {
 
+	// the only way there is to find a game so far
+	onLAN = true;
+	// each player gets the map's own units: there is no mech selection yet
+	missionSettings.quickStart = true;
 	return(MPLAYER_NO_ERR);
 }
 
@@ -410,6 +416,18 @@ void MultiPlayer::initUpdateFrequencies() {
 // Null in a game with no network (-nethost alone, and everything else).
 static std::unique_ptr<gos_net::Transport> netTransport;
 static std::unique_ptr<netsession::Session> netSession;
+
+// The lobby behind the screens. MultiPlayer::update runs it each frame while it is open; the
+// command line's lobby (hostNetLobby, joinNetLobby) waits for its own end instead.
+static std::unique_ptr<netlobby::Lobby> netRules;	// on the host
+static bool netLobbyOpen = false;
+static bool netLoading = false;			// launched, and no game to update until waitForNetStart is done
+static uint32_t netLobbyMapHash = 0;	// of the map as this machine has it
+static std::string netLobbyMap;			// on a client: the map that hash is of
+static double netChoiceUntil = 0.0;		// on a client: its own choice stands this long, for the host to answer
+static uint32_t netSentRevision = 0;	// on the host: the state last sent
+static bool netStartBegun = false;		// this machine has said it has loaded
+static double netStartGiveUp = 0.0;
 
 static void addWorldEvent (MultiPlayer* player, netwire::WorldEventType type, long a, long b, unsigned long value);
 
@@ -613,17 +631,18 @@ static void netUpdateBeacon (void) {
 	netAnnounce.numPlayers = (uint8_t)(1 + netSession->connectedClients());
 	if (netAnnounce.numPlayers > netAnnounce.maxPlayers)
 		netAnnounce.numPlayers = netAnnounce.maxPlayers;
-	netAnnounce.inProgress = netSession->allJoined();
+	// (a lobby's end is for good: a place that comes free after it cannot be taken)
+	netAnnounce.inProgress = netSession->launched() || netSession->allJoined();
 	netBeacon.update(netAnnounce);
 }
 
-static void netStartBeacon (unsigned short port, long maxPlayers, const char* missionName) {
+static void netStartBeacon (unsigned short port, long maxPlayers, const char* missionName, const char* gameName = NULL) {
 
 	netAnnounce.gamePort = port;
 	netAnnounce.instance = std::random_device{}();
 	netAnnounce.maxPlayers = (uint8_t)maxPlayers;
 	netAnnounce.map = missionName;
-	netAnnounce.name = (std::string(missionName) + " game").substr(0, netwire::MAX_NAME_LENGTH);
+	netAnnounce.name = (gameName ? std::string(gameName) : std::string(missionName) + " game").substr(0, netwire::MAX_NAME_LENGTH);
 	std::vector<uint8_t> trial;
 	if (!netwire::encode(netAnnounce, trial))
 		printf("[NET] not announcing on the local network: this mission's name cannot be sent\n");
@@ -767,14 +786,19 @@ static void netFillColors (void) {
 		MultiPlayer::colors[i] = (long)colors[i % count];
 }
 
-// What a player is called, as a message can carry it and the game can hold it.
-static std::string netPlayerName (void) {
+// A name as a message can carry it and the game can hold it.
+static std::string netCleanName (const char* text, const char* otherwise) {
 
 	std::string name;
-	for (const char* c = prefs.playerName[0]; *c && (name.size() < MAXLEN_PLAYER_NAME - 1); c++)
+	for (const char* c = text; *c && (name.size() < MAXLEN_PLAYER_NAME - 1); c++)
 		if ((*c >= 0x20) && (*c <= 0x7E) && (*c != '%'))
 			name += *c;
-	return(name.empty() ? std::string("Player") : name);
+	return(name.empty() ? std::string(otherwise) : name);
+}
+
+static std::string netPlayerName (void) {
+
+	return(netCleanName(prefs.playerName[0], "Player"));
 }
 
 static uint16_t netLobbyFlags (const MissionSettings& settings) {
@@ -793,10 +817,8 @@ static uint16_t netLobbyFlags (const MissionSettings& settings) {
 	return(flags);
 }
 
-// What the lobby agreed, into what the game reads. Both ends get the same from the same state.
-static void netApplyLobby (MultiPlayer* player, const netwire::LobbyState& state, const netwire::LobbyLaunch& launch) {
+static void netApplyLobbySettings (MissionSettings& settings, const netwire::LobbyState& state) {
 
-	MissionSettings& settings = player->missionSettings;
 	settings.timeLimit = (float)state.timeLimit;
 	settings.resourcePoints = state.resourcePoints;
 	settings.airStrike = (state.flags & netwire::LOBBY_AIRSTRIKE) != 0;
@@ -809,6 +831,12 @@ static void netApplyLobby (MultiPlayer* player, const netwire::LobbyState& state
 	settings.resourceBuilding = (state.flags & netwire::LOBBY_RESOURCE_BUILDINGS) != 0;
 	settings.resourceForMechs = (state.flags & netwire::LOBBY_RESOURCE_FOR_MECHS) != 0;
 	settings.unlimitedAmmo = (state.flags & netwire::LOBBY_UNLIMITED_AMMO) != 0;
+}
+
+// What the lobby agreed, into what the game reads. Both ends get the same from the same state.
+static void netApplyLobby (MultiPlayer* player, const netwire::LobbyState& state, const netwire::LobbyLaunch& launch) {
+
+	netApplyLobbySettings(player->missionSettings, state);
 
 	// Teams from 0 with no gaps, as for commanders: Building::setTeamId clears any at or past numTeams.
 	long teamIndex[netwire::MAX_PLAYERS];
@@ -838,6 +866,27 @@ static void netApplyLobby (MultiPlayer* player, const netwire::LobbyState& state
 	}
 	printf("[NETLOBBY] map %s, %ld teams, time limit %d, resource points %d, flags %x\n", state.map.c_str(), numTeams, (int)state.timeLimit, (int)state.resourcePoints, (unsigned)state.flags);
 	fflush(stdout);
+}
+
+//---------------------------------------------------------------------------
+
+static void netDrainLobbyEvents (netlobby::Lobby& lobby) {
+
+	netsession::LobbyEvent event;
+	while (netSession->nextLobbyEvent(event)) {
+		switch (event.type) {
+			case netsession::LobbyEventType::Joined:
+				lobby.addPlayer(event.commander, event.name);
+				break;
+			case netsession::LobbyEventType::Left:
+				lobby.removePlayer(event.commander);
+				break;
+			case netsession::LobbyEventType::Choice:
+				// a choice the rules refuse changes nothing, and the next state says so
+				lobby.applyChoice(event.commander, event.choice);
+				break;
+		}
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -893,21 +942,7 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 			if (!netSession->dialClient(dialAddress, dialPort))
 				Fatal(0, " -netcall: needs an IP address ");
 		}
-		netsession::LobbyEvent event;
-		while (netSession->nextLobbyEvent(event)) {
-			switch (event.type) {
-				case netsession::LobbyEventType::Joined:
-					lobby.addPlayer(event.commander, event.name);
-					break;
-				case netsession::LobbyEventType::Left:
-					lobby.removePlayer(event.commander);
-					break;
-				case netsession::LobbyEventType::Choice:
-					// a choice the rules refuse changes nothing, and the next state says so
-					lobby.applyChoice(event.commander, event.choice);
-					break;
-			}
-		}
+		netDrainLobbyEvents(lobby);
 		if (lobby.state().revision != sentRevision) {
 			sentRevision = lobby.state().revision;
 			if (!netSession->sendLobbyState(lobby.state())) {
@@ -1005,41 +1040,247 @@ void MultiPlayer::joinNetLobby (const char* address, unsigned short port, char* 
 }
 
 //---------------------------------------------------------------------------
+// The lobby behind the screens.
+//---------------------------------------------------------------------------
 
-void MultiPlayer::waitForNetStart (void) {
+// Everyone in the lobby, where the screens read them. A slot is a commander until the launch.
+static void netShowLobbyPlayers (MultiPlayer* player, const netwire::LobbyState& state) {
+
+	bool here[MAX_MC_PLAYERS] = {false};
+	for (const netwire::LobbyPlayer& lobbyPlayer : state.players) {
+		if (lobbyPlayer.slot >= MAX_MC_PLAYERS)
+			continue;
+		here[lobbyPlayer.slot] = true;
+		MC2Player& info = player->playerInfo[lobbyPlayer.slot];
+		info.commanderID = (char)lobbyPlayer.slot;
+		// what was just clicked is not undone while the host answers
+		if ((lobbyPlayer.slot == player->commanderID) && (netNow() < netChoiceUntil))
+			continue;
+		strncpy(info.name, lobbyPlayer.name.c_str(), MAXLEN_PLAYER_NAME - 1);
+		info.name[MAXLEN_PLAYER_NAME - 1] = 0;
+		info.team = (char)lobbyPlayer.team;
+		info.teamSelected = info.team;
+		for (long i = 0; i < 3; i++)
+			info.baseColor[i] = (char)lobbyPlayer.baseColor;
+		info.stripeColor = (char)lobbyPlayer.stripeColor;
+		info.ready = lobbyPlayer.ready;
+	}
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		if (!here[i])
+			player->playerInfo[i].commanderID = -1;
+}
+
+// What a client's screens show of the map the host chose, from its own copy of the map. The
+// rest of the settings come from the host.
+static void netReadLobbyMap (MultiPlayer* player, const char* map) {
+
+	MissionSettings& settings = player->missionSettings;
+	netReadMissionSettings(player, map);
+	settings.mapGuid = MPParameterScreen::getGUIDFromFile(map);
+	FullPathFileName path;
+	path.init(missionPath, map, ".fit");
+	FitIniFile file;
+	if ((file.open(path) != NO_ERR) || (file.seekBlock("MissionSettings") != NO_ERR))
+		return;
+	bool useResource = false;
+	if ((file.readIdBoolean("MissionNameUseResourceString", useResource) == NO_ERR) && useResource) {
+		unsigned long resource = 0;
+		if (file.readIdULong("MissionNameResourceStringID", resource) == NO_ERR)
+			cLoadString(resource, settings.name, MAXLEN_MAP_DESC - 1);
+	}
+	else
+		file.readIdString("MissionName", settings.name, MAXLEN_MAP_DESC - 1);
+	float weight = 0.0f;
+	if (file.readIdFloat("DropWeightLimit", weight) == NO_ERR)
+		settings.dropWeight = (long)weight;
+}
+
+// From the lobby to the mission's loading, the same on every machine.
+static void netLobbyLaunched (MultiPlayer* player, const netwire::LobbyState& state, const netwire::LobbyLaunch& launch) {
+
+	player->startLocalHost(launch.numPlayers);
+	player->inSession = true;
+	netApplyLobby(player, state, launch);
+	player->initUpdateFrequencies();
+	netLobbyOpen = false;
+	netLoading = true;
+	netRules.reset();
+}
+
+static void netLobbyTickHost (MultiPlayer* player) {
+
+	netDrainLobbyEvents(*netRules);
+	const MissionSettings& settings = player->missionSettings;
+	if (netRules->state().map != settings.map) {
+		const uint32_t hash = settings.map[0] ? netMapHash(settings.map) : 0;
+		if (netRules->setMap(settings.map, hash, (uint8_t)settings.maxTeams)) {
+			netLobbyMapHash = hash;
+			netAnnounce.map = settings.map;
+		}
+		else {
+			// not to try again each frame: the screen shows no map, and the host picks another
+			printf("[NET] the name of map %s cannot be sent\n", settings.map);
+			fflush(stdout);
+			player->missionSettings.map[0] = 0;
+			player->missionSettings.name[0] = 0;
+		}
+	}
+	// anything under nothing is no time limit, in a map's own data too
+	const int32_t timeLimit = (settings.timeLimit < 0.0f) ? netwire::NO_TIME_LIMIT : (int32_t)settings.timeLimit;
+	const int32_t points = (int32_t)settings.resourcePoints;
+	const uint16_t flags = netLobbyFlags(settings);
+	const netwire::LobbyState& state = netRules->state();
+	if ((state.timeLimit != timeLimit) || (state.resourcePoints != points) || (state.flags != flags))
+		netRules->setSettings(timeLimit, points, flags);
+	// what the host's own place shows: starting is its say
+	const netwire::LobbyPlayer* me = netRules->player(0);
+	if (me && !me->ready && settings.map[0]) {
+		netwire::LobbyChoice choice;
+		choice.revision = state.revision;
+		choice.team = me->team;
+		choice.baseColor = me->baseColor;
+		choice.stripeColor = me->stripeColor;
+		choice.ready = true;
+		choice.mapHash = netLobbyMapHash;
+		netRules->applyChoice(0, choice);
+	}
+	if (state.revision != netSentRevision) {
+		netSentRevision = state.revision;
+		netSession->sendLobbyState(state);
+	}
+	netUpdateBeacon();
+	netShowLobbyPlayers(player, state);
+}
+
+static void netLobbyTickClient (MultiPlayer* player) {
+
+	if (netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None)) {
+		printf("[NET] the host has gone from the lobby\n");
+		fflush(stdout);
+		// which takes the screens back to the main menu (MissionBegin::update)
+		player->hostLeft = true;
+		netLobbyOpen = false;
+		return;
+	}
+	if (!netSession->hasLobbyState())
+		return;
+	const netwire::LobbyState& state = netSession->lobbyState();
+	if (netSession->launched()) {
+		netReadMissionSettings(player, state.map.c_str());
+		netLobbyLaunched(player, state, netSession->lobbyLaunch());
+		player->iAmHost = false;
+		player->commanderID = netSession->commander();
+		player->startLoading = true;
+		printf("[NET] launched as commander %ld of %d, on %s\n", player->commanderID, (int)netSession->numPlayers(), state.map.c_str());
+		fflush(stdout);
+		return;
+	}
+	if (state.map != netLobbyMap) {
+		netLobbyMap = state.map;
+		netLobbyMapHash = state.map.empty() ? 0 : netMapHash(state.map.c_str());
+		if (state.map.empty()) {
+			player->missionSettings.map[0] = 0;
+			player->missionSettings.name[0] = 0;
+		}
+		else
+			netReadLobbyMap(player, state.map.c_str());
+		if (!state.map.empty() && (netLobbyMapHash != state.mapHash)) {
+			printf("[NET] this machine has no copy of %s, or another version of it\n", state.map.c_str());
+			fflush(stdout);
+			// what the parameters screen compares with its own copy: it says so, and turns Ready off
+			player->missionSettings.mapGuid.Data1 ^= 1;
+		}
+	}
+	netApplyLobbySettings(player->missionSettings, state);
+	netShowLobbyPlayers(player, state);
+}
+
+//---------------------------------------------------------------------------
+
+bool MultiPlayer::launchNetLobby (void) {
+
+	if (!netLobbyOpen || !netRules || !netSession)
+		return(false);
+	netSession->update();
+	netLobbyTickHost(this);
+	std::string why;
+	if (!netRules->canStart(&why)) {
+		printf("[NET] no launch: %s\n", why.c_str());
+		fflush(stdout);
+		return(false);
+	}
+	netwire::LobbyLaunch launch;
+	launch.numPlayers = netRules->commanders(launch.commanders);
+	if (!netSession->launch(launch))
+		return(false);
+	const netwire::LobbyState state = netRules->state();
+	netLobbyLaunched(this, state, launch);
+	return(true);
+}
+
+//---------------------------------------------------------------------------
+
+long MultiPlayer::commandersForLoad (char commandersToLoad[MAX_MC_PLAYERS][3]) {
+
+	long players = 0;
+	for (long i = 0; i < MAX_MC_PLAYERS; i++) {
+		if (playerInfo[i].commanderID > -1)
+			players++;
+		for (long j = 0; j < 3; j++)
+			commandersToLoad[i][j] = playerInfo[i].commanderID;
+		commandersToLoad[i][1] = playerInfo[i].team;
+	}
+	return(players);
+}
+
+//---------------------------------------------------------------------------
+
+long MultiPlayer::pollNetStart (void) {
 
 	if (!netSession)
-		return;
+		return(1);
 
-	// the units must be the same on every machine, in the same order: the roster
-	// index is what names a unit on the wire
-	unsigned long hash = 2166136261u;
-	for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
-		if (moverRoster[i]) {
-			char line[64];
-			sprintf(line, "%ld %ld ", i, moverRoster[i]->getCommanderId());
-			hash = netHash(hash, line);
-			hash = netHash(hash, moverRoster[i]->getName() ? moverRoster[i]->getName() : "");
-		}
-
-	if (iAmHost) {
-		netSession->setRosterHash((uint32_t)hash);
-		if (!netWait([]() { return netSession->allReady() || netSession->allLeft(); }))
-			Fatal(0, " -netlisten: not everyone loaded the mission ");
-		if (netSession->allLeft())
-			Fatal(0, " -netlisten: everyone else left while the mission loaded ");
-		// someone who cannot be told is dropped, and the rest play
-		netSession->start();
-		}
-	else {
-		netSession->sendReady((uint32_t)hash);
-		const bool answered = netWait([]() {
-			return netSession->started() || netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None);
-		});
-		if (!answered || netSession->hostLost())
-			Fatal(0, " -netjoin: the host did not start the mission ");
-		netFatalIfRefused();
+	if (!netStartBegun) {
+		netStartBegun = true;
+		netStartGiveUp = netNow() + NET_WAIT_SECONDS;
+		// the units must be the same on every machine, in the same order: the roster
+		// index is what names a unit on the wire
+		unsigned long hash = 2166136261u;
+		for (long i = 0; i < MAX_MULTIPLAYER_MOVERS; i++)
+			if (moverRoster[i]) {
+				char line[64];
+				sprintf(line, "%ld %ld ", i, moverRoster[i]->getCommanderId());
+				hash = netHash(hash, line);
+				hash = netHash(hash, moverRoster[i]->getName() ? moverRoster[i]->getName() : "");
+			}
+		if (iAmHost)
+			netSession->setRosterHash((uint32_t)hash);
+		else
+			netSession->sendReady((uint32_t)hash);
 	}
+
+	netSession->update();
+	bool started = false;
+	if (iAmHost) {
+		netUpdateBeacon();
+		if (netSession->allLeft())
+			return(-1);
+		if (netSession->allReady()) {
+			// someone who cannot be told is dropped, and the rest play
+			netSession->start();
+			started = true;
+		}
+	}
+	else {
+		if (netSession->hostLost() || (netSession->rejected() != netwire::RejectReason::None))
+			return(-1);
+		started = netSession->started();
+	}
+	if (!started)
+		return((netNow() < netStartGiveUp) ? 0 : -1);
+
+	netLoading = false;
+	netStartBegun = false;
 	printf("[NET] mission start\n");
 	printf("[NET] %ld turrets\n", ObjectManager ? ObjectManager->getNumTurrets() : 0L);
 	for (long i = 0; ObjectManager && (i < ObjectManager->getNumTurrets()) && (i < 4); i++) {
@@ -1047,6 +1288,24 @@ void MultiPlayer::waitForNetStart (void) {
 		printf("[NET] turret %ld at %.0f, %.0f, team %ld\n", i, at.x, at.y, ObjectManager->getTurret(i)->getTeamId());
 	}
 	fflush(stdout);
+	return(1);
+}
+
+//---------------------------------------------------------------------------
+
+void MultiPlayer::waitForNetStart (void) {
+
+	if (!netSession)
+		return;
+	long started;
+	while ((started = pollNetStart()) == 0)
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	if (started > 0)
+		return;
+	if (iAmHost)
+		Fatal(0, netSession->allLeft() ? " -netlisten: everyone else left while the mission loaded " : " -netlisten: not everyone loaded the mission ");
+	netFatalIfRefused();
+	Fatal(0, " -netjoin: the host did not start the mission ");
 }
 
 //---------------------------------------------------------------------------
@@ -1060,6 +1319,18 @@ bool MultiPlayer::isNetworked (void) {
 
 long MultiPlayer::update (void) {
 
+	if (netLobbyOpen || netLoading) {
+		netSession->update();
+		if (netLobbyOpen) {
+			if (iAmHost)
+				netLobbyTickHost(this);
+			else
+				netLobbyTickClient(this);
+		}
+		else if (iAmHost)
+			netUpdateBeacon();
+		return(MPLAYER_NO_ERR);
+	}
 	processMessages();
 	if (iAmHost) {
 		updateClients();
@@ -1071,8 +1342,25 @@ long MultiPlayer::update (void) {
 
 //---------------------------------------------------------------------------
 
+static std::unique_ptr<netlan::Browser> netBrowser;
+static MC2Session netFoundSessions[64];
+
+static void netCloseAll (void) {
+
+	netBrowser.reset();
+	netRules.reset();
+	netBeacon.close();
+	netClose();
+}
+
 long MultiPlayer::beginSessionScan (char* ipAddress, bool persistent) {
 
+	netBrowser.reset(new netlan::Browser);
+	if (!netBrowser->open()) {
+		printf("[NET] cannot look for games on the local network\n");
+		fflush(stdout);
+		netBrowser.reset();
+	}
 	return(MPLAYER_NO_ERR);
 }
 
@@ -1080,6 +1368,7 @@ long MultiPlayer::beginSessionScan (char* ipAddress, bool persistent) {
 
 long MultiPlayer::endSessionScan (void) {
 
+	netBrowser.reset();
 	return(MPLAYER_NO_ERR);
 }
 
@@ -1087,13 +1376,93 @@ long MultiPlayer::endSessionScan (void) {
 
 MC2Session* MultiPlayer::getSessions (long& sessionCount) {
 
-	return(NULL);
+	sessionCount = 0;
+	if (!netBrowser)
+		return(NULL);
+	netBrowser->update(netNow());
+	for (const netlan::Found& found : netBrowser->found()) {
+		if (sessionCount == (long)(sizeof(netFoundSessions) / sizeof(netFoundSessions[0])))
+			break;
+		const netwire::LanAnnounce& game = found.announce;
+		// a game from the command line with no lobby: its data hash has its mission in it, and these
+		// screens have nothing to answer that with
+		if (!game.lobby)
+			continue;
+		MC2Session& session = netFoundSessions[sessionCount++];
+		memset(&session, 0, sizeof(session));
+		strncpy(session.name, game.name.c_str(), MAXLEN_SESSION_NAME - 1);
+		strncpy(session.map, game.map.c_str(), MAXLEN_MAP_NAME - 1);
+		session.maxPlayers = (char)game.maxPlayers;
+		session.numPlayers = (char)game.numPlayers;
+		session.inProgress = game.inProgress;
+		// the list's item keeps a copy of this, and joinSession finds the game again by it
+		memcpy(&session.handle, &game.instance, sizeof(game.instance));
+	}
+	return(netFoundSessions);
 }
 
 //---------------------------------------------------------------------------
 
-bool MultiPlayer::hostSession (char* sessionName, char* playerName, long mxPlayers) {
+// Nobody in the lobby yet but whoever is about to be added.
+static void netEnterLobby (MultiPlayer* player, bool isHost, long commander) {
 
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		player->playerInfo[i].commanderID = -1;
+	player->iAmHost = isHost;
+	player->commanderID = commander;
+	player->inSession = true;
+	player->hostLeft = false;
+	player->startLoading = false;
+	player->missionSettings.map[0] = 0;
+	player->missionSettings.name[0] = 0;
+	player->missionSettings.maxTeams = 8;
+	player->missionSettings.maxPlayers = MAX_MC_PLAYERS;
+	netLobbyOpen = true;
+	netLobbyMap.clear();
+	netLobbyMapHash = 0;
+	netChoiceUntil = 0.0;
+	netSentRevision = 0;
+}
+
+bool MultiPlayer::hostSession (char* newSessionName, char* playerName, long mxPlayers) {
+
+	closeSession();
+	std::string error;
+	netTransport = gos_net::createGnsTransport(&error);
+	if (!netTransport) {
+		printf("[NET] no network: %s\n", error.c_str());
+		fflush(stdout);
+		return(false);
+	}
+	const uint32_t hash = netDataHash(NULL);
+	// another game on this machine can have the first ones
+	unsigned short port = 0;
+	for (unsigned short candidate = netsession::DEFAULT_PORT; !port && (candidate < netsession::DEFAULT_PORT + MAX_MC_PLAYERS); candidate++) {
+		netSession.reset(new netsession::Session(*netTransport));
+		if (netSession->hostLobby(candidate, (uint8_t)mxPlayers, hash))
+			port = candidate;
+	}
+	if (!port) {
+		printf("[NET] nowhere to listen\n");
+		fflush(stdout);
+		netClose();
+		return(false);
+	}
+	netRules.reset(new netlobby::Lobby((uint8_t)mxPlayers));
+	if (!netRules->addPlayer(0, netPlayerName())) {
+		netRules.reset();
+		netClose();
+		return(false);
+	}
+	netEnterLobby(this, true, 0);
+	const std::string name = netCleanName(newSessionName ? newSessionName : "", "Game");
+	strncpy(sessionName, name.c_str(), MAXLEN_SESSION_NAME - 1);
+	sessionName[MAXLEN_SESSION_NAME - 1] = 0;
+	printf("[NET] lobby %s on port %d, for up to %ld players\n", sessionName, (int)port, mxPlayers);
+	fflush(stdout);
+	netAnnounce.lobby = true;
+	netStartBeacon(port, mxPlayers, "", sessionName);
+	netShowLobbyPlayers(this, netRules->state());
 	return(true);
 }
 
@@ -1113,6 +1482,7 @@ void MultiPlayer::setLocked (bool set) {
 
 void MultiPlayer::setInProgress (bool set) {
 
+	missionSettings.inProgress = set;
 }
 //---------------------------------------------------------------------------
 
@@ -1134,13 +1504,97 @@ void MultiPlayer::addTeamScore (int teamID, int score) {
 
 long MultiPlayer::joinSession (MC2Session* session, char* playerName) {
 
-	return(MPLAYER_ERR_SESSION_NOT_FOUND);
+	if (!session || !netBrowser)
+		return(MPLAYER_ERR_SESSION_NOT_FOUND);
+	uint32_t instance = 0;
+	memcpy(&instance, &session->handle, sizeof(instance));
+	std::string address;
+	unsigned short port = 0;
+	for (const netlan::Found& found : netBrowser->found())
+		if (found.announce.instance == instance) {
+			if (found.announce.protocol != netwire::PROTOCOL_VERSION)
+				return(MPLAYER_ERR_BAD_VERSION);
+			if (found.announce.inProgress)
+				return(MPLAYER_ERR_SESSION_IN_PROGRESS);
+			address = found.address;
+			port = found.announce.gamePort;
+		}
+	if (address.empty())
+		return(MPLAYER_ERR_SESSION_NOT_FOUND);
+
+	closeSession();
+	std::string error;
+	netTransport = gos_net::createGnsTransport(&error);
+	if (!netTransport) {
+		printf("[NET] no network: %s\n", error.c_str());
+		fflush(stdout);
+		return(MPLAYER_ERR_NO_CONNECTION);
+	}
+	netSession.reset(new netsession::Session(*netTransport));
+	if (!netSession->join(address.c_str(), port, netDataHash(NULL), netPlayerName())) {
+		netClose();
+		return(MPLAYER_ERR_HOST_NOT_FOUND);
+	}
+	printf("[NET] joining a lobby at %s port %d\n", address.c_str(), (int)port);
+	fflush(stdout);
+	// A short wait with the screen still: the host answered the browser a moment ago.
+	const double giveUp = netNow() + 5.0;
+	while ((netNow() < giveUp) && !netSession->hasLobbyState() && !netSession->hostLost() && (netSession->rejected() == netwire::RejectReason::None)) {
+		netSession->update();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+	if (!netSession->hasLobbyState()) {
+		long result = MPLAYER_ERR_HOST_NOT_FOUND;
+		switch (netSession->rejected()) {
+			case netwire::RejectReason::WrongVersion:
+			case netwire::RejectReason::WrongData:
+				result = MPLAYER_ERR_BAD_VERSION;
+				break;
+			case netwire::RejectReason::GameFull:
+				result = MPLAYER_ERR_SESSION_FULL;
+				break;
+			default:
+				break;
+		}
+		printf("[NET] no lobby: %s\n", netRejectName(netSession->rejected()));
+		fflush(stdout);
+		netClose();
+		return(result);
+	}
+	netEnterLobby(this, false, netSession->commander());
+	strncpy(sessionName, session->name, MAXLEN_SESSION_NAME - 1);
+	sessionName[MAXLEN_SESSION_NAME - 1] = 0;
+	netLobbyTickClient(this);
+	printf("[NET] in the lobby as commander %ld\n", commanderID);
+	fflush(stdout);
+	return(MPLAYER_NO_ERR);
 }
 
 //-----------------------------------------------------------------------------
 
+static void netForgetGame (void);
+
 long MultiPlayer::closeSession (void) {
 
+	// the screens call this on their way in, too, with nothing to close
+	if (!netSession)
+		return 0;
+	printf("[NET] leaving the session\n");
+	fflush(stdout);
+	netForgetGame();
+	netBeacon.close();
+	netRules.reset();
+	netLobbyOpen = false;
+	netLoading = false;
+	netClose();
+	inSession = false;
+	iAmHost = false;
+	commanderID = -1;
+	sessionName[0] = 0;
+	missionSettings.map[0] = 0;
+	missionSettings.name[0] = 0;
+	for (long i = 0; i < MAX_MC_PLAYERS; i++)
+		playerInfo[i].commanderID = -1;
 	return 0;
 }
 
@@ -1148,6 +1602,7 @@ long MultiPlayer::closeSession (void) {
 
 void MultiPlayer::leaveSession (void) {
 
+	closeSession();
 }
 
 //-----------------------------------------------------------------------------
@@ -1245,6 +1700,20 @@ void MultiPlayer::setPlayerBaseColor (long commanderID, long colorIndex) {
 
 void MultiPlayer::setPlayerTeam (long commanderID, long teamID) {
 
+	// the host's say, for anyone
+	if (!netRules || (commanderID < 0) || (commanderID >= MAX_MC_PLAYERS) || (teamID < 0) || (teamID >= MAX_MC_PLAYERS))
+		return;
+	const netwire::LobbyPlayer* lobbyPlayer = netRules->player((uint8_t)commanderID);
+	if (!lobbyPlayer)
+		return;
+	netwire::LobbyChoice choice;
+	choice.revision = netRules->state().revision;
+	choice.team = (uint8_t)teamID;
+	choice.baseColor = lobbyPlayer->baseColor;
+	choice.stripeColor = lobbyPlayer->stripeColor;
+	choice.ready = lobbyPlayer->ready;
+	choice.mapHash = netLobbyMapHash;
+	netRules->applyChoice((uint8_t)commanderID, choice);
 }
 
 //-----------------------------------------------------------------------------
@@ -1636,6 +2105,30 @@ void MultiPlayer::sendPlayerCID (NETPLAYER receiver, unsigned char subType, char
 
 void MultiPlayer::sendPlayerUpdate (NETPLAYER receiver, long stage, long newCommanderID) {
 
+	// This player's own place, from the parameters screen or the prefs screen (which says -1).
+	if (!netLobbyOpen || (commanderID < 0) || ((newCommanderID != commanderID) && (newCommanderID != -1)))
+		return;
+	const MC2Player& me = playerInfo[commanderID];
+	if ((me.team < 0) || (me.baseColor[BASECOLOR_PREFERENCE] < 0) || (me.stripeColor < 0))
+		return;
+	netwire::LobbyChoice choice;
+	choice.team = (uint8_t)me.team;
+	choice.baseColor = (uint8_t)me.baseColor[BASECOLOR_PREFERENCE];
+	choice.stripeColor = (uint8_t)me.stripeColor;
+	choice.ready = (me.ready != 0);
+	choice.mapHash = netLobbyMapHash;
+	choice.name = netCleanName(me.name, "");
+	if (iAmHost) {
+		// the next frame shows what the rules made of it
+		if (netRules) {
+			choice.revision = netRules->state().revision;
+			netRules->applyChoice((uint8_t)commanderID, choice);
+		}
+		return;
+	}
+	choice.revision = netSession->lobbyState().revision;
+	netChoiceUntil = netNow() + 1.0;
+	netSession->sendLobbyChoice(choice);
 }
 
 //---------------------------------------------------------------------------
@@ -1707,6 +2200,21 @@ extern MoverPtr BringInReinforcement (long vehicleID, long rosterIndex, long com
 static bool netSupportUnit[MAX_MULTIPLAYER_MOVERS] = {false};	// on the host: does not keep a team in the game
 static bool netSupportAsked = false;	// on a client: one request at a time, as there is one button
 static long netSupportCounts[5] = {0};	// vehicles begun, dropped, recoveries begun, mechs recovered, refusals
+
+// This process can play another game.
+static void netForgetGame (void) {
+
+	netGameEnded = false;
+	netOrdersApplied = netRepairsApplied = netHoldsApplied = 0;
+	std::fill(std::begin(netOrdersByCode), std::end(netOrdersByCode), 0L);
+	std::fill(std::begin(netWorldApplied), std::end(netWorldApplied), 0L);
+	netHqs.clear();
+	std::fill(std::begin(netSupportUnit), std::end(netSupportUnit), false);
+	netSupportAsked = false;
+	std::fill(std::begin(netSupportCounts), std::end(netSupportCounts), 0L);
+	netStartBegun = false;
+	BenchDirector::missionEnded();
+}
 
 static netwire::SupportEvent netSupportEvent (netwire::SupportStage stage, long commander, long rosterIndex, long vehicleId, long cost, const Stuff::Vector3D& pos) {
 
@@ -2936,7 +3444,11 @@ void MultiPlayer::processMessages (void) {
 		hostLeft = true;
 		printf("[NET] the host has gone\n");
 		fflush(stdout);
-		quitGame = true;
+		// from the menu, back to it (mechcmd2.cpp, on the mission's result); from a command line, out
+		if (justStartMission)
+			quitGame = true;
+		else
+			scenarioResult = mis_PLAYER_DRAW;
 	}
 }
 
@@ -3222,6 +3734,8 @@ void MultiPlayer::destroy (void) {
 
 void MultiPlayer::getChatMessages( char** buffer, long* playerIDs, long& count )
 {
+	// no chat yet: the caller leaves its limit in count, and would read that many
+	count = 0;
 }
 
 void MultiPlayer::redistributeRP( )

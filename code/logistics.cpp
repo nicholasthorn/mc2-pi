@@ -104,6 +104,7 @@ void Logistics::destroy (void)
 void Logistics::start (long startMode)
 {
 	bMissionLoaded  = 0;
+	bNetStartPending = false;
 	userInput->setMouseCursor( mState_LOGISTICS );
 //	userInput->mouseOn();
 
@@ -368,10 +369,23 @@ long Logistics::update (void)
 			}
 			else if ( MPlayer && MPlayer->isNetworked() )
 			{
-				// no lobby to go back to yet
 				printf( "[NET] results closed\n" );
 				fflush( stdout );
-				quitGame = true;
+				if ( justStartMission )
+					quitGame = true;
+				else
+				{
+					// Back to where a game is found or hosted, with a new MultiPlayer: nothing of
+					// this game carries over to the next. A session cannot go back to being a lobby.
+					MPlayer->closeSession();
+					delete MPlayer;
+					MPlayer = NULL;
+					// and new results: the textures MPStats loads once went with the mission
+					delete missionResults;
+					missionResults = NULL;
+					logisticsState = log_SPLASH;
+					missionBegin->beginAtConnectionScreen();
+				}
 			}
 			else if ( MPlayer )
 			{
@@ -412,6 +426,30 @@ long Logistics::update (void)
 				playFullScreenVideo( pVid );
 				return logisticsState;
 			}
+			if ( bNetStartPending )
+			{
+				// a frame at a time, as slower machines can take a while, and with the load screen up
+				const long started = MPlayer ? MPlayer->pollNetStart() : -1;
+				if ( started == 0 )
+					return(logisticsState);
+				bNetStartPending = false;
+				if ( started < 0 )
+				{
+					// the next update's MissionBegin takes it back to the main menu
+					printf( "[NET] the mission will not start\n" );
+					fflush( stdout );
+					mission->destroy();
+					if ( MPlayer )
+						MPlayer->hostLeft = true;
+					return(logisticsState);
+				}
+				eye->activate();
+				eye->update();
+				mission->start();
+				mission->update(); // force this, so we don't render first
+				MPlayer->setMode(MULTIPLAYER_MODE_MISSION);
+				bMissionLoaded = true;
+			}
 			if ( missionBegin->readyToLoad() && !bMissionLoaded )
 			{
 				missionBegin->end();	//Called to clean up ABL!!
@@ -420,6 +458,11 @@ long Logistics::update (void)
 
 				if (!beginMission(0, 0, 0)) {
 					missionBegin->beginAtConnectionScreen();
+					return(logisticsState);
+				}
+				if ( MPlayer && MPlayer->isNetworked() )
+				{
+					bNetStartPending = true;
 					return(logisticsState);
 				}
 				bMissionLoaded = true;
@@ -460,6 +503,21 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 
 	if (MPlayer)
 		MPlayer->setMode(MULTIPLAYER_MODE_LOADING);
+
+	// A network game has none of the stage messages below: the lobby's launch said who is who,
+	// and every machine starts from that, as a game from the command line does (mechcmd2.cpp).
+	if (MPlayer && MPlayer->isNetworked()) {
+		char netCommanders[MAX_MC_PLAYERS][3];
+		const long players = MPlayer->commandersForLoad(netCommanders);
+		MultiPlayTeamId = MPlayer->playerInfo[MPlayer->commanderID].team;
+		MultiPlayCommanderId = MPlayer->commanderID;
+		useUnlimitedAmmo = MPlayer->missionSettings.unlimitedAmmo;
+		if (mission)
+			mission->destroy();
+		mission->init(MPlayer->missionSettings.map, MISSION_LOAD_MP_QUICKSTART, 0, NULL, netCommanders, MultiPlayer::moversPerCommander(players));
+		// and it starts once everyone has loaded: Logistics::update
+		return(1);
+	}
 
 	char commandersToLoad[MAX_MC_PLAYERS][3] = {{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}, {6, 6, 6}, {7, 7, 7}};
 	long missionLoadType = LogisticsData::instance->skipLogistics() ? 

@@ -2390,10 +2390,9 @@ void LogisticsData::startMultiPlayer()
 	sprintf(findString,"data" PATH_SEPARATOR "multiplayer" PATH_SEPARATOR "*.var");
 
 
-#ifdef LINUX_BUILD
-    // sebi !NB
-    ENTER_DEBUGGER
-#else
+	// The designs players saved are for the mech lab, which a game with the map's own units
+	// (quickstart) does not open. Every build has LINUX_BUILD, so this was a trap on all of them.
+#ifndef LINUX_BUILD
 	WIN32_FIND_DATA	findResult;
 	HANDLE searchHandle = FindFirstFile(findString,&findResult); 
 	if (searchHandle != INVALID_HANDLE_VALUE)

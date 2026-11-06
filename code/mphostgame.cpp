@@ -202,6 +202,8 @@ int	MPHostGame::handleMessage( unsigned long message, unsigned long who)
 			LogisticsOneButtonDialog::instance()->setText( IDS_ERROR_NOT_CONNECTED, IDS_DIALOG_OK, IDS_DIALOG_OK );
 			LogisticsOneButtonDialog::instance()->setFont( IDS_MP_CONNECT_ERROR_NO_CONNECTION_FONT );
 			bShowDlg = true;
+			// not YES, or whoever opened this goes on to a lobby there is not; update() ends it as NO
+			status = RUNNING;
 		}
 
 	}
