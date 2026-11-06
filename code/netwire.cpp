@@ -81,9 +81,10 @@ namespace {
 
 // The name goes into the game's chat and player lists, which are 2001 code with
 // signed char: printable ASCII only, and no % in case one reaches a format string.
-bool validName(const std::string& name)
+// The same goes for any text a message carries, at its own length.
+bool validName(const std::string& name, size_t maxLength = MAX_NAME_LENGTH)
 {
-	if (name.size() > MAX_NAME_LENGTH)
+	if (name.size() > maxLength)
 		return false;
 	for (char c : name) {
 		const uint8_t b = static_cast<uint8_t>(c);
@@ -284,10 +285,10 @@ bool encode(const LanAnnounce& m, std::vector<uint8_t>& out)
 	return true;
 }
 
-static bool readShortText(Reader& in, std::string& text)
+static bool readShortText(Reader& in, std::string& text, size_t maxLength = MAX_NAME_LENGTH)
 {
 	const size_t length = in.u8();
-	if (!in.ok() || length > MAX_NAME_LENGTH || length > in.remaining())
+	if (!in.ok() || length > maxLength || length > in.remaining())
 		return false;
 	text.resize(length);
 	return (length == 0) || in.bytes(&text[0], length);
@@ -484,17 +485,10 @@ bool decode(const void* data, size_t size, LobbyLaunch& m)
 	return in.finished() && validLobbyLaunch(m);
 }
 
-// A name to look up in the data: as validName, longer, and never empty.
+// a name to look up in the data: as a player's name, longer, and never empty
 static bool validForceText(const std::string& text)
 {
-	if (text.empty() || text.size() > MAX_FORCE_TEXT_LENGTH)
-		return false;
-	for (char c : text) {
-		const uint8_t b = static_cast<uint8_t>(c);
-		if (b < 0x20u || b > 0x7Eu || b == '%')
-			return false;
-	}
-	return true;
+	return !text.empty() && validName(text, MAX_FORCE_TEXT_LENGTH);
 }
 
 static bool validForce(const Force& m)
@@ -505,15 +499,6 @@ static bool validForce(const Force& m)
 		if (!validForceText(unit.chassis) || !validForceText(unit.pilot))
 			return false;
 	return true;
-}
-
-static bool readForceText(Reader& in, std::string& text)
-{
-	const size_t length = in.u8();
-	if (!in.ok() || length == 0 || length > MAX_FORCE_TEXT_LENGTH || length > in.remaining())
-		return false;
-	text.resize(length);
-	return in.bytes(&text[0], length);
 }
 
 bool encode(const Force& m, std::vector<uint8_t>& out)
@@ -549,10 +534,10 @@ bool decode(const void* data, size_t size, Force& m)
 	m.units.clear();
 	for (size_t i = 0; i < count; i++) {
 		ForceUnit unit;
-		if (!readForceText(in, unit.chassis))
+		if (!readShortText(in, unit.chassis, MAX_FORCE_TEXT_LENGTH))
 			return false;
 		unit.variant = in.u8();
-		if (!readForceText(in, unit.pilot))
+		if (!readShortText(in, unit.pilot, MAX_FORCE_TEXT_LENGTH))
 			return false;
 		m.units.push_back(std::move(unit));
 	}

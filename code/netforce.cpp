@@ -31,8 +31,6 @@ bool check(const Force& force, const Rules& rules, const LookUpUnit& lookUp, con
 		const std::string pilot = lowered(unit.pilot);
 		if (!facts.known)
 			reason = "a unit this data does not have";
-		else if (!facts.designer)
-			reason = "a variant of a player's own";
 		else if (facts.cost < 0 || facts.tons < 0)
 			reason = "a unit with no cost or weight";
 		else if (!knowsPilot(unit.pilot))
@@ -54,14 +52,11 @@ bool check(const Force& force, const Rules& rules, const LookUpUnit& lookUp, con
 	return !reason;
 }
 
-size_t unitsPerPlayer(int players, int moversPerCommander)
+size_t unitsPerPlayer(int players)
 {
-	// MAX_MULTIPLAYER_MECHS_IN_LOGISTICS, as MechBayScreen and PilotReadyScreen share it out
-	const int shared = (players > 0) ? 36 / players : 12;
-	int most = std::min<int>(std::min(shared, 12), static_cast<int>(MAX_FORCE_UNITS));
-	if (moversPerCommander >= 0)
-		most = std::min(most, moversPerCommander);
-	return static_cast<size_t>(std::max(most, 0));
+	// as MechBayScreen and PilotReadyScreen share it out
+	const int force = static_cast<int>(MAX_FORCE_UNITS);
+	return static_cast<size_t>((players > 0) ? std::min(LOGISTICS_UNITS / players, force) : force);
 }
 
 std::vector<Spot> placeUnits(const std::vector<Spot>& places, size_t count, float spacing)

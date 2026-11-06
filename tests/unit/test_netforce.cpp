@@ -24,25 +24,17 @@ ForceUnit unit(const char* chassis, uint8_t variant, const char* pilot)
 	return u;
 }
 
-// a small data set: two chassis with designer variants, and one variant of a player's own
+// a small data set: two chassis with designer variants
 UnitFacts lookUp(const ForceUnit& u)
 {
 	UnitFacts facts;
 	if (u.chassis == "data\\objects\\atlas.csv" && u.variant <= 1) {
 		facts.known = true;
-		facts.designer = true;
 		facts.cost = 3000000;
 		facts.tons = 100;
 	}
 	else if (u.chassis == "data\\objects\\raven.csv" && u.variant == 0) {
 		facts.known = true;
-		facts.designer = true;
-		facts.cost = 1000000;
-		facts.tons = 35;
-	}
-	else if (u.chassis == "data\\objects\\raven.csv" && u.variant == 7) {
-		facts.known = true;
-		facts.designer = false;
 		facts.cost = 1000000;
 		facts.tons = 35;
 	}
@@ -91,8 +83,9 @@ TEST_CASE("What the mech bay would not allow is refused, with why")
 	force.units.push_back(unit("data\\objects\\atlas.csv", 2, "pmw00031"));
 	CHECK(why(force, generous()) == "a unit this data does not have");
 
+	// a variant of a player's own, which the data's designer variants do not have
 	force.units[0] = unit("data\\objects\\raven.csv", 7, "pmw00031");
-	CHECK(why(force, generous()) == "a variant of a player's own");
+	CHECK(why(force, generous()) == "a unit this data does not have");
 
 	force.units[0] = unit("data\\objects\\raven.csv", 0, "nobody");
 	CHECK(why(force, generous()) == "a pilot this data does not have");
@@ -128,15 +121,13 @@ TEST_CASE("No more units, C-Bills or tons than the game gives")
 	CHECK(netforce::check(force, rules, lookUp, knowsPilot));
 }
 
-TEST_CASE("Units per player: the mech bay's share, and no more than the mission takes")
+TEST_CASE("Units per player: the mech bay's share, never more than a force holds")
 {
-	CHECK(netforce::unitsPerPlayer(2, 12) == 12);
-	CHECK(netforce::unitsPerPlayer(4, 12) == 9);
-	CHECK(netforce::unitsPerPlayer(8, 12) == 4);
-	CHECK(netforce::unitsPerPlayer(2, 6) == 6);
-	CHECK(netforce::unitsPerPlayer(1, 99) == 12);
-	CHECK(netforce::unitsPerPlayer(0, 99) == 12);
-	CHECK(netforce::unitsPerPlayer(2, 0) == 0);
+	// the same as MultiPlayer::moversPerCommander for every count of players
+	const size_t movers[8] = { 12, 12, 12, 9, 7, 6, 5, 4 };
+	for (int players = 1; players <= 8; players++)
+		CHECK(netforce::unitsPerPlayer(players) == movers[players - 1]);
+	CHECK(netforce::unitsPerPlayer(0) == 12);
 }
 
 TEST_CASE("Units start on the map's places, then in rows beside them")

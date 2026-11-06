@@ -566,8 +566,14 @@ bool Session::sendForce(const Force& force)
 {
 	if (!launched_ || !encode(force, scratch_))
 		return false;
-	if (isHost_)
-		return !startSent_ && force.commander < numPlayers_ && sendAll(Delivery::ReliableOrdered, scratch_);
+	if (isHost_) {
+		if (startSent_ || force.commander >= numPlayers_ || haveForce_[force.commander])
+			return false;
+		// what it says is what it holds, as a client holds what it hears
+		haveForce_[force.commander] = true;
+		forces_[force.commander] = force;
+		return sendAll(Delivery::ReliableOrdered, scratch_);
+	}
 	if (started_ || forceSent_ || force.commander != commander_)
 		return false;
 	forceSent_ = true;

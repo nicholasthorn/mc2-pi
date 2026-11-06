@@ -117,7 +117,8 @@ public:
 	// another's, a second, or one outside that time is dropped.
 	bool sendForce(const netwire::Force& force);
 	bool nextForce(netwire::Force& out);	// host
-	bool hasForce(uint8_t commander) const;	// client: the host's word on that commander's units
+	// The host's word on that commander's units, at either end: once said, it stands.
+	bool hasForce(uint8_t commander) const;
 	const netwire::Force& force(uint8_t commander) const;
 
 	// either: the other end is gone (client), and a game over was announced

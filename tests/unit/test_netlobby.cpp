@@ -864,8 +864,14 @@ TEST_CASE("Forces: each client sends its own, and the host tells everyone everyo
 		CHECK(client->force(3).units.empty());
 	}
 
-	// the host's first word stands
-	REQUIRE(game.host.sendForce(forceOf(0, "pmw00099")));
+	// the host holds what it said, and its first word stands: it says no other, and a client
+	// would take no other
+	CHECK(game.host.hasForce(2));
+	CHECK(game.host.force(0).units[0].pilot == "pmw00040");
+	CHECK_FALSE(game.host.sendForce(forceOf(0, "pmw00099")));
+	std::vector<uint8_t> again;
+	REQUIRE(encode(forceOf(0, "pmw00099"), again));
+	REQUIRE(game.hostTransport->send(ace.serverConnection(), gos_net::Delivery::ReliableOrdered, again.data(), again.size()));
 	game.pump();
 	CHECK(ace.force(0).units[0].pilot == "pmw00040");
 

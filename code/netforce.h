@@ -17,10 +17,10 @@
 
 namespace netforce {
 
-// What this machine's data says of a unit's chassis and variant.
+// What this machine's data says of a unit's chassis and variant: known only for a designer
+// variant the data has, not one a player made in the mech lab.
 struct UnitFacts {
 	bool known = false;
-	bool designer = false;		// a variant the data has, not one a player made in the mech lab
 	int32_t cost = 0;			// C-Bills
 	int32_t tons = 0;
 };
@@ -34,15 +34,16 @@ struct Rules {
 using LookUpUnit = std::function<UnitFacts(const netwire::ForceUnit&)>;
 using KnowsPilot = std::function<bool(const std::string&)>;
 
-// What the mech bay allows, checked again by the host: no more units than the limit, each a
-// designer variant the data has, each with a pilot the data has and no pilot twice, and no more
+// What the mech bay allows, checked again by the host: no more units than the limit, each
+// known to the data, each with a pilot the data has and no pilot twice, and no more
 // C-Bills or tons than the game gives. An empty force is allowed: that player has no units.
 // If not, why not.
 bool check(const netwire::Force& force, const Rules& rules, const LookUpUnit& lookUp, const KnowsPilot& knowsPilot, std::string* why = nullptr);
 
-// How many units a player may have, as the mech bay and pilot screens count it
-// (MAX_MULTIPLAYER_MECHS_IN_LOGISTICS shared out), and no more than the mission takes.
-size_t unitsPerPlayer(int players, int moversPerCommander);
+// How many units a player may have, as the mech bay and pilot screens count it: these shared
+// out, and never more than a force holds. (MultiPlayer::moversPerCommander comes to the same.)
+constexpr int LOGISTICS_UNITS = 36;		// MAX_MULTIPLAYER_MECHS_IN_LOGISTICS
+size_t unitsPerPlayer(int players);
 
 struct Spot {
 	float x = 0.0f;
