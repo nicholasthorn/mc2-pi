@@ -7,13 +7,15 @@ name: Smoke
 #
 # What a run covers:
 #   - nightly, on demand, and PRs that change multiplayer code
-#     (scripts/ci_multiplayer.sh): everything, on all three configurations.
+#     (scripts/ci_multiplayer.sh): every step below, on all three configurations,
+#     except as the last item says.
 #   - other code PRs: the five missions on all three and the replay; of the
 #     multiplayer steps, the host and the two-process battle on the sanitized job,
 #     no game modes. Sanitized because most multiplayer crashes so far were found
 #     there, with the stack that names them.
 #   - nightly and on demand only: the steps named "Exhaustive", which look for
-#     what a PR's run is too short to find. Nobody waits on these.
+#     what a PR's run is too short to find. Nobody waits on these. Their network
+#     steps run on the sanitized job only, for the reason above.
 
 on:
   schedule:
@@ -57,7 +59,8 @@ env:
   # in the multiplayer host step; mc2_m02a and mc2_m02b have never been run.
   OTHER_NET_MAPS: "mc2_m01 mc2_m02 mc2_m03 mc2_m04 mc2_m05 mc2_m06 mc2_m07 mc2_m08 mc2_m10"
   # The support battle, shared by its game-modes line and the nightly repeats so
-  # the two stay the same battle.
+  # the two stay the same battle. github.workspace, not "$PWD" as in the steps:
+  # this is set before any shell runs.
   SUPPORT_BATTLE: >-
     --mission mc2_m08 --scenario ${{ github.workspace }}/bench/net_support.fit --support
     --world-events no --frames 200000
@@ -277,8 +280,7 @@ jobs:
             --expect-winner 1 --world-events no --log-dir smoke-logs/net-ordered-hill
       # Nightly and on demand. These run after a failure above, so one problem does
       # not hide another, but not without the game data, which is only restored
-      # after a good build. The network steps run on the sanitized job only: it is
-      # the one that has found multiplayer crashes, with the stack that names them.
+      # after a good build.
       - name: Exhaustive, the rest of the campaign
         if: ${{ !cancelled() && steps.gamedata.outcome == 'success' && github.event_name != 'pull_request' }}
         run: >
