@@ -125,4 +125,27 @@ TEST_CASE("round window: ground picking stops where the fade is full") {
     CHECK(quadInCircle(3, 0, 0));
 }
 
+TEST_CASE("round window: every corner of a kept quad is kept, the far corners are not") {
+    for (long side : {10L, 30L, 45L, 60L, 90L}) {
+        for (long y = 0; y < side - 1; ++y)
+            for (long x = 0; x < side - 1; ++x)
+                if (quadInCircle(side, x, y)) {
+                    REQUIRE(vertexInCircle(side, x, y));
+                    REQUIRE(vertexInCircle(side, x + 1, y));
+                    REQUIRE(vertexInCircle(side, x, y + 1));
+                    REQUIRE(vertexInCircle(side, x + 1, y + 1));
+                }
+        CHECK(vertexInCircle(side, side >> 1, side >> 1));
+        CHECK_FALSE(vertexInCircle(side, 0, 0));
+        CHECK_FALSE(vertexInCircle(side, side - 1, side - 1));
+    }
+}
+
+TEST_CASE("the fade is 0 inside its start without a square root, 1 past its end") {
+    const Range range = rangeFor(60, kUnits);
+    CHECK(amount(range, range.start * 0.5f, range.start * 0.5f) == 0.0f);
+    CHECK(amount(range, 0.0f, range.start) == 0.0f);
+    CHECK(amount(range, 0.0f, range.start + 2.0f / range.invWidth) == 1.0f);
+}
+
 }

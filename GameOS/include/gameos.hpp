@@ -2047,9 +2047,6 @@ void __stdcall gos_SetGameStepHeldBack( bool heldBack );
 bool __stdcall gos_GameStepHeldBack();
 // This frame the interface is resting: nothing is to draw in the window.
 bool __stdcall gos_VRHudResting();
-// VR: what the eyes clear to behind the world, 0xRRGGBB. MC2_VR_PATHS=1, on a
-// flat window, clears the window to it instead.
-void __stdcall gos_SetVRBackground(DWORD rgb);
 //
 // The field of view, in degrees, for the game camera in VR: enough to cover
 // the eyes at the window's aspect, so that what the game counts as in view is

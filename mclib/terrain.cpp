@@ -12,9 +12,9 @@
 // Include Files
 #ifndef TERRAIN_H
 #include"terrain.h"
+#endif
 
 #include"vr_edge_fade.h"
-#endif
 
 #ifndef VERTEX_H
 #include"vertex.h"
@@ -938,16 +938,15 @@ extern bool InEditor;
 //---------------------------------------------------------------------------
 bool Terrain::isInWindow (const Stuff::Vector3D& pos)
 {
+	if (gos_IsVR())		//round, as drawn, and inside the square (vr_edge_fade.h)
+	{
+		const Stuff::Vector3D centre = eye->getPosition();
+		return vr_edge_fade::pointInCircle(visibleVerticesPerSide, worldUnitsPerVertex, pos.x - centre.x, pos.y - centre.y);
+	}
 	const float column = (pos.x - mapTopLeft3d.x) * oneOverWorldUnitsPerVertex;
 	const float row = (mapTopLeft3d.y - pos.y) * oneOverWorldUnitsPerVertex;
 	const Stuff::Vector2DOf<float> topLeft = mapData->getTopLeftVertex();
 	const float lastVertex = (float)(visibleVerticesPerSide - 1);
-	if (gos_IsVR())		//round, as drawn (vr_edge_fade.h)
-	{
-		const Stuff::Vector3D centre = eye->getPosition();
-		if (!vr_edge_fade::pointInCircle(visibleVerticesPerSide, worldUnitsPerVertex, pos.x - centre.x, pos.y - centre.y))
-			return false;
-	}
 	return (column >= topLeft.x) && (column <= topLeft.x + lastVertex) &&
 		(row >= topLeft.y) && (row <= topLeft.y + lastVertex);
 }
@@ -1053,7 +1052,8 @@ void Terrain::geometry (void)
 			if (gos_IsVR())
 			{
 				gameOnScreen = onScreen && eye->isInFront(vPosition);
-				onScreen = true;
+				//except the corners the round window leaves out (vr_edge_fade.h)
+				onScreen = vr_edge_fade::vertexInCircle(visibleVerticesPerSide, i % visibleVerticesPerSide, i / visibleVerticesPerSide);
 			}
 
 			if (onScreen)

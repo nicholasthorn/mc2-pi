@@ -22,9 +22,15 @@ const float kWidthVertices = 4.0f;
 // The square runs from N/2 vertices before the vertex nearest the point to
 // N/2 - 1 after it, and the point is within half a vertex of that one: no
 // vertex on the square's edge is nearer than N/2 - 1.5, so all are fully faded.
+// The fade is full this many vertices from the point; 0 or less: no fade.
+inline float fullVertices(long verticesPerSide)
+{
+    return verticesPerSide * 0.5f - 1.5f;
+}
+
 inline Range rangeFor(long verticesPerSide, float unitsPerVertex)
 {
-    const float full = (verticesPerSide * 0.5f - 1.5f) * unitsPerVertex;
+    const float full = fullVertices(verticesPerSide) * unitsPerVertex;
     if (full <= 0.0f)
         return Range{0.0f, 0.0f};
     const float wanted = kWidthVertices * unitsPerVertex;
@@ -32,40 +38,51 @@ inline Range rangeFor(long verticesPerSide, float unitsPerVertex)
     return Range{full - width, 1.0f / width};
 }
 
-// 0 clear, 1 fully faded, smooth at both ends.
+// 0 clear, 1 fully faded: smoothstep over the range, as in scene.hglsl.
 inline float amount(const Range& range, float dx, float dy)
 {
-    float t = (std::sqrt(dx * dx + dy * dy) - range.start) * range.invWidth;
-    t = (t < 0.0f) ? 0.0f : ((t > 1.0f) ? 1.0f : t);
+    if (range.invWidth == 0.0f)
+        return 0.0f;
+    const float d2 = dx * dx + dy * dy;
+    if (d2 <= range.start * range.start)
+        return 0.0f;
+    float t = (std::sqrt(d2) - range.start) * range.invWidth;
+    t = (t > 1.0f) ? 1.0f : t;
     return t * t * (3.0f - 2.0f * t);
 }
 
 // The round window. The square's corners lie wholly past the fade, so in VR
 // they are not drawn at all. Quad (x, y) runs from vertex x to x + 1 (and y),
 // counted from the square's top left; the vertex nearest the point is N / 2,
-// and the point is within half a vertex of it on each axis, so a quad whose
-// nearest point is further than the full fade plus that half diagonal from
-// the vertex is fully faded everywhere.
+// and the point is within half a vertex of it on each axis (a half diagonal in
+// all), so a quad further than the full fade plus that from the vertex is
+// fully faded everywhere.
+const float kHalfDiagonal = 0.7072f;
+
 inline bool quadInCircle(long verticesPerSide, long x, long y)
 {
-    const float full = verticesPerSide * 0.5f - 1.5f;
+    const float full = fullVertices(verticesPerSide);
     if (full <= 0.0f)
         return true;
-    const float centre = float(verticesPerSide >> 1);
-    const float reach = full + 0.7072f;
-    float gapX = float(x) - centre;
-    if (centre - float(x + 1) > gapX) gapX = centre - float(x + 1);
-    float gapY = float(y) - centre;
-    if (centre - float(y + 1) > gapY) gapY = centre - float(y + 1);
-    gapX = (gapX > 0.0f) ? gapX : 0.0f;
-    gapY = (gapY > 0.0f) ? gapY : 0.0f;
+    const long centre = verticesPerSide >> 1;
+    // whole vertices from the centre vertex to the quad's nearest side
+    const float gapX = float((x >= centre) ? x - centre : centre - 1 - x);
+    const float gapY = float((y >= centre) ? y - centre : centre - 1 - y);
+    const float reach = full + kHalfDiagonal;
     return gapX * gapX + gapY * gapY <= reach * reach;
+}
+
+// Vertex (x, y) is a corner of a quad the round window keeps.
+inline bool vertexInCircle(long verticesPerSide, long x, long y)
+{
+    return quadInCircle(verticesPerSide, x, y) || quadInCircle(verticesPerSide, x - 1, y) ||
+        quadInCircle(verticesPerSide, x, y - 1) || quadInCircle(verticesPerSide, x - 1, y - 1);
 }
 
 // Whether ground there can be seen at all: dx, dy from the point, in world units.
 inline bool pointInCircle(long verticesPerSide, float unitsPerVertex, float dx, float dy)
 {
-    const float full = (verticesPerSide * 0.5f - 1.5f) * unitsPerVertex;
+    const float full = fullVertices(verticesPerSide) * unitsPerVertex;
     if (full <= 0.0f)
         return true;
     return dx * dx + dy * dy < full * full;

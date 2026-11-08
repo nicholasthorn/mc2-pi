@@ -1352,6 +1352,7 @@ class gosRenderer {
             curTextBottom_ = Bottom;
         }
 
+        DWORD getClearColorValue() const { return clearColorValue_; }
         int getTextRegionWidth() { return curTextRight_ - curTextLeft_; }
         int getTextRegionHeight() { return curTextBottom_ - curTextTop_; }
 
@@ -3066,6 +3067,10 @@ vec4 __stdcall gos_GetRenderViewport() {
 void __stdcall gos_SetStereoEye(int eye)
 {
     g_gos_renderer->drawMerged();
+    // VR: behind the world, the background gos_SetupViewport was given (in a
+    // mission, the fog colour the world fades to)
+    const vec3 background = uint32_to_vec4(g_gos_renderer->getClearColorValue()).zyx();
+    gos_xr::setEyeClearColor(background.x, background.y, background.z);
     // VR: the eye's own image (its size, its viewport)
     if(gos_xr::bindEye(eye)) {
         int width, height;
@@ -3084,19 +3089,6 @@ void __stdcall gos_SetStereoEye(int eye)
 int __stdcall gos_GetVREyeViews(gosVREyeView views[2])
 {
     return gos_xr::eyeViews(views);
-}
-
-void __stdcall gos_SetVRBackground(DWORD rgb)
-{
-    const float red = ((rgb >> 16) & 0xff) / 255.0f;
-    const float green = ((rgb >> 8) & 0xff) / 255.0f;
-    const float blue = (rgb & 0xff) / 255.0f;
-    gos_xr::setEyeClearColor(red, green, blue);
-    if(!gos_xr::active()) {
-        glClearColor(red, green, blue, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    }
 }
 
 bool __stdcall gos_IsVR()
