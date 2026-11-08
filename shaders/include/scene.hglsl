@@ -30,7 +30,9 @@ float calc_fog_factor(in vec3 wpos, in vec3 cam_pos)
 
     // VR: fade out before the terrain window ends (mclib/vr_edge_fade.h)
     // smoothstep from 0 to 1, not over start..end: w is 0 with no fade
-    float edge = smoothstep(0.0, 1.0, (length(wpos.xz - g_scene.vrEdge.xy) - g_scene.vrEdge.z) * g_scene.vrEdge.w);
+    float edge = 0.0;
+    if(g_scene.vrEdge.w > 0.0)  // the same for every pixel: no cost outside VR
+        edge = smoothstep(0.0, 1.0, (length(wpos.xz - g_scene.vrEdge.xy) - g_scene.vrEdge.z) * g_scene.vrEdge.w);
 
     float distFog = 1.0 - max(haze_factor, edge);
 

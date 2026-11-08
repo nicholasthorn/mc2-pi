@@ -995,6 +995,7 @@ void Terrain::geometry (void)
 		// Should weed out VAST overwhelming majority of vertices!
 		bool onScreen = false;
 		bool gameOnScreen = true;		//the game camera's own answer (VR: see below)
+		bool vrCorner = false;			//VR: left out of the round window, not drawn
 	
 		//-----------------------------------------------------------------
 		// Find angle between lookVector of Camera and vector from camPos
@@ -1053,7 +1054,8 @@ void Terrain::geometry (void)
 			{
 				gameOnScreen = onScreen && eye->isInFront(vPosition);
 				//except the corners the round window leaves out (vr_edge_fade.h)
-				onScreen = vr_edge_fade::vertexInCircle(visibleVerticesPerSide, i % visibleVerticesPerSide, i / visibleVerticesPerSide);
+				vrCorner = !vr_edge_fade::vertexInCircle(visibleVerticesPerSide, i % visibleVerticesPerSide, i / visibleVerticesPerSide);
+				onScreen = !vrCorner;
 			}
 
 			if (onScreen)
@@ -1140,7 +1142,8 @@ void Terrain::geometry (void)
 		if (currentVertex->clipInfo && gameOnScreen)
 			currentVertex->calcThisFrame |= 8;
 
-		if (currentVertex->clipInfo && gameOnScreen)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
+		//a corner the round window does not draw is still in play if the game camera sees it
+		if ((currentVertex->clipInfo || vrCorner) && gameOnScreen)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
 		{
 			setObjBlockActive(currentVertex->getBlockNumber(), true);
 			setObjVertexActive(currentVertex->vertexNum,true);
