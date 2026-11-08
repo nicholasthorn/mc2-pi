@@ -261,8 +261,8 @@ The interface only rests in a headset session, so no desktop run covers it.
       out of the game camera's view still works. Rotated ones were checked on
       the desktop only, with rays from the game camera.
 
-- [ ] **No hard edges where the world ends** (`vr-edge-fade`). Seen on flat captures
-      only. Look at the horizon and up, on a day mission (`mc2_01`), a night one
+- [ ] **No hard edges where the world ends** (`vr-round-terrain`). Seen on a
+      left-eye capture from an unworn Quest at fog 100 (mc2_19); nobody has looked yet. Look at the horizon and up, on a day mission (`mc2_01`), a night one
       (`mc2_19`), a pure black fog one (`mc2_05`) and Omnitech: no square of ground, no
       line where the sky stops, no black. Does the sky look right when it is level with
       you, and does it stay still as the camera moves and the head turns? Do units in
