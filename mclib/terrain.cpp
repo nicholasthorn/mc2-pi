@@ -942,6 +942,12 @@ bool Terrain::isInWindow (const Stuff::Vector3D& pos)
 	const float row = (mapTopLeft3d.y - pos.y) * oneOverWorldUnitsPerVertex;
 	const Stuff::Vector2DOf<float> topLeft = mapData->getTopLeftVertex();
 	const float lastVertex = (float)(visibleVerticesPerSide - 1);
+	if (gos_IsVR())		//round, as drawn (vr_edge_fade.h)
+	{
+		const Stuff::Vector3D centre = eye->getPosition();
+		if (!vr_edge_fade::pointInCircle(visibleVerticesPerSide, worldUnitsPerVertex, pos.x - centre.x, pos.y - centre.y))
+			return false;
+	}
 	return (column >= topLeft.x) && (column <= topLeft.x + lastVertex) &&
 		(row >= topLeft.y) && (row <= topLeft.y + lastVertex);
 }

@@ -2,6 +2,7 @@
 
 #include "vr_edge_fade.h"
 
+#include <cmath>
 #include <initializer_list>
 
 using namespace vr_edge_fade;
@@ -57,6 +58,71 @@ TEST_CASE("no square, no fade") {
         CHECK(range.invWidth == 0.0f);
         CHECK(amount(range, 100000.0f, 0.0f) == 0.0f);
     }
+}
+
+// The round window: a quad runs from vertex x to x + 1 (and y), counted from the
+// window's top left; the vertex nearest the point is N / 2, and the point is
+// within half a vertex of it on each axis.
+static float nearestDistance(long x, long y, float px, float py) {
+    const float dx = (px < x) ? x - px : ((px > x + 1) ? px - (x + 1) : 0.0f);
+    const float dy = (py < y) ? y - py : ((py > y + 1) ? py - (y + 1) : 0.0f);
+    return std::sqrt(dx * dx + dy * dy);
+}
+
+TEST_CASE("round window: the middle stays, the corners go") {
+    for (long side : {30L, 45L, 60L, 76L, 90L}) {
+        const long c = side >> 1;
+        const long last = side - 2;     // the last quad in a row
+        CHECK(quadInCircle(side, c, c));
+        CHECK(quadInCircle(side, c - 1, c - 1));
+        CHECK(quadInCircle(side, 0, c));        // the middle of each side
+        CHECK(quadInCircle(side, last, c));
+        CHECK(quadInCircle(side, c, 0));
+        CHECK(quadInCircle(side, c, last));
+        CHECK_FALSE(quadInCircle(side, 0, 0));
+        CHECK_FALSE(quadInCircle(side, last, 0));
+        CHECK_FALSE(quadInCircle(side, 0, last));
+        CHECK_FALSE(quadInCircle(side, last, last));
+    }
+}
+
+TEST_CASE("round window: no quad dropped that the fade leaves visible") {
+    for (long side : {10L, 30L, 31L, 45L, 60L, 76L, 90L}) {
+        const float full = side * 0.5f - 1.5f;      // in vertices, as rangeFor
+        const float c = float(side >> 1);
+        for (float ox = -0.5f; ox <= 0.5f; ox += 0.125f)
+            for (float oy = -0.5f; oy <= 0.5f; oy += 0.125f)
+                for (long y = 0; y < side - 1; ++y)
+                    for (long x = 0; x < side - 1; ++x)
+                        if (nearestDistance(x, y, c + ox, c + oy) < full)
+                            REQUIRE(quadInCircle(side, x, y));
+    }
+}
+
+TEST_CASE("round window: drops a real share of the square") {
+    for (long side : {30L, 60L, 90L}) {
+        long kept = 0, all = 0;
+        for (long y = 0; y < side - 1; ++y)
+            for (long x = 0; x < side - 1; ++x) {
+                ++all;
+                kept += quadInCircle(side, x, y) ? 1 : 0;
+            }
+        const float dropped = 1.0f - float(kept) / float(all);
+        CHECK(dropped > 0.10f);
+        CHECK(dropped < 0.215f);    // a circle in the square drops 21.5%
+    }
+}
+
+TEST_CASE("round window: ground picking stops where the fade is full") {
+    const long side = 60;
+    const float full = (side * 0.5f - 1.5f) * kUnits;
+    CHECK(pointInCircle(side, kUnits, 0.0f, 0.0f));
+    CHECK(pointInCircle(side, kUnits, full * 0.99f, 0.0f));
+    CHECK_FALSE(pointInCircle(side, kUnits, full * 0.75f, full * 0.75f));
+    CHECK_FALSE(pointInCircle(side, kUnits, 0.0f, -full * 1.01f));
+    // too small a window for a fade: all of it counts
+    CHECK(pointInCircle(3, kUnits, 1000.0f, 1000.0f));
+    CHECK(quadInCircle(3, 0, 0));
 }
 
 }
