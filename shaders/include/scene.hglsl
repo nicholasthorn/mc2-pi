@@ -29,8 +29,15 @@ float calc_fog_factor(in vec3 wpos, in vec3 cam_pos)
 
     float distFog = 1.0 - haze_factor;
 
-    float factor = clamp((fogStart - wpos.y)/(fogStart - fogFull), 0.0, 1.0);
-    factor = 1.0 - factor * factor;
+    // height fog as the CPU path has it (TG_Shape, quad.cpp): none above
+    // fogStart or below fogFull, 1 - r^2 between; none when they are equal
+    float factor = 1.0;
+    if(fogStart != fogFull)
+    {
+        float r = (fogStart - wpos.y) / (fogStart - fogFull);
+        if(r > 0.0 && r <= 1.0)
+            factor = 1.0 - r * r;
+    }
 
     factor = min(factor, distFog);
 
