@@ -29,14 +29,16 @@ float calc_fog_factor(in vec3 wpos, in vec3 cam_pos)
 
     float distFog = 1.0 - haze_factor;
 
-    // height fog as the CPU path has it (TG_Shape, quad.cpp): none above
-    // fogStart or below fogFull, 1 - r^2 between; none when they are equal
+    // height fog as the CPU path has it (TG_Shape, quad.cpp): only below
+    // fogStart, 1 - r^2 there while r is at most 1, none past that or when
+    // the two are equal. Missions also set fogFull above fogStart (mc2_16:
+    // -250, -2), which leaves everything above fogStart clear.
     float factor = 1.0;
-    if(fogStart != fogFull)
+    if(fogStart != fogFull && wpos.y < fogStart)
     {
         float r = (fogStart - wpos.y) / (fogStart - fogFull);
-        if(r > 0.0 && r <= 1.0)
-            factor = 1.0 - r * r;
+        if(r <= 1.0)
+            factor = clamp(1.0 - r * r, 0.0, 1.0);
     }
 
     factor = min(factor, distFog);
