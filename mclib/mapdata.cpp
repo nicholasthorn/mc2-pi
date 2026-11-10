@@ -18,6 +18,8 @@
 #include"terrain.h"
 #endif
 
+#include"vr_edge_fade.h"
+
 #ifndef CAMERA_H
 #include"camera.h"
 #endif
@@ -841,10 +843,19 @@ void MapData::makeLists (VertexPtr vertexList, long &numVerts, TerrainQuadPtr qu
 	long maxX,maxY;
 	maxX = maxY = Terrain::visibleVerticesPerSide-1;
 
+	//VR: the corners are past the fade; leave them out (vr_edge_fade.h)
+	const bool vrRound = gos_IsVR();
+
 	for (long y=0;y<maxY;y++)
 	{
 		for (long x=0;x<maxX;x++)
 		{
+			if (vrRound && !vr_edge_fade::quadInCircle(Terrain::visibleVerticesPerSide, x, y))
+			{
+				currentVertex++;
+				continue;
+			}
+
 			VertexPtr v0, v1, v2 ,v3;
 
 			v0 = currentVertex;

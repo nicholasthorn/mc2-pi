@@ -203,9 +203,11 @@ Rejected for a first version:
 
 ## Things that assume a flat screen
 
-- **Sky dome:** keep in mode 1, drop on the tabletop.
+- **Sky dome:** keep in mode 1, drop on the tabletop. It is an open ring, not a
+  dome; `vr-edge-fade` moves it round the camera and fades its ends.
 - **Distance haze:** keep in mode 1, but today's haze does not reach the
-  terrain window's edge at a headset-wide FOV (Phase 0); on the tabletop it
+  terrain window's edge at a headset-wide FOV (Phase 0; mode 1 now has its
+  own fade, `mclib/vr_edge_fade.h`); on the tabletop it
   needs a table-edge treatment instead (see open questions).
 - **Letterbox, fades, compass:** move to the interface panel or drop.
 - **Culling:** `cosHalfFOV` and the screen-rect test in `recalcBounds` stay on

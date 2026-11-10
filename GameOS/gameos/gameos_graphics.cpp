@@ -1352,6 +1352,7 @@ class gosRenderer {
             curTextBottom_ = Bottom;
         }
 
+        DWORD getClearColorValue() const { return clearColorValue_; }
         int getTextRegionWidth() { return curTextRight_ - curTextLeft_; }
         int getTextRegionHeight() { return curTextBottom_ - curTextTop_; }
 
@@ -3066,6 +3067,10 @@ vec4 __stdcall gos_GetRenderViewport() {
 void __stdcall gos_SetStereoEye(int eye)
 {
     g_gos_renderer->drawMerged();
+    // VR: behind the world, the background gos_SetupViewport was given (in a
+    // mission, the fog colour the world fades to)
+    const vec3 background = uint32_to_vec4(g_gos_renderer->getClearColorValue()).zyx();
+    gos_xr::setEyeClearColor(background.x, background.y, background.z);
     // VR: the eye's own image (its size, its viewport)
     if(gos_xr::bindEye(eye)) {
         int width, height;

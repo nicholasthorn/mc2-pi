@@ -14,6 +14,8 @@
 #include"terrain.h"
 #endif
 
+#include"vr_edge_fade.h"
+
 #ifndef VERTEX_H
 #include"vertex.h"
 #endif
@@ -936,6 +938,11 @@ extern bool InEditor;
 //---------------------------------------------------------------------------
 bool Terrain::isInWindow (const Stuff::Vector3D& pos)
 {
+	if (gos_IsVR())		//round, as drawn, and inside the square (vr_edge_fade.h)
+	{
+		const Stuff::Vector3D centre = eye->getPosition();
+		return vr_edge_fade::pointInCircle(visibleVerticesPerSide, worldUnitsPerVertex, pos.x - centre.x, pos.y - centre.y);
+	}
 	const float column = (pos.x - mapTopLeft3d.x) * oneOverWorldUnitsPerVertex;
 	const float row = (mapTopLeft3d.y - pos.y) * oneOverWorldUnitsPerVertex;
 	const Stuff::Vector2DOf<float> topLeft = mapData->getTopLeftVertex();
@@ -968,6 +975,11 @@ void Terrain::geometry (void)
 	Stuff::Vector3D boxMin(FLT_MAX, FLT_MAX, FLT_MAX);
 	Stuff::Vector3D boxMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+	//VR: the ground fades out before the window's edge (vr_edge_fade.h)
+	const bool vrEdge = gos_IsVR();
+	const vr_edge_fade::Range vrEdgeRange = vr_edge_fade::rangeFor(visibleVerticesPerSide, worldUnitsPerVertex);
+	const Stuff::Vector3D vrEdgeCentre = eye->getPosition();
+
  	long i=0;
 	for (i=0;i<numberVertices;i++)
 	{
@@ -983,6 +995,7 @@ void Terrain::geometry (void)
 		// Should weed out VAST overwhelming majority of vertices!
 		bool onScreen = false;
 		bool gameOnScreen = true;		//the game camera's own answer (VR: see below)
+		bool vrCorner = false;			//VR: left out of the round window, not drawn
 	
 		//-----------------------------------------------------------------
 		// Find angle between lookVector of Camera and vector from camPos
@@ -1040,7 +1053,9 @@ void Terrain::geometry (void)
 			if (gos_IsVR())
 			{
 				gameOnScreen = onScreen && eye->isInFront(vPosition);
-				onScreen = true;
+				//except the corners the round window leaves out (vr_edge_fade.h)
+				vrCorner = !vr_edge_fade::vertexInCircle(visibleVerticesPerSide, i % visibleVerticesPerSide, i / visibleVerticesPerSide);
+				onScreen = !vrCorner;
 			}
 
 			if (onScreen)
@@ -1058,6 +1073,13 @@ void Terrain::geometry (void)
 					currentVertex->hazeFactor = 0.0f;
 				}
 				
+				if (vrEdge)
+				{
+					const float edgeFade = vr_edge_fade::amount(vrEdgeRange, currentVertex->vx - vrEdgeCentre.x, currentVertex->vy - vrEdgeCentre.y);
+					if (edgeFade > currentVertex->hazeFactor)
+						currentVertex->hazeFactor = edgeFade;
+				}
+
 				//---------------------------------------
 				// Vertex is at edge of world or beyond.
 				Stuff::Vector3D vPos(currentVertex->vx,currentVertex->vy,currentVertex->pVertex->elevation);
@@ -1120,7 +1142,8 @@ void Terrain::geometry (void)
 		if (currentVertex->clipInfo && gameOnScreen)
 			currentVertex->calcThisFrame |= 8;
 
-		if (currentVertex->clipInfo && gameOnScreen)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
+		//a corner the round window does not draw is still in play if the game camera sees it
+		if ((currentVertex->clipInfo || vrCorner) && gameOnScreen)				//ONLY set TRUE ones.  Otherwise we just reset the FLAG each vertex!
 		{
 			setObjBlockActive(currentVertex->getBlockNumber(), true);
 			setObjVertexActive(currentVertex->vertexNum,true);
