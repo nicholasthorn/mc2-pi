@@ -3282,26 +3282,31 @@ void Mission::initTGLForMission()
 	if ( !TG_Shape::tglHeap )
 	{
 		//---------------------------------------------------------
-		unsigned long tglHeapSize = 40 * 1024 * 1024;
+		// 64 MB, not 40: room for the larger pools below
+		unsigned long tglHeapSize = 64 * 1024 * 1024;
 
 		TG_Shape::tglHeap = new UserHeap;
 		TG_Shape::tglHeap->init(tglHeapSize,"TinyGeom");
 		
 		//Start up the TGL RAM pools.
+		// Four times the original sizes: a shape that finds a pool empty is not
+		// drawn that turn (TG_Shape::MultiTransformShape), and in VR, where every
+		// object in range is transformed, mc2_16 at FogPos 75 ran out before the
+		// last mechs, which vanished.
 		colorPool 		= new TG_VertexPool;
-		colorPool->init(30000);
+		colorPool->init(120000);
 		
 		vertexPool 		= new TG_GOSVertexPool;
-		vertexPool->init(30000);
+		vertexPool->init(120000);
 		
 		facePool 		= new TG_DWORDPool;
-		facePool->init(40000);
+		facePool->init(160000);
 		
 		shadowPool 		= new TG_ShadowPool;
-		shadowPool->init(30000);
+		shadowPool->init(120000);
 		
 		trianglePool 	= new TG_TrianglePool;
-		trianglePool->init(20000);
+		trianglePool->init(80000);
 	}
 
 	loadProgress += 4.0f;

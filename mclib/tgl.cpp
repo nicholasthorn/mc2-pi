@@ -1807,7 +1807,17 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		!listOfTriangles ||
 		!listOfVisibleFaces ||
 		!listOfVisibleShadows)
+	{
+		// a pool is full: this shape is not drawn this turn. Say so once,
+		// or objects just vanish (pool sizes: Mission::init)
+		static bool warned = false;
+		if (!warned)
+		{
+			warned = true;
+			PAUSE(("TGL pools full: shapes not drawn this turn (%ld vertices wanted)", (long)numVertices));
+		}
 		return(1);
+	}
 
 	}
 
