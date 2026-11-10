@@ -1809,7 +1809,7 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		!listOfVisibleShadows)
 	{
 		// a pool is full: this shape is not drawn this turn. Say so once,
-		// or objects just vanish (pool sizes: Mission::init)
+		// or objects just vanish (pool sizes: Mission::initTGLForMission)
 		static bool warned = false;
 		if (!warned)
 		{
