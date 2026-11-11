@@ -1,0 +1,588 @@
+group	site	dst	src	class	verdict	fix
+g1	mclib/cmponent.cpp:285-286	dataLine[512] (local, MasterComponent::saveEXCEL)	piece[512] holding "%d" of masterId; comma literal	e	OK-dead (saveEXCEL only called from MasterComponent::saveMasterList, which has no callers)	
+g1	mclib/cmponent.cpp:289-290	dataLine[512]	name[MAXLEN_COMPONENT_NAME=256] filled by cLoadString (resource string)	a	OK-dead (same dead function; if revived name 255 + abbreviation 255 + numbers would exceed 512)	
+g1	mclib/cmponent.cpp:293-294	dataLine[512]	abbreviation[MAXLEN_COMPONENT_ABBREV=256] via cLoadString	a	OK-dead (same dead function)	
+g1	mclib/cmponent.cpp:296-297	dataLine[512]	ComponentFormString[form] constant table	e	OK-dead	
+g1	mclib/cmponent.cpp:300-597 (all strcpy/strcat lines except the sprintf rows below)	dataLine[512]	piece[512] holding numbers (%d/%ld/%f) or literals Yes/No/na; comma literal	e	OK-dead	
+g1	mclib/cmponent.cpp:481,523,561	piece[512]	WeaponRangeString[] constant table	e	OK-dead	
+g1	mclib/inifile.cpp:172	line[255] (FitIniFile::afterOpen)	fitIniHeader char[7] constant FITini	e	OK (constant)	
+g1	mclib/inifile.cpp:223	error[256] (FitIniFile::afterOpen)	line = block header line read from the .fit file (up to 253 chars, findNextBlockStart(line,254)) plus getFilename() (file path)	a	FIX (253 + path + 32 fixed chars > 256 for a long unterminated [block line). Related: lines 212-216 copy the same line into fileBlocks[].blockId[50] before the count>=49 check, overflowing the heap block array first	bounded copy (snprintf(error,sizeof(error),...)); also stop the blockId copy loop at 49 before writing
+g1	mclib/inifile.cpp:254	line[200] (FitIniFile::atClose)	fitIniFooter char[7] constant	e	OK (constant)	
+g1	mclib/inifile.cpp:883,936,997,1050,1103,1156,1217,1272,1325,1413,1496	searchString[255]	varName = key name chosen by engine callers (literals or Prefix%d built into small buffers); no key comes from data	e	OK (engine key names, all < 60 chars)	
+g1	mclib/inifile.cpp:1460	line[2048] (via equalSign = pointer inside line, FitIniFile::readIdString)	tmpLine[2047] continuation lines of a multi-line quoted string from the .fit file	a	FIX (guard checks curLen+addedLen<2048 but equalSign starts at offset k>=5 into line, so the concat can write up to k bytes past line[2048])	bounded copy: limit by sizeof(line) - (equalSign - line), e.g. if (curLen + addedLen < (long)(sizeof(line) - (equalSign - line)))
+g1	mclib/inifile.cpp:1552,1650,1747,1844,1941,2038,2135,2232,2329,2384,2439,2494,2549,2604,2659	searchString[255]	varName engine key name (as above)	e	OK (engine key names)	
+g1	mclib/inifile.cpp:2703	thisLine[255] (writeBlock)	blockId from callers: literals or Inventory%ld / Pilot%ld / Variant%ld / Team%dObjective%d... / Part%d	e	OK (engine-built block names)	
+g1	mclib/inifile.cpp:2713	thisLine[255]	varName engine key + %f float (max ~47 chars)	e	OK	
+g1	mclib/inifile.cpp:2724-2726	thisLine[255]	varName engine key + literal TRUE/FALSE	e	OK	
+g1	mclib/inifile.cpp:2736,2746,2756,2766,2776,2786	thisLine[255]	varName engine key + integer	e	OK	
+g1	mclib/inifile.cpp:2803	thisLine[4096] (writeIdString)	varName engine key; result = saved string values (file names, player/unit names char[256], objective texts read via readIdString whose line buffer is 2048, mission names)	e	OK (all value sources < 2048 chars; latent: tmpString[4000] truncated copy is made but result is formatted instead)	optional: format tmpString instead of result
+g1	mclib/inifile.cpp:2813,2832,2851,2870	thisLine[255]	numElements + varName engine key + one number	e	OK	
+g1	mclib/terrtxm.cpp:211	localBaseName (heap, strlen(baseName)+1)	baseName	e	OK (allocated to fit)	
+g1	mclib/terrtxm.cpp:258,264,349,405	types[i].terrainName / maskName / overlays[i].overlayName / details[i].detailName (heap, strlen(tmpy)+1)	tmpy[2048] from readIdString on terrain textures .fit	e	OK (allocated to fit)	
+g1	mclib/terrtxm.cpp:543-558,594-609,670-685,731-746,1285-1301	mipPath[512]	texturePath[80] global (constant default; only Viewer reads it, bounded to 79) + number + literal	e	OK (src bounded by char[80])	
+g1	mclib/terrtxm.cpp:564	tmpy[512] (TerrainTextures::initDetail)	details[typeNum].detailName: DetailName readIdString up to 2047 chars from terrain textures .fit	a	FIX (name up to 2047 chars into 512)	bounded copy
+g1	mclib/terrtxm.cpp:693	tmpy[512] (initMask)	types[typeNum].maskName: MaskName readIdString up to 2047 chars	a	FIX	bounded copy
+g1	mclib/terrtxm.cpp:752	tmpy[512] (initOverlay)	txmName = overlays[i].overlayName: OverlayName readIdString up to 2047 chars	a	FIX	bounded copy
+g1	mclib/terrtxm2.cpp:315	newName[1024] (refractalizeBaseMesh)	fileName	d	OK-dead (refractalizeBaseMesh has no callers)	
+g1	mclib/terrtxm2.cpp:426	newName[1024] (burnInShadows)	fileName = colorMapName (mission .fit ColorMapName, readIdString up to 1022 chars) or terrainName (_splitpath of pak file name into name[1024]); live via TerrainColorMap::init line 1853	a	FIX (1022 + .height > 1024)	bounded copy
+g1	mclib/terrtxm2.cpp:965	newName[1024] (burnInShadows)	same fileName	a	FIX (1022 + .burnin)	bounded copy
+g1	mclib/terrtxm2.cpp:1009	msg[2048] (resetDetailTexture)	fileName	d	OK-dead (resetDetailTexture has no callers)	
+g1	mclib/terrtxm2.cpp:1022	dName[1024]	fileName	d	OK-dead (#if 0)	
+g1	mclib/terrtxm2.cpp:1040	msg[2048] (resetWaterTexture)	fileName	d	OK-dead (resetWaterTexture has no callers)	
+g1	mclib/terrtxm2.cpp:1053	dName[1024]	fileName	d	OK-dead (#if 0)	
+g1	mclib/terrtxm2.cpp:1081	waterFile[1024] (resetWaterDetailTextures)	fileName = FullPathFileName texturePath(<80) + dName (colormap name from mission .fit, up to 1023) + .tga; called from init line 1648	d (name from data)	FIX (full path can reach ~1100 chars)	bounded copy (and skip the frame if truncated)
+g1	mclib/terrtxm2.cpp:1085	tail of waterFile[1024]	dName %04ld.tga (8 chars) written over the last 8 chars of waterFile	e	OK (stays inside the existing string, guarded by the strlen check at 1075)	
+g1	mclib/terrtxm2.cpp:1131	newName[1024] (recalcLight)	fileName = colorMapName/terrainName	a	OK-dead (only caller Terrain::reCalcLight has no callers; would be FIX if revived)	
+g1	mclib/terrtxm2.cpp:1280	newName[1024] (resetBaseTexture)	fileName	a	OK-dead (resetBaseTexture has no callers)	
+g1	mclib/terrtxm2.cpp:1441	newName[1024] (getScaledColorMap)	fileName	a	OK-dead (getScaledColorMap has no callers)	
+g1	mclib/terrtxm2.cpp:1588	dName[1024] (TerrainColorMap::init)	fileName = colorMapName (readIdString up to 1022) or terrainName (up to 1023)	a	FIX (1022 + .detail)	bounded copy
+g1	mclib/terrtxm2.cpp:1608	dName[1024] (init)	same fileName	a	FIX (+ .water)	bounded copy
+g1	mclib/terrtxm2.cpp:1630	waterDetailBaseName[1024] (init)	same fileName	a	FIX (+ .water)	bounded copy
+g1	mclib/terrtxm2.cpp:1632	dName[1024] (init)	waterDetailBaseName (up to 1023 even once 1630 is bounded) + %04d	a	FIX	bounded copy
+g1	mclib/terrtxm2.cpp:1646	dName[1024] (init)	waterDetailBaseName + %04d	a	FIX	bounded copy
+g1	mclib/terrtxm2.cpp:1680	newName[1024] (init)	same fileName + .burnin	a	FIX	bounded copy
+g1	mclib/terrtxm2.cpp:2016,2025,2038,2050	dName[1024] (saveDetailTexture/saveWaterTexture/saveWaterDetail)	fileName	a	OK-dead (save* functions have no callers)	
+g1	mclib/tgl.cpp:968,1384	vertexID[256]	ASE_* #define string literals + number	e	OK	
+g1	mclib/tgl.cpp:1022,1072,1082,1101,1106,1140,1145,1177,1182,1228,1240,1259,1264,1291,1296,1323,1328,1365	faceId[256]	ASE_* #define string literals + number	e	OK	
+g1	mclib/tgl.cpp:1513,1526	textureId[256]	format is ASE_MATERIAL_COUNT / ASE_MATERIAL_CLASS #define literals (no % in them)	e	OK (literal macro, no injection)	
+g2	mclib/abldbug.cpp:638-644	Debugger::message[512] via dest ptr (sprintStatement)	symbol names (script identifiers) and TokenStrings	a	OK-dead: Debugger only exists when ABLi_init debug=true; game passes debug=false (code/ablmc2.cpp:7380), new Debugger only at ablrtn.cpp:539	
+g2	mclib/abldbug.cpp:673	dest ptr (Debugger message/valString)	constant "true"/"false"	e	OK-dead (and constant)	
+g2	mclib/abldbug.cpp:764	dest ptr (Debugger::message[512])	ABL string constant from script	a	OK-dead (Debugger never created)	
+g2	mclib/abldbug.cpp:826	dest ptr (Debugger::message[512])	ABL char array contents	a	OK-dead (Debugger never created)	
+g2	mclib/abldbug.cpp:857	subscriptString[255]	debugger command text typed by user	c	OK-dead (Debugger never created)	
+g2	mclib/abldbug.cpp:889	Debugger::message[512]	module name (<=4 chars, MAX_ABLMODULE_NAME 5) + int	e	OK-dead	
+g2	mclib/abldbug.cpp:915-927	Debugger::message[512]	module name <=4 + routine identifier from script	a	OK-dead (Debugger never created)	
+g2	mclib/abldbug.cpp:952-978	Debugger::message[512]	module name + identifier + valString[255]	a	OK-dead (Debugger never created)	
+g2	mclib/abldbug.cpp:1070-1073	buffer1/buffer2 (Debugger)	module names <=4 chars	e	OK-dead	
+g2	mclib/abldbug.cpp:1089-1095	Debugger::message[512]	module name <=4	e	OK-dead	
+g2	mclib/abldbug.cpp:1139-1145	Debugger::message[512]	module name <=4 + int	e	OK-dead	
+g2	mclib/abldbug.cpp:1177-1185	Debugger::message[512]	module name + strParam1 (typed debugger command)	c	OK-dead (Debugger never created)	
+g2	mclib/abldbug.cpp:1221	Debugger::message[512]	module name <=4	e	OK-dead	
+g2	mclib/abldecl.cpp:308	malloc(strlen(literal)+1)	script string literal	a	OK: dst sized to src	
+g2	mclib/ablenv.cpp:560	err[255]	CurModule->getName() <=4 chars (ABLModule::name[5], setName bounds it)	e	OK: src bounded by char[5]	
+g2	mclib/ablenv.cpp:1329	directory ptr (getSourceDirectory)	module source path	d	OK-dead: getSourceDirectory has no callers	
+g2	mclib/ablenv.cpp:1342	RoutineInfo::name[128] (ModuleInfo on caller stack)	ABL function identifier from script; identifiers only bounded by MAXLEN_TOKENSTRING 2048	a	FIX: live every brain run (warrior.cpp:2162 getInfo before execute); also the count guard is numRoutines<1024 but routineInfo has 128 entries, so >128 functions in a module also overruns	bounded copy; and change the guard to < 128 (or sizeof/sizeof)
+g2	mclib/ablenv.cpp:1355	ModuleInfo::name[128]	ABLModule::name[5]	e	OK: src bounded by char[5]	
+g2	mclib/ablenv.cpp:1356	ModuleInfo::fileName[128]	ModuleRegistry fileName = full ABL path, e.g. missionPath + campaign ABLScript (<=255 from fit) + ".abl"	d	FIX: d-from-data, up to ~273 chars into 128; live every brain run (warrior.cpp:2162)	bounded copy
+g2	mclib/ablerr.cpp:173	errMessage[256] (MAXLEN_ERROR_MESSAGE)	SourceFiles[FileNumber] (<=255) + syntaxErrorMessages + wordString (token text up to 2047, e.g. long identifier or string literal)	a	FIX: script file name and offending token from mod scripts easily exceed 256	bounded copy (snprintf)
+g2	mclib/ablerr.cpp:192-197	message[512]	runtime messages, module name, source file	e	OK-dead: inside if (debugger), never created	
+g2	mclib/ablerr.cpp:206	message[512]	getSourceFile (heap copy of SourceFiles[256], <=255) + const runtimeErrorMessages (<=~80)	e	OK: bounded (<=~400) once ablscan.cpp:1303 is fixed	
+g2	mclib/ablexec.cpp:642	static stateList[60][256]	FSM state name (script identifier, up to 2047) + SetStateDebugStr[256]	a	FIX: live on every FSM run; 255-char SetStateDebugStr alone plus name overruns 256	bounded copy
+g2	mclib/ablexec.cpp:661	errStr[512]	module file path (data) + current and previous state names (script identifiers up to 2047)	a	FIX: endless-state path, long state names overflow	bounded copy
+g2	mclib/ablexpr.cpp:295	malloc(length+1), length=strlen(literal)	script string literal	a	OK: dst sized to src	
+g2	mclib/ablrtn.cpp:734	malloc(strlen(source_fn)+1)	source file path	d	OK: dst sized to src	
+g2	mclib/ablrtn.cpp:743	malloc(strlen(SourceFiles[i])+1)	SourceFiles[i]	d	OK: dst sized to src	
+g2	mclib/ablrtn.cpp:1101	wordString[2048]	name from engine registration (literal); length checked < MAXLEN_TOKENSTRING first	e	OK: length-checked	
+g2	mclib/ablrtn.cpp:1124	wordString[2048]	same as 1101	e	OK: length-checked	
+g2	mclib/ablrtn.cpp:1349	StateHandleInfo::name[128] (StateHandleList)	state routine identifier from script (up to 2047)	a	FIX: long state name overflows global StateHandleList	bounded copy
+g2	mclib/ablrtn.cpp:1712	SetStateDebugStr[256]	module file path (data) + state name (script identifier) + line	a	FIX: live on every trans to a state; path + long name > 256	bounded copy (snprintf)
+g2	mclib/ablscan.cpp:363	malloc(strlen(fName)+1)	file name	d	OK: dst sized to src	
+g2	mclib/ablscan.cpp:375	malloc(strlen(fName)+1)	file name	d	OK: dst sized to src	
+g2	mclib/ablscan.cpp:687	fullPath[255]	include fileName char[128], read loop bounded to 127	a	OK: src bounded by char[128]	
+g2	mclib/ablscan.cpp:689	fullPath[255]	SourceFiles[0] (char[256], up to 255 chars + NUL = 256 bytes); path from data (campaign ABLScript <=255 + missionPath)	d	FIX: d-from-data; 256 bytes into 255 even before truncation	bounded copy (and make fullPath MAXLEN_FILENAME or larger)
+g2	mclib/ablscan.cpp:691	fullPath[255]	directory of SourceFiles[0] (<=255) + #include_ file name from script (<=127)	a	FIX: long data path dir plus include name exceeds 255	bounded copy (snprintf), fail the include if truncated
+g2	mclib/ablscan.cpp:1273	printBuffer[MAXLEN_SOURCELINE+9]	sourceBuffer (<=2047, readLineEx bounded) + numbers	e	OK: printFlag is false for every preProcess (printLines defaults false, no caller passes true); bounded anyway for line numbers < 10000	
+g2	mclib/ablscan.cpp:1303	SourceFiles[n][256] (MAXLEN_FILENAME)	ABL source path: missionPath + campaign ABLScript (<=255, logisticsmissioninfo.cpp:144) + ".abl"; mission ScenarioScript <=79; brains <=63; ABLi_loadEnvironment readString from save (fileName[1024], unbounded read); include fullPath	d	FIX: d-from-data, campaign script name can make the path 273+ chars; file only has to open	bounded copy, or reject sourceFileName >= MAXLEN_FILENAME before open with an error
+g2	mclib/ablscan.cpp:1307	openFiles[n].fileName[256]	same path as 1303	d	FIX: same as 1303	bounded copy (same check as 1303)
+g2	mclib/ablscan.cpp:1382	date[26] (LEN_DATESTRING)	asctime(): 25 chars + NUL for 4-digit years	e	OK: fits exactly	
+g2	mclib/ablsymt.cpp:408	malloc(strlen(name)+1)	identifier	a	OK: dst sized to src	
+g2	mclib/ablsymt.cpp:579	err[255]	standard routine name (engine literal) + param char	e	OK: engine constants	
+g2	mclib/ablsymt.cpp:602	err[255]	standard routine name (engine literal)	e	OK: engine constants	
+g2	mclib/ablxstd.cpp:526-530	message[512]	script print() string, module name, source file	a	OK-dead: inside if (debugger), never created	
+g2	mclib/ablxstd.cpp:608	script char array dest	script string	a	OK: fallback only when destSize==0; stdConcat (ablstd.cpp:115) makes dest a char array with elementCount>0, so appendBounded path is always taken	
+g2	mclib/ablxstd.cpp:709	curBuffer: script char array via ABLi_popCharPtr, size unknown (script-declared, e.g. char[40])	CurModule->getFileName(): full ABL path (data, ~30-273 chars)	d	FIX: d-from-data; script getmodule() buffer can be shorter than the module path	bounded + pass size (need the array elementCount from the popped type, or a size param)
+g2	mclib/ablxstd.cpp:710	fsmBuffer: script char array, size unknown	CurFSM->getFileName() (data path) or "none"	d	FIX: same as 709	bounded + pass size
+g2	mclib/ablxstd.cpp:759-763	message[512]	script fatal() string etc.	a	OK-dead: inside if (debugger)	
+g2	mclib/ablxstd.cpp:770	message[512]	script fatal() string s (any script char array/string constant length)	a	FIX: s > ~495 chars overflows; message is not even used (ABL_Fatal(0, s))	bounded copy, or delete the dead sprintf
+g2	mclib/ablxstd.cpp:806-810	message[512]	script assert() string etc.	a	OK-dead: inside if (debugger)	
+g2	mclib/ablxstd.cpp:817	message[512]	script assert() string s	a	FIX: s > ~495 chars overflows on a failed assert	bounded copy
+g2	mclib/ablxstd.cpp:899	SetStateDebugStr[256]	FSM file path (data) + state name (script identifier) + line	a	FIX: same as ablrtn.cpp:1712, live on setstate	bounded copy (snprintf)
+g2	mclib/ablxstd.cpp:1009	err[255]	module name <=4 + int	e	OK: src bounded by char[5]	
+g2	mclib/ablxstd.cpp:1020	err[255]	module name <=4 + ints	e	OK: src bounded by char[5]	
+g2	mclib/ablxstmt.cpp:368	s1[512]	routine identifier from script (up to 2047) + time	a	FIX: only when ProfileLog open, which _DEBUG builds force (ablrtn.cpp:365 profile=true); release unaffected	bounded copy
+g2	mclib/ablxstmt.cpp:369	s[512]	[%08d]  + CallStackLevel spaces + s1 (<=511)	a	FIX: same path as 368; prefix + full s1 overruns 512	bounded append (snprintf at offset)
+g2	mclib/ablxstmt.cpp:448	err[255]	module name <=4	e	OK: src bounded by char[5]	
+g2	mclib/apprtype.cpp:69	malloc(strlen(fileName)+1)	appearance name	a	OK: dst sized to src	
+g2	mclib/bdactor.cpp:374	malloc(strlen(weaponName)+1)	readIdString into char[512]	a	OK: dst sized to src	
+g2	mclib/cident.cpp:68-73	fullName malloc(total_length) = dir+name+ext+1	path parts	d	OK: dst sized to src	
+g2	mclib/debugging.cpp:65	textBuffer[15][256] (MAX_DEBUG_WINDOW_LINELEN)	any print text; in _DEBUG builds ABL print("...") strings go here unbounded (ablxstd.cpp:547 -> ablDebugPrintCallback -> DEBUGWINS_print); mover debug lines	a	FIX: script print() string > 255 overflows the debug window line (debug builds; release callers pass <=256-byte buffers)	bounded copy (truncate to MAX_DEBUG_WINDOW_LINELEN)
+g2	mclib/debugging.cpp:68	textBuffer[15][256]	same as 65	a	FIX: same as 65	bounded copy
+g2	mclib/err.cpp:33	msg[512]	errMessage from callers: built strings with data file/block names in caller buffers of up to 512 (e.g. chatwindow.cpp:62 buffer2[512]); prefix " [ASSERT %ld] " adds ~15	a	FIX: a 500+ char caller message overflows; Fatal() just above already uses snprintf	bounded copy (snprintf)
+g2	mclib/ffile.cpp:153-154	actualPath[2048]	CDInstallPath (<=259: argv strncpy MAX_PATH, or "./") + FST name (readIdString <=99 from system.cfg)	d	OK: bounded <=358	
+g2	mclib/ffile.cpp:167	data[2048]	format FileMissingString (resource, <=511) with FST name (<=99) and CDMissingString (resource, <=1023)	a	OK: bounded <=~1633; format string comes from resource (format injection if a mod adds extra %s)	
+g2	mclib/ffile.cpp:545	data[2048]	same as 167	a	OK: bounded, same as 167	
+g2	mclib/ffile.cpp:752	data[2048]	same as 167	a	OK: bounded, same as 167	
+g2	mclib/file.cpp:111-112	bigPath[2048]	CDInstallPath (<=259) + fName; only caller missionselectionscreen.cpp:247 passes moviePath + campaign video name (<=255) + ".mpg"	d	OK: bounded <=~550	
+g2	mclib/file.cpp:278-279	actualPath[2048]	CDInstallPath (<=259) + File::open fileName (any path the game opens; names from data, no common bound)	d	FIX (low): needs a >1788-char name; generic sink fed by data-built paths, live (checkCDForFiles=true in game)	bounded copy (snprintf), treat truncation as not found
+g2	mclib/file.cpp:295	testCDPath[2048]	CDInstallPath (<=259) + "tgl.fst"	e	OK: bounded	
+g2	mclib/file.cpp:309	data[2048]	FileMissingString (resource <=511) + fileName (data path, e.g. texturePath + ColorMapName <=1023) + CDMissingString (resource <=1023)	a	FIX: 511 + ~1040 + 1023 > 2048 with data names; format string from resource (format injection, brief)	bounded copy (snprintf)
+g2	mclib/file.cpp:340	msg[300]	fileName	d	OK-dead: File::logFileTraffic is FALSE and never set	
+g2	mclib/file.cpp:384	msg[300]	fileName	d	OK-dead: logFileTraffic never set	
+g2	mclib/file.cpp:425	msg[300]	fileName	d	OK-dead: logFileTraffic never set	
+g2	mclib/file.cpp:493	msg[300]	parent file name	d	OK-dead: logFileTraffic never set	
+g2	mclib/floathelp.h:103	text[2048]	help text; strlen checked < 2048 first	e	OK: length-checked	
+g2	mclib/genactor.cpp:289	txmName[1024]	appearType->textureName[50] (readIdString 49)	a	OK: src bounded by char[50]	
+g2	mclib/genactor.cpp:484	newName ptr = caller newName[1024]	txmName <=255 (textureName[50] or GetTextureName bounded 256)	a	OK: src bounded by 256	
+g2	mclib/genactor.cpp:489	newName ptr = caller newName[1024]	Sky%02ld + txmName tail (<=252)	a	OK: bounded	
+g2	mclib/genactor.cpp:505	txmName[1024]	textureName[50]	a	OK: src bounded by char[50]	
+g2	mclib/gvactor.cpp:307	malloc(strlen(blockId)+1)	readIdString into blockId[512]	a	OK: dst sized to src	
+g2	mclib/gvactor.cpp:319	malloc(strlen(blockId)+1)	same	a	OK: dst sized to src	
+g2	mclib/gvactor.cpp:332	malloc(strlen(blockId)+1)	same	a	OK: dst sized to src	
+g2	mclib/heap.cpp:304	gos_Malloc(strlen(heapId)+1)	heap id	e	OK: dst sized to src	
+g2	mclib/heap.cpp:435	msg[256]	heapName	e	OK-dead: #ifndef USE_GOS_HEAP, and heap.h:16 defines USE_GOS_HEAP	
+g2	mclib/heap.cpp:445	msg[256]	DecodeAddress symbol name	e	OK-dead: #ifndef USE_GOS_HEAP	
+g2	mclib/heap.cpp:453	msg[256]	DecodeAddress symbol name	e	OK-dead: #ifndef USE_GOS_HEAP	
+g2	mclib/heap.cpp:1584	errMessage[256]	constant + numbers	e	OK-dead: #ifndef USE_GOS_HEAP block (1487-1599)	
+g2	mclib/heap.cpp:2079	msg[1024]	mapInfo[513]	e	OK: src bounded by char[513]	
+g2	mclib/mech3d.cpp:315	leftArmName[1024]	appearance name (ObjectType readIdString into apprName[512], <=511; simplecamera <=255) + "LeftArm"	a	OK: <=518 < 1024	
+g2	mclib/mech3d.cpp:321	rightArmName[1024]	same + "RightArm"	a	OK: bounded	
+g2	mclib/mech3d.cpp:352	forwardName[1024]	same + "FallForwardDam"	a	OK: bounded	
+g2	mclib/mech3d.cpp:355	backwardName[1024]	same + "FallForwardDam"	a	OK: bounded	
+g2	mclib/mech3d.cpp:394	animName[512]	appearance name (<=511, from object type fit AppearanceName) + MechAnimationNames[i]	a	FIX: name of 500+ chars plus animation suffix overruns 512 (only when animationLoadingEnabled)	bounded copy, or animName[1024] like the siblings above
+g2	mclib/mech3d.cpp:489	malloc(strlen(smokeName)+1)	readIdString char[512]	a	OK: dst sized to src	
+g2	mclib/mech3d.cpp:511	malloc(strlen(weaponName)+1)	readIdString char[512]	a	OK: dst sized to src	
+g2	mclib/mech3d.cpp:530	malloc(strlen(jumpName)+1)	readIdString char[512]	a	OK: dst sized to src	
+g2	mclib/mech3d.cpp:548	malloc(strlen(footName)+1)	readIdString char[512]	a	OK: dst sized to src	
+g2	mclib/mech3d.h:764	mechName[64]	Mech::variantName[64] (mech.cpp:5806, only caller)	a	OK: src bounded by char[64]	
+g2	mclib/mlr/mlr_terrain2.cpp:165	name[1024]	texRoot[1024] from texture name + numbers	a	OK-dead: MLR_Terrain2::InitializeClass is commented out (mlr.cpp:175), class never used	
+g2	mclib/mlr/mlr_terrain2.cpp:312	name[1024]	same	a	OK-dead: same as 165	
+g2	mclib/mlr/mlrloadobj.cpp:954	m->texture	texture name + suffix	a	OK-dead: mlrloadobj.cpp is not in any CMakeLists (not compiled)	
+g2	mclib/mlr/mlrloadobj.cpp:1082	missing.name	material name	a	OK-dead: not compiled	
+g2	mclib/mlr/mlrloadobj.cpp:1217	current.library	mtl file name	a	OK-dead: not compiled	
+g2	mclib/move.cpp:1782	s[256]	numbers + "opened"/"CLOSED"	e	OK: constants and numbers	
+g2	mclib/move.cpp:1799	s[256]	numbers + constants	e	OK	
+g2	mclib/move.cpp:1805	s[256]	typeString[] constant (index from map data; out-of-range read is a separate issue)	e	OK	
+g2	mclib/move.cpp:3227	s[256]	numbers + constants	e	OK (also #ifdef DEBUG_GLOBALMAP_BUILD)	
+g2	mclib/move.cpp:3244	s[256]	numbers + constants	e	OK	
+g2	mclib/move.cpp:3250	s[256]	typeString constant	e	OK	
+g2	mclib/move.cpp:4014	outString[500]	%02x  per column, width*3 chars	e	OK-dead: GlobalMap::print has no callers	
+g2	mclib/move.cpp:4125	s[256]	numbers + constants	e	OK	
+g2	mclib/move.cpp:4142	s[256]	numbers + constants	e	OK	
+g2	mclib/move.cpp:4148	s[256]	typeString constant	e	OK	
+g2	mclib/move.cpp:6607	outString[512]	numbers per column	e	OK-dead: MoveMap::writeDebug callers all #if 0, commented, or #ifdef DEBUG_MOVE_MAP with debugMoveMap=false	
+g2	mclib/move.cpp:6630	outString[512]	numbers per column	e	OK-dead: same as 6607	
+g2	mclib/move.cpp:6655	outString[512]	numbers per column	e	OK-dead: same as 6607	
+g2	mclib/msl.cpp:413	malloc(strlen(name)+1)	split file name	a	OK: dst sized to src (_DEBUG only)	
+g2	mclib/msl.cpp:520	textureId[256]	ASE_MATERIAL_COUNT literal macro	e	OK: constant	
+g2	mclib/msl.cpp:533	textureId[256]	ASE_MATERIAL_CLASS literal macro	e	OK: constant	
+g2	mclib/msl.cpp:586	textId[256]	ASE_MATERIAL_BITMAP_ID literal	e	OK: constant	
+g2	mclib/msl.cpp:621	localFilename[1024]	15-char prefix + part of TG_Texture::textureName[256]	a	OK: src bounded by char[256] (and only with ARM provider)	
+g2	mclib/msl.cpp:944	basePath[1024]	baseName[512] + extension[256]	a	OK: src bounded by 768	
+g2	mclib/msl.cpp:949	tName ptr (caller buffer, nameLength)	basePath; length checked against nameLength first	e	OK: length-checked	
+g2	mclib/msl.cpp:2339	nodeName[512]	nodeId (TG_NODE_ID 25) + 14	a	OK: src bounded by char[25]	
+g2	mclib/msl.cpp:2408	TG_Animation::nodeId[25]	shape nodeId[25] (TG_NODE_ID)	a	OK: src bounded by char[25]	
+g2	mclib/msl.cpp:2423	nodeName[512]	ASE literal + int	e	OK	
+g2	mclib/msl.cpp:2483	TG_Animation::nodeId[25]	shape nodeId[25]	a	OK: src bounded by char[25]	
+g2	mclib/msl.cpp:2495	nodeName[512]	ASE literal + int	e	OK	
+g2	mclib/packet.cpp:759	ourFileName[250]	PacketFile fileName (path)	d	OK-dead: PacketFile::insertPacket has no callers	
+g2	mclib/stuff/namelist.cpp:213	entry tail, new char[sizeof(Entry)+strlen(name)+1]	name	e	OK: dst sized to src	
+g2	mclib/stuff/note.cpp:153	static contents[64]	three %f floats	e	OK-dead: numeric Note::SetEntry only reached from MLRLight::Write chain, which nothing calls	
+g2	mclib/stuff/note.cpp:211	static contents[32]	three %f angles in degrees	e	OK-dead (same); note: normal values like -180/-90/-180 already need 35 bytes, so it would overflow if ever used	
+g2	mclib/stuff/note.cpp:273	static contents[32]	three %f angles	e	OK-dead (same); same 32-byte overflow with normal angles if ever used	
+g2	mclib/stuff/note.cpp:330	static contents[64]	six %f floats	e	OK-dead (same)	
+g2	mclib/stuff/note.cpp:388	static contents[32]	three %f colour floats	e	OK-dead (same)	
+g2	mclib/stuff/note.cpp:446	static contents[48]	four %f colour floats	e	OK-dead (same)	
+g2	mclib/terrain.cpp:328	new char[strlen+1]	ColorMapName readIdString 1023	a	OK: dst sized to src	
+g2	mclib/terrain.cpp:349	new char[strlen+1]	mapName	a	OK: dst sized to src (no callers anyway)	
+g2	mclib/terrain.cpp:428	new char[strlen+1]	split pak name	d	OK: dst sized to src	
+g2	mclib/terrain.cpp:431	name[1024]	colorMapName: getColorMapName reads <=1023; setColorMapName has no callers	a	OK: src bounded by char[1024]	
+g2	mclib/txmmgr.cpp:111	texturePath[1024]	tglPath[80] + int	e	OK: bounded	
+g2	mclib/txmmgr.cpp:122	otherPath[1024]	tglPath[80] + int	e	OK: bounded	
+g2	mclib/txmmgr.cpp:2035	textureStringHeap malloc(strlen+1)	texture path	d	OK: dst sized to src	
+g2	mclib/userinput.cpp:61	realHackName[1024]	cursorFileName: only callers pass "cursors"	e	OK: constant	
+g2	mclib/userinput.cpp:63	realHackName[1024]	cursors + "a"	e	OK: constant	
+g2	mclib/utilities.cpp:263	errBuffer[256]	blockName: engine-built names ("Static%d", literals) from callers	e	OK: engine names, short	
+g2	mclib/vfx_translatedraw.cpp:1727	msg[1024]	numbers + version[5]	e	OK: bounded (and inside CATCH_VFX_BUG asm path)	
+g3	code/ablmc2.cpp:6163	s[256]	literal "true"/"false"	e	OK	
+g3	code/ablmc2.cpp:6167	s[256]	ABL script string (mcprint arg; string constants up to MAXLEN_STRING_CONSTANT 1024, char arrays any size)	a	FIX	bounded copy (snprintf sizeof(s))
+g3	code/ablmc2.cpp:6257	s[50]	BUGLOG only (Debug builds define -DBUGLOG); fixed text alone is ~69 chars, plus mover name (<=64)	a	FIX	larger buffer (e.g. 256) + snprintf; overflows on every hit in Debug builds even with short names
+g3	code/ablmc2.cpp:6497	s[256]	fName = ABL fileOpen() script arg (ablxstd.cpp execStdFileOpen -> UserFile::open -> ABLFile::create -> ablFileCreateCB), unbounded; ~45 fixed chars	a	FIX	bounded copy (snprintf sizeof(s))
+g3	code/ablmc2.cpp:6617	msg[1024]	ABL debugger messages, all built in char[512] buffers (Debugger::message[512], ablerr/ablxstd message[512])	e	OK	src bounded by char[512]
+g3	code/ablmc2.cpp:6650	s[256]	mover name, Mover::name[MAXLEN_MOVER_NAME=65]	a	OK	src bounded by char[65]
+g3	code/ablmc2.cpp:6663	s[256]	LastCoreAttackTarget->getName(): may be Building/TerrainObject, returns lastName[256] filled by cLoadString(...,254) (resource text, up to 253) or customName[64]; plus "Target = " and " (%ld)"; may also be NULL	a	FIX	bounded copy (snprintf sizeof(s)); also guard NULL name
+g3	code/artlry.cpp:1550	appearName[1024]	AIRSTRIKE_NAME literal	e	OK	
+g3	code/artlry.cpp:1574	msg[1024]	appearName = literal	e	OK	
+g3	code/artlry.cpp:1618	appearName[1024]	AIRSTRIKE_NAME literal	e	OK	
+g3	code/artlry.cpp:1642	msg[1024]	appearName = literal	e	OK	
+g3	code/artlry.cpp:1686	appearName[1024]	SENSOR_NAME literal	e	OK	
+g3	code/artlry.cpp:1710	msg[1024]	appearName = literal	e	OK	
+g3	code/attributemeter.cpp:127	errorTxt[256]	headerName: literal or "AttributeMeter%d" from every caller; file name = artPath(<=79) + literal fit name	e	OK	constant names
+g3	code/bldng.cpp:1237	msg[1024]	ObjectType::appearName, read by readIdString(...,511) in objtype.cpp	a	OK	src bounded by char[512]
+g3	code/bldng.cpp:1528	s[1024]	Building::getName(): customName[64] or lastName[256]	a	OK	src bounded by char[256]
+g3	code/chatwindow.cpp:61	buffer2[512]	path = artPath(<=79) + literal	d	OK	constant name
+g3	code/chatwindow.cpp:322	buffer2[512]	path = artPath(<=79) + literal	d	OK	constant name
+g3	code/controlgui.cpp:747	total[256]	format = IDS_TOTAL resource (cLoadString 255, up to 254 chars) + %d	a	FIX	bounded copy (snprintf sizeof(total)); resource used as format (format-injection risk)
+g3	code/controlgui.cpp:1926	buffer[256]	format = IDS_RP resource (cLoadString 256, up to 255 chars) + long	a	FIX	bounded copy (snprintf sizeof(buffer)); resource used as format
+g3	code/controlgui.cpp:2279	path[256]	str = literal from every caller ("Button","Vehicle","InfoButton","PauseButton") + int	e	OK	
+g3	code/controlgui.cpp:2286	errorStr[256]	path above (short)	e	OK	
+g3	code/controlgui.cpp:2345-2346	file[256]	artPath(<=79) + ButtonData::fileName[32] (readIdString 32) + ".tga"	d	OK	src bounded by char[32]
+g3	code/controlgui.cpp:2685	error[256]	path = artPath(<=79) + "buttonlayout%d.fit" (~100 chars)	d	OK	constant name
+g3	code/controlgui.cpp:3037-3038	chatInfos[i].message / playerName	ControlGui::setChatText args	b	OK-other-branch	handled on another branch
+g3	code/controlgui.cpp:3176	fileName[512]	moviePath[80]	e	OK	
+g3	code/controlgui.cpp:3182	fileName[512]	realPilotName[8] (strncpy 7 + NUL)	e	OK	src bounded by char[8]
+g3	code/controlgui.cpp:3187	fileName[512]	tmp[3], one char	e	OK	
+g3	code/debugging.cpp:47-50	textBuffer[6][256]	any caller string	a	OK-dead	code/debugging.cpp is in no CMake SOURCES (mclib/debugging.cpp is built instead and has the same strcpy at lines 65/68, see notes)
+g3	code/dw.cpp:171	pdwsm->szFormalAppName[DW_APPNAME_LENGTH]	Environment.applicationName literal	e	OK	
+g3	code/dw.cpp:175	pdwsm->szRegSubPath[DW_MAX_REGSUBPATH]	Environment.applicationName literal	e	OK	
+g3	code/forcegroupbar.cpp:477	actualPath[2048]	CDInstallPath[1024], filled only from -datapath with MAX_PATH bound (<=259)	c	OK	src bounded by MAX_PATH
+g3	code/forcegroupbar.cpp:478-479	actualPath[2048]	_splitpath of path = moviePath(<=79) + pilot name (strncpy 8) + ".tga"	d	OK	src bounded (~91 chars)
+g3	code/gamecam.cpp:415	msg[1024]	literal "skybox"	e	OK	
+g3	code/gameobj.cpp:246	outString[512]	attacker->getName() only when isMover(): Mover::name[65]	a	OK	src bounded by char[65]
+g3	code/gameobj.cpp:247-251	ChunkDebugMsg[5120]	outString lines; whole message < ~1500 chars	e	OK	total bounded
+g3	code/gameobj.cpp:279	outString[512]	target->getName() only when isMover(): char[65]	a	OK	src bounded by char[65]
+g3	code/gameobj.cpp:280-326	ChunkDebugMsg[5120]	outString numeric lines	e	OK	total bounded
+g3	code/gameobj.cpp:351	outString[512]	mover name char[65]	a	OK	src bounded by char[65]
+g3	code/gameobj.cpp:352-398	ChunkDebugMsg[5120]	outString numeric lines	e	OK	total bounded
+g3	code/gameobj.cpp:445	attackerName[128]	mover name char[65] + " (%d)"	a	OK	src bounded by char[65] (Debug-only LOGWEAPONFIRECHUNKS)
+g3	code/gameobj.cpp:451	targetName[128]	mover name char[65] + " (%d)"	a	OK	src bounded by char[65]
+g3	code/gameobj.cpp:457	s[512]	attackerName[128] + targetName[128] + numbers	e	OK	src bounded
+g3	code/gameobj.cpp:1001	outString[512]	mover name char[65]	a	OK	src bounded by char[65]
+g3	code/gameobj.cpp:1002-1039	ChunkDebugMsg[5120]	outString lines / literal true,false	e	OK	total bounded
+g3	code/gameobj.cpp:1058	outString[512]	mover name char[65]	a	OK	src bounded by char[65]
+g3	code/gameobj.cpp:1059-1096	ChunkDebugMsg[5120]	outString lines / literal true,false	e	OK	total bounded
+g3	code/gameobj.cpp:2181	data->appearanceTypeID[256]	appearance name, length-checked <=255 just above	a	OK	length-checked
+g3	code/gametacmap.cpp:66	path[256]	artPath(<=79) + literal	d	OK	constant name
+g3	code/gametacmap.cpp:70	path[256]	artPath(<=79) + literal	d	OK	constant name
+g3	code/gate.cpp:682	msg[1024]	ObjectType::appearName (readIdString 511)	a	OK	src bounded by char[512]
+g3	code/group.cpp:655	debugStr[256]	Debug-only (_DEBUG and DEBUGJUMPGOALS TRUE): ~60-char header + up to 8 chars "[r,c] " per jumping mover; numMovers from missiongui = selected movers of home commander, roster up to MAX_MOVERS_PER_TEAM 120	e	FIX	bounded append (track remaining space / snprintf at offset); overflows in Debug builds with more than ~24 movers jumping
+g3	code/gvehicl.cpp:581	s[1024]	vehicle name char[65]	a	OK	src bounded by char[65]
+g3	code/gvehicl.cpp:625	footBlock[80]	HSGestureName	a	OK-dead	inside #if 0 (loadHotSpots)
+g3	code/gvehicl.cpp:647	footBlock[80]	HSGestureName	a	OK-dead	inside #if 0
+g3	code/gvehicl.cpp:1040	longName[MAXLEN_MECH_LONGNAME=35]	format = IDS_MFDVEHICLE_PRINTSTRING resource (up to 255) with name (cLoadString up to 64) and tonnage	a	FIX	larger buffer (text shown to player) + snprintf sizeof(longName); resource used as format
+g3	code/gvehicl.cpp:3183	ObjectAppearance::pilotName[32]	MPlayer->playerInfo[].name[25], terminated on receive (multplyr.cpp:914/1119)	b	OK	src bounded by char[25]
+g3	code/gvehicl.cpp:4347	attackerStr[30]	attacker mover name, up to 64 chars (Mover::name[65], from resource/data)	a	FIX	bounded copy (snprintf sizeof(attackerStr))
+g3	code/gvehicl.cpp:4354	err[128]	attackerStr (overflowed above) + masterId, damage %.2f, hitLocation (out of range on this path; shotInfo may come from a network hit chunk)	b	FIX	bounded copy (snprintf sizeof(err)); even with attackerStr capped at 29, 27+29+1+20+5+%.2f(up to ~43)+4+20 can exceed 128
+g3	code/infowindow.cpp:741	tmpNumber2[64]	format = IDS_MISSION_SHOTSLEFT resource (cLoadString 63, up to 62) + ammo int	a	FIX	bounded copy (snprintf sizeof(tmpNumber2)); resource used as format
+g3	code/keyboardref.cpp:141	keysString[128]	SDL_GetScancodeName (engine constant, longest ~22)	e	OK	
+g3	code/keyboardref.cpp:146-158	keysString[128]	shift/control/alt resource strings each cLoadString 31 (<=30) + " + "; max 22+3*33 < 128	a	OK	src bounded by char[32] each, total fits
+g3	code/loadscreen.cpp:157	fileName[256]	Appendix = str_resolutions[] literal	e	OK	
+g3	code/loadscreen.cpp:168	error[256]	path = artPath + "mcl_loadingscreen" + literal	d	OK	constant name
+g3	code/loadscreen.cpp:218	error[256]	path = artPath(<=79) + BackgroundFileName from mcl_loadingscreen*.fit (readIdString 255) + ".tga"; this branch runs exactly when such a long name fails to open	d	FIX	bounded copy (snprintf sizeof(error)); d with data name
+g3	code/loadscreen.cpp:234	error[256]	path = artPath + LoadingBar FileName (readIdString 255) + ".tga"	d	FIX	bounded copy; d with data name
+g3	code/loadscreen.cpp:259	error[256]	path = artPath + WaitImage FileName (readIdString 255) + ".tga"	d	FIX	bounded copy; d with data name
+g3	code/logistics.cpp:680	CompressedMech::pilotFile[50]	LogisticsPilot::fileName (pilots.csv line, readLine 256, or save game FileName readIdString 255)	a	FIX	bounded copy (snprintf sizeof); reached only when MPlayer exists without a net session (legacy MP path), still live code
+g3	code/logistics.cpp:681	CompressedMech::mechFile[50]	chassis->fileName = full CSV path objectPath + name from buildings.csv (readString 256) + ".csv"	d	FIX	bounded copy; d with data name; same reachability as 680
+g3	code/logistics.cpp:682	CompressedMech::variantName[64]	variant name EString: CSV readString 256, save game VariantName readIdString 255 (edit box limits typed names to 14)	a	FIX	bounded copy; same reachability as 680
+g3	code/logistics.cpp:734	MoverInitData::pilotFileName[50]	MPlayer->mechData[][].pilotFile[50]	b	OK-dead	unreachable: waitTillMechDataReceived() always returns false (multplyr.cpp:1957) and the function returns just before
+g3	code/logistics.cpp:736	MoverInitData::csvFileName[50]	MPlayer->mechData[][].mechFile[50]	b	OK-dead	unreachable, as 734
+g3	code/logistics.cpp:749	BattleMech::variantName[64]	MPlayer->mechData[][].variantName[64]	b	OK-dead	unreachable, as 734
+g3	code/logistics.cpp:833	MoverInitData::csvFileName[50]	chassis->fileName = objectPath + mech name from buildings.csv (<=255) + ".csv" (stock fits: 17 + name <= 49)	d	FIX	bounded copy (snprintf sizeof(data.csvFileName)); d with data name; single-player logistics path, live
+g3	code/logistics.cpp:836	MoverInitData::pilotFileName[50]	LogisticsPilot::fileName (pilots.csv line <=256 or save game FileName <=255)	a	FIX	bounded copy (snprintf sizeof(data.pilotFileName))
+g3	code/logisticscomponent.cpp:164	iconFileName (new char[strlen+1])	CSV field	a	OK	dst sized to src
+g3	code/logisticscomponent.cpp:173	pictureFileName (new char[strlen+1])	CSV field	a	OK	dst sized to src
+g3	code/logisticscomponent.cpp:185	name (new char[strlen+1])	nameBuffer[256] resource	a	OK	dst sized to src
+g3	code/logisticsdata.cpp:123	componentPath[256]	objectPath[80]	e	OK	
+g3	code/logisticsdata.cpp:196	pilotPath[256]	objectPath[80]	e	OK	
+g3	code/logisticsdata.cpp:230	variantPath[256]	artPath[80]	e	OK	
+g3	code/logisticsdata.cpp:245	errorStr[256]	pakPath = objectPath + "Object2.pak"	d	OK	constant name
+g3	code/logisticsdata.cpp:302-303	variantFullPath[1024]	objectPath(<=79) + variantFileName[256] (CSV readString 256) + ".csv"	d	OK	src bounded, total <= 339
+g3	code/logisticsdata.cpp:311	error[256]	variantFullPath (up to ~338 chars, name from buildings.csv) + 20 fixed chars; runs when that file fails to open	d	FIX	bounded copy (snprintf sizeof(error)); d with data name
+g3	code/logisticsdata.cpp:1293-1301	tmp2[256]	tmp = "Component%d"	e	OK	
+g3	code/logisticsdata.cpp:2617	errorStr[256]	bldg.fileName[64] (readIdString 63)	a	OK	src bounded by char[64]
+g3	code/logisticsdialog.cpp:31	name[32]	base = literal "Save"/"Variant" + int < 1000	e	OK	
+g3	code/logisticsdialog.cpp:599	findString[512]	path = savePath/campaignPath (<=79)	e	OK	
+g3	code/logisticsdialog.cpp:696	errorStr[256]	path = savePath(<=79) + file name found in the save directory (cFileName up to MAX_PATH 259) + ".fit"	c	FIX	bounded copy (snprintf sizeof(errorStr)); runs when a listed file fails to open
+g3	code/logisticsdialog.cpp:723	errorStr[256]	path = campaignPath(<=79) + file name found in the campaign directory (up to 259) + ".fit"	c	FIX	bounded copy (snprintf sizeof(errorStr))
+g3	code/logisticsdialog.cpp:974	real[1024]	tmp2[256] (_splitpath of CampaignName readIdString 255)	a	OK	src bounded by char[256]
+g3	code/logisticsdialog.cpp:979	real[1024]	MissionName readIdString 255; running total <= 511	a	OK	src bounded
+g3	code/logisticsdialog.cpp:998	tmp[256]	format = IDS_DIALOG_CBILLS resource (cLoadString 255, up to 254) + long cBills	a	FIX	bounded copy (snprintf sizeof(tmp)); resource used as format
+g3	code/logisticsdialog.cpp:999	real[1024]	tmp (<=255 once 998 is bounded); running total <= 767	a	OK	OK only once 998 is bounded
+g3	code/logisticsdialog.cpp:1010	tmp[256]	format = IDS_DIALOG_TIME resource (up to 254) + gos formatted date and time strings	a	FIX	bounded copy (snprintf sizeof(tmp))
+g3	code/logisticsdialog.cpp:1011	real[1024]	tmp (<=255 once 1010 is bounded); running total <= 1023	a	OK	OK only once 998 and 1010 are bounded (total 1022 + NUL)
+g3	code/logisticsdialog.cpp:1165	promptString[256]	format = IDS_DIALOG_OVERWRITE_PROMPT resource (up to 254) + selectedName = list hidden text (save file name from the directory, up to 259)	c	FIX	larger buffer (prompt shown in full) + snprintf
+g3	code/logisticsdialog.cpp:1214	promptString[256]	format = IDS_DIALOG_DELETE_PROMPT resource (up to 254) + tmpName from edit box (limitEntry 20)	c	FIX	larger buffer + snprintf (overflows only with a long resource string)
+g3	code/logisticsdialog.cpp:1338	findString[512]	literal path	e	OK	
+g3	code/logisticsdialog.cpp:1617	promptString[256]	format = IDS_DIALOG_OVERWRITE_PROMPT (up to 254) + selectedName from variant edit box (limitEntry 14)	c	FIX	larger buffer + snprintf (overflows only with a long resource string)
+g3	code/logisticsdialog.cpp:1646	promptString[256]	format = IDS_DIALOG_DELETE_PROMPT (up to 254) + selectedName from variant edit box (limit 14)	c	FIX	larger buffer + snprintf (overflows only with a long resource string)
+g3	code/logisticsdialog.cpp:1902	text2[1024]	format resource (<=254) + missionName[256] (resource or readIdString 255)	a	OK	src bounded (<= ~508)
+g3	code/logisticsdialog.cpp:1904	totalText[1024]	text2 (<= ~508)	a	OK	src bounded
+g3	code/logisticsdialog.cpp:1913	text2[1024]	format resource (<=254) + mType[128]	a	OK	src bounded
+g3	code/logisticsdialog.cpp:1915	totalText[1024]	text2; running total <= ~887	a	OK	total bounded
+g3	code/logisticsdialog.cpp:1922	text2[1024]	format resource (<=254) + numPlayers	a	OK	src bounded
+g3	code/logisticsdialog.cpp:1924	totalText[1024]	text2 (up to ~263) appended to <= ~887 already: worst case ~1150 > 1024 (three max-length resource strings + 254-char mission name from the map .fit)	a	FIX	bounded append (snprintf at offset / strncat with remaining space) or larger buffer
+g3	code/logisticsdialog.cpp:1958	buffer2[512]	path = artPath + literal	d	OK	constant name
+g3	code/logisticsmechdisplay.cpp:122	text[64]	format = IDS_MB_MECH_WEIGHT (cLoadString 63) + float + mechClass (resource, cLoadString 256)	a	FIX	larger buffer (shown to player) + snprintf
+g3	code/logisticsmissioninfo.cpp:211	errorStr[256]	fileName[1024] from campaign fit "FileName" (readIdString 1023)	a	FIX	bounded copy (snprintf sizeof(errorStr))
+g3	code/logisticsmissioninfo.cpp:359	errorStr[256]	fileName[64] (readIdString 63)	a	OK	src bounded by char[64]
+g3	code/logisticsmissioninfo.cpp:446	pfName (new char[strlen+1])	tmp[256]	a	OK	dst sized to src
+g3	code/logisticsmissioninfo.cpp:614	errorStr[256]	missionName param of setNextMission: campaign mission fileName (up to 1022), map list hidden text (file names), MPlayer->missionSettings.map[25] (network)	a	FIX	bounded copy (snprintf sizeof(errorStr))
+g3	code/logisticsmissioninfo.cpp:743	errorStr[256]	global missionName[1024] (mechcmd2.cpp, built from command-line args, unbounded); note it prints the global instead of the missionFileName parameter	c	FIX	bounded copy; probably should print missionFileName
+g3	code/logisticsmissioninfo.cpp:1134	pNewFile (new char[strlen+1])	fileName	a	OK	dst sized to src
+g3	code/logisticspilot.cpp:46	skillTexts[i][255]	tmp from cLoadString(...,255) (<=254)	a	OK	src bounded by 255
+g3	code/logisticspilot.cpp:67-68	path[256]	warriorPath(<=79) + pilot file name (pilots.csv line, readLine 256) + ".fit"	d	FIX	bounded copy (snprintf sizeof(path)); d with data name
+g3	code/logisticspilot.cpp:75	errorString[256]	Couldn't open file  + pilot file name (up to 256)	a	FIX	bounded copy (snprintf sizeof(errorString))
+g3	code/logisticsvariant.cpp:490	errorString[1024]	component name (resource <=255) + variant name (<=255)	a	OK	src bounded (~605 max)
+g3	code/logisticsvariant.cpp:872-880	tmp2[256]	tmp = "Component%d"	e	OK	
+g4	code/mainmenu.cpp:58	errorStr[256]	FullPathFileName artPath + literal "mcl_splashscreenintro.fit"	d	OK (constant name, ~40 chars)	-
+g4	code/mainmenu.cpp:109	errorStr[256]	artPath + literal "mcl_sp.fit"	d	OK (constant name)	-
+g4	code/mainmenu.cpp:136	error[256]	artPath + literal "mcl_mp_loadmap.fit"	d	OK (constant name)	-
+g4	code/mainmenu.cpp:404	lawyerBabble[2048]	format realText = cLoadString(IDS_LAWYER_BABBLE, 2047) + pID[64] from registry	a	FIX (format up to 2046 chars + pID 63 > 2048; format from resource)	bounded copy
+g4	code/mainmenu.cpp:514	name[1024]	savePath[256] (user dir, set by snprintf mechcmd2.cpp:1106)	e	OK (<=255 into 1024)	-
+g4	code/mainmenu.cpp:515	name[1024]	LogisticsSaveDialog selectedName: edit box limitEntry(20) or listbox hidden text = file name from save dir listing (<=255)	c	OK (255+255+4 < 1024)	-
+g4	code/mainmenu.cpp:530	errorStr[1024]	name (<= ~515)	c	OK (bounded by name construction)	-
+g4	code/mainmenu.cpp:558	errorStr[1024]	name (<= ~515)	c	OK (bounded by name construction)	-
+g4	code/mainmenu.cpp:866	formatStr[256]	format cLoadString(IDS_PLAYER_LEFT,255) + playerName = playerInfo[0].name char[25] (network, strncpy-bounded on receipt multplyr.cpp:913/1118)	a	FIX (resource format 254 + name 24 > 256; name itself bounded)	bounded copy
+g4	code/mc2movie.cpp:121	heap new char[strlen(MOVIEName)+1]	MOVIEName	e	OK (dst sized to src)	-
+g4	code/mc2movie.cpp:136	heap new char[strlen(MOVIEName)+1]	MOVIEName	e	OK (dst sized to src)	-
+g4	code/mc2movie.cpp:164	buf[1024]	./data/movies/%s.mpg with MOVIEName[1024] = basename of movie path; names from campaign/mission data (Video, FinalVideo, VideoOverride, pilot videos)	a	FIX (18 fixed + up to 1023 > 1024; also _splitpath into MOVIEName[1024] at :116/:132 is itself unbounded)	bounded copy
+g4	code/mech.cpp:1067	s[1024]	Mover::name[65] via getName() (strncpy-bounded)	e	OK (src bounded by char[65])	-
+g4	code/mech.cpp:1412	longName[MAXLEN_MECH_LONGNAME=35]	format IDS_MFDMCH_PRINTSTRING (resource) + thisMechName = cLoadString(descID from mech CSV, 127) + float tonnage	a	FIX (126-char name into 35; shown in UI)	bounded copy (or larger longName if full name must show)
+g4	code/mech.cpp:3173	msg[256]	mechFile->getFilename() (FitIniFile path)	d	OK-dead (#ifdef _DEBUG only, in BattleMech::init(FitIniFile*) which mechs never reach: mission.cpp creates mechs via init(DWORD variantNum))	-
+g4	code/mech.cpp:3185	fatalMsg[250]	mechFile->getFilename()	d	OK-dead (#if 0)	-
+g4	code/mech.cpp:4693	static s[512]	getName() + numbers	e	OK-dead (inside /* */ comment 4688-4707)	-
+g4	code/mech.cpp:5810	ObjectAppearance::pilotName[32]	MPlayer->playerInfo[commanderId].name char[25] (network, strncpy-bounded on receipt) or " "	b	OK (src bounded by char[25])	-
+g4	code/mech.cpp:6815	s[1024]	getName() Mover name[65]	e	OK (src bounded by char[65])	-
+g4	code/mech.cpp:7510	s[1024]	getName() Mover name[65]	e	OK (src bounded by char[65])	-
+g4	code/mech.cpp:7536	s[1024]	getName() Mover name[65]	e	OK (src bounded by char[65])	-
+g4	code/mechbayscreen.cpp:72	path[256]	artPath[80] then literal	d	OK (constant)	-
+g4	code/mechbayscreen.cpp:397	str[64]	format cLoadString(IDS_MB_WEIGHT, 63) + two longs	a	FIX (63-char format + two numbers reaches ~79 > 64)	bounded copy
+g4	code/mechbayscreen.cpp:800	str[64]	format cLoadString(IDS_MB_MECH_WEIGHT,63) + weight + mechClass (resource IDS_VERY_LIGHT.. read 256, logisticsvariant.cpp:149)	a	FIX (class name up to 255 into 64)	bounded copy
+g4	code/mechcmd2.cpp:397-422	error[256]	artPath + literal names (mcl_dialog, mcl_sm, mcl_dialog_onebutton)	d	OK (constant names)	-
+g4	code/mechcmd2.cpp:562	s[256]	playerInfo[i].name char[25] + numbers	b	OK (src bounded by char[25])	-
+g4	code/mechcmd2.cpp:893	msg[4096]	format IDS_SWAPFILE_TOO_SMALL (4095) + number	a	OK-dead (#ifndef LINUX_BUILD; CMakeLists.txt:101 defines LINUX_BUILD on every platform)	-
+g4	code/mechcmd2.cpp:1591	path[256]	literal "assets/graphics/"	e	OK (constant)	-
+g4	code/mechcmd2.cpp:1592	path[256]	temp = font name from cLoadString(IDS_FLOAT_HELP_FONT, temp, 255), cut at ','	a	FIX (16 + up to 254 > 256)	bounded copy
+g4	code/mechcmd2.cpp:2607	missionName[1024] (global, :201)	argv token from command line; tempCommandLine[4096] so a token is up to 4095	c	FIX	bounded copy
+g4	code/mechcmd2.cpp:2615	missionName[1024]	+ further argv tokens appended in quoted-name loop	c	FIX (unbounded accumulation)	bounded copy (track remaining space)
+g4	code/mechcmd2.cpp:2633	missionName[1024]	argv token (<=4095)	c	FIX	bounded copy (note: argv[30] at :2572 also overflows with >30 tokens)
+g4	code/mechicon.cpp:445-446	path[256]	artPath + fileName; only callers (addHighSheetCells :530/:1217) pass literals mcui_high7.tga / mcui_high8.tga	d	OK (constant names)	-
+g4	code/mechicon.cpp:494	path[256]	artPath then literals	d	OK (constant)	-
+g4	code/mechicon.cpp:976	buffer[256]	unit->getPilot()->getName() = MechWarrior name char[80] (cLoadString MAXLEN_PILOT_NAME-1)	e	OK (src bounded by char[80])	-
+g4	code/mechicon.cpp:1183	path[256]	artPath then literals	d	OK (constant)	-
+g4	code/mechicon.cpp:1617-1630	omnitechPath[256]/highPath[256]/path[256]	data/art/ + literal sheet names	d	OK (constant)	-
+g4	code/mechicon.cpp:1648	path[256]	literal	e	OK	-
+g4	code/mechicon.cpp:1732	path[256]	literal	e	OK	-
+g4	code/mechlabscreen.cpp:201	errorStr[255]	path = artPath + FileName from layout .fit readIdString(...,fileName,255) + ".fit"	d (name from data)	FIX (19+9+254+4 > 255; only on open failure, which a bad long name triggers)	bounded copy
+g4	code/mechlabscreen.cpp:341	path[256]	artPath	e	OK	-
+g4	code/mechlabscreen.cpp:346	path[256]	MCL_MC_ + mechName[64] from _splitpath(variant file name)	d (name from data)	OK (src bounded by char[64]: 9+7+63+6 < 256; but the _splitpath into mechName[64] at :345 is itself unbounded, see GameOS/src/platform_stdlib.cpp:32)	-
+g4	code/mechlabscreen.cpp:353	path[256]	artPath	e	OK	-
+g4	code/mechlabscreen.cpp:355	path[256]	mechName[64]	d (name from data)	OK (src bounded by char[64]; same _splitpath caveat)	-
+g4	code/mechlistbox.cpp:120	path[256]	artPath	e	OK	-
+g4	code/mechlistbox.cpp:126	errorStr[256]	path = artPath + literal	d	OK (constant)	-
+g4	code/mechlopedia.cpp:83	errorStr[256]	artPath + literal mcl_en	d	OK (constant)	-
+g4	code/mechlopedia.cpp:275	errorStr[256]	artPath + literal mcl_en_mechs	d	OK (constant)	-
+g4	code/mechlopedia.cpp:537	formatText[256]	format cLoadString(IDS_EN_WEIGHT,255) + number	a	FIX (resource format only: 254 + number can exceed 256)	bounded copy
+g4	code/mechlopedia.cpp:547	formatText[256]	format IDS_EN_CLASS (254) + mechClass resource (<=255)	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:558	formatText[256]	format IDS_EN_ARMOR (254) + armor class name resource tmp (254) + number	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:569	formatText[256]	format IDS_EN_SPEED (254) + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:618	formatText[256]	format IDS_EN_HOUSE (254) + house name resource tmp (254)	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:628	formatText[256]	format IDS_EN_WEIGHT + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:638	formatText[256]	format IDS_EN_CLASS + mechClass (<=255)	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:649	formatText[256]	format IDS_EN_ARMOR + tmp resource (254) + number	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:660	formatText[256]	format IDS_EN_SPEED + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:672	formatText[256]	format IDS_EN_JUMP + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:692	errorStr[256]	artPath + literal mcl_en_wep	d	OK (constant)	-
+g4	code/mechlopedia.cpp:811	final[256]	format + weight	a	OK-dead (inside /* */ comment)	-
+g4	code/mechlopedia.cpp:823	final[256]	format IDS_EN_WEAPON_RANGE (254) + range name resource tmp (254)	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:832	final[256]	format IDS_EN_WEAPON_DAMAGE (254) + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:843	final[256]	format IDS_EN_WEAPON_ARMOR (254) + constant 32	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:859	final[256]	format IDS_EN_WEAPON_RATEOFFIRE (254) + float 10/recycleTime (recycleTime from component data; a tiny value prints a very long %f)	a	FIX	bounded copy
+g4	code/mechlopedia.cpp:870	final[256]	format IDS_EN_WEAPON_HEAT + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:881	final[256]	format IDS_EN_WEAPON_AMMO + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:891	final[256]	format IDS_EN_WEAPON_COST + number	a	FIX (resource format only)	bounded copy
+g4	code/mechlopedia.cpp:928	errorStr[256]	artPath + literal mcl_en_person	d	OK (constant)	-
+g4	code/mechlopedia.cpp:1050	errorStr[256]	artPath + literal mcl_en_sub	d	OK (constant)	-
+g4	code/mechlopedia.cpp:1095	errorStr[256]	artPath + literal mcl_en_bldg	d	OK (constant)	-
+g4	code/mechlopedia.cpp:1202	formatted[256]	format IDS_EN_BUILDING_WEIGHT (254) + weight	a	FIX (resource format only)	bounded copy
+g4	code/mission.cpp:1592	BattleMech::variantName[64]	LogisticsMech getName() = LogisticsVariant::variantName EString: from .var / savegame readIdString(...,255) (logisticsdata.cpp:1269,1314), CSV, or mech lab rename	a	FIX (up to 254 into 64)	bounded copy
+g4	code/mission.cpp:1644	realPilotName[256]	pilotFileName+3/4: LogisticsPilot fileName (pilots.csv readLine 256, savegame readIdString 255) or MPlayer->reinforcementPilot[32] (strncpy-bounded)	a	OK (src bounded by 256)	-
+g4	code/missionbegin.cpp:242-378	path[256], error[256]	artPath + literal layout names (mcl_mm, mcl_cm_layout, mcl_mn, mcl_mb_layout, mcl_pr_layout, mcl_m$, mcl_mc, mcl_loadingscreen)	d	OK (constant names)	-
+g4	code/missionbegin.cpp:1042-1118	path[512], error[256]	artPath + literal names (mcl_mp_connectiontype, mcl_mp_param, mcl_mp_lanbrowser, mcl_mp_playerprefs, mcl_loadingscreen)	d	OK (constant names)	-
+g4	code/missiongui.cpp:802	mpStr[256]	getPlayerName() returns "" (stub, multplyr.h:1660) + numbers	e	OK	-
+g4	code/missiongui.cpp:804	mpStr[256]	getPlayerName() "" + numbers	e	OK	-
+g4	code/missiongui.cpp:805	DebugStatusBarString[256]	prior sprintf (~110 chars, numbers) + mpStr (~60)	e	OK	-
+g4	code/missiongui.cpp:3193	debugString[256]	~90 chars of numbers + target->getName(): Building::getName returns cLoadString(...,254) or customName[64]; Mover name[65]	a	FIX (building name up to 253 + ~90 > 256; runs on every left/right click via printDebugInfo from updateOldStyle/updateAOEStyle)	bounded copy
+g4	code/missiongui.cpp:3195	debugString[256]	const terrain name + numbers	e	OK	-
+g4	code/missiongui.cpp:4231	MoverInitData::pilotFileName[50]	vehicleFile = ControlGui::vehiclePilots[] constant table (controlgui.cpp:114)	e	OK (constant)	-
+g4	code/missiongui.cpp:4330	s[1024]	vehicleFile constant or NULL + numbers	e	OK	-
+g4	code/missiongui.cpp:4840	debugString[256]	~100 chars of numbers + target->getName() (building name up to 253)	a	FIX (same as 3193; ALT+/ hotkey quickDebugInfo, #ifndef FINAL)	bounded copy
+g4	code/missiongui.cpp:4850	debugString[256]	const terrain name + numbers	e	OK	-
+g4	code/missiongui.cpp:4864	debugString[256]	REQ = + 25 x " %02ld" path tallies	e	OK (~80 chars)	-
+g4	code/missionresults.cpp:56	path[256]	artPath	e	OK	-
+g4	code/missionresults.cpp:62	error[256]	artPath + literal mcui_mr_layout.fit	d	OK (constant)	-
+g4	code/missionresults.cpp:74	path[256]	artPath	e	OK	-
+g4	code/missionresults.cpp:81	error[256]	artPath + literal	d	OK (constant)	-
+g4	code/missionresults.cpp:125	fullName[256]	format cLoadString(IDS_AUTOSAVE_NAME,255) + pMissionName = lastMissionName (campaign .fit FileName, readIdString up to 1023, logisticsmissioninfo.cpp:189)	a	FIX	bounded copy
+g4	code/missionselectionscreen.cpp:228	errorStr[256]	artPath + OperationFile (campaign .fit readIdString 255, logisticsmissioninfo.cpp:170) + ".fit"	d (name from data)	FIX (19+9+254+4 > 256)	bounded copy
+g4	code/mover.cpp:489-566	outString[512] then ChunkDebugMsg[5120]	Mover name[65] + numbers	e	OK (src bounded; total well under 5120)	-
+g4	code/mover.cpp:1005-1192	outString[512] then ChunkDebugMsg[5120]	Mover name[65], target name[65], numbers; tile loop <= MAX_TERRAIN_TILE_ITEMS=8	e	OK	-
+g4	code/mover.cpp:2305	netPlayerName[256]	literal	e	OK	-
+g4	code/mover.cpp:2426	static s[128]	getName() Mover name (<=64) + pilot name (<=79) + index	a	FIX (up to ~150 > 128; debug window reachable from ABL setDebugWindow (ablmc2.cpp:5220) and mission GameObjectWindowList)	bounded copy
+g4	code/mover.cpp:2436-2441	s[128]	const contactStr + numbers	e	OK (<= ~75)	-
+g4	code/mover.cpp:2466	s[128]	order:  + ts[40] (numbers)	e	OK	-
+g4	code/mover.cpp:2471	s[128]	order:  + ts[40] (numbers)	e	OK	-
+g4	code/mover.cpp:2482	s[128]	ModuleInfo.name[128] (ABL module name from script)	a	FIX ("brain: " 7 + up to 127 > 128)	bounded copy
+g4	code/mover.cpp:2486	s[128]	&ModuleInfo.fileName[23] (<=104)	a	OK (src bounded by char[128] minus 23-char prefix)	-
+g4	code/mover.cpp:2501	s[128]	cont: + <=4 x s2[10] + " +++"	e	OK	-
+g4	code/mover.cpp:2511	s[128]	ts[50] from printWeaponsStatus	e	OK (src bounded by char[50])	-
+g4	code/mover.cpp:2517	s[128]	pilot debugStrings[i] char[80] (strncpy-bounded)	e	OK (src bounded by char[80])	-
+g4	code/mover.cpp:2522	static s[128]	Mover name + pilot name + index	a	FIX (same as 2426)	bounded copy
+g4	code/mover.cpp:2529-2534	s[128]	const contactStr + numbers	e	OK	-
+g4	code/mover.cpp:2550	s[128]	LR: + " %d"/" [%d]" per global path step; loop runs i=0..curGlobalStep+8, up to MAX_GLOBAL_PATH=50 steps; area ids from map	a	FIX (50 entries x up to ~8 chars > 128)	bounded copy (or start the loop at curGlobalStep)
+g4	code/mover.cpp:2564	s[128]	const moveStateStr	e	OK	-
+g4	code/mover.cpp:2619	static s[128]	Mover name + pilot name + index	a	FIX (same as 2426)	bounded copy
+g4	code/mover.cpp:2626	s[128]	const locationStrings + numbers + const bodyState	e	OK (~55)	-
+g4	code/mover.cpp:2636	s[128]	const + numbers	e	OK-dead (loop i=numArmorLocations; i<numArmorLocations never runs)	-
+g4	code/mover.cpp:2645	s[128]	const locationStrings + numbers + const bodyState	e	OK	-
+g4	code/mover.cpp:3560-3562	s[1024]	Mover name[65] + target->getName() (<=254)	e	OK	-
+g4	code/mover.cpp:3566	s[1024]	MasterComponent name[256] + const + numbers	e	OK	-
+g4	code/mover.cpp:3573	s[1024]	const locationStrings	e	OK	-
+g4	code/mover.cpp:3576	s[1024]	pilot name[80]	e	OK	-
+g4	code/mover.cpp:3588-3590	s[1024]	Mover name[65] + target name (<=254)	e	OK	-
+g4	code/mover.cpp:3594	s[1024]	component name[256] + numbers	e	OK	-
+g4	code/mover.cpp:3601	s[1024]	const	e	OK	-
+g4	code/mover.cpp:3604	s[1024]	pilot name[80]	e	OK	-
+g4	code/mover.cpp:3655-3661	s[1024]	statusStr[32] const + Mover name[65]	e	OK	-
+g4	code/mover.cpp:3669	s[1024]	attacker->getName() (<=254)	e	OK	-
+g4	code/mover.cpp:3673	s[1024]	component name[256] + numbers	e	OK	-
+g4	code/mpaddaiplayer.cpp:87-164	path[256], error[256]	artPath + literals	d	OK-dead (file not in CMakeLists.txt)	-
+g4	code/mpconnectiontype.cpp:96-135	path[256], error[256]	artPath + literals	d	OK (constant)	-
+g4	code/mpconnectiontype.cpp:590	errorStr[256]	artPath + literal mcl_mp_tcpip_combobox0	d	OK (constant)	-
+g4	code/mpconnectiontype.cpp:800	tmp[256]	str = IP combo edit text; typing limited to 15, but choosing a list item sets it via setEntry from prefs.ipAddresses (prefs file, readIdString 255 into char[24] rows, prefs.cpp:249); the dot validation does not bound length	c	FIX	bounded copy
+g4	code/mpconnectiontype.cpp:866	Display[256]	format cLoadString(IDS_MP_CON_MODEM_CONNECTING,255) + same str	c	FIX	bounded copy
+g4	code/mpdirecttcpip.cpp:70-77	path[256], error[256]	artPath + literal	d	OK-dead (file not in CMakeLists.txt)	-
+g4	code/mpgamebrowser.cpp:92-99	path[256], error[256]	artPath + literal	d	OK (constant)	-
+g4	code/mphostgame.cpp:65	error[256]	artPath + literal mcl_mp_hostgamedialog	d	OK (constant)	-
+g4	code/mphostgame.cpp:111	error[256]	artPath + data FileName	d	OK-dead (inside /* */ comment 93-138)	-
+g4	code/mploadmap.cpp:81-88	path[256], error[256]	artPath + literal	d	OK (constant)	-
+g4	code/mploadmap.cpp:131	findString[512]	missionPath[80]	e	OK	-
+g4	code/mploadmap.cpp:202	missionDisplayName[256]	pFileName: dir listing cFileName (<=255, .fit stripped) or multiplayer CSV readString into char[255]	a	OK (src bounded <=254)	-
+g4	code/mploadmap.cpp:563	text2[1024]	format (254) + missionName[256]	a	OK (254+255 < 1024)	-
+g4	code/mploadmap.cpp:574	text2[1024]	format (254) + mType[128]	a	OK	-
+g4	code/mploadmap.cpp:582	text2[1024]	format (254) + number	a	OK	-
+g4	code/mploadmap.cpp:636	errorStr[256]	missionPath + pFileName (<=254 from campaign readIdString / CSV / dir listing) + ".fit"	d (name from data)	FIX (19+17+254+4 > 256)	bounded copy
+g4	code/mpparameterscreen.cpp:182	error[256]	artPath + literal mcl_mp_loadmap	d	OK (constant)	-
+g4	code/mpparameterscreen.cpp:440	finalStr[256]	format cLoadString(IDS_MP_PARAMTERS_BOOT_PROMPT,255) + playerList[j].name char[25]	a	FIX (resource format only: 254 + 24 > 256)	bounded copy
+g4	code/mpparameterscreen.cpp:616	errorStr[256]	fileName: mission file name from map list hidden text (<=254) or missionSettings.map (<=24)	a	FIX (19 + 254 > 256)	bounded copy
+g4	code/mpparameterscreen.cpp:647	MissionSettings::map[MAXLEN_MAP_NAME=25]	fileName (mission file name from map list, <=254)	a	FIX	bounded copy
+g4	code/mpparameterscreen.cpp:648	MissionSettings::name[MAXLEN_MAP_DESC=32]	missionName[256] from mission .fit readIdString 255 or cLoadString 255; the gosASSERT(<25) above is debug-only	a	FIX	bounded copy
+g4	code/mpparameterscreen.cpp:799	IPAddressStr[256]	format cLoadString(IDS_MP_PARAM_HOST_IP,255) + sessionIPAddress[16]	a	FIX (resource format only: 254 + 15 > 256)	bounded copy
+g4	code/mpparameterscreen.cpp:950	final[1024]	format (254) + prefs.playerName[0] char[256]	a	OK (254+255 < 1024)	-
+g4	code/mpparameterscreen.cpp:1446	final[1024]	format (254) + map[25] + url[256]	a	OK (< 540)	-
+g4	code/mpparameterscreen.cpp:1484	final[1024]	format (254) + url[256]	a	OK	-
+g4	code/mpparameterscreen.cpp:1534	formatStr[256]	format cLoadString(IDS_PLAYER_LEFT,255) + playerName (playerInfo[0].name char[25])	a	FIX (resource format only)	bounded copy
+g4	code/mpparameterscreen.cpp:1688-1746	blockName[256]/[128]/[64]	literal names + 's' or index	e	OK	-
+g4	code/mpparameterscreen.cpp:1760-1790	path[256], error[256]	artPath + literals	d	OK (constant)	-
+g4	code/mpprefs.cpp:86	error[256]	artPath + blockName (FileName from mcl_mp_playerprefs .fit, readIdString 255) + ".fit"	d (name from data)	FIX (19+9+254+4 > 256)	bounded copy
+g4	code/mpprefs.cpp:162	findString[512]	path2insignia literal	e	OK	-
+g4	code/mpprefs.cpp:174	path[256]	path2insignia (27 chars) + cFileName of a .tga in data/multiplayer/insignia (<=255)	c	FIX (27 + 255 > 256)	bounded copy
+g4	code/mpprefs.cpp:301	MC2Player::insigniaFile[MAXLEN_INSIGNIA_FILE=35]	pName = aBmpListItem fileName = insignia directory cFileName (<=255)	c	FIX	bounded copy
+g4	code/mpprefs.cpp:582	MC2Player::name[MAXLEN_PLAYER_NAME=25]	txt from combo edit; typing limited to 24, but picking a list item sets text from prefs.playerName[10][256] (prefs file, 255)	c	FIX	bounded copy
+g4	code/mpprefs.cpp:593	MC2Player::unitName[25]	txt from combo edit / prefs.unitName[10][256]	c	FIX	bounded copy
+g4	code/mpprefs.cpp:605	prefs.insigniaFile[256]	pName = insignia file name (<=255)	c	OK (file name <=255)	-
+g4	code/mpprefs.cpp:607	MC2Player::insigniaFile[35]	pName (<=255)	c	FIX	bounded copy
+g4	code/mpprefs.cpp:631	MC2Player::name[25]	prefs.playerName[0] char[256] (prefs file readIdString 255)	c	FIX	bounded copy
+g4	code/mpprefs.cpp:632	MC2Player::unitName[25]	prefs.unitName[0] char[256]	c	FIX	bounded copy
+g4	code/mpprefs.cpp:633	MC2Player::insigniaFile[35]	prefs.insigniaFile char[256] (prefs file readIdString 255)	c	FIX	bounded copy
+g4	code/mpsetuparea.cpp:77-124	path[256], error[256]	artPath + literals	d	OK (constant)	-
+g4	code/mpstats.cpp:44	buffer2[512]	artPath + literal	d	OK (constant)	-
+g4	code/mpstats.cpp:121	text2[256]	format cLoadString(IDS_MP_LM_MAP_LIST_MAP_NAME,255) + missionSettings.name char[32]	a	FIX (254 + 31 > 256)	bounded copy
+g4	code/mpstats.cpp:129	text2[256]	format (254) + mType[128] resource	a	FIX	bounded copy
+g4	code/mpstats.cpp:135	text2[256]	format (254) + number	a	FIX (resource format only)	bounded copy
+g4	code/mpstats.cpp:288	formatStr[256]	format IDS_PLAYER_LEFT (254) + hostName (playerInfo[0].name, <=24)	a	FIX (resource format only)	bounded copy
+g4	code/mpstats.cpp:323	buffer2[512]	artPath + literal	d	OK (constant)	-
+g4	code/mpstats.cpp:448	buffer2[512]	artPath + literal	d	OK (constant)	-
+g4	code/mpstats.cpp:508	path[256]	literal	e	OK	-
+g4	code/mpstats.cpp:509	path[256]	data->insigniaFile char[35]	c	OK (src bounded by char[35], once the mpprefs strcpys into it are bounded)	-
+g4	code/multplyr.cpp:1085	missionName (caller buffer, size passed as missionNameSize)	state.map std::string from the network lobby	b	OK (length-checked at :1083 against missionNameSize, Fatal if too long)	-
+g5	GameOS/gameos/gameos.cpp:454	date = new char[strlen(str_time)+1]	ctime() result	e	OK (allocated to source length)	
+g5	GameOS/gameos/gameos.cpp:549	cfg_dir[1024]	getenv("HOME") + "/.config"	c	FIX (HOME env var longer than ~1015 chars overflows; reached via gos_LoadDataFromRegistry from mechcmd2.cpp:1795 and mainmenu.cpp:403)	bounded copy (snprintf(cfg_dir, cfg_dir_size, ...)); low priority
+g5	GameOS/gameos/gameos.cpp:569	mc2_conf_dir = new char[strlen(cfg_dir)+strlen(g_user_config_dir)+2]	cfg_dir + constant	e	OK (allocated to exact length)	
+g5	GameOS/gameos/gameos.cpp:589	reg_file = new char[exact length]	mc2_conf_dir + constant	e	OK (allocated to exact length)	
+g5	GameOS/gameos/gameos.cpp:653	mc2_conf_dir = new char[exact length]	cfg_dir (strncpy-bounded 1023) + constant	e	OK (allocated to exact length)	
+g5	GameOS/gameos/gameos_fileio.cpp:27	m_Filename[MAX_PATH=260] (fileio.hpp:52)	FileName passed to gos_OpenFile: ASE paths from mclib/msl.cpp:495,2260 and tgl.cpp:1493 (tglPath + model names from data), stuff/filestream.cpp:291	d (name from data)	FIX (only guard is gosASSERT, compiled out without _ARMOR; a path of 260+ chars overflows)	bounded copy, and fail the open (m_hFile=NULL) when strlen >= MAX_PATH
+g5	GameOS/gameos/gameos_graphics.cpp:266	pmat->name_ = new char[strlen(shader)+1]	shader name	e	OK (allocated to source length)	
+g5	GameOS/gameos/gameos_graphics.cpp:836	filename_ = new char[strlen(fname)+1]	texture file name	e	OK (allocated to source length)	
+g5	GameOS/gameos/gameos_graphics.cpp:867	texname_ = new char[strlen(texname)+1]	texture name	e	OK (allocated to source length)	
+g5	GameOS/gameos/gameos_graphics.cpp:2773-2776	font_name_/font_id_ = new char[strlen+1]	fname / fontFile	e	OK (allocated to source length)	
+g5	GameOS/gameos/utils/logging.cpp:29-31	text[MAX_LOG_LINE=1024]	__FILE__ (log_* macros), line number, fixed category name	e	OK (constant source path, short)	
+g5	GameOS/src/platform_stdlib.cpp:28	ptr dir (caller buffer)	dirname() of path; path from callers (data file names, font paths)	d (from data via callers)	FIX (_splitpath emulation, non-Windows builds only; no size; output can be as long as the input path)	clamp to _MAX_DIR (256) as the MSVC _splitpath does via _splitpath_s; callers: gameos_graphics.cpp:2736 dir[256], msl.cpp:409/2197 dir[MAX_PATH=256], forcegroupbar.cpp:473 realMoviePath[1024]
+g5	GameOS/src/platform_stdlib.cpp:32	ptr fname (caller buffer)	basename() of path from callers	d (from data via callers)	FIX (no size; caller buffers smaller than 256 overflow even with a clamp: mechlabscreen.cpp:345 mechName[64] from variant file name, logisticsdata.cpp:1842 realName[255]; others: simplecamera.cpp:340/410 NoPathFileName[256], terrain.cpp:403 baseName[256], gameos_graphics.cpp:2736 fname[256])	clamp to _MAX_FNAME (256) in the emulation, plus fix callers whose fname buffer is < 256 (mechlabscreen.cpp:345, logisticsdata.cpp:1842)
+g5	GameOS/src/platform_stdlib.cpp:46	ptr ext (caller buffer)	extension of path	d (from data via callers)	FIX (no size; callers using ext: msl.cpp:409/2197 ext[256], msl.cpp:941 extension[256])	clamp to _MAX_EXT (256)
+g5	code/objtype.cpp:148	appearName = Malloc(strlen(apprName)+1)	apprName[512] readIdString 511, result checked	a	OK (allocated to source length)	
+g5	code/optionsarea.cpp:143	error[256]	path = artPath[80] + constant file name + ".fit"	d (constant name)	OK (artPath <= 79 + short constant)	
+g5	code/optionsarea.cpp:379	error[256]	artPath + "mcl_options_combobox0.fit"	d (constant name)	OK (short)	
+g5	code/optionsarea.cpp:445	error[256]	artPath + "mcl_options_combobox2.fit"	d (constant name)	OK (short)	
+g5	code/optionsarea.cpp:1190-1206	ptr keysString: callers pass char[256] (1068, 1105) and char[128] (reset, 1293)	shift/control/alt: cLoadString(.., 31) (<= 30 chars, longer STOPs); pKey: SDL_GetScancodeName (<= ~20 chars)	a	OK (max 3*(30+3)+~20 = ~120 < 128)	
+g5	code/optionsarea.cpp:1228-1253	ptr hotKeyString: caller char[256] (1142)	same resource strings <= 30 chars + SDL key name	a	OK (max ~120 < 256)	
+g5	code/optionsarea.cpp:1534	error[256]	artPath + "mcl_options_combobox1.fit"	d (constant name)	OK (short)	
+g5	code/optionsscreenwrapper.cpp:35	path[256]	artPath[80] (+ constant "mcl_options.fit")	d (constant name)	OK (<= 79 + 15)	
+g5	code/optionsscreenwrapper.cpp:42	error[256]	path above (<= ~95)	d (constant name)	OK (short)	
+g5	code/pilotreadyscreen.cpp:70	path[256]	artPath[80] (+ constant)	d (constant name)	OK (short)	
+g5	code/pilotreadyscreen.cpp:800	fileName[256]	artPath[80]	d	OK (<= 79)	
+g5	code/pilotreadyscreen.cpp:802	fileName[256]	pPilot->getName(): resource string via cLoadString(descIndex, path, 256) in logisticspilot.cpp:88 (up to 255 chars); appended after artPath + "MCL_PR_" and before ".tga"	d (name from data)	FIX (79+7+255+4 > 256)	bounded copy (snprintf(fileName, sizeof fileName, "%sMCL_PR_%s.tga", artPath, name))
+g5	code/pilotreviewarea.cpp:402	realText[256]	format tmpText = cLoadString(IDS_PILOT_MISSIONS, 255) (<= 254 chars), int	a	FIX (format from resource up to 254 chars + %d expansion can pass 256; non-literal format, a %s in the resource would read an int as a pointer)	bounded copy (snprintf(realText, sizeof realText, tmpText, missions))
+g5	code/pilotreviewarea.cpp:408	realText[256]	format IDS_PILOT_KILLS (<= 254), int	a	FIX (same as 402)	bounded copy
+g5	code/pilotreviewarea.cpp:413	realText[256]	format IDS_PILOT_NAME (<= 254) + pilot name (resource string, <= 255)	a	FIX (up to ~507 chars into 256)	bounded copy
+g5	code/pilotreviewarea.cpp:426	realText[256]	format IDS_PILOT_RANK (<= 254) + rankStr[32]	a	FIX (format + 31 can pass 256)	bounded copy
+g5	code/pilotreviewarea.cpp:1174	finalText[256]	format text = IDS_PILOT_PROMOTED (<= 254) + tmpRank[64]	a	FIX (format + 63 can pass 256)	bounded copy
+g5	code/pilotreviewarea.cpp:1191	realText[256] (ActivePilotListItem)	format IDS_PILOT_MISSIONS (<= 254), int	a	FIX (same as 402)	bounded copy
+g5	code/pilotreviewarea.cpp:1200	realText[256]	format IDS_PILOT_NAME + pilot name (resource, <= 255)	a	FIX (same as 413)	bounded copy
+g5	code/pilotreviewarea.cpp:1430	realText[255] (PilotPromotionArea::setPilot)	format tmpText[255] = IDS_PILOT_MISSIONS (<= 254), int	a	FIX (same as 402, buffer 255)	bounded copy
+g5	code/pilotreviewarea.cpp:1436	realText[255]	format IDS_PILOT_NAME + pilot name (resource, <= 255)	a	FIX (same as 413)	bounded copy
+g5	code/prefs.cpp:329	backupPath[256]	originalPath = constant "options.cfg"	e	OK (constant)	
+g5	code/prefs.cpp:583	playerName[j] char[256]	playerName[j+1] char[256]; rows loaded with readIdString(.., 255) (prefs.cpp:239), byte 255 of each row never written by the load, global zero-init	e	OK (same-size row, src bounded by char[256] and terminated)	
+g5	code/prefs.cpp:587-605	playerName[0] char[256]	pNewName from MPPrefs edit box comboBox[0] limitEntry(24) (mpprefs.cpp:96,571)	c	OK (edit box limited to 24 chars)	
+g5	code/prefs.cpp:621	ipAddresses[j] char[24]	ipAddresses[j+1] char[24]; but rows are loaded by prefs.cpp:249 readIdString(blockName, &ipAddresses[i][0], 255) into char[24]	a (options.cfg)	FIX (the load overflows the 24-byte rows when options.cfg holds an IP entry of 24+ chars, then this row-to-row strcpy copies the over-long string; root cause is prefs.cpp:249)	fix root: prefs.cpp:249 readIdString size sizeof(ipAddresses[i])-1 (23) and terminate; then this line is OK
+g5	code/prefs.cpp:625-634	ipAddresses[0] char[24]	pNewIP from MPConnectionType edit box limitEntry(15) (mpconnectiontype.cpp:596,646)	c	OK (edit box limited to 15 chars)	
+g5	code/prefs.cpp:654	unitName[j] char[256]	unitName[j+1] char[256], loaded readIdString 255 (prefs.cpp:244,253)	e	OK (same-size row, terminated)	
+g5	code/prefs.cpp:658-676	unitName[0] char[256]	pNewUnit from MPPrefs comboBox[1] limitEntry(24) (mpprefs.cpp:97,585)	c	OK (edit box limited to 24 chars)	
+g5	code/simplecamera.cpp:30	path[256]	cameraPath[80] + "cameras.fit"	d (constant name)	OK (short)	
+g5	code/simplecamera.cpp:343	testName[256] (setMech)	NoPathFileName[256] = _splitpath of mech file name (chassis/variant getFileName EString from data; mpprefs constants) then strcat "enc"	d (name from data)	FIX (255-char name + "enc" overflows by 3; the _splitpath at 340 into [256] is also unbounded)	bounded copy (snprintf(testName, sizeof testName, "%senc", NoPathFileName))
+g5	code/simplecamera.cpp:414	testName[256] (setVehicle)	fileName (vehicle getFileName from data, mechlopedia.cpp:510; setObject from briefing objectives) full string, unbounded, + "enc"	d (name from data)	FIX (unbounded source)	bounded copy
+g5	code/simplecamera.cpp:483	testName[256] (setComponent/setBuilding)	fileName: component pictureFileName (heap copy of CSV token, logisticscomponent.cpp:172), building fileName[64], setObject names from mission data; + "enc"	d (name from data)	FIX (component picture name unbounded)	bounded copy
+g5	code/tacordr.cpp:2230	ptr s (callers: mover.cpp:2474 &s[7], ablmc2.cpp:6659 &s[16], large buffers)	tacticCode[] constant 2-char strings + number	e	OK (constants and numbers, < 40 chars)	
+g5	code/tacordr.cpp:2235	ptr s (same)	two %.0f floats + 2-char constant	e	OK (numbers, < ~100 chars even for huge floats)	
+g5	code/terrobj.cpp:357	s[128]	numbers + constant "[C]"	e	OK (numbers only)	
+g5	code/terrobj.cpp:372-378	s[128]	%d per sub-area id, numSubAreas0/1 each up to MAX_SPECIAL_SUB_AREAS (25), counts set from map data	e (count from map data)	FIX (worst case 9+25*7+2+25*7 = 361 > 128; debug window only, low priority)	bounded append (track length, snprintf at s+len with sizeof(s)-len)
+g5	code/turret.cpp:1280	s[1024]	getName() (TerrainObject::getName: cLoadString 254 or NULL), target name (building cLoadString 254 / customName, mover name[65], terrain name 254)	a	OK (src bounded: ~60 + 254 + 254 < 1024)	
+g5	code/turret.cpp:1284	s[1024]	component name (MasterComponent name[256]), locationStrings constants, floats	a	OK (src bounded by char[256])	
+g5	code/turret.cpp:1299	s[1024]	same as 1280	a	OK (src bounded)	
+g5	code/turret.cpp:1303	s[1024]	same as 1284	a	OK (src bounded)	
+g5	code/turret.cpp:1345	s[1024]	statusStr[50] constant, getName() <= 254	a	OK (src bounded)	
+g5	code/turret.cpp:1349	s[1024]	attacker->getName() (<= 254)	a	OK (src bounded)	
+g5	code/turret.cpp:1353	s[1024]	component name char[256] + constants	a	OK (src bounded)	
+g5	code/turret.cpp:2144	msg[1024]	appearName = ObjectType appearName (readIdString 511)	a	OK (src bounded by char[512])	
+g5	code/turret.cpp:2211	s[1024]	getName() (<= 254)	a	OK (src bounded)	
+g5	code/warrior.cpp:1055	callsign[MAXLEN_PILOT_CALLSIGN=20]	name[80] = cLoadString(DescIndex, name, 79) (resource pilot name, up to 78 chars)	a	FIX (a name of 20+ chars overflows callsign into videoStr/audioStr/brainStr)	bounded copy (snprintf(callsign, sizeof callsign, "%s", name))
+g5	code/warrior.cpp:1821	s[256]	getName()	a	OK-dead (inside /* */ comment)	
+g5	code/warrior.cpp:2116	brainName[500]	name[80]	a	OK (src bounded by char[80])	
+g5	code/warrior.cpp:3084	static s[256]	mover getName() name[65] (MAXLEN_MOVER_NAME)	a	OK (src bounded by char[65]; note mover.h:1002 strncpy(name, s, 65) can leave it unterminated)	
+g5	code/warrior.cpp:3570-3593	s[128]	callsign[20] (after the 1055 overflow its string can run to 78 chars) + %.2f range	a	OK (<= 78 + ~35 < 128; debug flag only)	
+g5	code/warrior.cpp:3605-3644	s[512]	callsign + float + counts	a	OK (src bounded, buffer 512)	
+g5	code/warrior.cpp:6500-6502	debugStr[200]	name, component name	a	OK-dead (inside /* */ comment)	
+g5	code/warrior.cpp:6566-6568	debugStr[200]	name, component name	a	OK-dead (inside /* */ comment)	
+g5	code/warrior.cpp:7221	s[80]	name[80]	a	OK-dead (#if 0 in missionLog)	
+g5	code/warrior.cpp:7230	s[80]	SkillsTable[] constants + numbers	e	OK-dead (#if 0)	
+g5	code/warrior.cpp:7304	blockName[64]	warriorName[32] = "Warrior%ld"	e	OK (constant + numbers)	
+g5	code/warrior.cpp:7343	blockName[64]	warriorName[32] = "Warrior%ld"	e	OK (constant + numbers)	
+g5	code/warrior.cpp:8129	s[256]	pilot name[80]	a	OK (src bounded by char[80])	
+g5	code/warrior.cpp:8133	s[256]	vehicle name[65]	a	OK (src bounded by char[65])	
+g5	code/warrior.cpp:8145	data.name[80]	name[80]	a	OK (same size)	
+g5	code/warrior.cpp:8146	data.callsign[20]	callsign[20]	a	FIX (same size, but after the 1055 overflow callsign is unterminated within 20 bytes; fixed by fixing warrior.cpp:1055)	fix root warrior.cpp:1055 (or bounded copy here)
+g5	code/warrior.cpp:8147-8149	data.videoStr[20]/audioStr[20]/brainStr[40]	same-size members (videoStr/audioStr from readIdString 19, brainStr strncpy+terminate)	a	OK (same size; note readIdString 19 into [20] leaves [19] unwritten on a too-long value)	
+g5	code/warrior.cpp:8278-8282	name[80], callsign[20], videoStr[20], audioStr[20], brainStr[40]	MechWarriorData from a save game (MechWarrior::init(MechWarriorData) at 8443), same-size fields, NUL not checked	a (save file)	FIX (a corrupt or edited save without NUL in these fields overflows)	bounded copy (snprintf(x, sizeof x, "%s", data.x) or strncpy + terminate)
+g5	code/weaponbolt.cpp:127	textureName = Malloc(strlen(txmName)+1)	txmName[1024] readIdString 1023, result checked	a	OK (allocated to source length)	
+g5	code/weaponbolt.cpp:2478	tPath[1024]	tglPath[80]	d (constant)	OK (short)	
+g5	gui/aanim.cpp:421	errorStr[255]	blockName: literals only (mainmenu.cpp:122, pilotreviewarea.cpp:221/1087, salvagemecharea.cpp:178); file name artPath + constant	e	OK (constants, < 150 chars)	
+g5	gui/aanim.cpp:444	errorStr[255]	blockName from aAnimGroup::init callers: gui/alistbox.cpp:1399 passes animationSt read with readIdString("Animation", .., 255) (up to 254 chars of data); others literal or readIdString 63; plus file->getFilename()	a	FIX (20 + 254 + 9 + path > 255 when a mod's Animation name is long and its block is missing)	bounded copy (snprintf(errorStr, sizeof errorStr, ...))
+g5	gui/abutton.cpp:310	errorStr[256]	str: button block names, literals or "Button%d" from LogisticsScreen::init	e	OK (constants)	
+g5	gui/abutton.cpp:371	file[256]	artPath[80]	d	OK (<= 79)	
+g5	gui/abutton.cpp:372	file[256]	data.fileName[32] readIdString("FileName", .., 32) (abutton.cpp:317)	a	OK (src bounded by char[32]; note readIdString size 32 into char[32] leaves it unterminated on a 32+ char name and the read runs into stateCoords, which holds zero bytes; change size to 31 at abutton.cpp:317 and controlgui.cpp:2292)	
+g5	gui/abutton.cpp:448	bmpName[256]	str: button block name (constant)	e	OK (constants)	
+g5	gui/abutton.cpp:454	finalName[256]	bmpName (constant + "Bmp") + counter	e	OK (constants)	
+g5	gui/abutton.cpp:524	errorStr[256]	headerName (literal block names), file.getFilename() (artPath + constant)	e	OK (constants)	
+g5	gui/aedit.cpp:777	errorStr[256]	header: "Edit%d" from LogisticsScreen::init and literal names	e	OK (constants)	
+g5	gui/afont.cpp:22	fontName[64]	newFontName	a	OK-dead (aFont::init(const char*) has no caller passing a string; copyData only reaches it when fontName is set, which only this function does; would be FIX if used)	
+g5	gui/afont.cpp:32-33	path[256]	fontName[64]	a	OK-dead (same function as line 22)	
+g5	gui/afont.cpp:297	path[256]	constant "assets/graphics/"	e	OK (constant)	
+g5	gui/afont.cpp:298	path[256]	buffer[256] = cLoadString(font resource id, buffer, 255) (font name from resource strings, up to 254 chars)	a	FIX (16 + 254 > 256)	bounded copy (snprintf(path, sizeof path, "assets/graphics/%s", buffer))
+g5	gui/ascroll.cpp:272	path[256]	artPath[80] + "scrollbar.fit"	d (constant name)	OK (short)	
+g5	gui/ascroll.cpp:277	error[256]	path above	d (constant name)	OK (short)	
+g5	gui/asystem.cpp:96	errBuffer[256]	blockName: "Static%d" from LogisticsScreen::init and literal names	e	OK (constants)	
+g5	gui/asystem.cpp:122	buffer[256]	artPath[80]	d	OK (<= 79)	
+g5	gui/asystem.cpp:123	buffer[256]	fileName[256] readIdString("fileName", .., 32), result checked (asystem.cpp:111)	a	OK (src bounded to 31 chars; 79+31+4 < 256)	
+g5	gui/asystem.cpp:616	errorStr[256]	blockName "Rect%d" / literals; file->getFilename() (artPath + constant)	e	OK (constants)	
+g5	gui/asystem.cpp:699	errorStr[256]	header: "Text%d" / literal names	e	OK (constants)	
+g5	gui/logisticsscreen.cpp:111-234	blockName[256] (outer, "%s%c") and blockName[128] (inner, "%s%d")	staticName/textName/rectName/buttonName/editName/animObjectName: all callers pass literals ("Static", "PilotReadyStatic", ...)	e	OK (literal names + numbers)	
+g5	gui/logisticsscreen.cpp:622	path[256]	artPath[80] (+ "mcl_mm.fit")	d (constant name)	OK (short)	
