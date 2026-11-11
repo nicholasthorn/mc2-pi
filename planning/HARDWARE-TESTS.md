@@ -166,6 +166,18 @@ The interface only rests in a headset session, so no desktop run covers it.
 - [x] **Pointing at the interface and at the world** stays right.
 - [x] **The interface at 1280x960 in a mission** (2026-11-05): judged right on the
       Quest 2, with the size set by hand in `options.cfg`.
+- [x] **Every mech drawn at FogPos 75** (`fix-shape-pools`, 2026-11-10): mc2_16 in a
+      Quest 2, all five of the lance with their shadows (left-eye capture).
+- [ ] **No `TGL pools full` in a long battle:** a big fight late in a mission
+      at FogPos 100 in the headset, then check `mc2.log`.
+- [x] **Objects in height fog** (`fix-mesh-height-fog`, 2026-11-10): mc2_16 in a
+      Quest 2, trees, buildings, mechs and the sky textured, not the fog colour
+      (left-eye capture).
+- [x] **Sharp interface from launch** (`vr-hud-frame`, 2026-11-10): on a fresh start,
+      without taking the headset off, the HUD text is as sharp as it was after a
+      headset off and on (judged in a Quest 2).
+- [ ] **The pointer with the full-size frame:** it still lands where it aims on the
+      panel, on the logistics screens and in a mission.
 - [ ] **The same with the default:** the logistics screens and a mission started from
       them, on a headset whose `options.cfg` says nothing or 800x600.
 - [x] **Leaving a mission or opening the options screen:** one frame of the old

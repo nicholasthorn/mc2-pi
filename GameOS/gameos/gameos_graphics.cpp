@@ -1941,9 +1941,18 @@ void gosRenderer::handleEvents()
                 0, 0, 1.0f, 0.0f,
                 0, 0, 0.0f, 1.0f);
 
-        if(graphics::resize_window(win_h_, width_, height_))
+        // VR headset: the window only feeds the interface panel, and Android keeps
+        // its surface at the headset's size whatever SDL is asked. Asking for the
+        // game's size only made SDL report it, so the interface was drawn into an
+        // 800x600 corner, blurred over the panel, until Android made a new surface
+        // (headset off and on). Keep the surface's size: the projection above still
+        // maps the game's screen onto all of it, and the panel keeps the game's
+        // shape (gos_xr quadHeight).
+        const bool keepSurface = gos_VRHeadset();
+        if(keepSurface || graphics::resize_window(win_h_, width_, height_))
 		{
-            graphics::set_window_fullscreen(win_h_, reqGotoFullscreen);
+            if(!keepSurface)
+                graphics::set_window_fullscreen(win_h_, reqGotoFullscreen);
 
             Environment.screenWidth = width_;
             Environment.screenHeight = height_;
