@@ -38,6 +38,8 @@
 #include"move.h"
 #endif
 
+#include"vr_edge_fade.h"
+
 #define SELECTION_COLOR 0xffff7fff
 #define HIGHLIGHT_COLOR	0xff00ff00
 
@@ -49,6 +51,35 @@ DWORD TerrainQuad::blownTextureHandle = 0xffffffff;
 
 extern bool drawTerrainGrid;
 extern bool drawLOSGrid;
+
+//---------------------------------------------------------------------------
+// Whether a ground or water triangle is drawn: in a VR eye's pass the GPU
+// clips the ones that cross the eye's near plane
+// (vr_edge_fade::nearTriangleDrawn). gpuClips: from gpuClipsQuad.
+static inline bool drawTriangle (const gos_VERTEX* v, bool gpuClips)
+{
+	const float rhw[3] = {v[0].rhw, v[1].rhw, v[2].rhw};
+	const float z[3] = {v[0].z, v[1].z, v[2].z};
+	return vr_edge_fade::triangleDrawn(rhw, z, gpuClips);
+}
+
+// Whether the GPU clips this quad's triangles: a VR eye's pass, and all four
+// corners projected for it (calcThisFrame: 4 ground, 2 water)
+static inline bool gpuClipsQuad (VertexPtr const* v, DWORD projected)
+{
+	return vr_edge_fade::gpuClipsQuad(Terrain::eyeSignedW,
+		(v[0]->calcThisFrame & projected) != 0, (v[1]->calcThisFrame & projected) != 0,
+		(v[2]->calcThisFrame & projected) != 0, (v[3]->calcThisFrame & projected) != 0);
+}
+
+// A point projected for the current pass as its quad's corners are (drawMine)
+static inline void projectForPass (Stuff::Vector3D &point, Stuff::Vector4D &screen)
+{
+	if (Terrain::eyeSignedW)
+		eye->projectZSigned(point,screen);
+	else
+		eye->projectZ(point,screen);
+}
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 // Class TerrainQuad
@@ -1423,6 +1454,7 @@ void TerrainQuad::draw (void)
 	if (terrainHandle != 0xffffffff)
 	{
 		numTerrainFaces++;
+		const bool gpuClips = gpuClipsQuad(vertices, 4);
 
 		//---------------------------------------
 		// GOS 3D draw Calls now!
@@ -1497,12 +1529,7 @@ void TerrainQuad::draw (void)
 			gVertex[2].argb		= lightRGB2;
 			gVertex[2].frgb		= vertices[2]->fogRGB;
 			
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					// sebi: beware this will be drawn with alpha blending, so need to make sure that alpha is not zero, because this is a base terrain layer!
@@ -1625,12 +1652,7 @@ void TerrainQuad::draw (void)
 			gVertex[2].argb		= lightRGB3;
 			gVertex[2].frgb		= vertices[3]->fogRGB;
 			
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					DWORD flags = isAlpha ? MC2_DRAWALPHA : 0;
@@ -1767,12 +1789,7 @@ void TerrainQuad::draw (void)
 			gVertex[2].argb		= lightRGB3;
 			gVertex[2].frgb		= vertices[3]->fogRGB;
 			
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					DWORD flags = isAlpha ? MC2_DRAWALPHA : 0;
@@ -1892,12 +1909,7 @@ void TerrainQuad::draw (void)
 			gVertex[1].argb		= lightRGB2;
 			gVertex[1].frgb		= vertices[2]->fogRGB;
 		
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					DWORD flags = isAlpha ? MC2_DRAWALPHA : 0;
@@ -2009,6 +2021,7 @@ extern float cloudScrollY;
 //---------------------------------------------------------------------------
 void TerrainQuad::drawWater (void)
 {
+	const bool gpuClips = gpuClipsQuad(vertices, 2);
 	float cloudOffsetX = cos(360.0f * DEGREES_TO_RADS * 32.0f * cloudScrollX) * 0.1f;
 	float cloudOffsetY = sin(360.0f * DEGREES_TO_RADS * 32.0f * cloudScrollY) * 0.1f;
 	
@@ -2092,12 +2105,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[2]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[2]->vy) * oneOverTF + cloudOffsetY; 
 
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -2230,12 +2238,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[3]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[3]->vy) * oneOverTF + cloudOffsetY; 
 
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -2376,12 +2379,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[3]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[3]->vy) * oneOverTF + cloudOffsetY; 
 
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -2514,12 +2512,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[3]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[3]->vy) * oneOverTF + cloudOffsetY; 
 																   
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex,gpuClips))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -3406,6 +3399,8 @@ void TerrainQuad::drawMine (void)
 		clipped2 = vertices[1]->clipInfo + vertices[2]->clipInfo + vertices[3]->clipInfo;
 	}
 
+	const bool gpuClips = gpuClipsQuad(vertices, 4);
+
 	//------------------------------------------------------------
 	// Draw Mines.
 	// All mines are visible all the time!
@@ -3442,19 +3437,19 @@ void TerrainQuad::drawMine (void)
 					thePoint.x += (cellC) * cellWidth;
 					thePoint.y -= (cellR) * cellWidth;
 					thePoint.z = land->getTerrainElevation(thePoint);
-					eye->projectZ(thePoint,pos4);
+					projectForPass(thePoint,pos4);
 					
 					thePoint.x += cellWidth;
 					thePoint.z = land->getTerrainElevation(thePoint);
-					eye->projectZ(thePoint,pos1);
+					projectForPass(thePoint,pos1);
 					
 					thePoint.y -= cellWidth;
 					thePoint.z = land->getTerrainElevation(thePoint);
-					eye->projectZ(thePoint,pos2);
+					projectForPass(thePoint,pos2);
 		
 					thePoint.x -= cellWidth;
 					thePoint.z = land->getTerrainElevation(thePoint);
-					eye->projectZ(thePoint,pos3);
+					projectForPass(thePoint,pos3);
 					
 					//------------------------------------
 					// Replace with New RIA code
@@ -3497,18 +3492,8 @@ void TerrainQuad::drawMine (void)
 					sVertex[2].argb		= vertices[3]->lightRGB;
 					sVertex[2].frgb		= vertices[3]->fogRGB;
 		
-					if ((gVertex[0].z >= 0.0f) &&
-						(gVertex[0].z < 1.0f) &&
-						(gVertex[1].z >= 0.0f) &&  
-						(gVertex[1].z < 1.0f) && 
-						(gVertex[2].z >= 0.0f) &&  
-						(gVertex[2].z < 1.0f) &&
-						(sVertex[0].z >= 0.0f) &&
-						(sVertex[0].z < 1.0f) &&
-						(sVertex[1].z >= 0.0f) &&  
-						(sVertex[1].z < 1.0f) && 
-						(sVertex[2].z >= 0.0f) &&  
-						(sVertex[2].z < 1.0f))
+					//a VR eye: the mine's corners are projected as the ground's, and clipped the same way
+					if (drawTriangle(gVertex,gpuClips) && drawTriangle(sVertex,gpuClips))
 					{
 						if (drawBlownMine)
 						{

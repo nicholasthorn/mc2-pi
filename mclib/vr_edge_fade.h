@@ -88,6 +88,45 @@ inline bool pointInCircle(long verticesPerSide, float unitsPerVertex, float dx, 
     return dx * dx + dy * dy < full * full;
 }
 
+// The near edge. The game drops a ground triangle with any corner outside the
+// depth range (0 to 1): the flat camera never sees ground that near. An eye in
+// VR looking down does, and dropping the triangles that cross its near plane
+// left a gap at the bottom of the view. In VR the corners keep a signed rhw
+// (Camera::projectZSigned: negative behind the eye) and the GPU clips the
+// triangle, so only one wholly behind the eye or wholly past the far plane is
+// dropped. rhw, z: the three corners' as projected.
+inline bool nearTriangleDrawn(const float rhw[3], const float z[3])
+{
+    bool behind = true, beyond = true;
+    for (int i = 0; i < 3; ++i) {
+        behind = behind && (rhw[i] < 0.0f);
+        beyond = beyond && (rhw[i] > 0.0f) && (z[i] >= 1.0f);
+    }
+    return !behind && !beyond;
+}
+
+// The flat game's test: every corner within the depth range. A corner that
+// was not projected keeps the off-screen placeholder (pz -0.5), so it fails.
+inline bool depthTriangleDrawn(const float z[3])
+{
+    return (z[0] >= 0.0f) && (z[0] < 1.0f) && (z[1] >= 0.0f) && (z[1] < 1.0f) &&
+        (z[2] >= 0.0f) && (z[2] < 1.0f);
+}
+
+// Whether the GPU clips a quad's triangles: in a VR eye's pass (signed rhw),
+// and only when the eye projected all four corners. Otherwise a corner can
+// still hold the placeholder (rhw 0.5, z -0.5), which nearTriangleDrawn would
+// take for a point in front.
+inline bool gpuClipsQuad(bool signedEyePass, bool p0, bool p1, bool p2, bool p3)
+{
+    return signedEyePass && p0 && p1 && p2 && p3;
+}
+
+inline bool triangleDrawn(const float rhw[3], const float z[3], bool gpuClips)
+{
+    return gpuClips ? nearTriangleDrawn(rhw, z) : depthTriangleDrawn(z);
+}
+
 } // namespace vr_edge_fade
 
 #endif

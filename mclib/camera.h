@@ -437,6 +437,21 @@ class Camera
 		//---------------------------------------------------------------------------
 		bool projectZ (Stuff::Vector3D &point, Stuff::Vector4D &screen)
 		{
+			return projectZWith(point, screen, false);
+		}
+
+		//As projectZ, but w keeps a sign: positive in front of the camera,
+		//negative behind it. (Clip w here is negative in front, which
+		//projectZ's fabs hides.) VR: the eyes' terrain goes to the GPU so,
+		//and it clips a triangle that crosses an eye's near plane
+		//(TerrainQuad::draw).
+		bool projectZSigned (Stuff::Vector3D &point, Stuff::Vector4D &screen)
+		{
+			return projectZWith(point, screen, true);
+		}
+
+		bool projectZWith (Stuff::Vector3D &point, Stuff::Vector4D &screen, bool keepSign)
+		{
 			//--------------------------------------------------------------------
 			// Now run the NEW project code 
 			Stuff::Vector4D xformCoords;
@@ -454,11 +469,13 @@ class Camera
 				float rhw = 1.0f;
 				if (xformCoords.w != 0.0f)
 					rhw = 1.0f / xformCoords.w;
+				else if (keepSign)
+					rhw = -1.0e6f;		//on the camera's plane: taken as just in front, a point the GPU can clip
 				
 				screen.x = (xformCoords.x * rhw) * viewMulX + viewAddX;
 				screen.y = (xformCoords.y * rhw) * viewMulY + viewAddY;
 				screen.z = (xformCoords.z * rhw);
-				screen.w = fabs(rhw);
+				screen.w = keepSign ? -rhw : fabs(rhw);
 			}
 			else
 			{
