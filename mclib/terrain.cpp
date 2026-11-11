@@ -737,6 +737,7 @@ void Terrain::destroy (void)
 	worldUnitsMapSide = 0.0f;
 	
 	mapTopLeft3d.Zero();
+	windowCentre.Zero();
 		
 	numObjBlocks = 0;
 
@@ -947,8 +948,10 @@ Stuff::Vector3D Terrain::placeWindow (void)
 	{
 		//the game camera, not the head; in camera coordinates, x is -x and z is y
 		const Stuff::Vector3D origin = eye->getCameraOrigin();
-		vr_edge_fade::windowCentre(visibleVerticesPerSide, worldUnitsPerVertex, windowCentre.x, windowCentre.y,
-			-origin.x, origin.z, windowCentre.x, windowCentre.y);
+		const vr_edge_fade::Point centre = vr_edge_fade::windowCentre(visibleVerticesPerSide, worldUnitsPerVertex,
+			vr_edge_fade::Point{windowCentre.x, windowCentre.y}, vr_edge_fade::Point{-origin.x, origin.z});
+		windowCentre.x = centre.x;
+		windowCentre.y = centre.y;
 	}
 	return windowCentre;
 }

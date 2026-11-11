@@ -2,9 +2,9 @@
 // (in VR, a point near it: windowCentre below). The headset's wide view sees
 // its edge, where the game's haze has barely begun (the haze was tuned for 40
 // degrees), so in VR the ground fades out before it ends. The fade is a circle
-// round that point, not the square: it reads as a
-// horizon, and does not move in steps as the square does. shaders/include/
-// scene.hglsl has the same sums for meshes. GL-free so it can be unit tested.
+// round that point, not the square: it reads as a horizon, and does not move
+// in steps as the square does. shaders/include/scene.hglsl has the same sums
+// for meshes. GL-free so it can be unit tested.
 #ifndef VR_EDGE_FADE_H
 #define VR_EDGE_FADE_H
 
@@ -46,24 +46,25 @@ inline Range rangeFor(long verticesPerSide, float unitsPerVertex)
 // the point towards the camera's ground position, as little as it can and
 // just enough that the camera stands within half the clear radius (half of
 // Range::start) of the centre. At the default zoom it does not move at all.
-// focus, viewer: x, y in world units; the centre comes back in centreX, centreY.
-inline void windowCentre(long verticesPerSide, float unitsPerVertex, float focusX, float focusY,
-    float viewerX, float viewerY, float& centreX, float& centreY)
+// focus, viewer and the centre: x, y in world units.
+struct Point {
+    float x;
+    float y;
+};
+
+inline Point windowCentre(long verticesPerSide, float unitsPerVertex, Point focus, Point viewer)
 {
-    centreX = focusX;
-    centreY = focusY;
     const Range range = rangeFor(verticesPerSide, unitsPerVertex);
     if (range.invWidth == 0.0f)
-        return;
+        return focus;
     const float reach = range.start * 0.5f;
-    const float dx = focusX - viewerX;
-    const float dy = focusY - viewerY;
+    const float dx = focus.x - viewer.x;
+    const float dy = focus.y - viewer.y;
     const float d2 = dx * dx + dy * dy;
     if (d2 <= reach * reach)
-        return;
+        return focus;
     const float along = reach / std::sqrt(d2);
-    centreX = viewerX + dx * along;
-    centreY = viewerY + dy * along;
+    return Point{viewer.x + dx * along, viewer.y + dy * along};
 }
 
 // 0 clear, 1 fully faded: smoothstep over the range, as in scene.hglsl.

@@ -145,13 +145,12 @@ TEST_CASE("round window: every corner of a kept quad is kept, the far corners ar
 // looks at. FogPos 75 gives 52 vertices; the default camera is 1200 units out
 // at 35 degrees, about 983 units back on the ground.
 TEST_CASE("window centre: the point the camera looks at, at the default zoom") {
-    float cx = 0.0f, cy = 0.0f;
-    windowCentre(52, kUnits, 5000.0f, 7000.0f, 5000.0f, 7000.0f - 983.0f, cx, cy);
-    CHECK(cx == 5000.0f);
-    CHECK(cy == 7000.0f);
-    windowCentre(52, kUnits, 5000.0f, 7000.0f, 5000.0f, 7000.0f, cx, cy);    // straight down
-    CHECK(cx == 5000.0f);
-    CHECK(cy == 7000.0f);
+    Point c = windowCentre(52, kUnits, Point{5000.0f, 7000.0f}, Point{5000.0f, 7000.0f - 983.0f});
+    CHECK(c.x == 5000.0f);
+    CHECK(c.y == 7000.0f);
+    c = windowCentre(52, kUnits, Point{5000.0f, 7000.0f}, Point{5000.0f, 7000.0f});    // straight down
+    CHECK(c.x == 5000.0f);
+    CHECK(c.y == 7000.0f);
 }
 
 TEST_CASE("window centre: a far camera stands in the clear ground, on the line to the point") {
@@ -160,8 +159,8 @@ TEST_CASE("window centre: a far camera stands in the clear ground, on the line t
         for (float back : {1500.0f, 2500.0f, 6000.0f, 20000.0f}) {
             // the camera back along a diagonal, as on a fly-in
             const float vx = 1000.0f - back * 0.6f, vy = 2000.0f + back * 0.8f;
-            float cx = 0.0f, cy = 0.0f;
-            windowCentre(side, kUnits, 1000.0f, 2000.0f, vx, vy, cx, cy);
+            const Point c = windowCentre(side, kUnits, Point{1000.0f, 2000.0f}, Point{vx, vy});
+            const float cx = c.x, cy = c.y;
             const float fromViewer = std::sqrt((cx - vx) * (cx - vx) + (cy - vy) * (cy - vy));
             CHECK(fromViewer <= range.start * 0.5f + 0.5f);
             // on the line from the camera to the point, not past the point
@@ -182,17 +181,15 @@ TEST_CASE("window centre: a far camera stands in the clear ground, on the line t
 TEST_CASE("window centre: moves only as far as it must") {
     const Range range = rangeFor(52, kUnits);
     const float reach = range.start * 0.5f;
-    float cx = 0.0f, cy = 0.0f;
-    windowCentre(52, kUnits, 0.0f, 0.0f, reach + 300.0f, 0.0f, cx, cy);
-    CHECK(cx == doctest::Approx(300.0f));
-    CHECK(cy == 0.0f);
+    const Point c = windowCentre(52, kUnits, Point{0.0f, 0.0f}, Point{reach + 300.0f, 0.0f});
+    CHECK(c.x == doctest::Approx(300.0f));
+    CHECK(c.y == 0.0f);
 }
 
 TEST_CASE("window centre: no fade, no move") {
-    float cx = 0.0f, cy = 0.0f;
-    windowCentre(3, kUnits, 10.0f, 20.0f, 90000.0f, 20.0f, cx, cy);
-    CHECK(cx == 10.0f);
-    CHECK(cy == 20.0f);
+    const Point c = windowCentre(3, kUnits, Point{10.0f, 20.0f}, Point{90000.0f, 20.0f});
+    CHECK(c.x == 10.0f);
+    CHECK(c.y == 20.0f);
 }
 
 TEST_CASE("the fade is 0 inside its start without a square root, 1 past its end") {
