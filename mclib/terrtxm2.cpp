@@ -48,6 +48,7 @@
 
 #include"platform_io.h"
 #include<sys/stat.h>
+#include<utils/str_bounded.h>
 
 #define COLOR_MAP_HEAP_SIZE				20480000
 #define COLOR_TXM_HEAP_SIZE				4096
@@ -423,7 +424,7 @@ void TerrainColorMap::burnInShadows (bool doBumpPass, const char *fileName)
 	if (fileName)
 	{
 		char newName[1024];
-		sprintf(newName,"%s.height",fileName);
+		snprintf(newName,sizeof(newName),"%s.height",fileName);
 		
 		FullPathFileName heightName;
 		heightName.init(terrainPath,newName,".tga");
@@ -962,7 +963,7 @@ void saveTGAFile(MemoryPtr ColorMap, const char * fileName, long pixelWidth)
 	colorMapInfo.image_descriptor = 32;	//DO NOT FLIP!
 	
 	char newName[1024];
-	sprintf(newName,"%s.burnin",fileName);
+	snprintf(newName,sizeof(newName),"%s.burnin",fileName);
 	
 	FullPathFileName outputName;
 	outputName.init(texturePath,newName,".tga");
@@ -1078,7 +1079,7 @@ void TerrainColorMap::resetWaterDetailTextures (const char *fileName)
 		}
 		else
 		{
-			strcpy(waterFile, fileName);
+			copyBounded(waterFile, sizeof(waterFile), fileName);
 			char dName[1024];
 			sprintf(dName,"%04ld.tga",i);
 			char *subStringToBeReplaced = &(waterFile[strlen(waterFile)-strlen("0000.tga")]);
@@ -1128,7 +1129,7 @@ void TerrainColorMap::recalcLight(const char *fileName)
 	colorMapName.init(texturePath,fileName,".tga");
 		
 	char newName[1024];
-	sprintf(newName,"%s.burnin",fileName);
+	snprintf(newName,sizeof(newName),"%s.burnin",fileName);
 	
 	FullPathFileName burnInName;
 	burnInName.init(texturePath,newName,".tga");
@@ -1277,7 +1278,7 @@ void TerrainColorMap::resetBaseTexture (const char *fileName)
 	colorMapName.init(texturePath,fileName,".tga");
 		
 	char newName[1024];
-	sprintf(newName,"%s.burnin",fileName);
+	snprintf(newName,sizeof(newName),"%s.burnin",fileName);
 	
 	FullPathFileName burnInName;
 	burnInName.init(texturePath,newName,".tga");
@@ -1438,7 +1439,7 @@ void TerrainColorMap::getScaledColorMap (MemoryPtr bfr, long dWidth)
 		colorMapName.init(texturePath,fileName,".tga");
 		
 		char newName[1024];
-		sprintf(newName,"%s.burnin",fileName);
+		snprintf(newName,sizeof(newName),"%s.burnin",fileName);
 	
 		FullPathFileName burnInName;
 		burnInName.init(texturePath,newName,".tga");
@@ -1585,7 +1586,7 @@ long TerrainColorMap::init (char *fileName)
 		// Detail texture is named same as colormap with .detail in name.
 		// if no file exists, no texture drawn.
 		char dName[1024];
-		sprintf(dName,"%s.detail",fileName);
+		snprintf(dName,sizeof(dName),"%s.detail",fileName);
 		
 		FullPathFileName detailFile;
 		detailFile.init(texturePath,dName,".tga");
@@ -1605,7 +1606,7 @@ long TerrainColorMap::init (char *fileName)
 		//Ok, now load up the water texture.
 		// Water texture is named the same as the colormap with .water in name.
 		// If no file exists, no texture drawn!!
-		sprintf(dName,"%s.water",fileName);
+		snprintf(dName,sizeof(dName),"%s.water",fileName);
 		
 		FullPathFileName waterFile;
 		waterFile.init(texturePath,dName,".tga");
@@ -1627,9 +1628,9 @@ long TerrainColorMap::init (char *fileName)
 		// Where 0000 is the frame number of the animation for the water detail.
 		// If the first frame does not exist, no texture is drawn!!
 		char waterDetailBaseName[1024];
-		sprintf(waterDetailBaseName,"%s.water",fileName);
+		snprintf(waterDetailBaseName,sizeof(waterDetailBaseName),"%s.water",fileName);
 		{
-			sprintf(dName,"%s%04d",waterDetailBaseName,0);
+			snprintf(dName,sizeof(dName),"%s%04d",waterDetailBaseName,0);
 			
 			FullPathFileName waterFile;
 			waterFile.init(texturePath,dName,".tga");
@@ -1643,7 +1644,7 @@ long TerrainColorMap::init (char *fileName)
 		{
 			waterDetailNodeIndex[i] = 0xffffffff;
 		}
-		sprintf(dName,"%s%04d",waterDetailBaseName,0);
+		snprintf(dName,sizeof(dName),"%s%04d",waterDetailBaseName,0);
 		waterFile.init(texturePath,dName,".tga");
 		resetWaterDetailTextures((const char *)waterFile);
 
@@ -1677,7 +1678,7 @@ long TerrainColorMap::init (char *fileName)
 		colorMapName.init(texturePath,fileName,".tga");
 		
 		char newName[1024];
-		sprintf(newName,"%s.burnin",fileName);
+		snprintf(newName,sizeof(newName),"%s.burnin",fileName);
 	
 		FullPathFileName burnInName;
 		burnInName.init(texturePath,newName,".tga");
