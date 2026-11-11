@@ -1248,6 +1248,7 @@ extern TG_GOSVertexPool 	*vertexPool;
 extern TG_DWORDPool			*facePool;
 extern TG_ShadowPool		*shadowPool;
 extern TG_TrianglePool		*trianglePool;
+extern bool					tglPoolsWarned;
 
 //-------------------------------------------------------------------------------
 // ASE File Parse String Macros
