@@ -272,7 +272,9 @@ bool Image::loadTGA(const unsigned char* mem, size_t len)
 
 
 	if (header.imageType == (unsigned char)TGADataType::kUncompressedRGB) {
-		assert(len >= header.width * header.height * pixelSize);
+		// the header is data: a short file must not be read past its end
+		if (len < (size_t)size)
+			return false;
 		readPixels = new unsigned char[size];
 		memcpy(readPixels, mem, size);
 		rv = loadTGA(&header, readPixels);
@@ -396,6 +398,9 @@ bool Image::loadCompressedTGA(const TGAHeader* header, const unsigned char* mem,
 
 	const int pixelSize = header->bpp / 8;
 	unsigned char p[5];
+	// bpp comes from the file: p holds a count byte and at most four bytes
+	if (pixelSize < 2 || pixelSize > 4)
+		return false;
 	int num_read_pixels = 0;
 	int offset = 0;
 	const size_t num_pixels = width * height;
@@ -417,6 +422,11 @@ bool Image::loadCompressedTGA(const TGAHeader* header, const unsigned char* mem,
 
 		unsigned int  j = p[0] & 0x7f;
 		bool is_rle = p[0] & 0x80;
+		// a packet that runs past the end of the image is a broken file
+		if (j > num_pixels - num_read_pixels) {
+			delete[] pixels;
+			return false;
+		}
 		if (is_rle) {
 			for (unsigned int i = 0; i < j; i++) {
 				mergeBytes(&(pixels[num_read_pixels]), &(p[1]), pixelSize);

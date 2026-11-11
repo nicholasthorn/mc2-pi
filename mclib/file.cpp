@@ -56,6 +56,7 @@
 //#endif
 
 #include "platform_str.h"
+#include<utils/str_bounded.h>
 
 //-----------------
 // Static Variables
@@ -275,8 +276,8 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 				//Not in main installed directory and not in fastfile.  Look on CD.
 
 				char actualPath[2048];
-				strcpy(actualPath,CDInstallPath);
-				strcat(actualPath,fileName);
+				copyBounded(actualPath,CDInstallPath);
+				appendBounded(actualPath,fileName);
 				handle = _open(actualPath,_O_RDONLY);
 				if (handle == INVALID_HANDLE_VALUE)
 				{
@@ -306,7 +307,7 @@ long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLow
 						EnterWindowMode();
 		
 						char data[2048];
-						sprintf(data,FileMissingString,fileName,CDMissingString);
+						snprintf(data,sizeof(data),FileMissingString,fileName,CDMissingString);
 						DWORD result1 = MessageBox(NULL,data,MissingTitleString,MB_OKCANCEL | MB_ICONWARNING);
 						if (result1 == IDCANCEL)
 						{
@@ -1173,6 +1174,11 @@ long File::readRAW (DWORD* &buffer, UserHeapPtr heap)
 long File::readLine (MemoryPtr buffer, long maxLength)
 {
 	long i = 0;
+
+	// Callers pass their whole buffer: keep its last byte for the terminator.
+	if (maxLength <= 0)
+		return 0;
+	maxLength--;
 	
 	if (inRAM && fileImage)
 	{
@@ -1272,17 +1278,26 @@ long File::readLine (MemoryPtr buffer, long maxLength)
 long File::readLineEx (MemoryPtr buffer, long maxLength)
 {
 	long i = 0;
-	
+
+	// Callers pass their whole buffer (the ABL scanner's sourceBuffer): keep
+	// two bytes for the newline it includes and the terminator.
+	if (maxLength <= 1)
+		return 0;
+	maxLength -= 2;
+
 	if (inRAM && fileImage)
 	{
 		if (isOpen())
 		{
 			unsigned char *readAddress = (unsigned char *)fileImage+logicalPosition;
 
-			while( i<maxLength && readAddress[i]!='\n' )
+			// Stop at the end of the image too: a last line with no newline
+			// read on past it.
+			while( i<maxLength && (i+logicalPosition) < fileSize() && readAddress[i]!='\n' )
 				i++;
 
-			i++;									//Include Newline
+			if ((i+logicalPosition) < fileSize())
+				i++;									//Include Newline
 			memcpy( buffer, readAddress, i );
 
 			buffer[i++]=0;

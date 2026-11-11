@@ -18,13 +18,14 @@
 #include <errno.h>
 
 #include "platform_io.h" // will be removed
+#include<utils/str_bounded.h>
 
 gosFileStream::gosFileStream( const char *FileName, gosEnum_FileWriteStatus fwstatus )
 {
     gosASSERT(FileName);
     gosASSERT(strlen(FileName) < MAX_PATH);
     m_writeEnabled = fwstatus;
-    strcpy(m_Filename, FileName);
+    copyBounded(m_Filename, FileName);
 
     // ???
     pNext = 0;

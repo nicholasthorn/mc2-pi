@@ -61,6 +61,7 @@
 #endif
 
 #include <float.h>
+#include<utils/str_bounded.h>
 
 //---------------------------------------------------------------------------
 // Static Globals
@@ -400,7 +401,7 @@ long Terrain::init( unsigned long verticesPerMapSide, PacketFile* pakFile, unsig
 		char baseName[256];
 		if (pakFile)
 		{
-			_splitpath(pakFile->getFilename(),NULL,NULL,baseName,NULL);
+			splitPathName(pakFile->getFilename(),baseName,sizeof(baseName));
 		}
 		else
 		{

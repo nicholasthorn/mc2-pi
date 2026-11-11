@@ -83,4 +83,43 @@ TEST_CASE("paletted TGA with missing pixel data is refused, not overread")
 	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
 }
 
+// A true-colour TGA header (type 2 uncompressed, 10 RLE) followed by data.
+static std::vector<uint8_t> makeTrueColour(int type, int w, int h, int bpp, const std::vector<uint8_t>& data)
+{
+	std::vector<uint8_t> f(18, 0);
+	f[2] = (uint8_t)type;
+	f[12] = (uint8_t)w;
+	f[14] = (uint8_t)h;
+	f[16] = (uint8_t)bpp;
+	f.insert(f.end(), data.begin(), data.end());
+	return f;
+}
+
+// A mod's TGA header is data: the RLE reader copied bpp/8 + 1 bytes into a
+// five-byte packet buffer, and wrote runs past the end of the image.
+TEST_CASE("RLE TGA with a pixel size the reader cannot hold is refused")
+{
+	std::vector<uint8_t> data(64, 0);
+	std::vector<uint8_t> tga = makeTrueColour(10, 1, 1, 40, data);
+	Image img;
+	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
+	tga = makeTrueColour(10, 1, 1, 255, data);
+	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
+}
+
+TEST_CASE("RLE TGA whose run passes the end of the image is refused")
+{
+	// 2x1 image, one run packet of 6 pixels
+	std::vector<uint8_t> tga = makeTrueColour(10, 2, 1, 24, { 0x85, 1, 2, 3 });
+	Image img;
+	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
+}
+
+TEST_CASE("uncompressed TGA with missing pixel data is refused, not overread")
+{
+	std::vector<uint8_t> tga = makeTrueColour(2, 4, 4, 32, std::vector<uint8_t>(10, 0));
+	Image img;
+	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
+}
+
 } // TEST_SUITE("ImageTga")

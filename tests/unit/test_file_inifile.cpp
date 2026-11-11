@@ -193,6 +193,61 @@ TEST_CASE("FitIniFile reads a FIT through a memory-buffer parent")
 	mem.close();
 }
 
+// readLine and readLineEx wrote their terminator one (readLineEx: two) bytes
+// past maxLength, and callers pass their whole buffer: a line as long as the
+// buffer, in a FIT or an ABL script, overran it.
+TEST_CASE("File::readLine and readLineEx keep a long line inside maxLength")
+{
+	static const char text[] = "abcdefghijkl\nxy";
+	char image[sizeof(text)];
+	memcpy(image, text, sizeof(text));
+	const int len = (int)strlen(image);
+
+	const char* path = "file_longline.txt";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs(text, fp);
+	fclose(fp);
+
+	for (int fromDisk = 0; fromDisk < 2; fromDisk++)
+	{
+		CAPTURE(fromDisk);
+		for (int ex = 0; ex < 2; ex++)
+		{
+			CAPTURE(ex);
+			File f;
+			if (fromDisk)
+				REQUIRE(f.open(path) == NO_ERR);
+			else
+				REQUIRE(f.open(image, len) == NO_ERR);
+			unsigned char buf[16];
+			memset(buf, 'x', sizeof(buf));
+			if (ex)
+				f.readLineEx(buf, 8);
+			else
+				f.readLine(buf, 8);
+			CHECK(memchr(buf, 0, 8) != nullptr);
+			CHECK(buf[8] == 'x');
+			CHECK(buf[9] == 'x');
+			CHECK(strncmp((const char*)buf, "abcdef", 6) == 0);
+			f.close();
+		}
+	}
+
+	// the last line of a memory file, with no newline, stops at the end
+	File f;
+	REQUIRE(f.open(image, len) == NO_ERR);
+	unsigned char line[32];
+	f.readLineEx(line, sizeof(line));
+	CHECK(strcmp((const char*)line, "abcdefghijkl\n") == 0);
+	memset(line, 'x', sizeof(line));
+	f.readLineEx(line, sizeof(line));
+	CHECK(strcmp((const char*)line, "xy") == 0);
+	CHECK(f.eof());
+	f.close();
+	remove(path);
+}
+
 TEST_CASE("File::getMemoryView is NULL for a disk file")
 {
 	File f;

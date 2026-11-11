@@ -391,7 +391,7 @@ void Mech3DAppearanceType::init (const char * fileName)
 		for (int i=0;i<MAX_ANIMATION_FILES;i++)
 		{
 			char animName[512];
-			sprintf(animName,"%s%s",fileName,MechAnimationNames[i]);
+			snprintf(animName,sizeof(animName),"%s%s",fileName,MechAnimationNames[i]);
 
 			FullPathFileName animPath;
 			animPath.init(tglPath,animName,".ase");
