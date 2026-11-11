@@ -148,4 +148,36 @@ TEST_CASE("the fade is 0 inside its start without a square root, 1 past its end"
     CHECK(amount(range, 0.0f, range.start + 2.0f / range.invWidth) == 1.0f);
 }
 
+// The near edge: what the game used to drop, and what VR now leaves to the GPU.
+TEST_CASE("near edge: a triangle in front is drawn, as the flat game draws it") {
+    const float rhw[3] = {0.01f, 0.02f, 0.015f};
+    const float z[3] = {0.5f, 0.9f, 0.1f};
+    CHECK(nearTriangleDrawn(rhw, z));
+}
+
+TEST_CASE("near edge: one that crosses the eye's plane goes to the GPU to clip") {
+    // the flat test dropped these: a corner behind the eye, or before the near plane
+    const float rhw1[3] = {0.01f, -0.02f, 0.015f};
+    const float z1[3] = {0.5f, 1.7f, 0.4f};
+    CHECK(nearTriangleDrawn(rhw1, z1));
+    const float rhw2[3] = {-0.01f, -0.02f, 0.015f};
+    const float z2[3] = {-3.0f, 2.0f, 0.2f};
+    CHECK(nearTriangleDrawn(rhw2, z2));
+    const float rhw3[3] = {0.5f, 0.4f, 0.3f};
+    const float z3[3] = {-0.1f, 0.2f, 0.3f};
+    CHECK(nearTriangleDrawn(rhw3, z3));
+}
+
+TEST_CASE("near edge: wholly behind the eye, or wholly past the far plane, is dropped") {
+    const float behind[3] = {-0.01f, -0.02f, -0.015f};
+    const float anyZ[3] = {0.5f, 0.5f, 0.5f};
+    CHECK_FALSE(nearTriangleDrawn(behind, anyZ));
+    const float front[3] = {0.001f, 0.002f, 0.001f};
+    const float pastFar[3] = {1.0f, 1.2f, 1.01f};
+    CHECK_FALSE(nearTriangleDrawn(front, pastFar));
+    // past the far plane but for one corner: the GPU clips it
+    const float partFar[3] = {1.0f, 0.99f, 1.01f};
+    CHECK(nearTriangleDrawn(front, partFar));
+}
+
 }

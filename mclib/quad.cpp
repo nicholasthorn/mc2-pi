@@ -38,6 +38,8 @@
 #include"move.h"
 #endif
 
+#include"vr_edge_fade.h"
+
 #define SELECTION_COLOR 0xffff7fff
 #define HIGHLIGHT_COLOR	0xff00ff00
 
@@ -51,24 +53,15 @@ extern bool drawTerrainGrid;
 extern bool drawLOSGrid;
 
 //---------------------------------------------------------------------------
-// Whether a ground or water triangle is drawn. The game drops one with any
-// corner outside the depth range: the flat camera never sees ground that near.
-// An eye in VR looking down does, and dropping the triangles that cross its
-// near plane left a gap at the bottom of the view. There each corner's rhw
-// keeps its sign (Terrain::projectForEye), the vertex shader turns it back
-// into clip space and the GPU clips the triangle; only one wholly behind the
-// eye, or wholly past the far plane, is dropped.
+// Whether a ground or water triangle is drawn: in VR the GPU clips the ones
+// that cross an eye's near plane (vr_edge_fade::nearTriangleDrawn).
 static inline bool drawTriangle (const gos_VERTEX* v)
 {
 	if (gos_IsVR())
 	{
-		bool behind = true, beyond = true;
-		for (long i=0;i<3;i++)
-		{
-			behind = behind && (v[i].rhw < 0.0f);
-			beyond = beyond && (v[i].rhw > 0.0f) && (v[i].z >= 1.0f);
-		}
-		return !behind && !beyond;
+		const float rhw[3] = {v[0].rhw, v[1].rhw, v[2].rhw};
+		const float z[3] = {v[0].z, v[1].z, v[2].z};
+		return vr_edge_fade::nearTriangleDrawn(rhw, z);
 	}
 	return (v[0].z >= 0.0f) && (v[0].z < 1.0f) &&
 		(v[1].z >= 0.0f) && (v[1].z < 1.0f) &&

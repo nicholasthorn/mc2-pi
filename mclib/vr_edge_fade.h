@@ -88,6 +88,23 @@ inline bool pointInCircle(long verticesPerSide, float unitsPerVertex, float dx, 
     return dx * dx + dy * dy < full * full;
 }
 
+// The near edge. The game drops a ground triangle with any corner outside the
+// depth range (0 to 1): the flat camera never sees ground that near. An eye in
+// VR looking down does, and dropping the triangles that cross its near plane
+// left a gap at the bottom of the view. In VR the corners keep a signed rhw
+// (Camera::projectZSigned: negative behind the eye) and the GPU clips the
+// triangle, so only one wholly behind the eye or wholly past the far plane is
+// dropped. rhw, z: the three corners' as projected.
+inline bool nearTriangleDrawn(const float rhw[3], const float z[3])
+{
+    bool behind = true, beyond = true;
+    for (int i = 0; i < 3; ++i) {
+        behind = behind && (rhw[i] < 0.0f);
+        beyond = beyond && (rhw[i] > 0.0f) && (z[i] >= 1.0f);
+    }
+    return !behind && !beyond;
+}
+
 } // namespace vr_edge_fade
 
 #endif
