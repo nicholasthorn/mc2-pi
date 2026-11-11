@@ -1254,8 +1254,10 @@ bool present(int width, int height)
     if(g.session == XR_NULL_HANDLE)
         return false;
     // Android can give the window a new surface of another size when the app
-    // comes back (headset off and on). The game keeps drawing at the old size, in
-    // the corner of the new one, and this frame copies all of it to the HUD.
+    // comes back (headset off and on). The game's frame follows it from the
+    // next frame (Environment.drawableWidth/Height); this frame copies all of
+    // the new surface to the HUD. The frame's size sets only how sharp the
+    // interface is, not its layout (screenWidth/Height) or the panel's size.
     if(width != Environment.drawableWidth || height != Environment.drawableHeight) {
         printf("[XR] the window's frame is now %dx%d (was %dx%d)\n", width, height,
                 Environment.drawableWidth, Environment.drawableHeight);
