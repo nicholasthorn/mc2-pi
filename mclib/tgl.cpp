@@ -75,6 +75,7 @@ TG_GOSVertexPool 		*vertexPool = NULL;
 TG_DWORDPool			*facePool = NULL;
 TG_ShadowPool			*shadowPool = NULL;
 TG_TrianglePool			*trianglePool = NULL;
+bool					tglPoolsWarned = false;	// TGL pools full, said this mission
 
 //-------------------------------------------------------------------------------
 extern bool useVertexLighting;
@@ -1807,7 +1808,17 @@ long TG_Shape::MultiTransformShape (Stuff::Matrix4D *shapeToClip, Stuff::Point3D
 		!listOfTriangles ||
 		!listOfVisibleFaces ||
 		!listOfVisibleShadows)
+	{
+		// a pool is full: this shape is not drawn this turn. Say so once a
+		// mission, or objects just vanish (pool sizes and the reset of this:
+		// Mission::initTGLForMission)
+		if (!tglPoolsWarned)
+		{
+			tglPoolsWarned = true;
+			PAUSE(("TGL pools full: shapes not drawn this turn (%ld vertices wanted)", (long)numVertices));
+		}
 		return(1);
+	}
 
 	}
 
