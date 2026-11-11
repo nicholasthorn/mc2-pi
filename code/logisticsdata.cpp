@@ -308,7 +308,7 @@ void LogisticsData::initVariants()
 		if ( NO_ERR != mechFile.open( variantFullPath ) )
 		{
 			char error[256];
-			sprintf( error, "couldn't open file %s", variantFullPath );
+			snprintf(error,sizeof(error), "couldn't open file %s", variantFullPath );
 			Assert( 0, 0, error );
 			return;
 		}

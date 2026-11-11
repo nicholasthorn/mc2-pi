@@ -999,7 +999,7 @@ class Mover : public GameObject {
 		}
 
 		virtual void setName (char* s) {
-			strncpy(name, s, MAXLEN_MOVER_NAME);
+			snprintf(name, sizeof(name), "%s", s);
 		}
 
 		virtual void setControl (ControlType ctrlType) {

@@ -81,6 +81,7 @@ extern float loadProgress;
 extern bool aborted;
 
 #include "../resource.h"
+#include<utils/str_bounded.h>
 void DEBUGWINS_print (const char* s, long window = 0);
 
 
@@ -677,9 +678,9 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 				mechData.baseColor = MPlayer->colors[MPlayer->playerInfo[MPlayer->commanderID].baseColor[BASECOLOR_TEAM]];
 				mechData.highlightColor1 = MPlayer->colors[MPlayer->playerInfo[MPlayer->commanderID].stripeColor];
 				mechData.highlightColor2 = MPlayer->colors[MPlayer->playerInfo[MPlayer->commanderID].stripeColor];
-				strcpy(mechData.pilotFile, (*iter)->getPilot()->getFileName());
-				strcpy(mechData.mechFile, (*iter)->getFileName());
-				strcpy(mechData.variantName, (*iter)->getName());
+				copyBounded(mechData.pilotFile, (*iter)->getPilot()->getFileName());
+				copyBounded(mechData.mechFile, (*iter)->getFileName());
+				copyBounded(mechData.variantName, (*iter)->getName());
 				mechData.variantNum = (*iter)->getVariant()->getFileID();
 				mechData.cBills = (*iter)->getVariant()->getCost();
 				mechData.pos[0] = dropZoneList[dropZoneIndex].x;
@@ -830,10 +831,10 @@ int _stdcall Logistics::beginMission(void*, int, void*[])
 			data.position.Add(dropZoneList[0], scaled);
 			//data.position = dropZoneList[dropZoneIndex++];
 			data.objNumber = (*iter)->getFitID();
-			strcpy( data.csvFileName, (*iter)->getFileName() );
+			copyBounded( data.csvFileName, (*iter)->getFileName() );
 			if ( !(*iter)->getPilot() )
 				continue;
-			strcpy( data.pilotFileName, (*iter)->getPilot()->getFileName() );
+			copyBounded( data.pilotFileName, (*iter)->getPilot()->getFileName() );
 			data.overrideLoadedPilot = true;
 			data.gunnerySkill = (*iter)->getPilot()->getGunnery();
 			data.pilotingSkill = (*iter)->getPilot()->getPiloting();

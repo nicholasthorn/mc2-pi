@@ -394,7 +394,7 @@ void MechBayScreen::update()
 	long currentDropWeight = LogisticsData::instance->getCurrentDropWeight();
 	long maxDropWeight = LogisticsData::instance->getMaxDropWeight();
 
-	sprintf( str, tmpStr, currentDropWeight, maxDropWeight );
+	snprintf(str,sizeof(str), tmpStr, currentDropWeight, maxDropWeight );
 	textObjects[6].setText( str );
 
 
@@ -797,7 +797,7 @@ void MechBayScreen::setMech( LogisticsMech* pMech,  bool bCommandFromLB )
 
 		// weight
 		cLoadString( IDS_MB_MECH_WEIGHT, tmpStr, 63 );
-		sprintf( str, tmpStr, pCurMech->getMaxWeight(), (const char*)pCurMech->getMechClass() );
+		snprintf(str,sizeof(str), tmpStr, pCurMech->getMaxWeight(), (const char*)pCurMech->getMechClass() );
 		textObjects[7].setText( str );
 
 		// firing range

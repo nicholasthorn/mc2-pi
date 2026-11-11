@@ -13,6 +13,7 @@ SimpleCamera.cpp	: Implementation of the SimpleCamera component.
 
 // sebi: !NB remove when assert(0 && "test") is removed below
 #include <cassert>
+#include<utils/str_bounded.h>
 
 extern bool useShadows;
 extern bool drawOldWay;
@@ -337,10 +338,10 @@ void SimpleCamera::setMech(const char* fileName, long baseColor, long highlight1
 	}
 
 	char NoPathFileName[256];
-	_splitpath( fileName, NULL, NULL, NoPathFileName, NULL );
+	splitPathName( fileName, NoPathFileName, sizeof(NoPathFileName) );
 
 	char testName[256];
-	strcpy( testName, NoPathFileName );
+	copyBounded( testName, NoPathFileName );
 	strcat( testName, "enc" );
 
 	FullPathFileName path;
@@ -407,11 +408,11 @@ void SimpleCamera::setVehicle(const char* fileName,long base, long highlight, lo
 	}
 
 	char NoPathFileName[256];
-	_splitpath( fileName, NULL, NULL, NoPathFileName, NULL );
+	splitPathName( fileName, NoPathFileName, sizeof(NoPathFileName) );
 
 
 	char testName[256];
-	strcpy( testName, fileName );
+	copyBounded( testName, fileName );
 	strcat( testName, "enc" );
 
 	FullPathFileName path;
@@ -480,7 +481,7 @@ void SimpleCamera::setComponent(const char* fileName )
 	}
 
 	char testName[256];
-	strcpy( testName, fileName );
+	copyBounded( testName, fileName );
 	strcat( testName, "enc" );
 
 	FullPathFileName path;

@@ -118,7 +118,7 @@ void MPStats::begin()
 	char text[256];
 
 	cLoadString( IDS_MP_LM_MAP_LIST_MAP_NAME, text, 255 );
-	sprintf( text2, text, MPlayer->missionSettings.name );
+	snprintf(text2,sizeof(text2), text, MPlayer->missionSettings.name );
 	textObjects[1].setText( text2 );
 
 	unsigned long type = MPlayer->missionSettings.missionType ;
@@ -126,13 +126,13 @@ void MPStats::begin()
 	char mType[128];
 	cLoadString( IDS_MP_LM_TYPE0 + type, mType, 127 );
 	
-	sprintf( text2, text, mType );
+	snprintf(text2,sizeof(text2), text, mType );
 	textObjects[6].setText( text2 );
 
 	unsigned long numPlayers = MPlayer->missionSettings.maxPlayers;
 
 	cLoadString( IDS_MP_LM_MAP_LIST_MAX_PLAYERS, text, 255 );
-	sprintf( text2, text, numPlayers );
+	snprintf(text2,sizeof(text2), text, numPlayers );
 	textObjects[7].setText( text2 );
 
 
@@ -285,7 +285,7 @@ void MPStats::setHostLeftDlg( const char* hostName )
 	char formatStr[256];
 
 	cLoadString( IDS_PLAYER_LEFT, leaveStr, 255 );
-	sprintf( formatStr, leaveStr, hostName );
+	snprintf(formatStr,sizeof(formatStr), leaveStr, hostName );
 
 	LogisticsOneButtonDialog::instance()->setText( IDS_PLAYER_LEFT,
 					IDS_DIALOG_OK, IDS_DIALOG_OK );

@@ -401,7 +401,7 @@ int	MainMenu::handleMessage( unsigned long what, unsigned long who )
 				char pID[64];
 				sprintf( pID, "INVALID ID" );
 				gos_LoadDataFromRegistry("PID", pID, &pIDLen);
-				sprintf( lawyerBabble, realText, pID );
+				snprintf(lawyerBabble,sizeof(lawyerBabble), realText, pID );
 				LogisticsLegalDialog::instance()->setText( lawyerBabble );
 				LogisticsLegalDialog::instance()->begin();
 				LogisticsLegalDialog::instance()->setFont( IDS_LAWYER_BABBLE_FONT );				
@@ -863,7 +863,7 @@ void MainMenu::setHostLeftDlg( const char* playerName )
 	char formatStr[256];
 
 	cLoadString( IDS_PLAYER_LEFT, leaveStr, 255 );
-	sprintf( formatStr, leaveStr, playerName );
+	snprintf(formatStr,sizeof(formatStr), leaveStr, playerName );
 
 	LogisticsOneButtonDialog::instance()->setText( IDS_PLAYER_LEFT,
 					IDS_DIALOG_OK, IDS_DIALOG_OK );

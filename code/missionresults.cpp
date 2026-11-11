@@ -122,7 +122,7 @@ void MissionResults::end()
 		char name[256];
 		cLoadString( IDS_AUTOSAVE_NAME, name, 255 );
 		char fullName[256];
-		sprintf( fullName, name, pMissionName );
+		snprintf(fullName,sizeof(fullName), name, pMissionName );
 		FullPathFileName path;
 		path.init( savePath, fullName, ".fit" );
 		if ( NO_ERR == file.create( path ) )

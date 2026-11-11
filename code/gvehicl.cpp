@@ -112,6 +112,7 @@
 #endif
 
 #include "../resource.h"
+#include<utils/str_bounded.h>
 
 extern unsigned long		NextIdNumber;
 
@@ -1037,7 +1038,7 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 
 		cLoadString( IDS_MFDVEHICLE_PRINTSTRING, buffer, 256 );
 
-		sprintf( longName, buffer, name, tonnage );
+		snprintf(longName,sizeof(longName), buffer, name, tonnage );
 
 	}
 
@@ -4344,14 +4345,14 @@ long GroundVehicle::handleWeaponHit (WeaponShotInfoPtr shotInfo, bool addMultipl
 		char attackerStr[30];
 		if (attacker) {
 			if (attacker->isMover())
-				strcpy(attackerStr, attacker->getName());
+				copyBounded(attackerStr, attacker->getName());
 			else
 				sprintf(attackerStr, "ID:%ld", attacker->getPartId());
 			}
 		else
 			strcpy(attackerStr, "attacker?");
 		char err[128];
-		sprintf(err, "GVehicle.handleWeaponHit: [%s]%ld for %.2f at %ld",
+		snprintf(err,sizeof(err), "GVehicle.handleWeaponHit: [%s]%ld for %.2f at %ld",
 			attackerStr,
 			shotInfo->masterId,
 			shotInfo->damage,

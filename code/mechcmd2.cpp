@@ -83,6 +83,7 @@ extern CPrefs prefs;
 #include<gosfx/gosfxheaders.hpp>
 
 #include "platform_str.h"
+#include<utils/str_bounded.h>
 
 //------------------------------------------------------------------------------------------------------------
 // MechCmdr2 Global Instances of Things
@@ -1589,7 +1590,7 @@ void __stdcall InitializeGameEngine()
 		}
 		char path [256];
 		strcpy( path, "assets" PATH_SEPARATOR "graphics" PATH_SEPARATOR );
-		strcat( path, temp );	
+		appendBounded( path, temp );	
 	
 		gosFontHandle = gos_LoadFont(path);
 		FontHandle = gosFontHandle;
@@ -2604,7 +2605,7 @@ void ParseCommandLine(const char *command_line)
 				{
 					// They typed in a quote, keep reading argvs
 					// until you find the close quote
-					strcpy(missionName,&(argv[i][1]));
+					copyBounded(missionName,&(argv[i][1]));
 					bool scanName = true;
 					while (scanName && (i < n_args))
 					{
@@ -2612,7 +2613,7 @@ void ParseCommandLine(const char *command_line)
 						if (i < n_args)
 						{
 							strcat(missionName," ");
-							strcat(missionName,argv[i]);
+							appendBounded(missionName,argv[i]);
 
 							if (strstr(argv[i],"\"") != NULL)
 							{
@@ -2630,7 +2631,7 @@ void ParseCommandLine(const char *command_line)
 					}
 				}
 				else
-					strcpy(missionName,argv[i]);
+					copyBounded(missionName,argv[i]);
 			}
 		}
 		else if (S_stricmp(argv[i],"-viewer") == 0)

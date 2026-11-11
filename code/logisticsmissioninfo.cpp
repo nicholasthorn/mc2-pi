@@ -208,7 +208,7 @@ long LogisticsMissionInfo::init( FitIniFile& file )
 				if ( NO_ERR != missionFile.open( (char*)(const char*)path ) )
 				{
 					char errorStr[256];
-					sprintf( errorStr, "couldn't open file %s", fileName );
+					snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", fileName );
 					Assert( 0, 0, errorStr );
 					continue;
 				}
@@ -611,7 +611,7 @@ long LogisticsMissionInfo::setNextMission( const char* missionName )
 			if ( NO_ERR != missionFile.open( (char*)(const char*)path ) )
 			{
 				char errorStr[256];
-				sprintf( errorStr, "couldn't open file %s", missionName );
+				snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", missionName );
 				Assert( 0, 0, errorStr );
 				return -1;
 			}
@@ -740,7 +740,7 @@ void LogisticsMissionInfo::setSingleMission( const char* missionFileName )
 	if ( NO_ERR != missionFile.open( (char*)(const char*)path ) )
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't open file %s", missionName );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", missionName );
 		Assert( 0, 0, errorStr );
 		return;
 	}

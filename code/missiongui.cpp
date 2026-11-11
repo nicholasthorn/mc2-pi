@@ -3190,7 +3190,7 @@ void MissionInterfaceManager::printDebugInfo()
 		land->worldToCell(wPos, row, col);
 		char debugString[256];
 		if (target)
-			sprintf(debugString, "POS = %s(%c) %ld,%ld [%d, %d] (%.4f, %.4f, %.4f) OBJ = %s\n", terrainStr[GameMap->getTerrain(row, col)], GameMap->getPassable(row, col) ? 'T' : 'F', GlobalMoveMap[0]->calcArea(row, col), GlobalMoveMap[1]->calcArea(row, col), row, col, wPos.x, wPos.y, wPos.z, target->getName());
+			snprintf(debugString,sizeof(debugString), "POS = %s(%c) %ld,%ld [%d, %d] (%.4f, %.4f, %.4f) OBJ = %s\n", terrainStr[GameMap->getTerrain(row, col)], GameMap->getPassable(row, col) ? 'T' : 'F', GlobalMoveMap[0]->calcArea(row, col), GlobalMoveMap[1]->calcArea(row, col), row, col, wPos.x, wPos.y, wPos.z, target->getName());
 		else
 			sprintf(debugString, "POS = %s(%c) %ld,%ld [%d, %d] (%.4f, %.4f, %.4f)\n", terrainStr[GameMap->getTerrain(row, col)], GameMap->getPassable(row, col) ? 'T' : 'F', GlobalMoveMap[0]->calcArea(row, col), GlobalMoveMap[1]->calcArea(row, col), row, col, wPos.x, wPos.y, wPos.z);
 		DEBUGWINS_print(debugString);
@@ -4837,7 +4837,7 @@ int MissionInterfaceManager::quickDebugInfo() {
 		land->worldToCell(wPos, row, col);
 		char debugString[256];
 		if (target)
-			sprintf(debugString, "INFO = %s(%c%c) %ld(W%d) [%d, %d] (%.4f, %.4f, %.4f) #Pth=%ld(%ld) OBJ = %s\n",
+			snprintf(debugString,sizeof(debugString), "INFO = %s(%c%c) %ld(W%d) [%d, %d] (%.4f, %.4f, %.4f) #Pth=%ld(%ld) OBJ = %s\n",
 				terrainStr[GameMap->getTerrain(row, col)],
 				GameMap->getPassable(row, col) ? 'T' : 'F',
 				GameMap->getForest(row, col) ? 'T' : 'F',

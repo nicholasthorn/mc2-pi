@@ -119,6 +119,7 @@
 #ifndef LOGISTICSPILOT_H
 #include"logisticspilot.h"
 #endif
+#include<utils/str_bounded.h>
 
 //--------
 // DEFINES
@@ -2423,7 +2424,7 @@ void Mover::updateDebugWindow (GameDebugWindow* debugWindow) {
 	};
 
 	if (debugPage == 0) {
-		sprintf(s, "%s (%s %02ld)", getName(), getPilot()->getName(), getPilot()->getIndex());
+		snprintf(s,sizeof(s), "%s (%s %02ld)", getName(), getPilot()->getName(), getPilot()->getIndex());
 		debugWindow->print(s);
 		long gestID = -1;
 		if (getObjectClass() == BATTLEMECH)
@@ -2479,7 +2480,7 @@ void Mover::updateDebugWindow (GameDebugWindow* debugWindow) {
 			ModuleInfo brainInfo;
 			getPilot()->getBrain()->getInfo(&brainInfo);
 			debugWindow->print(" ");
-			sprintf(s, "brain: %s", brainInfo.name);
+			snprintf(s,sizeof(s), "brain: %s", brainInfo.name);
 			debugWindow->print(s);
 			//-----------------------------------------------------------------
 			// Skip the "data\missions\warriors" text when printing filename...
@@ -2519,7 +2520,7 @@ void Mover::updateDebugWindow (GameDebugWindow* debugWindow) {
 		}
 		}
 	else if (debugPage == 1) {
-		sprintf(s, "%s (%s %02ld)", getName(), getPilot()->getName(), getPilot()->getIndex());
+		snprintf(s,sizeof(s), "%s (%s %02ld)", getName(), getPilot()->getName(), getPilot()->getIndex());
 		debugWindow->print(s);
 		sprintf(s, "team: %ld, handle: %d, partID: %ld, rank: %d", getTeamId(), getHandle(), getPartId(), getPilot()->getRank());
 		debugWindow->print(s);
@@ -2547,7 +2548,7 @@ void Mover::updateDebugWindow (GameDebugWindow* debugWindow) {
 					sprintf(ss, " [%d]", moveOrders->globalPath[i].thruArea);
 				else
 					sprintf(ss, " %d", moveOrders->globalPath[i].thruArea);
-				strcat(s, ss);
+				appendBounded(s, ss);
 			}
 			if (lastIndex < moveOrders->numGlobalSteps)
 				strcat(s, " +");
@@ -2616,7 +2617,7 @@ void Mover::updateDebugWindow (GameDebugWindow* debugWindow) {
 			"DAM",
 			"DEST"
 		};
-		sprintf(s, "%s (%s %02ld)", getName(), getPilot()->getName(), getPilot()->getIndex());
+		snprintf(s,sizeof(s), "%s (%s %02ld)", getName(), getPilot()->getName(), getPilot()->getIndex());
 		debugWindow->print(s);
 		sprintf(s, "team: %ld, partID: %ld, threat: %ld", getTeamId(), getPartId(), getThreatRating());
 		debugWindow->print(s);

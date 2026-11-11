@@ -20,6 +20,7 @@ MechLabScreen.cpp			: Implementation of the MechLabScreen component.
 #include"multplyr.h"
 extern bool useUnlimitedAmmo;
 #include"prefs.h"
+#include<utils/str_bounded.h>
 
 MechLabScreen* MechLabScreen::s_instance = 0;
 LogisticsVariantDialog* MechLabScreen::saveDlg = 0;
@@ -198,7 +199,7 @@ int MechLabScreen::init( FitIniFile& file )
 	if ( NO_ERR != comboFile.open( path ) )
 	{
 		char errorStr[255];
-		sprintf( errorStr, "couldn't open file %s", (const char*)path );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", (const char*)path );
 		Assert( 0, 0, errorStr );
 	}
 
@@ -342,7 +343,7 @@ void MechLabScreen::begin()
 			strcat( path, "MCL_MC_" );
 			char mechName[64];
 			EString fileName = pVariant->getFileName( );
-			_splitpath( fileName, NULL, NULL, mechName, NULL );
+			splitPathName( fileName, mechName, sizeof(mechName) );
 			strcat( path, mechName );
 			strcat( path, "_B.tga" );
 			CharLower( path );

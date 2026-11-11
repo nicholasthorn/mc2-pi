@@ -633,7 +633,7 @@ void MPLoadMap::getMapNameFromFile( const char* pFileName, char* missionName, lo
 	if ( NO_ERR != file.open( (const char*)path ) )
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't open file %s", (const char*)path );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", (const char*)path );
 		Assert( 0, 0, errorStr );
 	}
 

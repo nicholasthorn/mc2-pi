@@ -56,6 +56,7 @@
 #endif
 
 #include"objectappearance.h"
+#include<utils/str_bounded.h>
 
 extern unsigned long NextIdNumber;
 extern float worldUnitsPerMeter;
@@ -369,13 +370,13 @@ void TerrainObject::updateDebugWindow (GameDebugWindow* debugWindow) {
 		for (long i = 0; i < numSubAreas0; i++) {
 			char tempStr[15];
 			sprintf(tempStr, " %d", subAreas0[i]);
-			strcat(s, tempStr);
+			appendBounded(s, tempStr);
 		}
-		strcat(s, " *");
+		appendBounded(s, " *");
 		for (int i = 0; i < numSubAreas1; i++) {
 			char tempStr[15];
-			sprintf(tempStr, " %d", subAreas1[i]);
-			strcat(s, tempStr);
+			snprintf(tempStr,sizeof(tempStr), " %d", subAreas1[i]);
+			appendBounded(s, tempStr);
 		}
 		debugWindow->print(s);
 	}
@@ -1242,11 +1243,17 @@ void TerrainObject::CopyTo (TerrainObjectData *data)
 
 	data->listID = listID;
 
+	// cellsCovered holds 81 shorts, so 40 row/col pairs: the check counted
+	// shorts against pairs, and a footprint from map data can be 64 cells.
+	const long maxCellsCovered = (long)(sizeof(data->cellsCovered) / (2 * sizeof(short)));
 	data->numCellsCovered = numCellsCovered;
-	if (numCellsCovered >= 162)
-		STOP(("Object %d covers too many cells in Save/Load!!",getObjectType()->getObjTypeNum()));
+	if (numCellsCovered > maxCellsCovered)
+	{
+		PAUSE(("Object %d covers too many cells in Save/Load!!",getObjectType()->getObjTypeNum()));
+		data->numCellsCovered = maxCellsCovered;
+	}
 
-	memcpy(data->cellsCovered,cellsCovered, sizeof(short) * numCellsCovered * 2);
+	memcpy(data->cellsCovered,cellsCovered, sizeof(short) * data->numCellsCovered * 2);
 
 	GameObject::CopyTo(data);
 }

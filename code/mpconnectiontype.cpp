@@ -20,6 +20,7 @@ MPConnectionType.cpp			: Implementation of the MPConnectionType component.
 #ifndef GAMESOUND_H
 #include"gamesound.h"
 #endif
+#include<utils/str_bounded.h>
 
 #define CHECK_BUTTON 200
 
@@ -797,7 +798,7 @@ void aTcpipPanel::update()
 		{
 			bValid = 1;
 			char tmp[256];
-			strcpy( tmp, str );
+			copyBounded( tmp, str );
 			for ( int i = 0; i < 4; i++ )
 			{
 				long num = getNum( tmp, dotIndex[i]+1, dotIndex[i+1] );
@@ -863,7 +864,7 @@ int	aTcpipPanel::handleMessage( unsigned long message, unsigned long who)
 		cLoadString( IDS_MP_CON_MODEM_CONNECTING, text, 255 );
 		EString str;
 		comboBox.EditBox().getEntry( str );
-		sprintf( Display, text, (const char*)str );
+		snprintf(Display,sizeof(Display), text, (const char*)str );
 		LogisticsOneButtonDialog::instance()->setText( Display );
 		LogisticsOneButtonDialog::instance()->begin();
 

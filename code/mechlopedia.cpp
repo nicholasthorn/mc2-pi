@@ -534,7 +534,7 @@ void Mechlopedia::MechScreen::setVehicle( LogisticsVehicle* pVehicle )
 	pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 	// add weight stats
 	cLoadString( IDS_EN_WEIGHT, text, 255 );
-	sprintf( formatText, text, pVehicle->getMaxWeight() );	
+	snprintf(formatText,sizeof(formatText), text, pVehicle->getMaxWeight() );	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -544,7 +544,7 @@ void Mechlopedia::MechScreen::setVehicle( LogisticsVehicle* pVehicle )
 	pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 
 	cLoadString( IDS_EN_CLASS, text, 255 );
-	sprintf( formatText, text, (const char*)pVehicle->getMechClass() );	
+	snprintf(formatText,sizeof(formatText), text, (const char*)pVehicle->getMechClass() );	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -555,7 +555,7 @@ void Mechlopedia::MechScreen::setVehicle( LogisticsVehicle* pVehicle )
 
 	cLoadString( IDS_EN_ARMOR, text, 255 );
 	cLoadString( pVehicle->getArmorClass(), tmp, 255 );
- 	sprintf( formatText, text, tmp, pVehicle->getArmor() );	
+ 	snprintf(formatText,sizeof(formatText), text, tmp, pVehicle->getArmor() );	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -566,7 +566,7 @@ void Mechlopedia::MechScreen::setVehicle( LogisticsVehicle* pVehicle )
 	pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 
 	cLoadString( IDS_EN_SPEED, text, 255 );
-	sprintf( formatText, text, (long)pVehicle->getDisplaySpeed());	
+	snprintf(formatText,sizeof(formatText), text, (long)pVehicle->getDisplaySpeed());	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -615,7 +615,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 		long houseID = pChassis->getHouseID();
 		cLoadString( IDS_HOUSE0 + houseID, tmp, 255 );
 		cLoadString( IDS_EN_HOUSE, text, 255 );
-		sprintf( formatText, text, tmp );
+		snprintf(formatText,sizeof(formatText), text, tmp );
 
 		pItem->setText( formatText );
 		pItem->setColor( color );
@@ -625,7 +625,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 	pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 	// add weight stats
 	cLoadString( IDS_EN_WEIGHT, text, 255 );
-	sprintf( formatText, text, pChassis->getMaxWeight() );	
+	snprintf(formatText,sizeof(formatText), text, pChassis->getMaxWeight() );	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -635,7 +635,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 	pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 
 	cLoadString( IDS_EN_CLASS, text, 255 );
-	sprintf( formatText, text, (const char*)pChassis->getMechClass() );	
+	snprintf(formatText,sizeof(formatText), text, (const char*)pChassis->getMechClass() );	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -646,7 +646,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 
 	cLoadString( IDS_EN_ARMOR, text, 255 );
 	cLoadString( pChassis->getArmorClass(), tmp, 255 );
- 	sprintf( formatText, text, tmp, pChassis->getArmor() );	
+ 	snprintf(formatText,sizeof(formatText), text, tmp, pChassis->getArmor() );	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -657,7 +657,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 	pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 
 	cLoadString( IDS_EN_SPEED, text, 255 );
-	sprintf( formatText, text, (long)pChassis->getDisplaySpeed());	
+	snprintf(formatText,sizeof(formatText), text, (long)pChassis->getDisplaySpeed());	
 	
 	pItem->setText( formatText );
 	pItem->setColor( color );
@@ -669,7 +669,7 @@ void Mechlopedia::MechScreen::setMech( LogisticsVariant* pChassis, bool bShowJum
 		pItem = new aTextListItem( IDS_EN_LISTBOX_FONT );
 
 		cLoadString( IDS_EN_JUMP, text, 255 );
-		sprintf( formatText, text, (long)pChassis->getJumpRange() * 25 );	
+		snprintf(formatText,sizeof(formatText), text, (long)pChassis->getJumpRange() * 25 );	
 		
 		pItem->setText( formatText );
 		pItem->setColor( color );
@@ -820,7 +820,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 		
 		cLoadString( IDS_EN_WEAPON_RANGE, buffer, 255 );
 		cLoadString( IDS_HOTKEY1 + pComponent->getRangeType(), tmp, 255 );
-		sprintf( final, buffer, tmp );
+		snprintf(final,sizeof(final), buffer, tmp );
 		pEntry->setText( final );
 		pEntry->setColor( textObjects[0].getColor() );
 		statsListBox.AddItem( pEntry );
@@ -829,7 +829,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 		pEntry = new aTextListItem( IDS_EN_WEAPON_FONT );
 		
 		cLoadString( IDS_EN_WEAPON_DAMAGE, buffer, 255 );
-		sprintf( final, buffer, (long)pComponent->getDamage() );
+		snprintf(final,sizeof(final), buffer, (long)pComponent->getDamage() );
 		pEntry->setText( final );
 		pEntry->setColor( textObjects[0].getColor() );
 		statsListBox.AddItem( pEntry );
@@ -840,7 +840,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 		pEntry = new aTextListItem( IDS_EN_WEAPON_FONT );
 		
 		cLoadString( IDS_EN_WEAPON_ARMOR, buffer, 255 );
-		sprintf( final, buffer, 32 );
+		snprintf(final,sizeof(final), buffer, 32 );
 		pEntry->setText( final );
 		pEntry->setColor( textObjects[0].getColor() );
 //		pEntry->setHelpID( IDS_EN_WEAPON_ARMOR_HELP );
@@ -856,7 +856,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 		pEntry = new aTextListItem( IDS_EN_WEAPON_FONT );
 		
 		cLoadString( IDS_EN_WEAPON_RATEOFFIRE, buffer, 255 );
-		sprintf( final, buffer, (10.f/pComponent->getRecycleTime()) );
+		snprintf(final,sizeof(final), buffer, (10.f/pComponent->getRecycleTime()) );
 		pEntry->setText( final );
 		pEntry->setColor( textObjects[0].getColor() );
 		statsListBox.AddItem( pEntry );
@@ -867,7 +867,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 	pEntry = new aTextListItem( IDS_EN_WEAPON_FONT );
 	
 	cLoadString( IDS_EN_WEAPON_HEAT, buffer, 255 );
-	sprintf( final, buffer, (long)pComponent->getHeat() );
+	snprintf(final,sizeof(final), buffer, (long)pComponent->getHeat() );
 	pEntry->setText( final );
 	pEntry->setColor( textObjects[0].getColor() );
 	statsListBox.AddItem( pEntry );
@@ -878,7 +878,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 		pEntry = new aTextListItem( IDS_EN_WEAPON_FONT );
 
 		cLoadString( IDS_EN_WEAPON_AMMO, buffer, 255 );
-		sprintf( final, buffer, (long)pComponent->getAmmo() );
+		snprintf(final,sizeof(final), buffer, (long)pComponent->getAmmo() );
 		pEntry->setText( final );
 		pEntry->setColor( textObjects[0].getColor() );
 		statsListBox.AddItem( pEntry );
@@ -888,7 +888,7 @@ void Mechlopedia::WeaponScreen::setWeapon ( LogisticsComponent* pComponent )
 	pEntry = new aTextListItem( IDS_EN_WEAPON_FONT );
 
 	cLoadString( IDS_EN_WEAPON_COST, buffer, 255 );
-	sprintf( final, buffer, (long)pComponent->getCost() );
+	snprintf(final,sizeof(final), buffer, (long)pComponent->getCost() );
 	pEntry->setText( final );
 	pEntry->setColor( textObjects[0].getColor() );
 	statsListBox.AddItem( pEntry );
@@ -1199,7 +1199,7 @@ void Mechlopedia::BuildingScreen::select( aTextListItem* pEntry )
 		cLoadString( IDS_EN_BUILDING_WEIGHT, name, 255 );
 		char formatted[256];
 
-		sprintf( formatted, name, pBldg->weight );
+		snprintf(formatted,sizeof(formatted), name, pBldg->weight );
 		textObjects[1].setText( formatted );
 
 		descriptionListBox.removeAllItems( true );

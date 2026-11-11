@@ -399,18 +399,18 @@ DeadPilotListItem::DeadPilotListItem( LogisticsPilot* pPilot )
 
 	int missions = pPilot->getNumberMissions();
 	cLoadString( IDS_PILOT_MISSIONS, tmpText, 255 );
-	sprintf( realText, tmpText, missions );	
+	snprintf(realText,sizeof(realText), tmpText, missions );	
 	missionText.setText( realText);
 
 
 	int numberOfKills = pPilot->getInfantryKills() + pPilot->getMechKills() + pPilot->getVehicleKills();
 	cLoadString( IDS_PILOT_KILLS, tmpText, 255 );
-	sprintf( realText, tmpText, numberOfKills );	
+	snprintf(realText,sizeof(realText), tmpText, numberOfKills );	
 	killsText.setText( realText);
 
 	const char* name = pPilot->getName();
 	cLoadString( IDS_PILOT_NAME, tmpText, 255 );
-	sprintf( realText, tmpText, name );	
+	snprintf(realText,sizeof(realText), tmpText, name );	
 	nameText.setText( realText);
 
 
@@ -423,7 +423,7 @@ DeadPilotListItem::DeadPilotListItem( LogisticsPilot* pPilot )
 		cLoadString( IDS_ACE, rankStr, 31 );
 
 	cLoadString( IDS_PILOT_RANK, tmpText, 255 );
-	sprintf( realText, tmpText, rankStr );	
+	snprintf(realText,sizeof(realText), tmpText, rankStr );	
 	rankText.setText( realText);
 
 	
@@ -1171,7 +1171,7 @@ ActivePilotListItem::ActivePilotListItem( LogisticsPilot* pPilot )
 		cLoadString( IDS_ACE, tmpRank, 63 );
 
 	CharUpper( tmpRank );
-	sprintf( finalText, text, tmpRank );
+	snprintf(finalText,sizeof(finalText), text, tmpRank );
 	promotionText.setText( finalText );
 
 	long bottom = promotionText.top() + promotionText.font.height() + 34;
@@ -1188,7 +1188,7 @@ ActivePilotListItem::ActivePilotListItem( LogisticsPilot* pPilot )
 
 	int missions = pPilot->getNumberMissions();
 	cLoadString( IDS_PILOT_MISSIONS, tmpText, 255 );
-	sprintf( realText, tmpText, missions );	
+	snprintf(realText,sizeof(realText), tmpText, missions );	
 	missionText.setText( realText);
 
 
@@ -1197,7 +1197,7 @@ ActivePilotListItem::ActivePilotListItem( LogisticsPilot* pPilot )
 
 	const char* name = pPilot->getName();
 	cLoadString( IDS_PILOT_NAME, tmpText, 255 );
-	sprintf( realText, tmpText, name );	
+	snprintf(realText,sizeof(realText), tmpText, name );	
 	nameText.setText( realText);
 
 
@@ -1427,13 +1427,13 @@ void PilotPromotionArea::setPilot( LogisticsPilot* pPilot, PilotIcon* pIcon )
 
 	int missions = pPilot->getNumberMissions();
 	cLoadString( IDS_PILOT_MISSIONS, tmpText, 255 );
-	sprintf( realText, tmpText, missions );	
+	snprintf(realText,sizeof(realText), tmpText, missions );	
 	areaLeft.textObjects[2].setText( realText );
 
 
 	const char* name = pPilot->getName();
 	cLoadString( IDS_PILOT_NAME, tmpText, 255 );
-	sprintf( realText, tmpText, name );	
+	snprintf(realText,sizeof(realText), tmpText, name );	
 	areaLeft.textObjects[1].setText( realText );
 
 

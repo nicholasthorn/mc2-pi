@@ -738,7 +738,7 @@ void InfoWindow::drawScrollingStuff()
 						char tmpNumber[64];
 						char tmpNumber2[64];
 						cLoadString( IDS_MISSION_SHOTSLEFT, tmpNumber, 63 );
-						sprintf( tmpNumber2, tmpNumber, ammo[i] );
+						snprintf(tmpNumber2,sizeof(tmpNumber2), tmpNumber, ammo[i] );
 						componentFont.render( tmpNumber2, COMPONENTLEFT, curY, SCROLLLEFT - COMPONENTLEFT, height,  textColors[j], 0, 0 );	
 				
 					}

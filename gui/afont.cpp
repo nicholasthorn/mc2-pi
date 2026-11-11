@@ -5,6 +5,7 @@
 #include"afont.h"
 #include"mclib.h"
 #include"platform_mbstring.h"
+#include<utils/str_bounded.h>
 
 aFont::aFont()
 {
@@ -295,7 +296,7 @@ HGOSFONT3D aFont::loadFont( long resourceID, long& size )
 
 	char path[256];
 	strcpy( path, "assets" PATH_SEPARATOR "graphics" PATH_SEPARATOR );
-	strcat( path, buffer );
+	appendBounded( path, buffer );
 	S_strlwr( path );
 	HGOSFONT3D retFont = gos_LoadFont( path );
 
