@@ -37,6 +37,7 @@
 #ifndef ABLDBUG_H
 #include"abldbug.h"
 #endif
+#include<utils/str_bounded.h>
 
 //***************************************************************************
 
@@ -365,8 +366,8 @@ TypePtr execDeclaredRoutineCall (SymTableNodePtr routineIdPtr, bool skipOrder) {
 			for (long i = 0; i < CallStackLevel; i++)
 				strcat(s, " ");
 			char s1[512];
-			sprintf(s1, "%s (%ld)\n", routineIdPtr->name, functionExecTime);
-			strcat(s, s1);
+			snprintf(s1,sizeof(s1), "%s (%ld)\n", routineIdPtr->name, functionExecTime);
+			appendBounded(s, s1);
 			ABL_AddToProfileLog(s);
 		}
 		}

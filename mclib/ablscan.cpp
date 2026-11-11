@@ -33,6 +33,7 @@
 #ifndef ABLENV_H
 #include"ablenv.h"
 #endif
+#include<utils/str_bounded.h>
 
 //***************************************************************************
 #pragma warning(disable:4244)
@@ -686,9 +687,9 @@ void languageDirective (void) {
 			if (curChar == -1)
 				strcpy(fullPath, fileName);
 			else {
-				strcpy(fullPath, SourceFiles[0]);
+				copyBounded(fullPath, SourceFiles[0]);
 				fullPath[curChar + 1] = '\0';
-				strcat(fullPath, fileName);
+				appendBounded(fullPath, fileName);
 			}
 			if ((openErr = openSourceFile(fullPath)) != ABL_NO_ERR) {
 				syntaxError(ABL_ERR_SYNTAX_SOURCE_FILE_OPEN);
@@ -899,11 +900,21 @@ void getToken(void) {
 
 //***************************************************************************
 
+// Stores one character of the token being scanned. A word or string longer
+// than tokenString used to be written past it (and past curLiteral) before
+// downShiftWord noticed; a mod script's long line now stops here instead.
+static void putTokenChar (char c) {
+
+	if (tokenp >= tokenString + MAXLEN_TOKENSTRING - 1)
+		ABL_Fatal(-1, " ABL: word or string too long ");
+	*tokenp = c;
+	tokenp++;
+}
+
 void getWord (void) {
 
 	while ((calcCharCode(curChar) == CHR_LETTER) || (calcCharCode(curChar) == CHR_DIGIT) || (curChar == '_')) {
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 		getChar();
 	}
 
@@ -919,12 +930,10 @@ void getWord (void) {
 		//-------------------------------------------------------------------
 		// If we have an "endmodule" string, stop. Otherwise, keep reading...
 		if (strcmp(wordString, TokenStrings[endToken])) {
-			*tokenp = curChar;
-			tokenp++;
+			putTokenChar(curChar);
 			getChar();
 			while ((calcCharCode(curChar) == CHR_LETTER) || (calcCharCode(curChar) == CHR_DIGIT) || (curChar == '_')) {
-				*tokenp = curChar;
-				tokenp++;
+				putTokenChar(curChar);
 				getChar();
 			}
 			*tokenp = '\0';
@@ -952,8 +961,7 @@ void accumulateValue (float* valuePtr, SyntaxErrorType errCode) {
 	}
 
 	do {
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 		if (++digitCount <= MAX_DIGIT_COUNT)
 			value = 10 * value + (curChar - '0');
 		else
@@ -991,8 +999,7 @@ void getNumber (void) {
 	if (curChar == '.') {
 		getChar();
 		curLiteral.type = LIT_REAL;
-		*tokenp = '.';
-		tokenp++;
+		putTokenChar('.');
 
 		accumulateValue(&numberValue, ABL_ERR_SYNTAX_INVALID_FRACTION);
 		if (curToken == TKN_ERROR)
@@ -1002,14 +1009,13 @@ void getNumber (void) {
 
 	if ((curChar == 'E') || (curChar == 'e')) {
 		curLiteral.type = LIT_REAL;
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 
 		//-------------------
 		// Any exponent sign?
 		if ((curChar == '+') || (curChar == '-')) {
-			*tokenp = exponentSign = curChar;
-			tokenp++;
+			exponentSign = curChar;
+			putTokenChar(curChar);
 			getChar();
 		}
 
@@ -1075,8 +1081,7 @@ void getString (void) {
 	while (curChar != CHAR_EOF) {
 		if (curChar == '\"')
 			break;
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 		*stringPtr = curChar;
 		stringPtr++;
 		getChar();
@@ -1300,11 +1305,11 @@ long openSourceFile (const char* sourceFileName) {
 	if (sFile->open(sourceFileName) != ABL_NO_ERR)
 		return(-3);
 
-	strcpy(SourceFiles[NumSourceFiles], sourceFileName);
+	copyBounded(SourceFiles[NumSourceFiles], sourceFileName);
 	FileNumber = NumSourceFiles++;
 
 	sourceFile = sFile;
-	strcpy(openFiles[NumOpenFiles].fileName, sourceFileName);
+	copyBounded(openFiles[NumOpenFiles].fileName, sourceFileName);
 	openFiles[NumOpenFiles].filePtr = sFile;
 	openFiles[NumOpenFiles].fileNumber = (unsigned char)FileNumber;
 	openFiles[NumOpenFiles].lineNumber = 0;

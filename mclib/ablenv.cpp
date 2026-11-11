@@ -36,6 +36,7 @@
 #ifndef ABLDBUG_H
 #include"abldbug.h"
 #endif
+#include<utils/str_bounded.h>
 
 //***************************************************************************
 int32_t ABLi_preProcess (const char* sourceFileName,
@@ -1218,6 +1219,15 @@ float ABLModule::getStaticReal (char* name) {
 
 //---------------------------------------------------------------------------
 
+// The mission .fit names the static and gives the count: copy only into an
+// array with room for it (for a scalar, its value would be used as the address).
+static bool staticArrayHolds (SymTableNodePtr symbol, int numValues, size_t valueSize) {
+
+	TypePtr typePtr = symbol->typePtr;
+	return((numValues >= 0) && typePtr && (typePtr->form == FRM_ARRAY) &&
+		((size_t)numValues * valueSize <= (size_t)typePtr->size));
+}
+
 int ABLModule::setStaticIntegerArray (char* name, int numValues, int* values) {
 
 	SymTableNodePtr symbol = findSymbol(name);
@@ -1231,6 +1241,9 @@ int ABLModule::setStaticIntegerArray (char* name, int numValues, int* values) {
 	// beware!
 
 	if (symbol->defn.info.data.varType != VAR_TYPE_STATIC)
+		return(3);
+
+	if (!staticArrayHolds(symbol, numValues, sizeof(values[0])))
 		return(3);
 
 	StackItemPtr dataPtr = staticData + symbol->defn.info.data.offset;
@@ -1276,6 +1289,9 @@ int ABLModule::setStaticRealArray (char* name, int numValues, float* values) {
 	// beware!
 
 	if (symbol->defn.info.data.varType != VAR_TYPE_STATIC)
+		return(3);
+
+	if (!staticArrayHolds(symbol, numValues, sizeof(values[0])))
 		return(3);
 
 	StackItemPtr dataPtr = staticData + symbol->defn.info.data.offset;
@@ -1338,8 +1354,9 @@ void buildRoutineList (SymTableNodePtr curSymbol, ModuleInfo* moduleInfo) {
 	if (curSymbol) {
 		buildRoutineList(curSymbol->left, moduleInfo);
 		if (curSymbol->defn.key == DFN_FUNCTION) {
-			if (moduleInfo->numRoutines < 1024) {
-				strcpy(moduleInfo->routineInfo[moduleInfo->numRoutines].name, curSymbol->name);
+			// routineInfo holds 128 entries, not 1024
+			if (moduleInfo->numRoutines < (long)(sizeof(moduleInfo->routineInfo) / sizeof(moduleInfo->routineInfo[0]))) {
+				copyBounded(moduleInfo->routineInfo[moduleInfo->numRoutines].name, curSymbol->name);
 				moduleInfo->routineInfo[moduleInfo->numRoutines].codeSegmentSize = curSymbol->defn.info.routine.codeSegmentSize;
 				moduleInfo->numRoutines++;
 			}
@@ -1353,7 +1370,7 @@ void buildRoutineList (SymTableNodePtr curSymbol, ModuleInfo* moduleInfo) {
 void ABLModule::getInfo (ModuleInfo* moduleInfo) {
 
 	strcpy(moduleInfo->name, name);
-	strcpy(moduleInfo->fileName, ModuleRegistry[handle].fileName);
+	copyBounded(moduleInfo->fileName, ModuleRegistry[handle].fileName);
 
 	moduleInfo->numRoutines = 0;
 	buildRoutineList(ModuleRegistry[handle].moduleIdPtr->defn.info.routine.localSymTable, moduleInfo);

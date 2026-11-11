@@ -30,7 +30,7 @@ void Assert (bool test, long errCode, const char* errMessage) {
 
 	if (!test) {
 		char msg[512];
-		sprintf(msg, " [ASSERT %ld] %s ", errCode, errMessage);
+		snprintf(msg,sizeof(msg), " [ASSERT %ld] %s ", errCode, errMessage);
 		STOP((msg));
 	}
 }

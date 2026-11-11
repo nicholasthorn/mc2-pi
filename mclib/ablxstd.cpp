@@ -700,14 +700,30 @@ void execStdFileClose (void) {
 
 //***************************************************************************
 
+// As ABLi_popCharPtr, plus the size of the script's char array (0 when the
+// argument is not one), so a path longer than the array is cut to fit.
+static char* popCharArray (size_t& size) {
+
+	getCodeToken();
+	TypePtr typePtr = execExpression();
+	char* charPtr = (char*)tos->address;
+	pop();
+	size = 0;
+	if (typePtr && (typePtr->form == FRM_ARRAY) && (typePtr->info.array.elementTypePtr == CharTypePtr) &&
+		(typePtr->info.array.elementCount > 0))
+		size = (size_t)typePtr->info.array.elementCount;
+	return(charPtr);
+}
+
 void execStdGetModule (void) {
 
 	//----------------------------------------------------------
 	// Return the handle of the current module being executed...
-	char* curBuffer = ABLi_popCharPtr();
-	char* fsmBuffer = ABLi_popCharPtr();
-	strcpy(curBuffer, CurModule->getFileName());
-	strcpy(fsmBuffer, CurFSM ? CurFSM->getFileName() : "none");
+	size_t curSize, fsmSize;
+	char* curBuffer = popCharArray(curSize);
+	char* fsmBuffer = popCharArray(fsmSize);
+	copyBounded(curBuffer, curSize, CurModule->getFileName());
+	copyBounded(fsmBuffer, fsmSize, CurFSM ? CurFSM->getFileName() : "none");
 	ABLi_pushInteger(CurModuleHandle);
 }
 
@@ -767,7 +783,7 @@ void execStdFatal (void) {
 		debugger->debugMode();
 		}
 	else {
-		sprintf(message, "ABL FATAL: [%d] %s", code, s);
+		snprintf(message,sizeof(message), "ABL FATAL: [%d] %s", code, s);
 		ABL_Fatal(0, s);
 	}
 }
@@ -814,7 +830,7 @@ void execStdAssert (void) {
 			debugger->debugMode();
 			}
 		else {
-			sprintf(message, "ABL ASSERT: [%d] %s", code, s);
+			snprintf(message,sizeof(message), "ABL ASSERT: [%d] %s", code, s);
 			ABL_Fatal(0, message);
 		}
 	}
@@ -896,7 +912,7 @@ void execStdSetState (void) {
 		SymTableNodePtr stateFunction = ModuleRegistry[CurFSM->getHandle()].stateHandles[stateHandle].state;
 		CurFSM->setPrevState(CurFSM->getState());
 		CurFSM->setState(stateFunction);
-		sprintf(SetStateDebugStr, "%s:%s, line %d", CurFSM->getFileName(), stateFunction->name, execLineNumber);
+		snprintf(SetStateDebugStr,sizeof(SetStateDebugStr), "%s:%s, line %d", CurFSM->getFileName(), stateFunction->name, execLineNumber);
 		NewStateSet = true;
 	}
 }

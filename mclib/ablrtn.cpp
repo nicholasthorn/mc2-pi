@@ -48,6 +48,7 @@
 #ifndef ABLDBUG_H
 #include"abldbug.h"
 #endif
+#include<utils/str_bounded.h>
 
 //***************************************************************************
 
@@ -1346,7 +1347,7 @@ void routine (void) {
 		// Add it to the state handle list...
 		if (NumStateHandles == MAX_STATE_HANDLES_PER_MODULE)
 			ABL_Fatal(0, "ABL: too many states in fsm [19 max]");
-		strcpy(StateHandleList[NumStateHandles].name, routineIdPtr->name);
+		copyBounded(StateHandleList[NumStateHandles].name, routineIdPtr->name);
 		StateHandleList[NumStateHandles].state = routineIdPtr;
 		NumStateHandles++;
 	}
@@ -1709,7 +1710,7 @@ void transState (SymTableNodePtr newState) {
 	if (CurFSM) {
 		CurFSM->setPrevState(CurFSM->getState());
 		CurFSM->setState(newState);
-		sprintf(SetStateDebugStr, "%s:%s, line %d", CurModule->getFileName(), newState->name, execLineNumber);
+		snprintf(SetStateDebugStr,sizeof(SetStateDebugStr), "%s:%s, line %d", CurModule->getFileName(), newState->name, execLineNumber);
 		NewStateSet = true;
 	}
 }
