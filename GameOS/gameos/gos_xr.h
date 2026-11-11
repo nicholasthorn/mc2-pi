@@ -51,6 +51,8 @@ void eyeImageSize(int eye, int& width, int& height);
 // -1 goes back to the window. False when not in VR (the caller then sets
 // the window's viewport itself).
 bool bindEye(int eye);
+// The colour bindEye clears to, behind the world (0 to 1).
+void setEyeClearColor(float red, float green, float blue);
 // At the end of a frame: shows the frame in the headset and returns true,
 // or returns false when the caller should swap the window instead.
 bool present(int width, int height);
@@ -91,6 +93,7 @@ inline void beginFrame() {}
 inline int eyeViews(gosVREyeView*) { return 0; }
 inline void eyeImageSize(int, int& width, int& height) { width = height = 0; }
 inline bool bindEye(int) { return false; }
+inline void setEyeClearColor(float, float, float) {}
 inline bool present(int, int) { return false; }
 inline void hudFrame(bool) {}
 inline bool hudDue() { return true; }

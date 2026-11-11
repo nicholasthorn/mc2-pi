@@ -49,6 +49,8 @@
 #include<gosfx/gosfxheaders.hpp>
 #include <utils/gl_utils.h>
 #include "render_heuristics.h"
+#include "vr_edge_fade.h"
+#include "terrain.h"
 
 //---------------------------------------------------------------------------
 // static globals
@@ -855,14 +857,14 @@ public:
 		gos_ApplyRenderMaterial(mat_);
 	}
 
-	void render(const TG_RenderShape& rs, const mat4& world, const mat4& wvp, float hud_element)
+	void render(const TG_RenderShape& rs, const mat4& world, const mat4& wvp, float hud_element, float vr_sky)
 	{
 		gos_SetRenderViewport(rs.viewport_[2], rs.viewport_[3], rs.viewport_[0], rs.viewport_[1]);
 
 		gos_SetRenderMaterialParameterMat4(world_, (const float*)world);
 		gos_SetRenderMaterialParameterMat4(wvp_, (const float*)wvp);
 
-		const float mesh_params[4] = { rs.alpha_, hud_element, 0.0f, 0.0f };
+		const float mesh_params[4] = { rs.alpha_, hud_element, vr_sky, 0.0f };
 		gos_SetRenderMaterialParameterFloat4(mesh_params_, mesh_params);
 
 		gos_SetRenderMaterialParameterFloat4(sun_color_, rs.lights_.lightColor[HW_LIGHT_SUN]);
@@ -986,6 +988,9 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 			// HUD element but solid)
 			const float hudElement = ((masterHardwareVertexNodes[i].flags & MC2_ISCOMPASS) && (masterHardwareVertexNodes[i].flags & MC2_DRAWALPHA)) ? 1.0f : 0.0f;
 
+			// VR: the sky is the solid HUD element; see the shader for why it fades
+			const float vrSky = (gos_IsVR() && (masterHardwareVertexNodes[i].flags & MC2_ISCOMPASS) && (masterHardwareVertexNodes[i].flags & MC2_DRAWSOLID)) ? 1.0f : 0.0f;
+
 			uint32_t totalShapes = masterHardwareVertexNodes[i].numShapes;
 			// in case less shapes were addded in Render() that it was "promised" in Update(), generally etter to investigate and remove all such cases
 			if (masterHardwareVertexNodes[i].currentShape != (masterHardwareVertexNodes[i].shapes + masterHardwareVertexNodes[i].numShapes))
@@ -1019,7 +1024,7 @@ void MC_TextureManager::renderHardwareNodes (DWORD mustHave, DWORD mustNotHave)
 					TG_RenderShape* rs = masterHardwareVertexNodes[i].shapes + sh;
 					if (rs->retained_)
 						TG_Shape::forThisEye(*rs);
-					shape_renderer.render(*rs, gos2my(rs->mw_), gos2my(rs->mvp_), hudElement);
+					shape_renderer.render(*rs, gos2my(rs->mw_), gos2my(rs->mvp_), hudElement, vrSky);
 				}
 
 			}
@@ -1121,6 +1126,20 @@ void MC_TextureManager::renderLists (void)
     sceneData_->fog_color[2] = fc.x;
     sceneData_->fog_color[3] = fc.w;
     sceneData_->baseVertexColor = uint32_to_vec4(BaseVertexColor).zyxw();
+    if (gos_IsVR() && land)
+    {
+        const vr_edge_fade::Range edgeRange = vr_edge_fade::rangeFor(Terrain::visibleVerticesPerSide, Terrain::worldUnitsPerVertex);
+        const Stuff::Vector3D edgeCentre = eye->getPosition();
+        // the shaders' world is the camera origin's: x is -x, z is y
+        sceneData_->vr_edge[0] = -edgeCentre.x;
+        sceneData_->vr_edge[1] = edgeCentre.y;
+        sceneData_->vr_edge[2] = edgeRange.start;
+        sceneData_->vr_edge[3] = edgeRange.invWidth;
+    }
+    else
+    {
+        sceneData_->vr_edge[0] = sceneData_->vr_edge[1] = sceneData_->vr_edge[2] = sceneData_->vr_edge[3] = 0.0f;
+    }
     gos_UpdateBuffer(sceneDataBuffer_, sceneData_, 0, sizeof(TG_HWSceneData));
     
     

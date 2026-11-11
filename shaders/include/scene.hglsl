@@ -11,6 +11,7 @@ struct SceneData_t {
    vec4 cameraPos;
    vec4 fogColor;
    vec4 baseVertexColor;
+   vec4 vrEdge; // VR, mclib/vr_edge_fade.h: centre x, z, start, 1 / width; 0 otherwise
 };
 
 layout (binding = SCENE_DATA_ATTACHMENT_SLOT, std140) uniform SceneData
@@ -27,7 +28,13 @@ float calc_fog_factor(in vec3 wpos, in vec3 cam_pos)
     float haze_factor = 
         clamp((eyeDistance - g_scene.minHazeDistance) * g_scene.distanceFactor, 0.0, 1.0);
 
-    float distFog = 1.0 - haze_factor;
+    // VR: fade out before the terrain window ends (mclib/vr_edge_fade.h)
+    // smoothstep from 0 to 1, not over start..end: w is 0 with no fade
+    float edge = 0.0;
+    if(g_scene.vrEdge.w > 0.0)  // the same for every pixel: no cost outside VR
+        edge = smoothstep(0.0, 1.0, (length(wpos.xz - g_scene.vrEdge.xy) - g_scene.vrEdge.z) * g_scene.vrEdge.w);
+
+    float distFog = 1.0 - max(haze_factor, edge);
 
     // height fog as the CPU path has it (TG_Shape, quad.cpp, the actors):
     // only below fogStart, 1 - r^2 there, full fog past fogFull (the CPU's
@@ -49,7 +56,8 @@ float calc_fog_factor(in vec3 wpos, in vec3 cam_pos)
 
 vec3 apply_fog(in vec3 color, in vec3 wpos, in vec3 cam_pos)
 {
-    float use_fog = dot(g_scene.fogColor.xyz, vec3(1.0));
+    // alpha: fog that is black on purpose (Camera::renderWorld, VR)
+    float use_fog = dot(g_scene.fogColor, vec4(1.0));
 
 	if(use_fog > 0.0)
     {

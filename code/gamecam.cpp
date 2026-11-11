@@ -602,6 +602,17 @@ long GameCamera::update (void)
 	if (theSky)
 	{
 		Stuff::Vector3D pos = getPosition();
+
+		// VR: the ring is centred on the ground, and the camera is above its top,
+		// so all of it is below the horizon. A flat screen looks down and never
+		// knows; a headset looks up. Round the camera, the horizon is in the ring.
+		if (gos_IsVR())
+		{
+			const Stuff::Vector3D origin = getCameraOrigin();
+			pos.x = -origin.x;
+			pos.y = origin.z;
+			pos.z = origin.y;
+		}
 		
    		theSky->setObjectParameters(pos,0.0f,false,0,0);
    		theSky->setMoverParameters(0.0f);
