@@ -657,7 +657,7 @@ long MapData::update (void)
 
 	Stuff::Vector3D position;
 	if (eye)
-		position = eye->getPosition();
+		position = Terrain::placeWindow();		//the camera's focus; VR: near it, towards the camera
 	else
 		return NO_ERR;
 

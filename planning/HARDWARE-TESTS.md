@@ -270,6 +270,18 @@ The interface only rests in a headset session, so no desktop run covers it.
       camera looks, at the Quest's fog setting)? Does the frame rate hold? The window's
       own clear must stay see-through: the HUD has no solid background.
 
+- [ ] **Ground near the camera in VR** (`vr-terrain-near-gap`). The round terrain
+      window was centred on where the camera looks, far ahead of the camera, so looking
+      down (`MC2_XR_POSE=0,-35`, mc2_16, fog 75) and on a mission's fly-in the ground
+      near the camera was left out, a pale gap at the bottom of the view. In VR the
+      window now slides towards the camera when the camera is more than half the clear
+      radius from that point (1312 units at fog 75): at the default zoom it does not
+      move. Check on mc2_16 with `MC2_XR_POSE=0,-35` and with the head free: zoomed in,
+      at the default zoom, zoomed right out, and through the fly-in at the start of a
+      mission (`mc2_01`, `mc2_16`). No gap below or behind the camera; the far edge
+      still fades round; the ground and units do not jump as the camera zooms. Does
+      the controller's ray still stop on visible ground when zoomed out?
+
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 
 Checked on the flat desktop on GL and GLES, and with `MC2_VR_PATHS=1` (the VR

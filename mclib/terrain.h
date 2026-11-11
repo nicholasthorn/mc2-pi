@@ -140,6 +140,7 @@ class Terrain
 		static const float						worldUnitsBlockSide;		//Total world units each block of 20 vertices is.  2560.0f in current universe.
 
 		static Stuff::Vector3D					mapTopLeft3d;				//Where does the terrain start.
+		static Stuff::Vector3D					windowCentre;				//What this frame's window of terrain is round (placeWindow)
 		
 		static MapDataPtr						mapData;					//Pointer to class that manages terrain mesh data.
 		static TerrainTexturesPtr				terrainTextures;			//Pointer to class that manages terrain textures.
@@ -231,6 +232,7 @@ class Terrain
 
 		static bool IsValidTerrainPosition (const Stuff::Vector3D pos);
 		bool isInWindow (const Stuff::Vector3D& pos);		//In the part of the map being drawn this frame
+		static Stuff::Vector3D placeWindow (void);		//Sets windowCentre for this frame
 		static bool IsEditorSelectTerrainPosition (const Stuff::Vector3D pos);
 		static bool IsGameSelectTerrainPosition (const Stuff::Vector3D pos);
 
