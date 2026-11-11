@@ -49,6 +49,31 @@ DWORD TerrainQuad::blownTextureHandle = 0xffffffff;
 
 extern bool drawTerrainGrid;
 extern bool drawLOSGrid;
+
+//---------------------------------------------------------------------------
+// Whether a ground or water triangle is drawn. The game drops one with any
+// corner outside the depth range: the flat camera never sees ground that near.
+// An eye in VR looking down does, and dropping the triangles that cross its
+// near plane left a gap at the bottom of the view. There each corner's rhw
+// keeps its sign (Terrain::projectForEye), the vertex shader turns it back
+// into clip space and the GPU clips the triangle; only one wholly behind the
+// eye, or wholly past the far plane, is dropped.
+static inline bool drawTriangle (const gos_VERTEX* v)
+{
+	if (gos_IsVR())
+	{
+		bool behind = true, beyond = true;
+		for (long i=0;i<3;i++)
+		{
+			behind = behind && (v[i].rhw < 0.0f);
+			beyond = beyond && (v[i].rhw > 0.0f) && (v[i].z >= 1.0f);
+		}
+		return !behind && !beyond;
+	}
+	return (v[0].z >= 0.0f) && (v[0].z < 1.0f) &&
+		(v[1].z >= 0.0f) && (v[1].z < 1.0f) &&
+		(v[2].z >= 0.0f) && (v[2].z < 1.0f);
+}
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 // Class TerrainQuad
@@ -1497,12 +1522,7 @@ void TerrainQuad::draw (void)
 			gVertex[2].argb		= lightRGB2;
 			gVertex[2].frgb		= vertices[2]->fogRGB;
 			
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					// sebi: beware this will be drawn with alpha blending, so need to make sure that alpha is not zero, because this is a base terrain layer!
@@ -1625,12 +1645,7 @@ void TerrainQuad::draw (void)
 			gVertex[2].argb		= lightRGB3;
 			gVertex[2].frgb		= vertices[3]->fogRGB;
 			
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					DWORD flags = isAlpha ? MC2_DRAWALPHA : 0;
@@ -1767,12 +1782,7 @@ void TerrainQuad::draw (void)
 			gVertex[2].argb		= lightRGB3;
 			gVertex[2].frgb		= vertices[3]->fogRGB;
 			
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					DWORD flags = isAlpha ? MC2_DRAWALPHA : 0;
@@ -1892,12 +1902,7 @@ void TerrainQuad::draw (void)
 			gVertex[1].argb		= lightRGB2;
 			gVertex[1].frgb		= vertices[2]->fogRGB;
 		
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					DWORD flags = isAlpha ? MC2_DRAWALPHA : 0;
@@ -2092,12 +2097,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[2]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[2]->vy) * oneOverTF + cloudOffsetY; 
 
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -2230,12 +2230,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[3]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[3]->vy) * oneOverTF + cloudOffsetY; 
 
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -2376,12 +2371,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[3]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[3]->vy) * oneOverTF + cloudOffsetY; 
 
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					//-----------------------------------------------------------------------------
@@ -2514,12 +2504,7 @@ void TerrainQuad::drawWater (void)
 			gVertex[2].u = (vertices[3]->vx - Terrain::mapTopLeft3d.x) * oneOverTF + cloudOffsetX; 
 			gVertex[2].v = (Terrain::mapTopLeft3d.y - vertices[3]->vy) * oneOverTF + cloudOffsetY; 
 																   
-			if ((gVertex[0].z >= 0.0f) &&
-				(gVertex[0].z < 1.0f) &&
-				(gVertex[1].z >= 0.0f) &&  
-				(gVertex[1].z < 1.0f) && 
-				(gVertex[2].z >= 0.0f) &&  
-				(gVertex[2].z < 1.0f))
+			if (drawTriangle(gVertex))
 			{
 				{
 					//-----------------------------------------------------------------------------

@@ -1241,6 +1241,8 @@ void Terrain::geometry (void)
 // from the update still fit. Nothing else geometry() does is repeated.
 void Terrain::projectForEye (void)
 {
+	//VR: w keeps its sign, so the GPU clips ground near the eye (TerrainQuad::draw)
+	const bool vrSigned = gos_IsVR();
 	VertexPtr currentVertex = vertexList;
 	Stuff::Vector4D screenPos;
 	for (long i=0;i<numberVertices;i++,currentVertex++)
@@ -1248,7 +1250,10 @@ void Terrain::projectForEye (void)
 		if (currentVertex->calcThisFrame & 4)
 		{
 			Stuff::Vector3D vertex3D(currentVertex->vx,currentVertex->vy,currentVertex->pVertex->elevation);
-			eye->projectZ(vertex3D,screenPos);
+			if (vrSigned)
+				eye->projectZSigned(vertex3D,screenPos);
+			else
+				eye->projectZ(vertex3D,screenPos);
 			currentVertex->px = screenPos.x;
 			currentVertex->py = screenPos.y;
 			currentVertex->pz = screenPos.z;
@@ -1258,7 +1263,10 @@ void Terrain::projectForEye (void)
 		if (currentVertex->calcThisFrame & 2)
 		{
 			Stuff::Vector3D vertex3D(currentVertex->vx,currentVertex->vy,currentVertex->wElevation);
-			eye->projectZ(vertex3D,screenPos);
+			if (vrSigned)
+				eye->projectZSigned(vertex3D,screenPos);
+			else
+				eye->projectZ(vertex3D,screenPos);
 			currentVertex->wx = screenPos.x;
 			currentVertex->wy = screenPos.y;
 			currentVertex->wz = screenPos.z;
