@@ -182,6 +182,12 @@ The interface only rests in a headset session, so no desktop run covers it.
       them, on a headset whose `options.cfg` says nothing or 800x600.
 - [x] **Leaving a mission or opening the options screen:** one frame of the old
       interface at most.
+- [ ] **Panel sized from the layout** (`vr-interface-scale`): a stock menu on a
+      1.25 m panel as sharp as the HUD, Omnitech's front end on a 2.0 m one, the
+      pointer landing where it aims on each, and the panel resizing as screens
+      change (menu, mission, results).
+- [ ] **Omnitech's results screens:** after a mission, salvage and pilot review
+      show their Done buttons at 1024x768 and they leave the screen.
 
 ## STOP message box (#46)
 
