@@ -273,9 +273,9 @@ The interface only rests in a headset session, so no desktop run covers it.
 - [ ] **Ground near the eye in VR** (`vr-terrain-near-gap`, PR 145). Looking down, ground
       triangles crossing the eye's near plane were dropped, a pale gap at the bottom of
       the view; the GPU now clips them. Checked only on fixed-pose captures from an
-      unworn Quest (mc2_16, `MC2_XR_POSE=0,-35`, fog 75). Wearing it: look straight down
-      and behind, zoom in and out, on a mission started from the campaign so its fly-in
-      plays. No gap, no flicker at the bottom of the view, no stretched or torn ground
+      unworn Quest (mc2_16 at `MC2_XR_POSE=0,-35`, and mission 1's fly-in looking down and
+      level, fog 75). Wearing it: look straight down and behind, zoom in and out, and
+      watch a fly-in. No gap, no flicker at the bottom of the view, no stretched or torn ground
       near the feet, and water near the camera clips cleanly too.
 
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
