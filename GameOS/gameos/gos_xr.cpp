@@ -125,6 +125,8 @@ struct State {
     bool hudChanged = true;         // a game step since it last reached the headset
     int framesSinceHud = 0;
     bool quadHasImage = false;      // the quad's swapchain has a released image
+    int quadLayoutWidth = 0;        // the layout that image was drawn at (0: none yet)
+    int quadLayoutHeight = 0;
     // this frame
     bool frameBegun = false;
     XrFrameState frame = {};
@@ -864,6 +866,10 @@ bool copyFrame(int width, int height)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     release(g.quad);
     g.quadHasImage = true;
+    // the panel takes the size of the screen in its image, not of a screen
+    // switched to since (the image rests between game steps)
+    g.quadLayoutWidth = (int)Environment.screenWidth;
+    g.quadLayoutHeight = (int)Environment.screenHeight;
     g.hudChanged = false;
     return true;
 }
@@ -908,17 +914,28 @@ XrPosef quadPose()
     return pose;
 }
 
+// the layout of the screen the quad shows: the one its image was copied at
+int quadLayoutWidth()
+{
+    return g.quadLayoutWidth > 0 ? g.quadLayoutWidth : (int)Environment.screenWidth;
+}
+
+int quadLayoutHeight()
+{
+    return g.quadLayoutHeight > 0 ? g.quadLayoutHeight : (int)Environment.screenHeight;
+}
+
 // the quad's width: over the eyes, a layout pixel the same size on every
 // screen (vr_eye::panelWidth); as a flat screen (no eyes), the width as set
 float quadWidth()
 {
-    return g.useEyes ? vr_eye::panelWidth(g.hudWidth, (int)Environment.screenWidth) : g.hudWidth;
+    return g.useEyes ? vr_eye::panelWidth(g.hudWidth, quadLayoutWidth()) : g.hudWidth;
 }
 
 // the quad's height: the game's screen shape, stretched over the whole window
 float quadHeight()
 {
-    return quadWidth() * (float)Environment.screenHeight / (float)Environment.screenWidth;
+    return quadWidth() * (float)quadLayoutHeight() / (float)quadLayoutWidth();
 }
 
 void setLayer(XrCompositionLayerQuad& layer, const Image& image, const vr_controls::Pose& pose,
