@@ -140,6 +140,7 @@ class Terrain
 		static const float						worldUnitsBlockSide;		//Total world units each block of 20 vertices is.  2560.0f in current universe.
 
 		static Stuff::Vector3D					mapTopLeft3d;				//Where does the terrain start.
+		static bool								eyeSignedW;					//VR: this pass's corners have a signed rhw (projectForEye)
 		
 		static MapDataPtr						mapData;					//Pointer to class that manages terrain mesh data.
 		static TerrainTexturesPtr				terrainTextures;			//Pointer to class that manages terrain textures.
@@ -225,7 +226,7 @@ class Terrain
 		void renderWater (void);
 		
 		void geometry (void);
-		void projectForEye (void);		//-stereo: screen positions for the current eye only
+		void projectForEye (bool signedW);		//-stereo, VR: screen positions for the current eye only; signedW: a VR eye's (eyeSignedW)
 
 		void drawTopView (void);
 

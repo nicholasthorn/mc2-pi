@@ -1741,7 +1741,7 @@ void Camera::renderWorld (void)
 			gameToEyeClip.Multiply(gameClipToWorld, worldToClip);
 		TG_Shape::SetCameraMatrices(&cameraOrigin,&cameraToClip);
 		if (land)
-			land->projectForEye();
+			land->projectForEye(vrEye != NULL);		//a VR eye: signed w, the GPU clips near ground
 		gos_SetStereoEye(eyeIndex);
 
 		eyeParallax = 0.0f;
