@@ -96,13 +96,20 @@ const float kOverlayTextEyePixels = 0.825f;
 const float kOverlayMarkerShareX = 0.393f / kOverlayTextEyePixels;
 void overlayTextScale(int windowWidth, int windowHeight, int eyeWidth, int eyeHeight, float& scaleX, float& scaleY);
 
-// The size the game runs at in a headset, where its window is only the interface
-// panel. 800x600 (also what a file with no size reads as) makes the panel's text
-// coarse; 1280x960 was judged right in the Quest 2, keeping 800x600's shape, so the
-// game camera does not change. Anything wider than the largest layout (1920) has
-// no interface layout: the panel's contents fill a corner of it, and the options
-// screen can save the headset's own 3664 there. Other sizes stand. True when it
-// changed the size.
+// The interface's layout size in a headset (Environment.screenWidth/Height): the
+// game screen the HUD is laid out on, which sets how large its text is on the
+// panel. Not the pixels it is drawn into (the window's frame, drawableWidth/
+// Height, the headset's full 3664x1920 since gosRenderer::handleEvents stopped
+// resizing it), which set how sharp it is, nor the panel's size in metres
+// (MC2_XR_HUD), which sets how large everything on it looks. See "The
+// interface's three sizes" in planning/future-features/VR-TABLETOP.md.
+// 1280x960 was judged right in the Quest 2 and keeps 800x600's shape, so the
+// game camera does not change (that judgement was made while the frame was
+// still an 800x600 corner, so "800x600 is coarse" was partly the frame).
+// It replaces 800x600 (also what a file with no size reads as) and anything
+// wider than the largest layout (1920), which has none: the panel's contents
+// would fill a corner of it, and the options screen can save the headset's own
+// 3664 there. Other sizes stand. True when it changed the size.
 const int kInterfaceWidth = 1280;
 const int kInterfaceHeight = 960;
 bool fitInterfaceResolution(int& width, int& height);
