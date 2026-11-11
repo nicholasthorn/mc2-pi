@@ -417,8 +417,12 @@ TEST_CASE("the panel's width: one layout pixel the same size on any screen")
 	// Omnitech's 1280x1024 front end and its 1024x768 results
 	CHECK(vr_eye::panelWidth(2.0f, 1280) == doctest::Approx(2.0f));
 	CHECK(vr_eye::panelWidth(2.0f, 1024) == doctest::Approx(1.6f));
-	// a larger layout than the HUD's gets a larger panel, scaled by the user's width too
-	CHECK(vr_eye::panelWidth(1.5f, 1920) == doctest::Approx(2.25f));
+	// a wider layout than the HUD's (1600, 1920 from the options) keeps the width set:
+	// a 3 m panel would leave the view
+	CHECK(vr_eye::panelWidth(2.0f, 1920) == doctest::Approx(2.0f));
+	CHECK(vr_eye::panelWidth(1.5f, 1600) == doctest::Approx(1.5f));
+	// the width set scales the smaller panels too
+	CHECK(vr_eye::panelWidth(1.5f, 800) == doctest::Approx(0.9375f));
 	// no size known yet: the width as set
 	CHECK(vr_eye::panelWidth(2.0f, 0) == doctest::Approx(2.0f));
 	CHECK(vr_eye::panelWidth(2.0f, -5) == doctest::Approx(2.0f));

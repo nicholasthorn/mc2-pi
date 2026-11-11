@@ -223,7 +223,7 @@ bool fitInterfaceResolution(int& width, int& height)
 
 float panelWidth(float interfaceWidth, int layoutWidth)
 {
-    if(layoutWidth <= 0)
+    if(layoutWidth <= 0 || layoutWidth >= kInterfaceWidth)
         return interfaceWidth;
     return interfaceWidth * (float)layoutWidth / (float)kInterfaceWidth;
 }

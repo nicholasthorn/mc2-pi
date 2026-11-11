@@ -121,7 +121,9 @@ bool fitInterfaceResolution(int& width, int& height);
 // for that size: on a panel as wide as the HUD's each of their pixels was 1.6
 // times as large as a HUD pixel, coarse and with larger text. Now a menu is on
 // a smaller panel, as sharp as the HUD; Omnitech's 1280x1024 front end is as
-// wide as the HUD. 0 or less (no size yet): interfaceWidth.
+// wide as the HUD. A wider layout (a mission at 1600 or 1920, chosen in the
+// options) keeps the HUD's width, as before: wider would leave the view.
+// 0 or less (no size yet): interfaceWidth.
 float panelWidth(float interfaceWidth, int layoutWidth);
 
 // A fixed head rotation given as text (MC2_XR_POSE=yaw,pitch in degrees: yaw
