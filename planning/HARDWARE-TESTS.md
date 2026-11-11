@@ -121,7 +121,7 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       `.txm` cache names do not include their size and every mission shares
       them. (10-31)
 - [ ] **Units keep moving after a load** (`fix/saved-path-sizes`). Save mid-mission with units walking a long way, load it: they carry on to their goals, and the log has no line starting "Saved".
-- [ ] **Loading a saved game** through the size-checked pathing reader
+- [x] **Loading a saved game** (2026-11-11, by the user: saved games open fine) through the size-checked pathing reader
       (`saveload.cpp` also exits on `badLoad`). (10-30)
 - [ ] **Faster save/load dialog** (#16): the campaign dialog lists saves
       without scanning them all first; a rejected save is not listed.
@@ -306,7 +306,7 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
 
 - [ ] **Video sound on the Quest:** a briefing video with its own sound
       (`node_*`, `cinema*`) is heard, and a skipped video's sound stops.
-- [ ] **The buzz:** a steady buzz at about 1 Hz started late in long sessions on
+- [x] **The buzz** (2026-11-11, by the user: fixed; it was the Android audio driver, and AAudio has none): a steady buzz at about 1 Hz started late in long sessions on
       SDL's OpenSL driver and carried on into the menus; it was not in the
       game's mix. Android now prefers AAudio, and one session of about 31 minutes
       on it was clean. Play longer sessions, stock and Omnitech, and listen for it.
@@ -326,7 +326,7 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
       the headset off and on, which the log did not bear out.
 - [ ] **Mech lab drags on the Quest:** drag 1x1 and 2x2 components out of the
       diagram and from the list; drag with the other hand's trigger brushed.
-- [ ] **Saving with no keyboard:** a new save and a new variant start with an
+- [x] **Saving with no keyboard** (2026-11-11, Quest, by the user: naming, saving and opening the save work): a new save and a new variant start with an
       unused name, OK works, and the save loads.
 - [ ] **Flat mech lab:** drag a component by mouse from its edge, and flick it
       within the diagram; it should still pick up what was pressed. A flick that
