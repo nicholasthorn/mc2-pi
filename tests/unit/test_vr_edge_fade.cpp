@@ -180,4 +180,25 @@ TEST_CASE("near edge: wholly behind the eye, or wholly past the far plane, is dr
     CHECK(nearTriangleDrawn(front, partFar));
 }
 
+TEST_CASE("near edge: the flat game, and any pass but a VR eye's, keep the depth test") {
+    const float rhw[3] = {0.01f, -0.02f, 0.015f};
+    const float inRange[3] = {0.5f, 0.9f, 0.1f};
+    const float nearZ[3] = {0.5f, -0.2f, 0.1f};
+    CHECK(triangleDrawn(rhw, inRange, false));
+    CHECK_FALSE(triangleDrawn(rhw, nearZ, false));
+    CHECK(triangleDrawn(rhw, nearZ, true));
+    CHECK_FALSE(gpuClipsQuad(false, true, true, true, true));   // flat, or a VR frame with no eye views
+}
+
+TEST_CASE("near edge: a corner the eye did not project keeps the depth test") {
+    // Terrain::geometry's placeholder for a corner it did not project
+    // (px = py = 10000, pz -0.5, pw 0.5); the GPU would draw it at the rim
+    const float rhw[3] = {0.01f, 0.5f, 0.015f};
+    const float z[3] = {0.5f, -0.5f, 0.4f};
+    CHECK(nearTriangleDrawn(rhw, z));       // why the gate is needed
+    CHECK_FALSE(gpuClipsQuad(true, true, false, true, true));
+    CHECK_FALSE(triangleDrawn(rhw, z, gpuClipsQuad(true, true, false, true, true)));
+    CHECK(gpuClipsQuad(true, true, true, true, true));
+}
+
 }

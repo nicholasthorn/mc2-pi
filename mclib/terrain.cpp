@@ -93,6 +93,7 @@ long						Terrain::halfVerticesMapSide = 0;
 long						Terrain::realVerticesMapSide = 0;
 
 Stuff::Vector3D				Terrain::mapTopLeft3d;					//Calced during load.
+bool						Terrain::eyeSignedW = false;
 
 UserHeapPtr					Terrain::terrainHeap = NULL;			//Setup at load time.
 char *						Terrain::terrainName = NULL;
@@ -968,6 +969,8 @@ void Terrain::geometry (void)
 	cameraPos.y = eye->getCameraOrigin().z;
 	cameraPos.z = eye->getCameraOrigin().y;
 
+	eyeSignedW = false;		//the game camera's projection below: w unsigned
+
 	float vClipConstant = eye->verticalSphereClipConstant;
 	float hClipConstant = eye->horizontalSphereClipConstant;
 
@@ -1221,10 +1224,10 @@ void Terrain::geometry (void)
 // this frame, with the current eye camera. Which vertices and quads draw
 // (clipInfo) stays the logic camera's, so the texture manager's vertex counts
 // from the update still fit. Nothing else geometry() does is repeated.
-void Terrain::projectForEye (void)
+void Terrain::projectForEye (bool signedW)
 {
-	//VR: w keeps its sign, so the GPU clips ground near the eye (TerrainQuad::draw)
-	const bool vrSigned = gos_IsVR();
+	//a VR eye: w keeps its sign, so the GPU clips ground near the eye (TerrainQuad::draw)
+	eyeSignedW = signedW;
 	VertexPtr currentVertex = vertexList;
 	Stuff::Vector4D screenPos;
 	for (long i=0;i<numberVertices;i++,currentVertex++)
@@ -1232,7 +1235,7 @@ void Terrain::projectForEye (void)
 		if (currentVertex->calcThisFrame & 4)
 		{
 			Stuff::Vector3D vertex3D(currentVertex->vx,currentVertex->vy,currentVertex->pVertex->elevation);
-			if (vrSigned)
+			if (signedW)
 				eye->projectZSigned(vertex3D,screenPos);
 			else
 				eye->projectZ(vertex3D,screenPos);
@@ -1245,7 +1248,7 @@ void Terrain::projectForEye (void)
 		if (currentVertex->calcThisFrame & 2)
 		{
 			Stuff::Vector3D vertex3D(currentVertex->vx,currentVertex->vy,currentVertex->wElevation);
-			if (vrSigned)
+			if (signedW)
 				eye->projectZSigned(vertex3D,screenPos);
 			else
 				eye->projectZ(vertex3D,screenPos);

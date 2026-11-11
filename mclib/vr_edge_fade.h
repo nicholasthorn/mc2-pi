@@ -105,6 +105,28 @@ inline bool nearTriangleDrawn(const float rhw[3], const float z[3])
     return !behind && !beyond;
 }
 
+// The flat game's test: every corner within the depth range. A corner that
+// was not projected keeps the off-screen placeholder (pz -0.5), so it fails.
+inline bool depthTriangleDrawn(const float z[3])
+{
+    return (z[0] >= 0.0f) && (z[0] < 1.0f) && (z[1] >= 0.0f) && (z[1] < 1.0f) &&
+        (z[2] >= 0.0f) && (z[2] < 1.0f);
+}
+
+// Whether the GPU clips a quad's triangles: in a VR eye's pass (signed rhw),
+// and only when the eye projected all four corners. Otherwise a corner can
+// still hold the placeholder (rhw 0.5, z -0.5), which nearTriangleDrawn would
+// take for a point in front.
+inline bool gpuClipsQuad(bool signedEyePass, bool p0, bool p1, bool p2, bool p3)
+{
+    return signedEyePass && p0 && p1 && p2 && p3;
+}
+
+inline bool triangleDrawn(const float rhw[3], const float z[3], bool gpuClips)
+{
+    return gpuClips ? nearTriangleDrawn(rhw, z) : depthTriangleDrawn(z);
+}
+
 } // namespace vr_edge_fade
 
 #endif
