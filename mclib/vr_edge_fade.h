@@ -1,10 +1,9 @@
-// VR: the game draws a square of terrain round the point the camera looks at
-// (in VR, a point near it: windowCentre below). The headset's wide view sees
-// its edge, where the game's haze has barely begun (the haze was tuned for 40
-// degrees), so in VR the ground fades out before it ends. The fade is a circle
-// round that point, not the square: it reads as a horizon, and does not move
-// in steps as the square does. shaders/include/scene.hglsl has the same sums
-// for meshes. GL-free so it can be unit tested.
+// VR: the game draws a square of terrain round the point the camera looks at.
+// The headset's wide view sees its edge, where the game's haze has barely begun
+// (the haze was tuned for 40 degrees), so in VR the ground fades out before it
+// ends. The fade is a circle round that point, not the square: it reads as a
+// horizon, and does not move in steps as the square does. shaders/include/
+// scene.hglsl has the same sums for meshes. GL-free so it can be unit tested.
 #ifndef VR_EDGE_FADE_H
 #define VR_EDGE_FADE_H
 
@@ -37,34 +36,6 @@ inline Range rangeFor(long verticesPerSide, float unitsPerVertex)
     const float wanted = kWidthVertices * unitsPerVertex;
     const float width = (wanted < full * 0.5f) ? wanted : full * 0.5f;
     return Range{full - width, 1.0f / width};
-}
-
-// Where the window goes in VR. The game centres it on the point the camera
-// looks at, but in a headset the viewer looks round from the camera, which is
-// far behind that point: looking down, or on a mission's fly-in, the eyes saw
-// the ground near the camera faded out or left out. So the window slides from
-// the point towards the camera's ground position, as little as it can and
-// just enough that the camera stands within half the clear radius (half of
-// Range::start) of the centre. At the default zoom it does not move at all.
-// focus, viewer and the centre: x, y in world units.
-struct Point {
-    float x;
-    float y;
-};
-
-inline Point windowCentre(long verticesPerSide, float unitsPerVertex, Point focus, Point viewer)
-{
-    const Range range = rangeFor(verticesPerSide, unitsPerVertex);
-    if (range.invWidth == 0.0f)
-        return focus;
-    const float reach = range.start * 0.5f;
-    const float dx = focus.x - viewer.x;
-    const float dy = focus.y - viewer.y;
-    const float d2 = dx * dx + dy * dy;
-    if (d2 <= reach * reach)
-        return focus;
-    const float along = reach / std::sqrt(d2);
-    return Point{viewer.x + dx * along, viewer.y + dy * along};
 }
 
 // 0 clear, 1 fully faded: smoothstep over the range, as in scene.hglsl.

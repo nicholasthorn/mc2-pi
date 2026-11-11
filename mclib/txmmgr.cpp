@@ -1129,7 +1129,7 @@ void MC_TextureManager::renderLists (void)
     if (gos_IsVR() && land)
     {
         const vr_edge_fade::Range edgeRange = vr_edge_fade::rangeFor(Terrain::visibleVerticesPerSide, Terrain::worldUnitsPerVertex);
-        const Stuff::Vector3D edgeCentre = Terrain::windowCentre;
+        const Stuff::Vector3D edgeCentre = eye->getPosition();
         // the shaders' world is the camera origin's: x is -x, z is y
         sceneData_->vr_edge[0] = -edgeCentre.x;
         sceneData_->vr_edge[1] = edgeCentre.y;

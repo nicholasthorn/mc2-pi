@@ -93,7 +93,6 @@ long						Terrain::halfVerticesMapSide = 0;
 long						Terrain::realVerticesMapSide = 0;
 
 Stuff::Vector3D				Terrain::mapTopLeft3d;					//Calced during load.
-Stuff::Vector3D				Terrain::windowCentre;					//Each frame, by placeWindow.
 
 UserHeapPtr					Terrain::terrainHeap = NULL;			//Setup at load time.
 char *						Terrain::terrainName = NULL;
@@ -737,7 +736,6 @@ void Terrain::destroy (void)
 	worldUnitsMapSide = 0.0f;
 	
 	mapTopLeft3d.Zero();
-	windowCentre.Zero();
 		
 	numObjBlocks = 0;
 
@@ -938,29 +936,13 @@ float mostZ = -1.0f, mostW = -1.0;
 float leastWY = 0.0f, mostWY = 0.0f;
 extern bool InEditor;
 //---------------------------------------------------------------------------
-// The middle of the window of terrain drawn this frame: the point the camera
-// looks at, or in VR a point slid from it towards the camera, so the ground the
-// eyes see round the camera is there (vr_edge_fade::windowCentre).
-Stuff::Vector3D Terrain::placeWindow (void)
-{
-	windowCentre = eye->getPosition();
-	if (gos_IsVR() && eye->usePerspective)
-	{
-		//the game camera, not the head; in camera coordinates, x is -x and z is y
-		const Stuff::Vector3D origin = eye->getCameraOrigin();
-		const vr_edge_fade::Point centre = vr_edge_fade::windowCentre(visibleVerticesPerSide, worldUnitsPerVertex,
-			vr_edge_fade::Point{windowCentre.x, windowCentre.y}, vr_edge_fade::Point{-origin.x, origin.z});
-		windowCentre.x = centre.x;
-		windowCentre.y = centre.y;
-	}
-	return windowCentre;
-}
-
-//---------------------------------------------------------------------------
 bool Terrain::isInWindow (const Stuff::Vector3D& pos)
 {
 	if (gos_IsVR())		//round, as drawn, and inside the square (vr_edge_fade.h)
-		return vr_edge_fade::pointInCircle(visibleVerticesPerSide, worldUnitsPerVertex, pos.x - windowCentre.x, pos.y - windowCentre.y);
+	{
+		const Stuff::Vector3D centre = eye->getPosition();
+		return vr_edge_fade::pointInCircle(visibleVerticesPerSide, worldUnitsPerVertex, pos.x - centre.x, pos.y - centre.y);
+	}
 	const float column = (pos.x - mapTopLeft3d.x) * oneOverWorldUnitsPerVertex;
 	const float row = (mapTopLeft3d.y - pos.y) * oneOverWorldUnitsPerVertex;
 	const Stuff::Vector2DOf<float> topLeft = mapData->getTopLeftVertex();
@@ -996,7 +978,7 @@ void Terrain::geometry (void)
 	//VR: the ground fades out before the window's edge (vr_edge_fade.h)
 	const bool vrEdge = gos_IsVR();
 	const vr_edge_fade::Range vrEdgeRange = vr_edge_fade::rangeFor(visibleVerticesPerSide, worldUnitsPerVertex);
-	const Stuff::Vector3D vrEdgeCentre = windowCentre;
+	const Stuff::Vector3D vrEdgeCentre = eye->getPosition();
 
  	long i=0;
 	for (i=0;i<numberVertices;i++)
