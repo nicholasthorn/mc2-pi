@@ -112,7 +112,11 @@ inline int cLoadString(
 	const char * tmpBuffer = gos_GetResourceString(handle, uID);
 	int stringLength = (int)strlen(tmpBuffer);
 	if (stringLength >= nBufferMax)
-		STOP(("String too long for buffer.  String Id %u, bufferLen %d, StringLen %l",uID,nBufferMax,stringLength));
+	{
+		STOP(("String too long for buffer.  String Id %u, bufferLen %d, StringLen %d",uID,nBufferMax,stringLength));
+		// MC2_STOP_EXITS=0 carries on: cut the string to the buffer.
+		stringLength = nBufferMax > 0 ? nBufferMax - 1 : 0;
+	}
 	memcpy(lpBuffer,tmpBuffer,stringLength);
 	return stringLength;
 }

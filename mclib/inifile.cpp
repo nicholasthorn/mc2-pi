@@ -209,23 +209,27 @@ long FitIniFile::afterOpen (void)
 				return(TOO_MANY_BLOCKS);
 
 			long count = 1;
-			while (line[count] != ']' && line[count] != '\n')
+			// Stop at the end of the line too, and cut a long name at blockId[50]
+			// instead of writing past it: the STOP below comes after the copy.
+			const long maxIdLen = sizeof(fileBlocks[currentBlockNum].blockId) - 1;
+			while (line[count] != ']' && line[count] != '\n' && line[count] != '\0')
 			{
-				fileBlocks[currentBlockNum].blockId[count-1] = line[count];
+				if (count-1 < maxIdLen)
+					fileBlocks[currentBlockNum].blockId[count-1] = line[count];
 				count++;
 			}
 			if (count >= 49)
 				STOP(("BlockId To large in Fit File %s",fileName));
 
-			if (line[count] == '\n')
+			if (line[count] != ']')
 			{
 				char error[256];
-				sprintf( error, "couldn't resolve block %s in file %s", line, getFilename() );
+				snprintf( error, sizeof(error), "couldn't resolve block %s in file %s", line, getFilename() );
 				Assert( 0, 0, error );
 				return SYNTAX_ERROR;
 			}
 			
-			fileBlocks[currentBlockNum].blockId[count-1] = '\0';
+			fileBlocks[currentBlockNum].blockId[count-1 < maxIdLen ? count-1 : maxIdLen] = '\0';
 			
 			//----------------------------------------------------------------------
 			// Since we just read all of last line, we now point to start of data
@@ -1377,7 +1381,7 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 	
 	//---------------------------------------
 	// Copy each character until close quote
-	while (*src != '"' && offset < bufLen)
+	while (*src != '"' && *src != '\0' && offset < bufLen)
 	{
 		dest[offset] = *src;
 		src++;
@@ -1386,8 +1390,12 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 
 	//----------------------------------------------------
 	// If this string is longer than buffer, let em know.
+	// Cut and terminate it too: most callers ignore the error and strcpy the
+	// result, and mods carry longer text than the 2001 buffers.
 	if (offset == bufLen)
 	{
+		if (bufLen)
+			dest[bufLen - 1] = '\0';
 		return(BUFFER_TOO_SMALL);
 	}
 
@@ -1448,6 +1456,8 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 		if ( pFirstEqual && !strstr( pFirstEqual+1, "\"" ) ) 
 		{
 			long curLen = strlen( equalSign );
+			// equalSign points into line: the room left is what follows it.
+			const long room = (long)sizeof(line) - (long)(equalSign - line);
 			char tmpLine[2047];
 			do
 			{
@@ -1455,7 +1465,7 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 				pFound = strstr( tmpLine, "\"" );
 
 				long addedLen = strlen( tmpLine ) + 1;
-				if ( curLen + addedLen < 2048 )
+				if ( curLen + addedLen < room )
 				{
 					strcat( equalSign, tmpLine );
 					strcat( equalSign, "\n" );

@@ -306,6 +306,33 @@ TEST_CASE("FitIniFile reads an array and a string on the last line of a file")
 	remove(path);
 }
 
+// A mod's string longer than the caller's buffer used to fill the buffer with
+// no terminator, so the next strcpy or strlen ran past it. It is now cut to
+// fit and terminated, and still reported as too long.
+TEST_CASE("FitIniFile readIdString cuts a string longer than the buffer and terminates it")
+{
+	const char* path = "inifile_longstring.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[B]\nst Name = \"Atlas AS7-D Royal\"\nst Exact = \"abcd\"\n", fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	REQUIRE(fit.seekBlock("B") == NO_ERR);
+	char name[8];
+	memset(name, 'x', sizeof(name));
+	CHECK(fit.readIdString("Name", name, sizeof(name)) == (long)BUFFER_TOO_SMALL);
+	CHECK(strcmp(name, "Atlas A") == 0);
+
+	char exact[4];
+	memset(exact, 'x', sizeof(exact));
+	CHECK(fit.readIdString("Exact", exact, sizeof(exact)) == (long)BUFFER_TOO_SMALL);
+	CHECK(strcmp(exact, "abc") == 0);
+	fit.close();
+	remove(path);
+}
+
 // Hex numbers are parsed digit by digit from the right; a value with more
 // than 8 digits shifted an int by 32 or more (UBSan, found by the UI smoke
 // walks). Digits past the 8th are now ignored, as a 32-bit value has no room

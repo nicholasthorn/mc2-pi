@@ -75,3 +75,38 @@ void appendBounded(char* dest, size_t destSize, const char* src)
     std::memmove(dest + len, src, n);
     dest[len + n] = '\0';
 }
+
+void copyBounded(char* dest, size_t destSize, const char* src)
+{
+    if (!dest || destSize == 0)
+        return;
+    size_t n = 0;
+    if (src)
+    {
+        // strnlen is not in C++17's <cstring> everywhere; memchr is.
+        const void* end = std::memchr(src, '\0', destSize);
+        n = end ? static_cast<size_t>(static_cast<const char*>(end) - src) : destSize - 1;
+        std::memmove(dest, src, n);
+    }
+    dest[n] = '\0';
+}
+
+void splitPathName(const char* path, char* name, size_t nameSize)
+{
+    if (!name || nameSize == 0)
+        return;
+    if (!path)
+        path = "";
+    const char* start = path;
+    for (const char* p = path; *p; ++p)
+    {
+        if (*p == '/' || *p == '\\')
+            start = p + 1;
+    }
+    const char* dot = std::strrchr(start, '.');
+    size_t n = dot ? static_cast<size_t>(dot - start) : std::strlen(start);
+    if (n > nameSize - 1)
+        n = nameSize - 1;
+    std::memmove(name, start, n);
+    name[n] = '\0';
+}

@@ -868,8 +868,11 @@ long CSVFile::copyString (char *dest, char *src, unsigned long bufLen)
 
 	//----------------------------------------------------
 	// If this string is longer than buffer, let em know.
+	// Cut and terminate it too: callers that ignore the error would read on.
 	if (offset == bufLen)
 	{
+		if (bufLen)
+			dest[bufLen - 1] = '\0';
 		return(-2);
 	}
 

@@ -105,6 +105,15 @@ TEST_CASE("CSVFile opens a Buildings.csv-shaped fixture from disk")
 		CHECK(strcmp(name, "madcat") == 0);
 	}
 
+	SUBCASE("a cell longer than the buffer is cut and terminated, and reported")
+	{
+		// It used to fill the buffer with no terminator.
+		char name[4];
+		memset(name, 'x', sizeof(name));
+		CHECK(csv.readString(2, 1, name, sizeof(name)) != 0);
+		CHECK(strcmp(name, "mad") == 0);
+	}
+
 	csv.close();
 	CHECK(!csv.isOpen());
 }
