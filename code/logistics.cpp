@@ -121,12 +121,19 @@ void Logistics::start (long startMode)
 	{
 		case log_RESULTS: // pull out results later...
 			active = true;
-			//Heading back to logistics now.  The results screens have 800x600 layouts on any
-			//data; MainMenu and MissionBegin go on to the front end's mode
+			//Heading back to logistics now.  The results screens' layouts (mcui_mr_layout.fit)
+			//are 800x600 on stock data; Omnitech's larger front end moved their Done buttons
+			//to 1024x768 (pilot review's at 741,712), off an 800x600 screen. MainMenu and
+			//MissionBegin go on to the front end's mode
+			{
+			const bool largerFrontEnd = LogisticsScreen::frontEndWidth() != 800;
+			const DWORD resultsWidth = largerFrontEnd ? 1024 : 800;
+			const DWORD resultsHeight = largerFrontEnd ? 768 : 600;
 			if (prefs.renderer == 3)
-				gos_SetScreenMode(800,600,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
+				gos_SetScreenMode(resultsWidth,resultsHeight,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
 			else
-				gos_SetScreenMode(800,600,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+				gos_SetScreenMode(resultsWidth,resultsHeight,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+			}
 
 			lastMissionResult = scenarioResult;
 			if ( !missionResults )

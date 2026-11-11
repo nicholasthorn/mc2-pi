@@ -407,3 +407,19 @@ TEST_CASE("the interface's size in a headset: 1280x960 unless another layout was
 		CHECK(h == size[1]);
 	}
 }
+
+TEST_CASE("the panel's width: one layout pixel the same size on any screen")
+{
+	// the HUD's layout gets the width set for the interface (MC2_XR_HUD, A + stick)
+	CHECK(vr_eye::panelWidth(2.0f, vr_eye::kInterfaceWidth) == doctest::Approx(2.0f));
+	// an 800x600 menu: its pixels as large as the HUD's, so a smaller panel
+	CHECK(vr_eye::panelWidth(2.0f, 800) == doctest::Approx(1.25f));
+	// Omnitech's 1280x1024 front end and its 1024x768 results
+	CHECK(vr_eye::panelWidth(2.0f, 1280) == doctest::Approx(2.0f));
+	CHECK(vr_eye::panelWidth(2.0f, 1024) == doctest::Approx(1.6f));
+	// a larger layout than the HUD's gets a larger panel, scaled by the user's width too
+	CHECK(vr_eye::panelWidth(1.5f, 1920) == doctest::Approx(2.25f));
+	// no size known yet: the width as set
+	CHECK(vr_eye::panelWidth(2.0f, 0) == doctest::Approx(2.0f));
+	CHECK(vr_eye::panelWidth(2.0f, -5) == doctest::Approx(2.0f));
+}

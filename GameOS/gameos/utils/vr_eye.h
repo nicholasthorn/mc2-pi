@@ -114,6 +114,16 @@ const int kInterfaceWidth = 1280;
 const int kInterfaceHeight = 960;
 bool fitInterfaceResolution(int& width, int& height);
 
+// The interface panel's width in a headset, for a screen laid out layoutWidth
+// pixels wide. interfaceWidth (MC2_XR_HUD, A + stick) is the width of the
+// mission HUD's kInterfaceWidth layout; every other screen gets the same size
+// per layout pixel. The menus' 800x600 layouts (stock data) are bitmaps made
+// for that size: on a panel as wide as the HUD's each of their pixels was 1.6
+// times as large as a HUD pixel, coarse and with larger text. Now a menu is on
+// a smaller panel, as sharp as the HUD; Omnitech's 1280x1024 front end is as
+// wide as the HUD. 0 or less (no size yet): interfaceWidth.
+float panelWidth(float interfaceWidth, int layoutWidth);
+
 // A fixed head rotation given as text (MC2_XR_POSE=yaw,pitch in degrees: yaw
 // about +y, left, then pitch about +x, up, in OpenXR's axes) as a quaternion
 // (x, y, z, w). False when the text is not two numbers.

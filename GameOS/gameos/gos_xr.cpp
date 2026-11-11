@@ -908,10 +908,17 @@ XrPosef quadPose()
     return pose;
 }
 
+// the quad's width: over the eyes, a layout pixel the same size on every
+// screen (vr_eye::panelWidth); as a flat screen (no eyes), the width as set
+float quadWidth()
+{
+    return g.useEyes ? vr_eye::panelWidth(g.hudWidth, (int)Environment.screenWidth) : g.hudWidth;
+}
+
 // the quad's height: the game's screen shape, stretched over the whole window
 float quadHeight()
 {
-    return g.hudWidth * (float)Environment.screenHeight / (float)Environment.screenWidth;
+    return quadWidth() * (float)Environment.screenHeight / (float)Environment.screenWidth;
 }
 
 void setLayer(XrCompositionLayerQuad& layer, const Image& image, const vr_controls::Pose& pose,
@@ -947,9 +954,9 @@ int pointerLayers(XrCompositionLayerQuad& beam, XrCompositionLayerQuad& dot)
     if(g.target == TARGET_HUD) {
         float u = 0.0f, v = 0.0f, distance = 0.0f;
         hit = g.clickHold.holding
-                || vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v, &distance);
+                || vr_controls::rayHitsQuad(aim, g.hud, quadWidth(), quadHeight(), u, v, &distance);
         if(g.clickHold.holding)     // the beam ends where the click goes
-            vr_controls::quadPoint(g.hud, g.hudWidth, quadHeight(), g.clickHold.u, g.clickHold.v, end);
+            vr_controls::quadPoint(g.hud, quadWidth(), quadHeight(), g.clickHold.u, g.clickHold.v, end);
         else
             vr_controls::rayPoint(aim, hit ? distance : kBeamLength, end);
     } else {
@@ -1316,7 +1323,7 @@ bool present(int width, int height)
         if(g.useEyes)       // the interface over the eyes: blended by its alpha
             quad.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
                     | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
-        quad.size.width = g.hudWidth;
+        quad.size.width = quadWidth();
         quad.size.height = quadHeight();
         layers[layerCount++] = (XrCompositionLayerBaseHeader*)&quad;
     }
@@ -1460,7 +1467,7 @@ void pollInput()
     vr_controls::Pose aim;
     float u = 0.0f, v = 0.0f;
     const bool located = locate(g.aimSpaces[hand], aim);
-    g.onQuad = located && vr_controls::rayHitsQuad(aim, g.hud, g.hudWidth, quadHeight(), u, v);
+    g.onQuad = located && vr_controls::rayHitsQuad(aim, g.hud, quadWidth(), quadHeight(), u, v);
     if(g.onQuad) {
         g.hudU = u;
         g.hudV = v;
