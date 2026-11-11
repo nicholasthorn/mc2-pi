@@ -3041,7 +3041,7 @@ void ControlGui::setChatText( const char* playerName, const char* message, unsig
 	chatInfos[i].time = scenarioTime;
 	chatInfos[i].chatTextColor = chatColor;
 
-	long totalHeight = chatEdit.font.height( message, chatEdit.width() );
+	long totalHeight = chatEdit.font.height( chatInfos[i].message, chatEdit.width() );	// as stored, cut if it was longer
 	long lineHeight = chatEdit.font.height( "A", chatEdit.width() );
 
 
