@@ -337,6 +337,7 @@ struct TG_HWSceneData {
     float cam_pos[4];
     float fog_color[4];
     vec4 baseVertexColor;
+    float vr_edge[4];   // VR, vr_edge_fade.h: centre x, z, start, 1 / width; 0 otherwise
 };
 
 typedef TG_HWSceneData* TG_HWSceneDataPtr;

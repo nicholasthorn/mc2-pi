@@ -265,6 +265,15 @@ The interface only rests in a headset session, so no desktop run covers it.
       out of the game camera's view still works. Rotated ones were checked on
       the desktop only, with rays from the game camera.
 
+- [ ] **No hard edges where the world ends** (`vr-round-terrain`). Seen on a
+      left-eye capture from an unworn Quest at fog 100 (mc2_19); nobody has looked yet. Look at the horizon and up, on a day mission (`mc2_01`), a night one
+      (`mc2_19`), a pure black fog one (`mc2_05`) and Omnitech: no square of ground, no
+      line where the sky stops, no black. Does the sky look right when it is level with
+      you, and does it stay still as the camera moves and the head turns? Do units in
+      the fade read as far away, or vanish too soon (it starts 1216 units from where the
+      camera looks, at the Quest's fog setting)? Does the frame rate hold? The window's
+      own clear must stay see-through: the HUD has no solid background.
+
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 
 Checked on the flat desktop on GL and GLES, and with `MC2_VR_PATHS=1` (the VR

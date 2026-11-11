@@ -1211,6 +1211,8 @@ void eyeImageSize(int eye, int& width, int& height)
     height = g.eyes[eye].height;
 }
 
+static float g_eyeClear[3] = { 0.0f, 0.0f, 0.0f };
+
 bool bindEye(int eye)
 {
     if(g.session == XR_NULL_HANDLE)
@@ -1232,11 +1234,19 @@ bool bindEye(int eye)
     glBindFramebuffer(GL_FRAMEBUFFER, image.fbo);
     glViewport(0, 0, image.width, image.height);
     glDepthMask(GL_TRUE);
-    // transparent black: the clear colour is global state, and the window's
-    // clear (draw_screen) must leave the HUD's background see-through
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(g_eyeClear[0], g_eyeClear[1], g_eyeClear[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // back to transparent black: the clear colour is global state, and the
+    // window's clear (draw_screen) must leave the HUD's background see-through
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     return true;
+}
+
+void setEyeClearColor(float red, float green, float blue)
+{
+    g_eyeClear[0] = red;
+    g_eyeClear[1] = green;
+    g_eyeClear[2] = blue;
 }
 
 bool present(int width, int height)
