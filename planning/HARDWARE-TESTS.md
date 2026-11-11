@@ -182,12 +182,12 @@ The interface only rests in a headset session, so no desktop run covers it.
       them, on a headset whose `options.cfg` says nothing or 800x600.
 - [x] **Leaving a mission or opening the options screen:** one frame of the old
       interface at most.
-- [ ] **Panel sized from the layout** (`vr-interface-scale`): a stock menu on a
-      1.25 m panel as sharp as the HUD, Omnitech's front end on a 2.0 m one, the
-      pointer landing where it aims on each, and the panel resizing as screens
-      change (menu, mission, results).
-- [ ] **Omnitech's results screens:** after a mission, salvage and pilot review
-      show their Done buttons at 1024x768 and they leave the screen.
+- [x] **Panel sized from the layout** (`vr-interface-scale`, 2026-11-11): in a Quest 2,
+      the stock menus no longer pixelated, Omnitech's front end and missions as
+      before, the pointer and screen changes fine (judged in play, MC2 test and
+      Omnitech).
+- [x] **Omnitech's results screens** (2026-11-11): after a Clan Wars mission the
+      results' Done button showed and left the screen.
 
 ## STOP message box (#46)
 
