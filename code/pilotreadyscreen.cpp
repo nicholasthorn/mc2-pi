@@ -801,7 +801,7 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 		strcpy( fileName, artPath );
 		strcat( fileName, "MCL_PR_" );
 		appendBounded( fileName, pPilot->getName() );
-		strcat( fileName, ".tga" );
+		appendBounded( fileName, ".tga" );
 		EString str = fileName;
 		str.MakeLower();
 		statics[pilotPicture].setTexture( str );

@@ -2551,7 +2551,7 @@ void Mover::updateDebugWindow (GameDebugWindow* debugWindow) {
 				appendBounded(s, ss);
 			}
 			if (lastIndex < moveOrders->numGlobalSteps)
-				strcat(s, " +");
+				appendBounded(s, " +");
 			debugWindow->print(s);
 		}
 		static const char* moveStateStr[NUM_MOVESTATES] = {

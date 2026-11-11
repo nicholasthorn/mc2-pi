@@ -2612,7 +2612,7 @@ void ParseCommandLine(const char *command_line)
 						i++;
 						if (i < n_args)
 						{
-							strcat(missionName," ");
+							appendBounded(missionName," ");
 							appendBounded(missionName,argv[i]);
 
 							if (strstr(argv[i],"\"") != NULL)

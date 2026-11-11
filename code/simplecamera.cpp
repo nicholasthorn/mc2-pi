@@ -342,7 +342,7 @@ void SimpleCamera::setMech(const char* fileName, long baseColor, long highlight1
 
 	char testName[256];
 	copyBounded( testName, NoPathFileName );
-	strcat( testName, "enc" );
+	appendBounded( testName, "enc" );
 
 	FullPathFileName path;
 	path.init( tglPath, testName, ".ini" );
@@ -413,7 +413,7 @@ void SimpleCamera::setVehicle(const char* fileName,long base, long highlight, lo
 
 	char testName[256];
 	copyBounded( testName, fileName );
-	strcat( testName, "enc" );
+	appendBounded( testName, "enc" );
 
 	FullPathFileName path;
 	path.init( tglPath, testName, ".ini" );
@@ -482,7 +482,7 @@ void SimpleCamera::setComponent(const char* fileName )
 
 	char testName[256];
 	copyBounded( testName, fileName );
-	strcat( testName, "enc" );
+	appendBounded( testName, "enc" );
 
 	FullPathFileName path;
 	path.init( tglPath, testName, ".ini" );

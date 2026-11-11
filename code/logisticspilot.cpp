@@ -67,7 +67,7 @@ int LogisticsPilot::init( char* pilotFileName )
 	char path[256];
 	copyBounded( path, warriorPath );
 	appendBounded( path, fileName );
-	strcat( path, ".fit" );
+	appendBounded( path, ".fit" );
 
 	FitIniFile pilotFile;
 	if ( NO_ERR != pilotFile.open( path ) )

@@ -554,6 +554,21 @@ void execStdPrint (void) {
 
 //***************************************************************************
 
+// As ABLi_popCharPtr, plus the size of the script's char array (0 when the
+// argument is not one), so a path longer than the array is cut to fit.
+static char* popCharArray (size_t& size) {
+
+	getCodeToken();
+	TypePtr typePtr = execExpression();
+	char* charPtr = (char*)tos->address;
+	pop();
+	size = 0;
+	if (typePtr && (typePtr->form == FRM_ARRAY) && (typePtr->info.array.elementTypePtr == CharTypePtr) &&
+		(typePtr->info.array.elementCount > 0))
+		size = (size_t)typePtr->info.array.elementCount;
+	return(charPtr);
+}
+
 TypePtr execStdConcat (void) {
 
 	//-------------------
@@ -562,17 +577,10 @@ TypePtr execStdConcat (void) {
 
 	//--------------------------
 	// Get destination string...
-	getCodeToken();
-	TypePtr destTypePtr = execExpression();
-	char* dest = (char*)tos->address;
-	pop();
-
 	// A script string is a char array of fixed size (often char[40]): clip the
 	// append to it rather than overrun the next variable.
-	size_t destSize = 0;
-	if (destTypePtr && (destTypePtr->form == FRM_ARRAY) && (destTypePtr->info.array.elementTypePtr == CharTypePtr) &&
-		(destTypePtr->info.array.elementCount > 0))
-		destSize = (size_t)destTypePtr->info.array.elementCount;
+	size_t destSize;
+	char* dest = popCharArray(destSize);
 
 	//----------------------
 	// Get item to append...
@@ -699,21 +707,6 @@ void execStdFileClose (void) {
 }
 
 //***************************************************************************
-
-// As ABLi_popCharPtr, plus the size of the script's char array (0 when the
-// argument is not one), so a path longer than the array is cut to fit.
-static char* popCharArray (size_t& size) {
-
-	getCodeToken();
-	TypePtr typePtr = execExpression();
-	char* charPtr = (char*)tos->address;
-	pop();
-	size = 0;
-	if (typePtr && (typePtr->form == FRM_ARRAY) && (typePtr->info.array.elementTypePtr == CharTypePtr) &&
-		(typePtr->info.array.elementCount > 0))
-		size = (size_t)typePtr->info.array.elementCount;
-	return(charPtr);
-}
 
 void execStdGetModule (void) {
 

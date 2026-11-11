@@ -47,6 +47,15 @@ gosFileStream::gosFileStream( const char *FileName, gosEnum_FileWriteStatus fwst
             gosASSERT(0);
     }
 
+    // A name that does not fit is not opened under its cut-short form
+    if (strlen(FileName) >= sizeof(m_Filename))
+    {
+        fprintf(stderr, "gosFileStream: file name too long: %s\n", FileName);
+        m_hFile = NULL;
+        STOP(("Failed to open file"));
+        return;
+    }
+
     m_hFile = fopen(m_Filename, mode);
     if(!m_hFile)
     {

@@ -1903,7 +1903,7 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 			sprintf( text2, text, missionName );
 
 			strcpy( totalText, text2 );		// not a format: text2 holds the map name
-			strcat( totalText, "\n" );
+			appendBounded( totalText, "\n" );
 
 				unsigned long type = 0;
 			file.readIdULong( "MissionType", type );
@@ -1913,8 +1913,8 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 			
 			sprintf( text2, text, mType );
 
-			strcat( totalText, text2 );
-			strcat( totalText, "\n" );
+			appendBounded( totalText, text2 );
+			appendBounded( totalText, "\n" );
 
 			unsigned long numPlayers = 2;
 
@@ -1923,7 +1923,7 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 			sprintf( text2, text, numPlayers );
 
 			appendBounded( totalText, text2 );
-			strcat( totalText, "\n" );
+			appendBounded( totalText, "\n" );
 
 			textObjects[1].setText( totalText );
 
