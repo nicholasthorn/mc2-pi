@@ -45,8 +45,11 @@ void splitPathName(const char* path, char* name, size_t nameSize);
 
 // A whole number in FIT and CSV text, as its low 32 bits: the same on every
 // platform, where atol into a long kept 4278190080 whole on 64-bit Linux and
-// clamped it to LONG_MAX on Windows. Hex when the text holds "0x" (anywhere,
-// as the readers looked for it), else decimal after spaces and a sign. Stops
+// clamped it to LONG_MAX on Windows. Hex when the text holds "0x" anywhere,
+// as the readers looked for it: kept as shipped, since stock data depends on
+// it (`l Color = // 0xff846643`, `00xffC66600`, and jumpfx.fit's
+// `Appearance = 0 // Was 0x060001AE`, which loads 0x060001AE). Else decimal
+// after spaces and a sign. Stops
 // at the first character that is not a digit (a comment, say). The digits are
 // accumulated exactly, wrapping, so even past 64 bits the result is the
 // value's low 32 bits; a reader narrows it to its type, as before.

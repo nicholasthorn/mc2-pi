@@ -520,6 +520,15 @@ Each one is marked in the code (a comment, and a `cppcheck-suppress` with
 the reason where cppcheck flags it). Revisit only as a deliberate gameplay
 change, not as a bug fix.
 
+- **A FIT or CSV whole number is hex if "0x" appears anywhere in its text**
+  (found 2026-11-12, left as it was). The readers look for "0x" in the
+  whole value, trailing comment included, and `wholeNumberLow32` keeps that.
+  Six stock lines depend on it: `l Color = // 0xff846643` (two in
+  `mcl_mp_param_droplist4.fit`), `00xffC66600` (three
+  `mcl_mp_playerprefs_combobox*.fit`) and `jumpfx.fit`'s
+  `Appearance = 0 // Was 0x060001AE`, which loads 0x060001AE. Looking for
+  "0x" only at the start of the number would change those. Marked in
+  `GameOS/gameos/utils/str_bounded.h`.
 - **Destroyed forests never reopen their pathing areas** (decided
   2026-11-01). `TerrainObjectType` declares its own `subType`, shadowing
   `ObjectType::subType`, so `TerrainObjectType::handleDestruction`'s
