@@ -984,13 +984,15 @@ void accumulateValue (float* valuePtr, SyntaxErrorType errCode) {
 
 // An integer literal's value from its digits, as its low 32 bits: the
 // whole-number rule the FIT and CSV readers follow (wholeNumberLow32).
-// The 2001 build went through the literal's float and _ftol (64 bits, low
-// 32 kept), which gives the same for every literal in the stock, Omnitech
-// and mod-pack scripts: 4278190080 (fadeToColor in mc2_01, mc2_08, mc2_17,
-// mc2_18, multiplayer) is 0xFF000000, and no other literal there is past
-// 2^24, where a float stops holding whole numbers exactly (16356 scripts
-// checked, 2026-11-12). A plain (int) cast of a float past the int range
-// was undefined: INT_MIN on x86-64, INT_MAX on ARM.
+// This is a deliberate change from 2001, which went through the literal's
+// float and _ftol (64 bits, low 32 kept): a literal past 2^24 that a float
+// cannot hold was rounded (16777217 gave 16777216), and one past 2^63 gave
+// 0; it is exact now, wrapping past 2^64. No script compiles differently:
+// in the stock, Omnitech and mod-pack scripts (16356 checked, 2026-11-12)
+// the only literal past 2^24 is 4278190080 (fadeToColor in mc2_01, mc2_08,
+// mc2_17, mc2_18, multiplayer), which a float holds exactly, and which is
+// still 0xFF000000. A plain (int) cast of a float past the int range, as
+// the port had, was undefined: INT_MIN on x86-64, INT_MAX on ARM.
 int ablIntegerLiteral (const char* digits) {
 
 	return((int)(int32_t)wholeNumberLow32(digits));

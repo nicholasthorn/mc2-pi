@@ -436,7 +436,7 @@ TypePtr execSimpleExpression (void) {
 	// If there was a unary -, negate the top of the stack...
 	if (unaryOp == TKN_MINUS) {
 		if (resultTypePtr == IntegerTypePtr)
-			tos->integer = -(tos->integer);
+			tos->integer = (int)(0u - (unsigned int)tos->integer);	// INT_MIN stays INT_MIN, as on x86
 		else
 			tos->real = -(tos->real);
 	}

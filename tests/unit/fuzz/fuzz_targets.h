@@ -22,4 +22,11 @@ int fuzzCsvFile(const uint8_t* data, size_t size);
 int fuzzTga(const uint8_t* data, size_t size);
 int fuzzAblScript(const uint8_t* data, size_t size);
 
+// For unit tests (test_ablscan.cpp): compile source as fuzz.abl with the
+// target's setup (and its fuzzint, fuzzreal, fuzzname, fuzzorder, fuzznone
+// functions) and leave the module loaded. Returns its handle, or -1 when the
+// script is rejected (cleaned up then). ablTestClose tears ABL down again.
+long ablTestCompile(const char* source);
+void ablTestClose();
+
 #endif // MC2_FUZZ_TARGETS_H

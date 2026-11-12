@@ -241,7 +241,9 @@ void doConst (SymTableNodePtr constantIdPtr) {
 			if (sign == TKN_PLUS)
 				constantIdPtr->defn.info.constant.value.integer = curLiteral.value.integer;
 			else
-				constantIdPtr->defn.info.constant.value.integer = -(curLiteral.value.integer);
+				// through unsigned: -2147483648 scans as INT_MIN, whose int negation
+				// overflows; this wraps it back to INT_MIN, as x86 did
+				constantIdPtr->defn.info.constant.value.integer = (int)(0u - (unsigned int)curLiteral.value.integer);
 			constantIdPtr->typePtr = setType(IntegerTypePtr);
 			}
 		else {
@@ -267,7 +269,7 @@ void doConst (SymTableNodePtr constantIdPtr) {
 			if (sign == TKN_PLUS)
 				constantIdPtr->defn.info.constant.value.integer = idPtr->defn.info.constant.value.integer;
 			else
-				constantIdPtr->defn.info.constant.value.integer = -(idPtr->defn.info.constant.value.integer);
+				constantIdPtr->defn.info.constant.value.integer = (int)(0u - (unsigned int)idPtr->defn.info.constant.value.integer);
 			constantIdPtr->typePtr = setType(IntegerTypePtr);
 			}
 		else if (idPtr->typePtr == CharTypePtr) {

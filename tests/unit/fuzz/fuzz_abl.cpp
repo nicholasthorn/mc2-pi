@@ -197,3 +197,29 @@ int fuzzAblScript(const uint8_t* data, size_t size)
 	freeEverything();
 	return 0;
 }
+
+long ablTestCompile(const char* source)
+{
+	g_script.assign(source, source + strlen(source));
+	long handle = -1;
+	if (!fuzzGuarded([&handle] {
+			initAbl();
+			long numErrors = 0;
+			long numLines = 0;
+			long numFiles = 0;
+			handle = ABLi_preProcess("fuzz.abl", &numErrors, &numLines, &numFiles, false);
+		}))
+	{
+		freeEverything();
+		return -1;
+	}
+	if (handle < 0)
+		ablTestClose();
+	return handle;
+}
+
+void ablTestClose()
+{
+	fuzzGuarded([] { ABLi_close(); });
+	freeEverything();
+}
