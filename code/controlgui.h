@@ -302,7 +302,7 @@ class ControlGui
 		struct ChatInfo
 		{
 			char playerName[32];
-			char message[128];
+			char message[512];			// mission text messages run to 300 characters (Omnitech)
 			unsigned long backgroundColor;
 			unsigned long time;
 			unsigned long messageLength; // number of lines

@@ -3030,16 +3030,18 @@ void ControlGui::setChatText( const char* playerName, const char* message, unsig
 
 	i = MAX_CHAT_COUNT - 1;
 
-	gosASSERT( strlen( message ) < 128 );
-	gosASSERT( strlen( playerName ) < 32 );
+	gosASSERT( strlen( message ) < sizeof( chatInfos[i].message ) );
+	gosASSERT( strlen( playerName ) < sizeof( chatInfos[i].playerName ) );
 
 	chatInfos[i].backgroundColor = color;
-	strcpy( chatInfos[i].message, message );
-	strcpy( chatInfos[i].playerName, playerName );
+	// bounded: a mission's text message can be longer than the buffer (an Omnitech
+	// one is 299 characters), and strcpy wrote past it (Android stopped the game)
+	snprintf( chatInfos[i].message, sizeof( chatInfos[i].message ), "%s", message );
+	snprintf( chatInfos[i].playerName, sizeof( chatInfos[i].playerName ), "%s", playerName );
 	chatInfos[i].time = scenarioTime;
 	chatInfos[i].chatTextColor = chatColor;
 
-	long totalHeight = chatEdit.font.height( message, chatEdit.width() );
+	long totalHeight = chatEdit.font.height( chatInfos[i].message, chatEdit.width() );	// as stored, cut if it was longer
 	long lineHeight = chatEdit.font.height( "A", chatEdit.width() );
 
 
