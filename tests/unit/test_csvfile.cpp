@@ -118,6 +118,33 @@ TEST_CASE("CSVFile opens a Buildings.csv-shaped fixture from disk")
 	CHECK(!csv.isOpen());
 }
 
+// As for FIT files: the low 32 bits on every platform (see test_file_inifile.cpp).
+TEST_CASE("CSV whole numbers past 32 bits read the same on every platform")
+{
+	const char* path = "csv_wide.csv";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	// a trailing column and row: the last of each cannot be read (countCols,
+	// countRows; the fixture ends in a comment row for the same reason)
+	fputs("Name,Value,End\ncolour,4278190080,x\nhex,0xFF000000,x\nneg,-16777216,x\n// end\n", fp);
+	fclose(fp);
+
+	CSVFile csv;
+	REQUIRE(csv.open(path) == NO_ERR);
+	for (DWORD row = 2; row <= 4; row++)
+	{
+		CAPTURE(row);
+		long l = 0;
+		CHECK(csv.readLong(row, 2, l) == NO_ERR);
+		CHECK(l == -16777216L);
+		unsigned long u = 0;
+		CHECK(csv.readULong(row, 2, u) == NO_ERR);
+		CHECK(u == 0xFF000000ul);
+	}
+	csv.close();
+	remove(path);
+}
+
 TEST_CASE("readString past the last record returns 1 (the initVariants break condition)")
 {
 	// logisticsdata.cpp scans rows until readString(i,4,...) != 0, so this

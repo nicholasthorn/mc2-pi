@@ -133,6 +133,46 @@ TEST_CASE("splitPathName: a long name is cut to the buffer") {
     CHECK(std::strcmp(untouched, "abc") == 0);
 }
 
+// FIT and CSV whole numbers: the value's low 32 bits on every platform. atol
+// into a long kept 4278190080 whole where long is 64-bit (Linux, Pi, Quest)
+// and clamped it to LONG_MAX on Windows.
+TEST_CASE("wholeNumberLow32: decimals, signs and the 32-bit edges") {
+    CHECK(wholeNumberLow32("0") == 0u);
+    CHECK(wholeNumberLow32("42") == 42u);
+    CHECK(wholeNumberLow32("+42") == 42u);
+    CHECK(wholeNumberLow32("  -7") == (uint32_t)-7);
+    CHECK((int32_t)wholeNumberLow32("2147483647") == 2147483647);
+    CHECK((int32_t)wholeNumberLow32("-2147483648") == (int32_t)0x80000000u);
+    CHECK(wholeNumberLow32("4278190080") == 0xFF000000u);
+    CHECK((int32_t)wholeNumberLow32("-16777216") == -16777216);
+    CHECK((int32_t)wholeNumberLow32("4278190080") == -16777216);
+}
+
+TEST_CASE("wholeNumberLow32: hex keeps its last eight digits, as the readers did") {
+    CHECK(wholeNumberLow32("0xFF000000") == 0xFF000000u);
+    CHECK(wholeNumberLow32("0xff123456") == 0xFF123456u);
+    CHECK(wholeNumberLow32("0x7f") == 0x7Fu);
+    CHECK(wholeNumberLow32("0x123456789A") == 0x3456789Au);
+    CHECK(wholeNumberLow32("0x") == 0u);
+}
+
+TEST_CASE("wholeNumberLow32: past 64 bits, still the low 32 bits of the value") {
+    // 2^64 + 5 and 2^70 + 0x1234: multiples of 2^32 drop out
+    CHECK(wholeNumberLow32("18446744073709551621") == 5u);
+    CHECK(wholeNumberLow32("1180591620717411308084") == 0x1234u);
+    CHECK(wholeNumberLow32("0x123456789ABCDEF0123456789A") == 0x3456789Au);
+}
+
+TEST_CASE("wholeNumberLow32: stops at the first character that is not a digit") {
+    CHECK(wholeNumberLow32("350 // scan range") == 350u);
+    CHECK(wholeNumberLow32("12abc") == 12u);
+    CHECK(wholeNumberLow32("0xFFzz // comment") == 0xFFu);
+    CHECK(wholeNumberLow32("-") == 0u);
+    CHECK(wholeNumberLow32("") == 0u);
+    CHECK(wholeNumberLow32(nullptr) == 0u);
+    CHECK(wholeNumberLow32("abc") == 0u);
+}
+
 static void formatLine(char* out, size_t size, const char* header, const char* fmt, ...)
 {
     va_list ap;

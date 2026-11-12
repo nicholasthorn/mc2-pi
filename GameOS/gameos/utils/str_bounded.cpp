@@ -91,6 +91,39 @@ void copyBounded(char* dest, size_t destSize, const char* src)
     dest[n] = '\0';
 }
 
+uint32_t wholeNumberLow32(const char* text)
+{
+    if (!text)
+        return 0;
+    // Unsigned arithmetic wraps mod 2^64, a multiple of 2^32, so the low 32
+    // bits come out right however many digits there are.
+    uint64_t value = 0;
+    const char* hex = std::strstr(text, "0x");
+    if (hex)
+    {
+        for (const char* p = hex + 2; std::isxdigit(static_cast<unsigned char>(*p)); ++p)
+        {
+            const int c = std::toupper(static_cast<unsigned char>(*p));
+            value = value * 16 + static_cast<uint64_t>(c <= '9' ? c - '0' : c - 'A' + 10);
+        }
+        return static_cast<uint32_t>(value);
+    }
+    const char* p = text;
+    while (std::isspace(static_cast<unsigned char>(*p)))
+        ++p;
+    bool negative = false;
+    if (*p == '+' || *p == '-')
+    {
+        negative = (*p == '-');
+        ++p;
+    }
+    for (; *p >= '0' && *p <= '9'; ++p)
+        value = value * 10 + static_cast<uint64_t>(*p - '0');
+    if (negative)
+        value = 0 - value;
+    return static_cast<uint32_t>(value);
+}
+
 void splitPathName(const char* path, char* name, size_t nameSize)
 {
     if (!name || nameSize == 0)

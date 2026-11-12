@@ -29,6 +29,7 @@
 
 //#ifndef _MBCS
 #include<gameos.hpp>
+#include<utils/str_bounded.h>
 //#else
 //#include<assert.h>
 //#define gosASSERT assert
@@ -205,313 +206,44 @@ float CSVFile::textToFloat (char *num)
 //---------------------------------------------------------------------------
 long CSVFile::textToLong (char *num)
 {
-	long result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		// a 32-bit value holds eight hex digits: past that the shift was undefined
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-
-	
-	return(result);
+	// Every whole-number reader goes through wholeNumberLow32 (str_bounded.h),
+	// so a value reads the same on every platform: atol into a long kept
+	// 4278190080 whole where long is 64-bit and clamped it on Windows.
+	return((long)(int32_t)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 short CSVFile::textToShort (char *num)
 {
-	short result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((short)(int16_t)(uint16_t)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 char CSVFile::textToChar (char *num)
 {
-	char result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((char)(int8_t)(uint8_t)wholeNumberLow32(num));
 }
 
 //---------------------------------------------------------------------------
 unsigned long CSVFile::textToULong (char *num)
 {
-	unsigned long result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((unsigned long)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 unsigned short CSVFile::textToUShort (char *num)
 {
-	unsigned short result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((unsigned short)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 unsigned char CSVFile::textToUChar (char *num)
 {
-	unsigned char result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((unsigned char)wholeNumberLow32(num));
 }
 
 //---------------------------------------------------------------------------

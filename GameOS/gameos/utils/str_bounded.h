@@ -3,6 +3,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <cstdint>
 
 // Small string helpers kept GL- and SDL-free so they can be unit tested.
 
@@ -41,6 +42,15 @@ template <size_t N> inline void appendBounded(char (&dest)[N], const char* src)
 // slash) and no extension (from the last dot of the name). Cut to fit name,
 // a buffer of nameSize bytes; _splitpath itself writes as much as it finds.
 void splitPathName(const char* path, char* name, size_t nameSize);
+
+// A whole number in FIT and CSV text, as its low 32 bits: the same on every
+// platform, where atol into a long kept 4278190080 whole on 64-bit Linux and
+// clamped it to LONG_MAX on Windows. Hex when the text holds "0x" (anywhere,
+// as the readers looked for it), else decimal after spaces and a sign. Stops
+// at the first character that is not a digit (a comment, say). The digits are
+// accumulated exactly, wrapping, so even past 64 bits the result is the
+// value's low 32 bits; a reader narrows it to its type, as before.
+uint32_t wholeNumberLow32(const char* text);
 
 // Formats a log line, "<header>: <message>\n", into out (outSize bytes). A
 // long message is cut, but the line always ends in a newline (added when the

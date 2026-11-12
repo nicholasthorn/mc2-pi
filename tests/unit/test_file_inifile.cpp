@@ -249,6 +249,39 @@ TEST_CASE("File::readLine and readLineEx keep a long line inside maxLength")
 	remove(path);
 }
 
+// A whole number past the signed 32-bit range read the same on no two
+// platforms: atol into a 64-bit long kept 4278190080 whole on Linux, and
+// clamped it to LONG_MAX on Windows. Now it is its low 32 bits everywhere.
+TEST_CASE("FitIniFile whole numbers past 32 bits read the same on every platform")
+{
+	const char* path = "inifile_wide.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[B]\nl Colour = 4278190080\nl Hex = 0xFF000000\nl Neg = -16777216 // black\n"
+		  "ul Mask = 4278190080\nl Max = 2147483647\nl Min = -2147483648\nFITend\n", fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	REQUIRE(fit.seekBlock("B") == NO_ERR);
+	long l = 0;
+	CHECK(fit.readIdLong("Colour", l) == NO_ERR);
+	CHECK(l == -16777216L);
+	CHECK(fit.readIdLong("Hex", l) == NO_ERR);
+	CHECK(l == -16777216L);
+	CHECK(fit.readIdLong("Neg", l) == NO_ERR);
+	CHECK(l == -16777216L);
+	CHECK(fit.readIdLong("Max", l) == NO_ERR);
+	CHECK(l == 2147483647L);
+	CHECK(fit.readIdLong("Min", l) == NO_ERR);
+	CHECK(l == -2147483647L - 1);
+	DWORD u = 0;
+	CHECK(fit.readIdULong("Mask", u) == NO_ERR);
+	CHECK(u == 0xFF000000u);
+	fit.close();
+	remove(path);
+}
+
 TEST_CASE("File::getMemoryView is NULL for a disk file")
 {
 	File f;
