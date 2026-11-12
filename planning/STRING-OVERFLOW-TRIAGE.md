@@ -104,6 +104,10 @@ Every rewritten `snprintf(x, sizeof(x), ...)` was compiled with
   9)`, so an element of 10 or more characters (`0xFF000000`) loses its end.
   No stock or Omnitech array has one (10621 array lines, 2026-11-12), so it is
   left; a mod writing a full hex colour into an array would hit it.
+- The ABL VM's integer +, - and * overflow as signed int on script values, and
+  `round()` casts a float past the int range: undefined behaviour, the same
+  class as the unary minus fixed here (which now wraps). No stock script is
+  known to reach it; a wrapping helper for the VM's integer ops would cover it.
 - ABL exponent literals (`1e3`) never compile: `getNumber` reads the
   exponent's sign or digits without first taking the `e` (`ablscan.cpp`). No
   script here uses one.

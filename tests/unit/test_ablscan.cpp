@@ -31,6 +31,19 @@ SymTableNodePtr findConstant(long handle, const char* name)
 	return searchSymTable(name, table);
 }
 
+// Compiles source and tears ABL down when it goes out of scope, so a failed
+// REQUIRE does not leave the module allocated.
+struct AblCompiled
+{
+	long handle;
+	explicit AblCompiled(const char* source) : handle(ablTestCompile(source)) {}
+	~AblCompiled()
+	{
+		if (handle >= 0)
+			ablTestClose();
+	}
+};
+
 } // namespace
 
 TEST_SUITE("AblScan")
@@ -75,7 +88,8 @@ TEST_CASE("literals compiled from source text")
 		"\t\tx = 4278190080;\n"
 		"\t\treturn(x);\n"
 		"endmodule.\n";
-	const long handle = ablTestCompile(source);
+	AblCompiled compiled(source);
+	const long handle = compiled.handle;
 	REQUIRE(handle >= 0);
 	SymTableNodePtr big = findConstant(handle, "big");
 	SymTableNodePtr exact = findConstant(handle, "exact");
@@ -90,7 +104,6 @@ TEST_CASE("literals compiled from source text")
 	// -2147483648 scans as INT_MIN and is negated: through unsigned, no overflow
 	CHECK((uint32_t)lowest->defn.info.constant.value.integer == 0x80000000u);
 	CHECK(half->defn.info.constant.value.real == doctest::Approx(1.5f));
-	ablTestClose();
 }
 
 TEST_CASE("a call with no return value is the wrong type in an assignment or value parameter")
@@ -104,7 +117,7 @@ TEST_CASE("a call with no return value is the wrong type in an assignment or val
 		"\t\ts = fuzznone;\n"
 		"\t\treturn(0);\n"
 		"endmodule.\n";
-	CHECK(ablTestCompile(assign) == -1);
+	CHECK(AblCompiled(assign).handle == -1);
 
 	const char* valParam =
 		"module M : integer;\n"
@@ -115,7 +128,7 @@ TEST_CASE("a call with no return value is the wrong type in an assignment or val
 		"\tcode\n"
 		"\t\treturn(takes(fuzznone));\n"
 		"endmodule.\n";
-	CHECK(ablTestCompile(valParam) == -1);
+	CHECK(AblCompiled(valParam).handle == -1);
 }
 
 } // TEST_SUITE("AblScan")
