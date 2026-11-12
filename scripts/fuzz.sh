@@ -15,6 +15,7 @@
 #
 # usage: scripts/fuzz.sh --build-dir DIR [--seconds N] [--corpus-dir DIR]
 #                        [--out-dir DIR] [--minimize] [target...]
+#   --corpus-dir, --out-dir default to fuzz-corpus/ and fuzz-out/ in the build dir
 #   targets: fit csv tga abl (default: all four)
 
 set -u
@@ -22,8 +23,8 @@ set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
 build_dir=""
 seconds=300
-corpus_dir="fuzz-corpus"
-out_dir="fuzz-out"
+corpus_dir=""
+out_dir=""
 minimize=0
 targets=()
 
@@ -34,7 +35,7 @@ while [ $# -gt 0 ]; do
 		--corpus-dir) corpus_dir="$2"; shift 2 ;;
 		--out-dir)    out_dir="$2"; shift 2 ;;
 		--minimize)   minimize=1; shift ;;
-		-h|--help)    sed -n '2,19p' "$0"; exit 0 ;;
+		-h|--help)    sed -n '2,20p' "$0"; exit 0 ;;
 		-*)           echo "fuzz.sh: unknown option $1" >&2; exit 2 ;;
 		*)            targets+=("$1"); shift ;;
 	esac
@@ -45,6 +46,9 @@ if [ -z "$build_dir" ]; then
 	exit 2
 fi
 bin_dir="$build_dir/out/tests/unit"
+# by default under the build directory, out of the source tree
+[ -z "$corpus_dir" ] && corpus_dir="$build_dir/fuzz-corpus"
+[ -z "$out_dir" ] && out_dir="$build_dir/fuzz-out"
 seeds_dir="$root/tests/unit/fuzz"
 for t in "${targets[@]}"; do
 	if [ ! -x "$bin_dir/mc2_fuzz_$t" ]; then

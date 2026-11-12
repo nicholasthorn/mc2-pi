@@ -100,6 +100,13 @@ Every rewritten `snprintf(x, sizeof(x), ...)` was compiled with
   and an insignia name longer than `insigniaFile[35]` is left off the list
   (no stock or Omnitech map or insignia comes close). A mech csv path longer
   than `MoverInitData::csvFileName[50]` is still cut, so fails to load.
+- FIT array readers copy each element with `getNextWord(..., elementString,
+  9)`, so an element of 10 or more characters (`0xFF000000`) loses its end.
+  No stock or Omnitech array has one (10621 array lines, 2026-11-12), so it is
+  left; a mod writing a full hex colour into an array would hit it.
+- ABL exponent literals (`1e3`) never compile: `getNumber` reads the
+  exponent's sign or digits without first taking the `e` (`ablscan.cpp`). No
+  script here uses one.
 - Dead code (cmponent.cpp's saveEXCEL, the ABL debugger, `#if 0` blocks) was
   not touched.
 

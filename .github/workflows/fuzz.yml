@@ -21,15 +21,21 @@ on:
     - cron: "30 2 * * *"
   pull_request:
     paths:
+      # the targets, the readers they fuzz and what those are built from
       - "tests/unit/fuzz/**"
       - "tests/unit/heap_shim.cpp"
-      - "mclib/file.cpp"
-      - "mclib/inifile.cpp"
-      - "mclib/csvfile.cpp"
-      - "mclib/tgainfo.cpp"
-      - "mclib/abl*.cpp"
-      - "mclib/abl*.h"
-      - "GameOS/gameos/utils/Image.cpp"
+      - "tests/unit/CMakeLists.txt"
+      - "mclib/file.*"
+      - "mclib/ffile.*"
+      - "mclib/fastfile.*"
+      - "mclib/packet.*"
+      - "mclib/lz*"
+      - "mclib/inifile.*"
+      - "mclib/csvfile.*"
+      - "mclib/tgainfo.*"
+      - "mclib/abl*"
+      - "GameOS/gameos/utils/Image.*"
+      - "GameOS/gameos/utils/str_bounded.*"
       - "scripts/fuzz.sh"
       - ".github/workflows/fuzz.yml"
   workflow_dispatch:
@@ -42,9 +48,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces its run; a nightly or manual run
+# is never cancelled (it would save a partial corpus), a second one waits.
 concurrency:
-  group: fuzz-${{ github.ref }}
-  cancel-in-progress: true
+  group: fuzz-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || 'corpus' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   fuzz:
@@ -90,10 +98,11 @@ jobs:
           esac
           bash scripts/fuzz.sh --build-dir build --seconds "$seconds" \
             --corpus-dir fuzz-corpus --out-dir fuzz-out --minimize
-      # Kept even when a target found something, so the night's coverage is
-      # not lost; pull requests do not overwrite the nightly corpus.
+      # Kept when a target found something, so the night's coverage is not
+      # lost, but not from a cancelled run; pull requests do not overwrite
+      # the nightly corpus.
       - name: Save corpus
-        if: always() && github.event_name != 'pull_request'
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
         uses: actions/cache/save@v6
         with:
           path: fuzz-corpus
