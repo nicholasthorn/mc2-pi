@@ -715,7 +715,7 @@ int32_t ABLi_preProcess (const char* sourceFileName, long* numErrors, long* numL
 	ifTokenGetElseError(TKN_PERIOD, ABL_ERR_SYNTAX_MISSING_PERIOD);
 
 	while (curToken != TKN_EOF) {
-		syntaxError(TKN_UNEXPECTED_TOKEN);
+		syntaxError(ABL_ERR_SYNTAX_UNEXPECTED_TOKEN);	// was the token code of that name
 		getToken();
 	}
 
@@ -1433,6 +1433,9 @@ SymTableNodePtr functionHeader (void) {
 			syntaxError(ABL_ERR_SYNTAX_REDEFINED_IDENTIFIER);
 		getToken();
 	}
+	else
+		// "function" with no name: the code below needs functionIdPtr
+		syntaxError(ABL_ERR_SYNTAX_MISSING_IDENTIFIER);
 
 	//---------------------
 	// Error synchronize...

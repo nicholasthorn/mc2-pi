@@ -61,6 +61,8 @@ void stdReturn (void) {
 
 	if (curToken == TKN_LPAREN) {
 		getToken();
+		// A call to a function with no return type gives a NULL type: an
+		// argument like that is the wrong type, not a NULL to read through.
 		TypePtr paramType = expression();
 		if (paramType != CurRoutineIdPtr->typePtr)
 			syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
@@ -89,7 +91,7 @@ void stdPrint (void) {
 	if ((paramType != IntegerTypePtr) &&
 		(paramType != RealTypePtr) &&
 		(paramType != CharTypePtr) &&
-		((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr)))
+		((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr)))
 		syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 	ifTokenGetElseError(TKN_RPAREN, ABL_ERR_SYNTAX_MISSING_RPAREN);
 }
@@ -112,7 +114,7 @@ TypePtr stdConcat (void) {
 		syntaxError(ABL_ERR_SYNTAX_WRONG_NUMBER_OF_PARAMS);
 
 	TypePtr paramType = expression();
-	if ((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr))
+	if ((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr))
 		syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 	ifTokenGetElseError(TKN_COMMA, ABL_ERR_SYNTAX_MISSING_COMMA);
 
@@ -121,7 +123,7 @@ TypePtr stdConcat (void) {
 		(paramType != RealTypePtr) &&
 		(paramType != CharTypePtr) &&
 		(paramType != BooleanTypePtr) &&
-		((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr)))
+		((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr)))
 		syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 		
 	ifTokenGetElseError(TKN_RPAREN, ABL_ERR_SYNTAX_MISSING_RPAREN);
@@ -141,7 +143,7 @@ TypePtr stdGetStateHandle (void) {
 	EnterStateSymbol = true;
 	TypePtr paramType = expression();
 	EnterStateSymbol = false;
-	if ((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr))
+	if ((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr))
 		syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 
 	ifTokenGetElseError(TKN_RPAREN, ABL_ERR_SYNTAX_MISSING_RPAREN);
@@ -204,19 +206,19 @@ TypePtr standardRoutineCall (SymTableNodePtr routineIdPtr) {
 								syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 							break;
 						case PARAM_TYPE_CHAR_ARRAY:
-							if ((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr))
+							if ((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != CharTypePtr))
 								syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 							break;
 						case PARAM_TYPE_INTEGER_ARRAY:
-							if ((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != IntegerTypePtr))
+							if ((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != IntegerTypePtr))
 								syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 							break;
 						case PARAM_TYPE_REAL_ARRAY:
-							if ((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != RealTypePtr))
+							if ((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != RealTypePtr))
 								syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 							break;
 						case PARAM_TYPE_BOOLEAN_ARRAY:
-							if ((paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != BooleanTypePtr))
+							if ((!paramType) || (paramType->form != FRM_ARRAY) || (paramType->info.array.elementTypePtr != BooleanTypePtr))
 								syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 							break;
 					}

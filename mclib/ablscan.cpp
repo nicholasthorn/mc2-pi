@@ -493,7 +493,9 @@ long ABLFile::writeString (const char* buffer) {
 
 inline CharCodeType calcCharCode (long ch) {
 
-	return(charTable[ch]);
+	// char is signed: a byte over 127 in a script (an accented letter)
+	// indexed before the table; all 256 entries are set
+	return(charTable[(unsigned char)ch]);
 }
 
 //***************************************************************************
@@ -585,10 +587,12 @@ void skipBlockComment (void) {
 	DumbGetCharOn = true;
 	getChar();
 	getChar();
+	// CHAR_EOF, the character getChar gives at the end, not CHR_EOF, its
+	// class: an unclosed comment looped here for ever
 	do {
-		while ((curChar != '*') && (curChar != CHR_EOF))
+		while ((curChar != '*') && (curChar != CHAR_EOF))
 			getChar();
-		if (curChar == CHR_EOF) {
+		if (curChar == CHAR_EOF) {
 			syntaxError(ABL_ERR_SYNTAX_UNEXPECTED_EOF);
 			curToken = TKN_ERROR;
 		}
@@ -748,7 +752,8 @@ void languageDirective (void) {
 			getChar();
 //			getChar();
 			do {
-				while ((curChar != '#') && (curChar != CHR_EOF))
+				// CHAR_EOF, as in skipBlockComment: an unclosed #debug_start looped
+				while ((curChar != '#') && (curChar != CHAR_EOF))
 					getChar();
 				if (curChar == '#') {
 					char directive2[32];
@@ -767,7 +772,7 @@ void languageDirective (void) {
 							stillCutting = false;
 					}
 					}
-				else if (curChar == CHR_EOF) {
+				else if (curChar == CHAR_EOF) {
 					syntaxError(ABL_ERR_SYNTAX_UNEXPECTED_EOF);
 					curToken = TKN_ERROR;
 					}
@@ -925,7 +930,8 @@ void getWord (void) {
 		TokenCodeType endToken = TKN_END_MODULE;
 		if (CurLibrary)
 			endToken = TKN_END_LIBRARY;
-		else if (CurModuleIdPtr->defn.info.routine.flags & ROUTINE_FLAG_FSM)
+		// no module yet when a script opens with "word."
+		else if (CurModuleIdPtr && (CurModuleIdPtr->defn.info.routine.flags & ROUTINE_FLAG_FSM))
 			endToken = TKN_END_FSM;
 		//-------------------------------------------------------------------
 		// If we have an "endmodule" string, stop. Otherwise, keep reading...
@@ -1058,6 +1064,14 @@ void getNumber (void) {
 //			curToken = TKN_ERROR;
 //			return;
 //		}
+		// numberValue is a float, so this can be true: a literal past the int
+		// range made the cast below undefined
+		if ((numberValue < -2147483648.0f) || (numberValue >= 2147483648.0f))
+		{
+			syntaxError(ABL_ERR_SYNTAX_INTEGER_OUT_OF_RANGE);
+			curToken = TKN_ERROR;
+			return;
+		}
 		curLiteral.value.integer = (int)numberValue;
 		}
 	else

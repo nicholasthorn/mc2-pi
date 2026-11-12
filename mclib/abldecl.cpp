@@ -260,6 +260,9 @@ void doConst (SymTableNodePtr constantIdPtr) {
 			syntaxError(ABL_ERR_SYNTAX_UNDEFINED_IDENTIFIER);
 		else if (idPtr->defn.key != DFN_CONST)
 			syntaxError(ABL_ERR_SYNTAX_NOT_A_CONSTANT_IDENTIFIER);
+		// the constant being defined ("LIMIT = LIMIT") has no type yet
+		else if (!idPtr->typePtr)
+			syntaxError(ABL_ERR_SYNTAX_INVALID_CONSTANT);
 		else if (idPtr->typePtr == IntegerTypePtr) {
 			if (sign == TKN_PLUS)
 				constantIdPtr->defn.info.constant.value.integer = idPtr->defn.info.constant.value.integer;
