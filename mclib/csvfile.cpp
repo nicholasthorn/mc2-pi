@@ -228,17 +228,18 @@ long CSVFile::textToLong (char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		// a 32-bit value holds eight hex digits: past that the shift was undefined
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -281,17 +282,17 @@ short CSVFile::textToShort (char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -333,17 +334,17 @@ char CSVFile::textToChar (char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -384,17 +385,17 @@ unsigned long CSVFile::textToULong (char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -436,17 +437,17 @@ unsigned short CSVFile::textToUShort (char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{
@@ -488,17 +489,17 @@ unsigned char CSVFile::textToUChar (char *num)
 		}
 		numDigits = strlen(hexOffset)-1;
 		long power = 0;
-		for (long count = numDigits;count >= 0;count--,power++)
+		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
 		{
 			unsigned char currentDigit = toupper(hexOffset[count]);
 			
 			if (currentDigit >= 'A' && currentDigit <= 'F')
 			{
-				result += (currentDigit - 'A' + 10)<<(4*power);
+				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
 			}
 			else if (currentDigit >= '0' && currentDigit <= '9')
 			{
-				result += (currentDigit - '0')<<(4*power);
+				result += (unsigned long)(currentDigit - '0')<<(4*power);
 			}
 			else
 			{

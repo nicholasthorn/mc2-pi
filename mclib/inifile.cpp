@@ -1374,6 +1374,13 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 	// Find starting Quote
 	while (*src != '"')
 	{
+		// a value with no quote ("l Value = 4" read as a string)
+		if (*src == '\0')
+		{
+			if (bufLen)
+				dest[0] = '\0';
+			return(DATA_NOT_CORRECT_TYPE);
+		}
 		src++;
 	}
 	
@@ -1588,7 +1595,7 @@ long FitIniFile::readIdFloatArray (const char *varName, float *result, unsigned 
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1686,7 +1693,7 @@ long FitIniFile::readIdIntArray (const char *varName, int *result, unsigned int 
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1783,7 +1790,7 @@ long FitIniFile::readIdLongArray (const char *varName, long *result, unsigned lo
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1880,7 +1887,7 @@ long FitIniFile::readIdULongArray (const char *varName, unsigned long *result, u
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1977,7 +1984,7 @@ long FitIniFile::readIdShortArray (const char *varName, short *result, unsigned 
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2074,7 +2081,7 @@ long FitIniFile::readIdUShortArray (const char *varName, unsigned short *result,
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2171,7 +2178,7 @@ long FitIniFile::readIdCharArray (const char *varName, char *result, unsigned lo
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2268,7 +2275,7 @@ long FitIniFile::readIdUCharArray (const char *varName, unsigned char *result, u
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2365,7 +2372,7 @@ unsigned long FitIniFile::getIdFloatArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2420,7 +2427,7 @@ unsigned long FitIniFile::getIdLongArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2475,7 +2482,7 @@ unsigned long FitIniFile::getIdULongArrayElements (const char *varName)
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2530,7 +2537,7 @@ unsigned long FitIniFile::getIdShortArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2585,7 +2592,7 @@ unsigned long FitIniFile::getIdUShortArrayElements (const char *varName)
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2640,7 +2647,7 @@ unsigned long FitIniFile::getIdCharArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2695,7 +2702,7 @@ unsigned long FitIniFile::getIdUCharArrayElements (const char *varName)
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);

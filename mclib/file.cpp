@@ -1199,7 +1199,8 @@ long File::readLine (MemoryPtr buffer, long maxLength)
 			if ( logicalPosition > fileSize() )
 				return READ_PAST_EOF_ERR;
 
-			if( readAddress[i]=='\n' )
+			// skip the LF of a CRLF, if the file goes on that far
+			if( logicalPosition < fileSize() && readAddress[i]=='\n' )
 				logicalPosition+=1;
 		}
 		else
