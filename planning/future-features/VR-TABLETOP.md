@@ -966,7 +966,7 @@ day: small text was blamed on the layout when it was the frame. In a headset:
 |---|---|---|---|
 | **Layout**: the game screen the interface is laid out on | `Environment.screenWidth/Height`, from `options.cfg` through `vr_eye::fitInterfaceResolution` | how large text and buttons are *on the panel* (a 1280 layout's text is a smaller share of the panel than an 800 layout's) | 1280x960 |
 | **Frame**: the pixels the interface is drawn into, copied to the panel | `Environment.drawableWidth/Height`, the window's surface (`gosRenderer::handleEvents`, `gos_xr::present`) | how *sharp* it is; not its layout or size | 3664x1920, the headset's surface |
-| **Panel**: the quad in the world | `MC2_XR_HUD=distance,degrees,width`, button A + left stick; height from the layout's shape (`quadHeight`) | how large *everything* on it looks | 2.0 m wide, 1.5 m away |
+| **Panel**: the quad in the world | `MC2_XR_HUD=distance,degrees,width`, button A + left stick, for the HUD's 1280 layout; any other layout's panel is scaled by its width (`vr_eye::panelWidth`), height from the layout's shape (`quadHeight`) | how large *everything* on it looks | 2.0 m wide for the HUD, 1.25 m for an 800x600 menu, 1.5 m away |
 
 - `ResolutionX/Y` in `options.cfg` is only an input to the layout: the log line
   `[VR] saved resolution AxB: the interface runs at CxD` reports the layout.
@@ -977,6 +977,14 @@ day: small text was blamed on the layout when it was the frame. In a headset:
   headset off and on, so the same layout looked blurred, then sharp.
 - To make text larger: a smaller layout (1024x768) or a wider panel. To make
   it sharper: more frame pixels. These are independent.
+- Menus do not go through the layout fit: they run at the front end's own size
+  (800x600 on stock data, 1280x1024 on Omnitech's), and the results screens at
+  800x600 (1024x768 on Omnitech). Their layouts are fixed pixel positions for
+  that size and their art and fonts are bitmaps made for it, so the size cannot
+  simply be raised. Until `vr-interface-scale` (2026-11-11) every screen filled
+  the same 2.0 m panel, so an 800x600 menu's pixels were 1.6 times as large as
+  the HUD's: coarser, with larger text. Now a layout pixel is the same size on
+  every screen and the panel follows the layout's width.
 - The frame's pixels cost GPU time each time the interface is redrawn. Quest 2,
   mc2_19 bench at FogPos 75, alternated twice: 3664x1920 frame 70.2 / 69.9 fps,
   800x600 70.0 / 70.1 fps; render, interface (0.14 ms both) and headset wait
