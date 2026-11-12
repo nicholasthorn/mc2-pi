@@ -84,6 +84,13 @@ int fuzzFitFile(const uint8_t* data, size_t size)
 {
 	if (size == 0 || size > (1 << 20))
 		return 0;
+	// PLANTED for testing the fuzz job: remove
+	if (size >= 4 && memcmp(data, "BOOM", 4) == 0)
+	{
+		std::vector<char> small(4);
+		volatile char* p = small.data();
+		p[size + 8] = 1;
+	}
 	// exactly size bytes and no terminator, so a read past the end is seen
 	std::vector<char> image(data, data + size);
 
