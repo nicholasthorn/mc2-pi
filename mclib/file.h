@@ -182,6 +182,7 @@ class File
 			int readInt( void );
 
 			long readString (MemoryPtr buffer);
+			// up to maxLength chars, then a terminator: pass the buffer's size - 1
 			long readLine (MemoryPtr buffer, long maxLength);
 			long readLineEx (MemoryPtr buffer, long maxLength);
 

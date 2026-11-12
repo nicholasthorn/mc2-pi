@@ -1468,7 +1468,7 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 			char tmpLine[2047];
 			do
 			{
-				readLine((MemoryPtr)tmpLine,2047);
+				readLine((MemoryPtr)tmpLine,sizeof(tmpLine) - 1);
 				pFound = strstr( tmpLine, "\"" );
 
 				long addedLen = strlen( tmpLine ) + 1;

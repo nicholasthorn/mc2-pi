@@ -516,7 +516,7 @@ static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 	File pilotList;
 	if (pilotList.open(path) == NO_ERR) {
 		BYTE pilotName[256];
-		while (pilotList.readLine(pilotName, 256) >= 2) {
+		while (pilotList.readLine(pilotName, sizeof(pilotName) - 1) >= 2) {	// readLine terminates past maxLength
 			snprintf(path, sizeof(path), "%s%s.fit", warriorPath, (const char*)pilotName);
 			hash = netHashFile(hash, path, total);
 		}

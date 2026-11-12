@@ -193,9 +193,10 @@ TEST_CASE("FitIniFile reads a FIT through a memory-buffer parent")
 	mem.close();
 }
 
-// readLine and readLineEx wrote their terminator one (readLineEx: two) bytes
-// past maxLength, and callers pass their whole buffer: a line as long as the
-// buffer, in a FIT or an ABL script, overran it.
+// readLine writes up to maxLength characters and a terminator, so callers
+// pass sizeof - 1 (the few that passed their whole buffer now do too).
+// readLineEx wrote two bytes past maxLength, and its caller, the ABL
+// scanner, passes its whole buffer: it now stays inside maxLength.
 TEST_CASE("File::readLine and readLineEx keep a long line inside maxLength")
 {
 	static const char text[] = "abcdefghijkl\nxy";
@@ -225,7 +226,7 @@ TEST_CASE("File::readLine and readLineEx keep a long line inside maxLength")
 			if (ex)
 				f.readLineEx(buf, 8);
 			else
-				f.readLine(buf, 8);
+				f.readLine(buf, 7);	// up to maxLength chars and a terminator: callers pass sizeof - 1
 			CHECK(memchr(buf, 0, 8) != nullptr);
 			CHECK(buf[8] == 'x');
 			CHECK(buf[9] == 'x');

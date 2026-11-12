@@ -1174,11 +1174,6 @@ long File::readRAW (DWORD* &buffer, UserHeapPtr heap)
 long File::readLine (MemoryPtr buffer, long maxLength)
 {
 	long i = 0;
-
-	// Callers pass their whole buffer: keep its last byte for the terminator.
-	if (maxLength <= 0)
-		return 0;
-	maxLength--;
 	
 	if (inRAM && fileImage)
 	{
