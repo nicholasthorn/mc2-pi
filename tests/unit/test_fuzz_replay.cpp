@@ -183,7 +183,7 @@ void replay(const char* target, FuzzTarget fn, const std::vector<std::string>& t
 	// an input the reader takes runs again with leak checking on
 	struct Recheck
 	{
-		Recheck() { fuzzRecheckLeaks = true; }
+		Recheck() { fuzzRecheckLeaks = fuzzLeakChecksAvailable(); }
 		~Recheck() { fuzzRecheckLeaks = false; }
 	} recheck;
 	const int mutants = mutantsPerSeed();

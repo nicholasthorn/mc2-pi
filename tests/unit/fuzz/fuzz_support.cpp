@@ -27,6 +27,15 @@ extern void (*mc2TestStopHook)(const char* message);
 
 bool fuzzRecheckLeaks = false;
 
+bool fuzzLeakChecksAvailable()
+{
+#if defined(MC2_FUZZ_LSAN) && !defined(_MSC_VER)
+	return true;
+#else
+	return false;
+#endif
+}
+
 namespace
 {
 

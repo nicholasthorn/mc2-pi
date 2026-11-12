@@ -29,6 +29,8 @@ private:
 // so the first run, which cannot know which it will be, has leak checks off.)
 // libFuzzer runs leave it off: they run with -detect_leaks=0.
 extern bool fuzzRecheckLeaks;
+// True in an ASan build (where the recheck is worth running).
+bool fuzzLeakChecksAvailable();
 
 // Runs fn under a FuzzGuardScope. Returns false when the input was rejected.
 // Other exceptions (bad_alloc, a failed test assertion) pass through.

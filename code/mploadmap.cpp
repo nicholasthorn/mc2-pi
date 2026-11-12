@@ -188,6 +188,15 @@ void MPLoadMap::addFile( const char* pFileName, bool bSeedSingle )
 				if ( pExt )
 					*pExt = '\0';
 
+				// a network game sends the map's file name in missionSettings.map:
+				// one too long for it is left off the list (setMission refuses it too)
+				if ( !bSeedSingle && strlen( pFileName ) >= MAXLEN_MAP_NAME )
+				{
+					PAUSE(( "map file name %s is too long for a network game (%d characters at most)",
+						pFileName, MAXLEN_MAP_NAME - 1 ));
+					return;
+				}
+
 								
 				
 				aLocalizedListItem* pEntry = new aLocalizedListItem();
