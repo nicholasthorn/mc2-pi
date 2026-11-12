@@ -369,7 +369,7 @@ void TerrainObject::updateDebugWindow (GameDebugWindow* debugWindow) {
 		sprintf(s, "subAreas:");
 		for (long i = 0; i < numSubAreas0; i++) {
 			char tempStr[15];
-			sprintf(tempStr, " %d", subAreas0[i]);
+			snprintf(tempStr,sizeof(tempStr), " %d", subAreas0[i]);
 			appendBounded(s, tempStr);
 		}
 		appendBounded(s, " *");
@@ -1244,7 +1244,9 @@ void TerrainObject::CopyTo (TerrainObjectData *data)
 	data->listID = listID;
 
 	// cellsCovered holds 81 shorts, so 40 row/col pairs: the check counted
-	// shorts against pairs, and a footprint from map data can be 64 cells.
+	// shorts against pairs. A map's footprint can reach 64 cells; the stock
+	// maps' largest is 3 (every mission loaded, 2026-11-12), so this only
+	// cuts a mod's, which keeps a save from overrunning the struct.
 	const long maxCellsCovered = (long)(sizeof(data->cellsCovered) / (2 * sizeof(short)));
 	data->numCellsCovered = numCellsCovered;
 	if (numCellsCovered > maxCellsCovered)
