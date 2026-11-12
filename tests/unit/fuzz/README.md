@@ -18,7 +18,7 @@ Anything else must not crash or touch memory outside its buffers.
 ## In every unit-test run
 
 `test_fuzz_replay.cpp` runs each target on its seeds in `corpus/<target>/`
-(each must load cleanly, except those named `bad-*`) and on 150 fixed mutations of each. The mutations
+(each must be loaded: opened and parsed, compiled, or decoded; those named `bad-*` may be turned down) and on 150 fixed mutations of each. The mutations
 lean on long runs of one character, long lines, missing quotes and header
 fields at their extremes. CI runs it under ASan + UBSan with the other unit
 tests. `MC2_FUZZ_REPLAY_MUTANTS=5000` runs more, and

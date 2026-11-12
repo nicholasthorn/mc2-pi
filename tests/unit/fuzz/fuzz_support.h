@@ -14,11 +14,14 @@ struct FuzzRejected
 template <class Fn> bool fuzzGuarded(Fn fn);
 
 void fuzzBeginGuard();
-void fuzzEndGuard(bool accepted);
+void fuzzEndGuard();
 
-// How many inputs have been rejected so far: the replay test checks that its
-// seeds, unmutated, are accepted (a seed the engine turns down tests little).
-unsigned long fuzzRejections();
+// A target calls fuzzNoteLoaded when the reader took the input (the file
+// opened and parsed, the script compiled, the image loaded). The replay test
+// checks that each good seed is loaded: a seed the reader turns down or
+// fails to open tests little.
+void fuzzNoteLoaded();
+unsigned long fuzzLoads();
 
 template <class Fn> bool fuzzGuarded(Fn fn)
 {
@@ -32,7 +35,7 @@ template <class Fn> bool fuzzGuarded(Fn fn)
 	{
 		accepted = false;
 	}
-	fuzzEndGuard(accepted);
+	fuzzEndGuard();
 	return accepted;
 }
 

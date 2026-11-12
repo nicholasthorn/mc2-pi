@@ -94,6 +94,7 @@ int fuzzFitFile(const uint8_t* data, size_t size)
 		FuzzFit fit;
 		if (fit.open(&mem, (unsigned long)image.size()) == NO_ERR)
 		{
+			fuzzNoteLoaded();
 			for (unsigned long b = 0; b < fit.numBlocks(); b++)
 			{
 				char id[64];

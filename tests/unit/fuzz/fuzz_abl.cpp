@@ -187,7 +187,8 @@ int fuzzAblScript(const uint8_t* data, size_t size)
 		long numErrors = 0;
 		long numLines = 0;
 		long numFiles = 0;
-		ABLi_preProcess("fuzz.abl", &numErrors, &numLines, &numFiles, false);
+		if (ABLi_preProcess("fuzz.abl", &numErrors, &numLines, &numFiles, false) >= 0)
+			fuzzNoteLoaded();
 	});
 	// A compile cut short leaves ABL half built: skip its own teardown then,
 	// the next input sets it up afresh, and free what it had.

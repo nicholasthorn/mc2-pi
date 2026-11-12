@@ -1,9 +1,10 @@
 // tests/unit/fuzz/fuzz_csv.cpp: CSVFile over any bytes.
 //
 // Opens the input as a CSV file in memory (File's buffer open, then the CSV
-// parse CSVFile::open runs) and reads every cell (up to a cap)
-// with each typed reader, into string buffers both too small and roomy, as
-// the component, building and pilot tables are read.
+// parse CSVFile::open runs) and reads the cells (up to 16 x 16: each read
+// seeks from the start of the file) with each typed reader, into string
+// buffers both too small and roomy, as the component, building and pilot
+// tables are read.
 
 #include "fuzz_targets.h"
 #include "fuzz_support.h"
@@ -44,10 +45,11 @@ int fuzzCsvFile(const uint8_t* data, size_t size)
 		FuzzCsv csv;
 		if (csv.openImage(image.data(), (int)image.size()) == NO_ERR)
 		{
+			fuzzNoteLoaded();
 			// Rows and columns are 1-based; one past the end is read too, as
 			// logisticsdata.cpp scans until a read fails.
-			const DWORD rows = csv.rows() < 64 ? csv.rows() : 64;
-			const DWORD cols = csv.cols() < 32 ? csv.cols() : 32;
+			const DWORD rows = csv.rows() < 16 ? csv.rows() : 16;
+			const DWORD cols = csv.cols() < 16 ? csv.cols() : 16;
 			for (DWORD r = 1; r <= rows + 1; r++)
 			{
 				for (DWORD c = 1; c <= cols + 1; c++)

@@ -28,7 +28,7 @@ extern void (*mc2TestStopHook)(const char* message);
 namespace
 {
 
-unsigned long g_rejections = 0;
+unsigned long g_loads = 0;
 
 void throwRejected(const char*)
 {
@@ -48,15 +48,18 @@ void fuzzBeginGuard()
 	mc2TestStopHook = throwRejected;
 }
 
-void fuzzEndGuard(bool accepted)
+void fuzzEndGuard()
 {
-	if (!accepted)
-		g_rejections++;
 	mc2TestStopHook = nullptr;
 	MC2_LSAN_ENABLE();
 }
 
-unsigned long fuzzRejections()
+void fuzzNoteLoaded()
 {
-	return g_rejections;
+	g_loads++;
+}
+
+unsigned long fuzzLoads()
+{
+	return g_loads;
 }

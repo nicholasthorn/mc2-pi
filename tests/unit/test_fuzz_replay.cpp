@@ -174,10 +174,7 @@ int mutantsPerSeed()
 	return n < 0 ? 0 : n;
 }
 
-// seedsMustLoad: the TGA target also feeds each image to the terrain readers at
-// sizes it does not have, which turn it down, so only the others check it.
-void replay(const char* target, FuzzTarget fn, const std::vector<std::string>& tokens, uint32_t seed,
-	bool seedsMustLoad)
+void replay(const char* target, FuzzTarget fn, const std::vector<std::string>& tokens, uint32_t seed)
 {
 	const std::vector<Seed> seeds = seedsFor(target);
 	REQUIRE_MESSAGE(!seeds.empty(), "no corpus for ", target, " (fuzz_corpus.txt)");
@@ -186,11 +183,11 @@ void replay(const char* target, FuzzTarget fn, const std::vector<std::string>& t
 	for (const Seed& s : seeds)
 	{
 		INFO("seed ", s.name);
-		const unsigned long rejected = fuzzRejections();
+		const unsigned long loaded = fuzzLoads();
 		run(fn, s.bytes);
 		// a bad-* seed is a broken file kept from a crash: turning it down is fine
-		if (seedsMustLoad && s.name.find("/bad-") == std::string::npos)
-			CHECK_MESSAGE(fuzzRejections() == rejected, "the engine turned down seed ", s.name);
+		if (s.name.find("/bad-") == std::string::npos)
+			CHECK_MESSAGE(fuzzLoads() > loaded, "the reader did not load seed ", s.name);
 		for (int m = 0; m < mutants; m++)
 		{
 			std::vector<uint8_t> b = s.bytes;
@@ -213,20 +210,20 @@ TEST_CASE("FIT reader: corpus and mutations")
 	replay("fit", fuzzFitFile,
 		{ "FITini\n", "FITend\n", "[", "]", "\n[B]\n", "st Name = \"", "\"", "l Value = ", "f[3] Pos = ",
 		  "l[3] Ids = ", "b Flag = TRUE", "c S = ", "uc[2] Values = ", ",", " = ", "0x", "1e38", "-" },
-		0x1234567u, true);
+		0x1234567u);
 }
 
 TEST_CASE("CSV reader: corpus and mutations")
 {
 	replay("csv", fuzzCsvFile, { ",", "\"", "\r\n", "\n", ",,", "-2147483649", "1e38", "TRUE", "0x" },
-		0x2345678u, true);
+		0x2345678u);
 }
 
 TEST_CASE("TGA readers: corpus and mutations")
 {
 	replay("tga", fuzzTga, { std::string("\x00\x00\x0a", 3), std::string("\x00\x00\x02", 3),
 		std::string("\x00\x01\x01", 3), std::string("\xff\x7f", 2), std::string("\x80", 1) },
-		0x3456789u, false);
+		0x3456789u);
 }
 
 TEST_CASE("ABL compiler: corpus and mutations")
@@ -237,7 +234,7 @@ TEST_CASE("ABL compiler: corpus and mutations")
 		  "endwhile;", "for ", "endfor;", "switch ", "case ", "endcase;", "endswitch;", "order ", "return(",
 		  "\"", "concat(", "getmodule(", "fuzzname(", "fuzzint(", "fuzzreal(", "fuzzorder(", "#include \"",
 		  "type ", "static ", "eternal ", "trans ", "1.5e38", "99999999999", "//", "(", ")", ";", ":=", "[", "]" },
-		0x456789au, true);
+		0x456789au);
 }
 
 } // TEST_SUITE("FuzzReplay")

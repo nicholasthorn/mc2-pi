@@ -272,6 +272,9 @@ void __cdecl gos_FatalExit (const char *message)
 // in tests just log and keep going. Returning 0 skips ENTER_DEBUGGER.
 int __cdecl InternalFunctionPause (const char *Message, ...)
 {
+	// a fuzz target PAUSEs on most inputs; printing each slows it to a crawl
+	if (mc2TestStopHook)
+		return 0;
 	fprintf(stderr, "\n[mc2_tests heap_shim] PAUSE: ");
 	va_list args;
 	va_start(args, Message);

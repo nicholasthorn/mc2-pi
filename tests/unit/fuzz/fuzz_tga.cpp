@@ -48,13 +48,17 @@ int fuzzTga(const uint8_t* data, size_t size)
 
 	fuzzGuarded([&] {
 		Image img;
-		img.loadTGA(bytes, image.size());
+		if (img.loadTGA(bytes, image.size()))
+			fuzzNoteLoaded();
 	});
 
 	fuzzGuarded([&] {
+		// the terrain readers' own check: their seeds (8-bit masks) are not
+		// a kind Image reads
 		TGAFileHeader info;
-		if (tgaReadSquareHeader(info, image.data(), (long)image.size()))
-			tgaHeaderFits(image.data(), (long)image.size());
+		tgaReadSquareHeader(info, image.data(), (long)image.size());
+		if (tgaHeaderFits(image.data(), (long)image.size()))
+			fuzzNoteLoaded();
 		loadTerrain(image, 4);
 		loadTerrain(image, 32);
 	});
