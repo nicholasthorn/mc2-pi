@@ -559,7 +559,7 @@ int main(int argc, char** argv)
 			while (!file.eof())
 			{
 				char line[1024];
-				file.readLine((MemoryPtr)line, 1024);
+				file.readLine((MemoryPtr)line, sizeof(line) - 1);	// readLine terminates past maxLength
 				if (line[0] != 0)
 					convertASE2TGL(line);
 			}

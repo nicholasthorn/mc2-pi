@@ -224,13 +224,19 @@ TEST_CASE("File::readLine and readLineEx keep a long line inside maxLength")
 			unsigned char buf[16];
 			memset(buf, 'x', sizeof(buf));
 			if (ex)
+			{
 				f.readLineEx(buf, 8);
+				CHECK(memchr(buf, 0, 8) != nullptr);
+				CHECK(strncmp((const char*)buf, "abcdef", 6) == 0);
+			}
 			else
-				f.readLine(buf, 7);	// up to maxLength chars and a terminator: callers pass sizeof - 1
-			CHECK(memchr(buf, 0, 8) != nullptr);
+			{
+				// up to maxLength chars and a terminator: callers pass sizeof - 1
+				f.readLine(buf, 7);
+				CHECK(strcmp((const char*)buf, "abcdefg") == 0);
+			}
 			CHECK(buf[8] == 'x');
 			CHECK(buf[9] == 'x');
-			CHECK(strncmp((const char*)buf, "abcdef", 6) == 0);
 			f.close();
 		}
 	}
