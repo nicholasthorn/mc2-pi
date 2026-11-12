@@ -177,6 +177,14 @@ void MPPrefs::begin()
 			{
 				delete pItem;
 			}
+			// the name goes to the other players in insigniaFile: cut to fit,
+			// it would name another file or none, so it is left off the list
+			else if ( strlen( pItem->getBmp() ) >= MAXLEN_INSIGNIA_FILE )
+			{
+				PAUSE(( "insignia file name %s is too long (%d characters at most)",
+					pItem->getBmp(), MAXLEN_INSIGNIA_FILE - 1 ));
+				delete pItem;
+			}
 			else
 			{
 				long index = comboBox[2].AddItem( pItem );
@@ -603,7 +611,7 @@ void MPPrefs::saveSettings()
 		if ( pItem )
 		{
 			const char* pName = pItem->getBmp();
-			strcpy( prefs.insigniaFile, pName );
+			copyBounded( prefs.insigniaFile, pName );
 			if ( pInfo )
 				copyBounded( pInfo->insigniaFile, pName );
 		}
@@ -631,7 +639,9 @@ void MPPrefs::cancelSettings()
 	{
 		copyBounded( pInfo->name, prefs.playerName[0] );
 		copyBounded( pInfo->unitName, prefs.unitName[0] );
-		copyBounded( pInfo->insigniaFile, prefs.insigniaFile );
+		// options.cfg can name one too long to send: keep the current one then
+		if ( strlen( prefs.insigniaFile ) < sizeof( pInfo->insigniaFile ) )
+			copyBounded( pInfo->insigniaFile, prefs.insigniaFile );
 	}
 
 	MPlayer->sendPlayerUpdate( 0, 5, -1 );

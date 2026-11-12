@@ -607,6 +607,15 @@ void MPParameterScreen::initializeMap ( const char* fileName )
 
 void MPParameterScreen::setMission( const char* fileName, bool resetData )
 {
+	// The map's file name goes to every client in missionSettings.map: cut to
+	// fit, it would name another map or none, so a longer one is refused.
+	if ( strlen( fileName ) >= sizeof( MPlayer->missionSettings.map ) )
+	{
+		PAUSE(( "map file name %s is too long for a network game (%d characters at most)",
+			fileName, (int)sizeof( MPlayer->missionSettings.map ) - 1 ));
+		return;
+	}
+
 	FullPathFileName path;
 	path.init( missionPath, fileName, ".fit" );
 	FitIniFile missionFile;

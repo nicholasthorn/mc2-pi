@@ -95,9 +95,11 @@ Every rewritten `snprintf(x, sizeof(x), ...)` was compiled with
 - `mechcmd2.cpp` `ParseCommandLine` overruns `argv[30]` with more than 30
   tokens, and `-datapath` copies the flag, not its value.
 - Truncation is the fix where a name is only shown or logged. Where it is a
-  key (a multiplayer map name in `missionSettings.map[25]`, a mech csv path in
-  `MoverInitData::csvFileName[50]`), a name that long now fails to load
-  instead of corrupting memory.
+  key sent to the other players, it is refused with a `PAUSE` instead: a
+  multiplayer map name longer than `missionSettings.map[25]` is not selected,
+  and an insignia name longer than `insigniaFile[35]` is left off the list
+  (no stock or Omnitech map or insignia comes close). A mech csv path longer
+  than `MoverInitData::csvFileName[50]` is still cut, so fails to load.
 - Dead code (cmponent.cpp's saveEXCEL, the ABL debugger, `#if 0` blocks) was
   not touched.
 
