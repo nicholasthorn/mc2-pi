@@ -54,9 +54,9 @@ int fuzzCsvFile(const uint8_t* data, size_t size)
 			{
 				for (DWORD c = 1; c <= cols + 1; c++)
 				{
-					char small[4];
+					char tight[4];
 					char roomy[256];
-					csv.readString(r, c, small, sizeof(small));
+					csv.readString(r, c, tight, sizeof(tight));
 					csv.readString(r, c, roomy, sizeof(roomy));
 					long l = 0;
 					int i = 0;

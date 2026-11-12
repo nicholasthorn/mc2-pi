@@ -25,6 +25,8 @@
 // heap_shim.cpp
 extern void (*mc2TestStopHook)(const char* message);
 
+bool fuzzRecheckLeaks = false;
+
 namespace
 {
 
@@ -42,16 +44,18 @@ void fuzzReject()
 	throw FuzzRejected();
 }
 
-void fuzzBeginGuard()
+FuzzGuardScope::FuzzGuardScope(bool leakChecks) : leakChecks_(leakChecks)
 {
-	MC2_LSAN_DISABLE();
+	if (!leakChecks_)
+		MC2_LSAN_DISABLE();
 	mc2TestStopHook = throwRejected;
 }
 
-void fuzzEndGuard()
+FuzzGuardScope::~FuzzGuardScope()
 {
 	mc2TestStopHook = nullptr;
-	MC2_LSAN_ENABLE();
+	if (!leakChecks_)
+		MC2_LSAN_ENABLE();
 }
 
 void fuzzNoteLoaded()

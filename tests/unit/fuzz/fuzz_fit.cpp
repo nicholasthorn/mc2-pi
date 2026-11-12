@@ -30,9 +30,9 @@ const char* const kKeys[] = {
 
 void readKey(FitIniFile& fit, const char* key)
 {
-	char small[8];
+	char tight[8];
 	char roomy[256];
-	fit.readIdString(key, small, sizeof(small));
+	fit.readIdString(key, tight, sizeof(tight));
 	fit.readIdString(key, roomy, sizeof(roomy));
 	fit.getIdStringLength(key);
 

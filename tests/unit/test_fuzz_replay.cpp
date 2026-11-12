@@ -65,7 +65,9 @@ std::vector<Seed> seedsFor(const char* target)
 			continue;
 		Seed seed;
 		seed.name = line + targetLen + 1;
-		if (readFile(std::string(MC2_TEST_FIXTURE_DIR) + "/" + seed.name, seed.bytes))
+		const bool opened = readFile(std::string(MC2_TEST_FIXTURE_DIR) + "/" + seed.name, seed.bytes);
+		CHECK_MESSAGE(opened, "listed seed missing from the fixtures: ", seed.name);
+		if (opened)
 			seeds.push_back(seed);
 	}
 	fclose(list);
@@ -178,6 +180,12 @@ void replay(const char* target, FuzzTarget fn, const std::vector<std::string>& t
 {
 	const std::vector<Seed> seeds = seedsFor(target);
 	REQUIRE_MESSAGE(!seeds.empty(), "no corpus for ", target, " (fuzz_corpus.txt)");
+	// an input the reader takes runs again with leak checking on
+	struct Recheck
+	{
+		Recheck() { fuzzRecheckLeaks = true; }
+		~Recheck() { fuzzRecheckLeaks = false; }
+	} recheck;
 	const int mutants = mutantsPerSeed();
 	Rng rng = { seed };
 	for (const Seed& s : seeds)
