@@ -71,6 +71,7 @@ extern CPrefs prefs;
 
 #include"missionresults.h"
 #include"paths.h"
+#include"resultslayout.h"
 
 extern bool quitGame;
 extern bool justStartMission;
@@ -102,6 +103,41 @@ void Logistics::destroy (void)
 }	
 		
 //----------------------------------------------------------------------------------
+// The results screens' mode: the smallest that shows both Done buttons' clickable
+// text (results_layout::screenSize). A network game's results use another layout
+// (MPStats, 800x600), so they stay at 800x600.
+static void resultsScreenSize (long& width, long& height)
+{
+	long right = 0, bottom = 0;
+	if (!MPlayer)
+	{
+		char path[256];
+		snprintf( path, sizeof( path ), "%smcui_mr_layout.fit", artPath );
+		FitIniFile file;
+		if (NO_ERR == file.open( path ))
+		{
+			const char* const buttons[2] = { "SalvageAreaButton0", "PilotReviewButton0" };
+			for (int i = 0; i < 2; i++)
+			{
+				long x = 0, y = 0, w = 0, h = 0;
+				if (NO_ERR != file.seekBlock( buttons[i] ))
+					continue;
+				file.readIdLong( "XTextLocation", x );
+				file.readIdLong( "YTextLocation", y );
+				file.readIdLong( "TextWidth", w );
+				file.readIdLong( "TextHeight", h );
+				if (x + w > right)
+					right = x + w;
+				if (y + h > bottom)
+					bottom = y + h;
+			}
+			file.close();
+		}
+	}
+	results_layout::screenSize( right, bottom, LogisticsScreen::frontEndWidth(), LogisticsScreen::frontEndHeight(), width, height );
+}
+
+//----------------------------------------------------------------------------------
 void Logistics::start (long startMode)
 {
 	bMissionLoaded  = 0;
@@ -122,12 +158,17 @@ void Logistics::start (long startMode)
 	{
 		case log_RESULTS: // pull out results later...
 			active = true;
-			//Heading back to logistics now.  The results screens have 800x600 layouts on any
-			//data; MainMenu and MissionBegin go on to the front end's mode
+			//Heading back to logistics now.  The results screens' size comes from their
+			//layout's Done buttons (resultsScreenSize): 800x600 on stock data, 1024x768 for
+			//Omnitech's. MainMenu and MissionBegin go on to the front end's mode
+			{
+			long resultsWidth = 800, resultsHeight = 600;
+			resultsScreenSize( resultsWidth, resultsHeight );
 			if (prefs.renderer == 3)
-				gos_SetScreenMode(800,600,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
+				gos_SetScreenMode(resultsWidth,resultsHeight,16,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
 			else
-				gos_SetScreenMode(800,600,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+				gos_SetScreenMode(resultsWidth,resultsHeight,16,prefs.renderer,0,0,0,localFullScreen,0,localWindow,0,localRenderer);
+			}
 
 			lastMissionResult = scenarioResult;
 			if ( !missionResults )

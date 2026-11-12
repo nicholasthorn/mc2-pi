@@ -7189,7 +7189,7 @@ void execSetTextMsg (void) {
 	while (*p) {
 		const char* end = strchr(p, '*');
 		size_t len = end ? (size_t)(end - p) : strlen(p);
-		char line[128];		// ControlGui chat lines hold 127 characters
+		char line[512];		// ControlGui chat lines hold 511 characters (ChatInfo::message)
 		size_t n = (len < sizeof(line) - 1) ? len : sizeof(line) - 1;
 		memcpy(line, p, n);
 		line[n] = '\0';

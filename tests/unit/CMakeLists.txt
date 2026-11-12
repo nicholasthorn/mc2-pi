@@ -37,6 +37,7 @@ add_executable(mc2_tests
     test_image_tga.cpp
     test_stereo.cpp
     test_vr_eye.cpp
+    test_results_layout.cpp
     test_vr_hud.cpp
     test_vr_edge_fade.cpp
     test_vr_controls.cpp
