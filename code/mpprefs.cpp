@@ -177,14 +177,6 @@ void MPPrefs::begin()
 			{
 				delete pItem;
 			}
-			// the name goes to the other players in insigniaFile: cut to fit,
-			// it would name another file or none, so it is left off the list
-			else if ( strlen( pItem->getBmp() ) >= MAXLEN_INSIGNIA_FILE )
-			{
-				PAUSE(( "insignia file name %s is too long (%d characters at most)",
-					pItem->getBmp(), MAXLEN_INSIGNIA_FILE - 1 ));
-				delete pItem;
-			}
 			else
 			{
 				long index = comboBox[2].AddItem( pItem );
@@ -662,8 +654,14 @@ void MPPrefs::initColors()
 
 int aBmpListItem::setBmp( const char* pFileName )
 {
+	// the name goes to the other players in insigniaFile: one too long is left
+	// off the list (cut to fit, it would name another file or none)
 	if ( strlen( pFileName ) >= MAXLEN_INSIGNIA_FILE )
+	{
+		PAUSE(( "insignia file name %s is too long (%d characters at most)",
+			pFileName, MAXLEN_INSIGNIA_FILE - 1 ));
 		return 0;
+	}
 
 	FullPathFileName path;
 	path.init(path2insignia, pFileName, ".tga" );

@@ -163,6 +163,25 @@ TEST_CASE("wholeNumberLow32: past 64 bits, still the low 32 bits of the value") 
     CHECK(wholeNumberLow32("0x123456789ABCDEF0123456789A") == 0x3456789Au);
 }
 
+TEST_CASE("wholeNumberLow32: \"0x\" anywhere makes it hex, as stock data needs") {
+    // jumpfx.fit: Appearance = 0 // Was 0x060001AE loads 0x060001AE
+    CHECK(wholeNumberLow32("0 // Was 0x060001AE") == 0x060001AEu);
+    // "10x5": the "0x" inside is found
+    CHECK(wholeNumberLow32("10x5") == 0x5u);
+    // the readers never looked for "0X"
+    CHECK(wholeNumberLow32("0X10") == 0u);
+    // no sign for hex: the "0x" is found past it
+    CHECK(wholeNumberLow32("-0x10") == 0x10u);
+}
+
+TEST_CASE("wholeNumberLow32: whitespace, and the unsigned and signed 32-bit edges") {
+    CHECK(wholeNumberLow32("\t 42") == 42u);
+    CHECK(wholeNumberLow32("\n42") == 42u);
+    CHECK(wholeNumberLow32("4294967295") == 0xFFFFFFFFu);
+    // one below INT_MIN wraps to INT_MAX
+    CHECK((int32_t)wholeNumberLow32("-2147483649") == 2147483647);
+}
+
 TEST_CASE("wholeNumberLow32: stops at the first character that is not a digit") {
     CHECK(wholeNumberLow32("350 // scan range") == 350u);
     CHECK(wholeNumberLow32("12abc") == 12u);
