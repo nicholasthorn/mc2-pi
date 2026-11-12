@@ -103,6 +103,32 @@ Every rewritten `snprintf(x, sizeof(x), ...)` was compiled with
 - Dead code (cmponent.cpp's saveEXCEL, the ABL debugger, `#if 0` blocks) was
   not touched.
 
+## Whole numbers past 32 bits (2026-11-12)
+
+FIT and CSV integers went through `atol` into a `long`: 64-bit on Linux, Pi
+and Quest, 32-bit on Windows, where `atol` clamps a decimal past 2147483647
+to `LONG_MAX`. Hex kept its last 8 digits, so `l Color = 0xff000000` was
+-16777216 on Windows and 4278190080 on Linux. ABL integer literals went
+through a float, exact only up to 2^24. Now every FIT and CSV integer reader
+and the ABL scanner use `wholeNumberLow32` (`utils/str_bounded`): the exact
+value, kept to its low 32 bits, narrowed to the reader's type as before.
+
+Scan of stock (`mc2srcdata`) and Omnitech (`gd-mco/data`, `mco628`): 2882 FIT,
+356 CSV and 2383 ABL files; ABL also across every mod pack here (16356).
+
+| Where | Values | Old Windows | Old Linux/Pi/Quest | Now (all) |
+|---|---|---|---|---|
+| FIT signed `l` fields, about 10000 lines (UI colours: `NormalColor0`, `Color`, ...) and one object template (`xstarport_gantry_1.fit` `HighTemplate 0xe0f0f830`) | hex with the top bit set, e.g. `0xff000000` | -16777216 | 4278190080 | -16777216 |
+| `buildings.csv` column 9, about 130 cells, stock and Omnitech | hex colours, e.g. `0xFFCDCDCD` | -3289651 | 4291677645 | -3289651 |
+| FIT and CSV decimals past the signed 32-bit range | none in either data set | | | |
+| ABL integer literals past 2^24 | only `4278190080` (exact as a float) | 0xFF000000 | 0xFF000000 | 0xFF000000 |
+
+So nothing changes on Windows for this data. On Linux, Pi and Quest a hex
+colour in a signed field now holds the negative `long` that the 2001 game and
+the Windows build always had; its 32 bits, which is what a colour is passed
+on as (`DWORD`), are the same. A decimal past 2147483647, which no data here
+has, now wraps on every platform instead of clamping on Windows only.
+
 ## FIX sites
 
 | Site (at 03aa2aaf) | Destination | Source | Class | Done |
