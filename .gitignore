@@ -16,6 +16,8 @@ CMakeFiles/
 *.exe
 *.cfg
 *.tga
+# fuzz seeds are tiny hand-made TGAs, not game art
+!tests/unit/fuzz/corpus/tga/*.tga
 Editor
 data
 unpacked_data

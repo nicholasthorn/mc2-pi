@@ -113,6 +113,8 @@ for t in "${targets[@]}"; do
 		# names the kind and the source line; a UBSan finding has its own line
 		report="$(grep -m1 -E '^SUMMARY:' "$out_dir/$t.log")"
 		[ -z "$report" ] && report="$(grep -m1 -E 'runtime error:|ERROR: ' "$out_dir/$t.log")"
+		# no sanitizer line: it did not get going (a missing corpus, say)
+		[ -z "$report" ] && report="$(grep -v '^$' "$out_dir/$t.log" | tail -1)"
 		report="$(echo "$report" | sed "s|$root/||g; s/|/\\\\|/g" | cut -c1-200)"
 		input="$(ls "$out_dir/$t" 2>/dev/null | head -1)"
 		[ -n "$input" ] && report="$report (input: \`$input\`)"
