@@ -4,6 +4,7 @@
 #include <cstring>
 #include <stdlib.h>
 #include <cassert>
+#include <vector>
 
 //#include "math/vec.h"
 //#include "system/types.h"
@@ -249,8 +250,9 @@ bool Image::loadTGA(FILE* file)
 
 bool Image::loadTGA(const unsigned char* mem, size_t len)
 {
-    assert(mem);
-    assert(len > sizeof(TGAHeader));
+	// the file is data: these were asserts, gone in a release build
+	if (!mem || len < sizeof(TGAHeader))
+		return false;
 
 	TGAHeader header;
 
@@ -259,13 +261,15 @@ bool Image::loadTGA(const unsigned char* mem, size_t len)
     len -= sizeof(header);
 
 	// Skip past the description if there's any
+	if (header.descLen > len)
+		return false;
 	if (header.descLen) {
         mem += header.descLen;
         len -= header.descLen;
     }
 
 	unsigned int pixelSize = header.bpp / 8;
-	int size = header.width * header.height * pixelSize;
+	size_t size = (size_t)header.width * header.height * pixelSize;
 
 	unsigned char *readPixels = 0;
 	bool rv = false;
@@ -273,7 +277,7 @@ bool Image::loadTGA(const unsigned char* mem, size_t len)
 
 	if (header.imageType == (unsigned char)TGADataType::kUncompressedRGB) {
 		// the header is data: a short file must not be read past its end
-		if (len < (size_t)size)
+		if (len < size)
 			return false;
 		readPixels = new unsigned char[size];
 		memcpy(readPixels, mem, size);
@@ -302,6 +306,12 @@ bool Image::loadTGA(const TGAHeader* header, unsigned char* readPixels)
 	format = getFormatFromBpp(header->bpp);
 
 	int pixelSize = header->bpp / 8;
+	// only these depths have a layout below; any other left no pixels
+	if (header->bpp != 8 && header->bpp != 16 && header->bpp != 24 && header->bpp != 32)
+		return false;
+	// the last row is read first: an image with no rows has none
+	if (width <= 0 || height <= 0)
+		return false;
 
 	unsigned char *dest, *src = readPixels + width * (height - 1) * pixelSize;
 
@@ -364,93 +374,46 @@ bool Image::loadTGA(const TGAHeader* header, unsigned char* readPixels)
 }
 
 
-static void mergeBytes(unsigned char *dest, unsigned char *src, int pixelSize)
-{
-	if (pixelSize == 4) {
-		*dest++ = src[2];
-		*dest++ = src[1];
-		*dest++ = src[0];
-		*dest++ = src[3];
-	}
-	else if (pixelSize == 3) {
-		*dest++ = src[2];
-		*dest++ = src[1];
-		*dest++ = src[0];
-	}
-	else if (pixelSize == 2) {
-		unsigned short tempPixel = *((unsigned short *)src);
-		dest[0] = ((tempPixel >> 10) & 0x1F) << 3;
-		dest[1] = ((tempPixel >> 5) & 0x1F) << 3;
-		dest[2] = ((tempPixel) & 0x1F) << 3;
-		dest[3] = ((tempPixel >> 15) ? 0xFF : 0);
-	}
-	else {
-		assert(0 && "Unsupported pixelSize");
-	}
-}
-
 bool Image::loadCompressedTGA(const TGAHeader* header, const unsigned char* mem, size_t len) {
 
-	width  = header->width;
-	height = header->height;
-
-	format = getFormatFromBpp(header->bpp);
-
+	// The runs are decoded into the layout an uncompressed file has, which
+	// loadTGA then reads, so both kinds come out the same way up and in the
+	// same byte order. (This used to decode into a local that hid the member
+	// "pixels", so it gave no image at all.) The header is data: a pixel is
+	// one to four bytes, and a run may not pass the end of the image.
 	const int pixelSize = header->bpp / 8;
-	unsigned char p[5];
-	// bpp comes from the file: p holds a count byte and at most four bytes
-	if (pixelSize < 2 || pixelSize > 4)
+	if (pixelSize < 1 || pixelSize > 4)
 		return false;
-	int num_read_pixels = 0;
-	int offset = 0;
-	const size_t num_pixels = width * height;
+	const size_t num_pixels = (size_t)header->width * header->height;
+	// a packet of 1 + pixelSize bytes gives at most 128 pixels
+	if (num_pixels / 128 > len / (1 + pixelSize))
+		return false;
 
-	unsigned char* pixels = new unsigned char[width * height * pixelSize];
-
-	while (num_read_pixels < num_pixels) {
-
-		if (len < pixelSize + 1)
+	std::vector<unsigned char> raw(num_pixels * pixelSize);
+	size_t done = 0;
+	size_t offset = 0;
+	while (done < num_pixels) {
+		if (len - offset < (size_t)(1 + pixelSize))
 			return false;
-
-		memcpy(p, mem + offset, pixelSize + 1);
-
-		len -= pixelSize + 1;
-		offset += pixelSize + 1;
-
-		mergeBytes(&(pixels[num_read_pixels]), &(p[1]), pixelSize);
-		num_read_pixels++;
-
-		unsigned int  j = p[0] & 0x7f;
-		bool is_rle = p[0] & 0x80;
-		// a packet that runs past the end of the image is a broken file
-		if (j > num_pixels - num_read_pixels) {
-			delete[] pixels;
+		const unsigned char packet = mem[offset++];
+		const size_t count = (size_t)(packet & 0x7f) + 1;
+		if (count > num_pixels - done)
 			return false;
-		}
-		if (is_rle) {
-			for (unsigned int i = 0; i < j; i++) {
-				mergeBytes(&(pixels[num_read_pixels]), &(p[1]), pixelSize);
-				num_read_pixels++;
-			}
+		if (packet & 0x80) {
+			for (size_t i = 0; i < count; i++)
+				memcpy(&raw[(done + i) * pixelSize], mem + offset, pixelSize);
+			offset += pixelSize;
 		}
 		else {
-			for (unsigned int i = 0; i < j; i++) {
-
-				if (len < pixelSize)
-					return false;
-				memcpy(p, mem + offset, pixelSize);
-				len -= pixelSize;
-				offset += pixelSize;
-
-				mergeBytes(&(pixels[num_read_pixels]), p, pixelSize);
-				num_read_pixels++;
-			}
+			if ((len - offset) / pixelSize < count)
+				return false;
+			memcpy(&raw[done * pixelSize], mem + offset, count * pixelSize);
+			offset += count * pixelSize;
 		}
+		done += count;
 	}
 
-	if (header->attrib & 0x20) flip();
-
-	return true;
+	return loadTGA(header, raw.data());
 }
 
 bool Image::loadBMP(const char *fileName){
@@ -537,6 +500,9 @@ bool Image::loadBMP(FILE* file)
 
 
 bool Image::flip(){
+
+	if (!pixels)
+		return false;
 
 	int lineWidth = getBytesPerPixel(format) * width;
 	unsigned char *newPixels = new unsigned char[lineWidth * height];

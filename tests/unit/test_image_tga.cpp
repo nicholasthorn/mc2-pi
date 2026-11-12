@@ -9,6 +9,7 @@
 #include "utils/Image.h"
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 namespace
@@ -111,6 +112,38 @@ TEST_CASE("RLE TGA whose run passes the end of the image is refused")
 {
 	// 2x1 image, one run packet of 6 pixels
 	std::vector<uint8_t> tga = makeTrueColour(10, 2, 1, 24, { 0x85, 1, 2, 3 });
+	Image img;
+	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
+}
+
+// The RLE reader decoded into a local that hid the member, so it gave no
+// image at all (and flip() then read through NULL). It now gives the same
+// pixels as the same image stored uncompressed.
+TEST_CASE("RLE TGA decodes to the same pixels as the uncompressed image")
+{
+	// 3x2, 24-bit: a run of 4 grey pixels, then 2 raw ones
+	const std::vector<uint8_t> raw = { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 2, 3, 4, 5, 6 };
+	const std::vector<uint8_t> rle = { 0x83, 9, 9, 9, 0x01, 1, 2, 3, 4, 5, 6 };
+	for (int topDown = 0; topDown < 2; topDown++)
+	{
+		CAPTURE(topDown);
+		std::vector<uint8_t> plain = makeTrueColour(2, 3, 2, 24, raw);
+		std::vector<uint8_t> packed = makeTrueColour(10, 3, 2, 24, rle);
+		plain[17] = packed[17] = topDown ? 0x20 : 0;
+		Image a, b;
+		REQUIRE(a.loadTGA(plain.data(), plain.size()));
+		REQUIRE(b.loadTGA(packed.data(), packed.size()));
+		REQUIRE(b.getPixels() != nullptr);
+		CHECK(b.getWidth() == 3);
+		CHECK(b.getHeight() == 2);
+		CHECK(memcmp(a.getPixels(), b.getPixels(), 3 * 2 * 3) == 0);
+	}
+}
+
+TEST_CASE("TGA with a bit depth the reader has no layout for is refused")
+{
+	std::vector<uint8_t> tga = makeTrueColour(2, 1, 1, 12, std::vector<uint8_t>(8, 0));
+	tga[17] = 0x20;		// top-down: flip() used to run on no pixels
 	Image img;
 	CHECK_FALSE(img.loadTGA(tga.data(), tga.size()));
 }
