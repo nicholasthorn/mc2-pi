@@ -33,6 +33,8 @@
 #ifndef ABLENV_H
 #include"ablenv.h"
 #endif
+#include<utils/str_bounded.h>
+#include<stdint.h>
 
 //***************************************************************************
 #pragma warning(disable:4244)
@@ -492,7 +494,9 @@ long ABLFile::writeString (const char* buffer) {
 
 inline CharCodeType calcCharCode (long ch) {
 
-	return(charTable[ch]);
+	// char is signed: a byte over 127 in a script (an accented letter)
+	// indexed before the table; all 256 entries are set
+	return(charTable[(unsigned char)ch]);
 }
 
 //***************************************************************************
@@ -584,10 +588,12 @@ void skipBlockComment (void) {
 	DumbGetCharOn = true;
 	getChar();
 	getChar();
+	// CHAR_EOF, the character getChar gives at the end, not CHR_EOF, its
+	// class: an unclosed comment looped here for ever
 	do {
-		while ((curChar != '*') && (curChar != CHR_EOF))
+		while ((curChar != '*') && (curChar != CHAR_EOF))
 			getChar();
-		if (curChar == CHR_EOF) {
+		if (curChar == CHAR_EOF) {
 			syntaxError(ABL_ERR_SYNTAX_UNEXPECTED_EOF);
 			curToken = TKN_ERROR;
 		}
@@ -686,9 +692,9 @@ void languageDirective (void) {
 			if (curChar == -1)
 				strcpy(fullPath, fileName);
 			else {
-				strcpy(fullPath, SourceFiles[0]);
+				copyBounded(fullPath, SourceFiles[0]);
 				fullPath[curChar + 1] = '\0';
-				strcat(fullPath, fileName);
+				appendBounded(fullPath, fileName);
 			}
 			if ((openErr = openSourceFile(fullPath)) != ABL_NO_ERR) {
 				syntaxError(ABL_ERR_SYNTAX_SOURCE_FILE_OPEN);
@@ -747,7 +753,8 @@ void languageDirective (void) {
 			getChar();
 //			getChar();
 			do {
-				while ((curChar != '#') && (curChar != CHR_EOF))
+				// CHAR_EOF, as in skipBlockComment: an unclosed #debug_start looped
+				while ((curChar != '#') && (curChar != CHAR_EOF))
 					getChar();
 				if (curChar == '#') {
 					char directive2[32];
@@ -766,7 +773,7 @@ void languageDirective (void) {
 							stillCutting = false;
 					}
 					}
-				else if (curChar == CHR_EOF) {
+				else if (curChar == CHAR_EOF) {
 					syntaxError(ABL_ERR_SYNTAX_UNEXPECTED_EOF);
 					curToken = TKN_ERROR;
 					}
@@ -899,11 +906,21 @@ void getToken(void) {
 
 //***************************************************************************
 
+// Stores one character of the token being scanned. A word or string longer
+// than tokenString used to be written past it (and past curLiteral) before
+// downShiftWord noticed; a mod script's long line now stops here instead.
+static void putTokenChar (char c) {
+
+	if (tokenp >= tokenString + MAXLEN_TOKENSTRING - 1)
+		ABL_Fatal(-1, " ABL: word or string too long ");
+	*tokenp = c;
+	tokenp++;
+}
+
 void getWord (void) {
 
 	while ((calcCharCode(curChar) == CHR_LETTER) || (calcCharCode(curChar) == CHR_DIGIT) || (curChar == '_')) {
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 		getChar();
 	}
 
@@ -914,17 +931,16 @@ void getWord (void) {
 		TokenCodeType endToken = TKN_END_MODULE;
 		if (CurLibrary)
 			endToken = TKN_END_LIBRARY;
-		else if (CurModuleIdPtr->defn.info.routine.flags & ROUTINE_FLAG_FSM)
+		// no module yet when a script opens with "word."
+		else if (CurModuleIdPtr && (CurModuleIdPtr->defn.info.routine.flags & ROUTINE_FLAG_FSM))
 			endToken = TKN_END_FSM;
 		//-------------------------------------------------------------------
 		// If we have an "endmodule" string, stop. Otherwise, keep reading...
 		if (strcmp(wordString, TokenStrings[endToken])) {
-			*tokenp = curChar;
-			tokenp++;
+			putTokenChar(curChar);
 			getChar();
 			while ((calcCharCode(curChar) == CHR_LETTER) || (calcCharCode(curChar) == CHR_DIGIT) || (curChar == '_')) {
-				*tokenp = curChar;
-				tokenp++;
+				putTokenChar(curChar);
 				getChar();
 			}
 			*tokenp = '\0';
@@ -952,8 +968,7 @@ void accumulateValue (float* valuePtr, SyntaxErrorType errCode) {
 	}
 
 	do {
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 		if (++digitCount <= MAX_DIGIT_COUNT)
 			value = 10 * value + (curChar - '0');
 		else
@@ -963,6 +978,24 @@ void accumulateValue (float* valuePtr, SyntaxErrorType errCode) {
 	} while (calcCharCode(curChar) == CHR_DIGIT);
 
 	*valuePtr = value;
+}
+
+//***************************************************************************
+
+// An integer literal's value from its digits, as its low 32 bits: the
+// whole-number rule the FIT and CSV readers follow (wholeNumberLow32).
+// This is a deliberate change from 2001, which went through the literal's
+// float and _ftol (64 bits, low 32 kept): a literal past 2^24 that a float
+// cannot hold was rounded (16777217 gave 16777216), and one past 2^63 gave
+// 0; it is exact now, wrapping past 2^64. No script compiles differently:
+// in the stock, Omnitech and mod-pack scripts (16356 checked, 2026-11-12)
+// the only literal past 2^24 is 4278190080 (fadeToColor in mc2_01, mc2_08,
+// mc2_17, mc2_18, multiplayer), which a float holds exactly, and which is
+// still 0xFF000000. A plain (int) cast of a float past the int range, as
+// the port had, was undefined: INT_MIN on x86-64, INT_MAX on ARM.
+int ablIntegerLiteral (const char* digits) {
+
+	return((int)(int32_t)wholeNumberLow32(digits));
 }
 
 //***************************************************************************
@@ -991,8 +1024,7 @@ void getNumber (void) {
 	if (curChar == '.') {
 		getChar();
 		curLiteral.type = LIT_REAL;
-		*tokenp = '.';
-		tokenp++;
+		putTokenChar('.');
 
 		accumulateValue(&numberValue, ABL_ERR_SYNTAX_INVALID_FRACTION);
 		if (curToken == TKN_ERROR)
@@ -1002,14 +1034,13 @@ void getNumber (void) {
 
 	if ((curChar == 'E') || (curChar == 'e')) {
 		curLiteral.type = LIT_REAL;
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 
 		//-------------------
 		// Any exponent sign?
 		if ((curChar == '+') || (curChar == '-')) {
-			*tokenp = exponentSign = curChar;
-			tokenp++;
+			exponentSign = curChar;
+			putTokenChar(curChar);
 			getChar();
 		}
 
@@ -1052,7 +1083,8 @@ void getNumber (void) {
 //			curToken = TKN_ERROR;
 //			return;
 //		}
-		curLiteral.value.integer = (int)numberValue;
+		*tokenp = '\0';	// the digits, for ablIntegerLiteral
+		curLiteral.value.integer = ablIntegerLiteral(tokenString);
 		}
 	else
 		curLiteral.value.real = numberValue;
@@ -1075,8 +1107,7 @@ void getString (void) {
 	while (curChar != CHAR_EOF) {
 		if (curChar == '\"')
 			break;
-		*tokenp = curChar;
-		tokenp++;
+		putTokenChar(curChar);
 		*stringPtr = curChar;
 		stringPtr++;
 		getChar();
@@ -1300,11 +1331,11 @@ long openSourceFile (const char* sourceFileName) {
 	if (sFile->open(sourceFileName) != ABL_NO_ERR)
 		return(-3);
 
-	strcpy(SourceFiles[NumSourceFiles], sourceFileName);
+	copyBounded(SourceFiles[NumSourceFiles], sourceFileName);
 	FileNumber = NumSourceFiles++;
 
 	sourceFile = sFile;
-	strcpy(openFiles[NumOpenFiles].fileName, sourceFileName);
+	copyBounded(openFiles[NumOpenFiles].fileName, sourceFileName);
 	openFiles[NumOpenFiles].filePtr = sFile;
 	openFiles[NumOpenFiles].fileNumber = (unsigned char)FileNumber;
 	openFiles[NumOpenFiles].lineNumber = 0;

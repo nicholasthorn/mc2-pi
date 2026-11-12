@@ -119,6 +119,7 @@
 #include<gameos.hpp>
 #include "benchdirector.h"
 #include "utils/vr_controls.h"
+#include<utils/str_bounded.h>
 
 //----------------------------------------------------------------------------------
 // Macro Definitions
@@ -1554,9 +1555,9 @@ long Mission::addMover (MoverInitData* moveSpec, LogisticsMech* mechData)
 	MoverInitData mData;
 	memset(&mData,0,sizeof(MoverInitData));
 	
-	strncpy(mData.pilotFileName,mechData->getPilot()->getFileName(),49);
+	copyBounded(mData.pilotFileName,mechData->getPilot()->getFileName());
 	strcpy(mData.brainFileName,"pbrain");
-	strncpy(mData.csvFileName,mechData->getFileName(),50);
+	copyBounded(mData.csvFileName,mechData->getFileName());
 	
 	mData.rosterIndex = 255;
 	mData.objNumber = mechData->getFitID();
@@ -1589,7 +1590,7 @@ long Mission::addMover (MoverInitData* moveSpec, LogisticsMech* mechData)
 	if (mMech->getObjectClass() != BATTLEMECH)
 		STOP(("LogisticsMech was not a MECH!!"));
 
-	strcpy( ((BattleMech*)mMech)->variantName, mechData->getName() );
+	copyBounded( ((BattleMech*)mMech)->variantName, mechData->getName() );
 		
 	long totalComponents = mechData->getComponentCount();
 

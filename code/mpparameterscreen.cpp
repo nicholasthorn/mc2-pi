@@ -25,6 +25,7 @@ extern bool quitGame;
 #ifndef GAMESOUND_H
 #include"gamesound.h"
 #endif
+#include<utils/str_bounded.h>
 
 #define	MP_PLAYER_PREFS 120
 #define MAP_INFO		121
@@ -437,7 +438,7 @@ int	MPParameterScreen::handleMessage( unsigned long message, unsigned long who)
 							if ( MPlayer->playerList[j].commanderID 
 								== playerParameters[i].getCommanderID() )
 							{
-								sprintf( finalStr, str, MPlayer->playerList[j].name );
+								snprintf(finalStr,sizeof(finalStr), str, MPlayer->playerList[j].name );
 								LogisticsOKDialog::instance()->setText( IDS_DIALOG_OK, IDS_DIALOG_NO, IDS_DIALOG_YES );
 								LogisticsOKDialog::instance()->setText( finalStr );
 								LogisticsOKDialog::instance()->begin();
@@ -606,6 +607,15 @@ void MPParameterScreen::initializeMap ( const char* fileName )
 
 void MPParameterScreen::setMission( const char* fileName, bool resetData )
 {
+	// The map's file name goes to every client in missionSettings.map: cut to
+	// fit, it would name another map or none, so a longer one is refused.
+	if ( strlen( fileName ) >= sizeof( MPlayer->missionSettings.map ) )
+	{
+		PAUSE(( "map file name %s is too long for a network game (%d characters at most)",
+			fileName, (int)sizeof( MPlayer->missionSettings.map ) - 1 ));
+		return;
+	}
+
 	FullPathFileName path;
 	path.init( missionPath, fileName, ".fit" );
 	FitIniFile missionFile;
@@ -613,7 +623,7 @@ void MPParameterScreen::setMission( const char* fileName, bool resetData )
 	if ( NO_ERR != missionFile.open( (char*)(const char*)path ) )
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't open file %s", fileName );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", fileName );
 		Assert( 0, 0, errorStr );
 		return;
 	}
@@ -644,8 +654,8 @@ void MPParameterScreen::setMission( const char* fileName, bool resetData )
 		
 		gosASSERT( strlen( missionName ) < MAXLEN_MAP_NAME );
 
-		strcpy( MPlayer->missionSettings.map, fileName );
-		strcpy( MPlayer->missionSettings.name, missionName );
+		copyBounded( MPlayer->missionSettings.map, fileName );
+		copyBounded( MPlayer->missionSettings.name, missionName );
 
 			
 		result = missionFile.readIdLong( "ResourcePoints", MPlayer->missionSettings.resourcePoints );
@@ -796,7 +806,7 @@ void MPParameterScreen::update()
 	char str[256];
 	cLoadString( IDS_MP_PARAM_HOST_IP, str, 255 );
 	char IPAddressStr[256];
-	sprintf( IPAddressStr, str, MPlayer->sessionIPAddress );
+	snprintf(IPAddressStr,sizeof(IPAddressStr), str, MPlayer->sessionIPAddress );
 	textObjects[11].setText( IPAddressStr );
 
 	if ( !bWaitingToStart && MPlayer->missionSettings.inProgress )
@@ -1531,7 +1541,7 @@ void MPParameterScreen::setHostLeftDlg( const char* playerName )
 	char formatStr[256];
 
 	cLoadString( IDS_PLAYER_LEFT, leaveStr, 255 );
-	sprintf( formatStr, leaveStr, playerName );
+	snprintf(formatStr,sizeof(formatStr), leaveStr, playerName );
 
 	LogisticsOneButtonDialog::instance()->setText( IDS_PLAYER_LEFT,
 					IDS_DIALOG_OK, IDS_DIALOG_OK );

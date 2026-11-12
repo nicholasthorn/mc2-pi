@@ -1,0 +1,11 @@
+# libFuzzer dictionary for mc2_fuzz_csv (README.md)
+","
+"\""
+"\x0D\x0A"
+"\x0A"
+",,"
+"-2147483649"
+"1e38"
+"TRUE"
+"FALSE"
+"0x"

@@ -1409,7 +1409,7 @@ long BattleMech::init (DWORD variantNum)
 
 	char tmp[256];
 	cLoadString( IDS_MFDMCH_PRINTSTRING, tmp, 256 );
-	sprintf( longName, tmp, thisMechName, tonnage );
+	snprintf(longName,sizeof(longName), tmp, thisMechName, tonnage );
 
 	mechFile->readInt( 12, 2, iconPictureIndex );
 

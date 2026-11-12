@@ -67,7 +67,7 @@ void InitAlphaLookup( VFX_RGB* Palette)
 
 	while (!IniFile->eof())
 	{
-		IniFile->readLine((MemoryPtr)&Line[0], 256);
+		IniFile->readLine((MemoryPtr)&Line[0], sizeof(Line) - 1);	// readLine terminates past maxLength
 		LineNumber++;
 	
 		if (Line[0]!='#' && Line[0]!=';' && Line[0]!=0xa && Line[0]!=0)

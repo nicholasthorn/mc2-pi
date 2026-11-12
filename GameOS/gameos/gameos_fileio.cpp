@@ -18,13 +18,14 @@
 #include <errno.h>
 
 #include "platform_io.h" // will be removed
+#include<utils/str_bounded.h>
 
 gosFileStream::gosFileStream( const char *FileName, gosEnum_FileWriteStatus fwstatus )
 {
     gosASSERT(FileName);
     gosASSERT(strlen(FileName) < MAX_PATH);
     m_writeEnabled = fwstatus;
-    strcpy(m_Filename, FileName);
+    copyBounded(m_Filename, FileName);
 
     // ???
     pNext = 0;
@@ -44,6 +45,15 @@ gosFileStream::gosFileStream( const char *FileName, gosEnum_FileWriteStatus fwst
         default:
             STOP(("Unknown file open mode"));
             gosASSERT(0);
+    }
+
+    // A name that does not fit is not opened under its cut-short form
+    if (strlen(FileName) >= sizeof(m_Filename))
+    {
+        fprintf(stderr, "gosFileStream: file name too long: %s\n", FileName);
+        m_hFile = NULL;
+        STOP(("Failed to open file"));
+        return;
     }
 
     m_hFile = fopen(m_Filename, mode);

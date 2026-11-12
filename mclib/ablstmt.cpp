@@ -217,7 +217,8 @@ void forStatement (void) {
 		
 		//------------------------------------------------------------------
 		// If we end up adding a CHAR type, this line needs to be changed...
-		if ((forType != IntegerTypePtr) && /*(forType != CharTypePtr) &&*/ (forType->form != FRM_ENUM))
+		// a variable whose declaration failed to give it a type has none
+		if (!forType || ((forType != IntegerTypePtr) && /*(forType != CharTypePtr) &&*/ (forType->form != FRM_ENUM)))
 			syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 	
 		}
@@ -410,7 +411,8 @@ long caseLabelCount = 0;
 	//-----------------------------------------------------------------------------
 	// NOTE: If we have subranges in ABL, we'll have to check in the following line
 	// for a subrange, as well...
-	if (((expressionType->form != FRM_SCALAR) && (expressionType->form != FRM_ENUM)) || (expressionType == RealTypePtr))
+	// a call with no return value has no type (as in ablstd.cpp)
+	if (!expressionType || ((expressionType->form != FRM_SCALAR) && (expressionType->form != FRM_ENUM)) || (expressionType == RealTypePtr))
 		syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
 
 	synchronize(FollowSwitchExpressionList, NULL, NULL);

@@ -1,0 +1,6 @@
+module M : integer;
+	var
+		integer. x;
+	code
+		return(0);
+endmodule.

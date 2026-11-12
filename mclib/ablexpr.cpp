@@ -137,6 +137,12 @@ void checkRelationalOpTypes (TypePtr type1, TypePtr type2) {
 
 long isAssignTypeCompatible (TypePtr type1, TypePtr type2) {
 
+	// A call to a function with no return value has no type: assigning it, or
+	// passing it as a value parameter, is an incompatible type (not a read
+	// through NULL below).
+	if (!type1 || !type2)
+		return(0);
+
 	if (type1 == type2)
 		return(1);
 		

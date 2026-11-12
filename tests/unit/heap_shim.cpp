@@ -227,23 +227,32 @@ UserHeapPtr systemHeap = &testSystemHeap();
 // whole platform layer -- stubbed instead.)
 gosEnvironment Environment = {};
 
+// Set by the fuzz harnesses (fuzz/fuzz_support.cpp): a STOP or fatal exit
+// is how the game turns down bad data, so there it is a rejected input, not
+// a crash. The hook does not return (it throws). NULL everywhere else.
+void (*mc2TestStopHook) (const char *message) = NULL;
+
 // STOP()/Fatal()/Assert() funnel (engine definition: gameos_debugging.cpp).
 // In tests a STOP is an unconditional hard failure: print and abort so the
 // test runner reports the crash instead of corrupting silently.
 int __cdecl InternalFunctionStop (const char *Message, ...)
 {
-	fprintf(stderr, "\n[mc2_tests heap_shim] STOP: ");
+	char text[512];
 	va_list args;
 	va_start(args, Message);
-	vfprintf(stderr, Message, args);
+	vsnprintf(text, sizeof(text), Message, args);
 	va_end(args);
-	fprintf(stderr, "\n");
+	if (mc2TestStopHook)
+		mc2TestStopHook(text);
+	fprintf(stderr, "\n[mc2_tests heap_shim] STOP: %s\n", text);
 	fflush(stderr);
 	abort();
 }
 
 int __cdecl InternalFunctionStop (const char *Message, const char *value)
 {
+	if (mc2TestStopHook)
+		mc2TestStopHook(Message);
 	fprintf(stderr, "\n[mc2_tests heap_shim] STOP: %s %s\n", Message, value);
 	fflush(stderr);
 	abort();
@@ -252,6 +261,8 @@ int __cdecl InternalFunctionStop (const char *Message, const char *value)
 // Fatal() funnel (engine definition: gameos_debugging.cpp).
 void __cdecl gos_FatalExit (const char *message)
 {
+	if (mc2TestStopHook)
+		mc2TestStopHook(message ? message : "");
 	fprintf(stderr, "\n[mc2_tests heap_shim] FATAL: %s\n", message ? message : "");
 	fflush(stderr);
 	abort();
@@ -261,6 +272,9 @@ void __cdecl gos_FatalExit (const char *message)
 // in tests just log and keep going. Returning 0 skips ENTER_DEBUGGER.
 int __cdecl InternalFunctionPause (const char *Message, ...)
 {
+	// a fuzz target PAUSEs on most inputs; printing each slows it to a crawl
+	if (mc2TestStopHook)
+		return 0;
 	fprintf(stderr, "\n[mc2_tests heap_shim] PAUSE: ");
 	va_list args;
 	va_start(args, Message);

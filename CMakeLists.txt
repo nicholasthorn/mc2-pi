@@ -67,6 +67,18 @@ if(MC2_SANITIZE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${MC2_SANITIZE}")
     message("Sanitizers: ${MC2_SANITIZE}")
 endif()
+# MC2_FUZZ: build the libFuzzer targets in tests/unit/fuzz (mc2_fuzz_fit,
+# mc2_fuzz_csv, mc2_fuzz_tga, mc2_fuzz_abl). Clang only; everything is
+# compiled with coverage for the fuzzer, so use a build directory of its own,
+# with MC2_SANITIZE=address,undefined (tests/unit/fuzz/README.md).
+option(MC2_FUZZ "Build the libFuzzer targets (Clang)" OFF)
+if(MC2_FUZZ)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "MC2_FUZZ needs Clang (libFuzzer)")
+    endif()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=fuzzer-no-link")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=fuzzer-no-link")
+endif()
 # MC2_FRAME_POINTERS: keep frame pointers so "perf record -g" (scripts/bench.sh
 # --perf) can walk call stacks; -O2 drops them. Costs a few percent, so it is
 # off for normal builds and benchmark numbers come from a build without it.

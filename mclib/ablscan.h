@@ -255,6 +255,8 @@ void getToken(void);
 void getWord (void);
 void accumulateValue (float* valuePtr, SyntaxErrorType errCode);
 void getNumber (void);
+// An integer literal's value from its digits, as its low 32 bits (ablscan.cpp).
+int ablIntegerLiteral (const char* digits);
 void getString (void);
 void getSpecial (void);
 bool tokenIn (TokenCodeType* tokenList);

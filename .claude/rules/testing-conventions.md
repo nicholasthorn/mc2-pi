@@ -88,6 +88,31 @@ Coverage is still to come (`planning/QUALITY-ROADMAP.md`).
 - Logic that sits inside GL code is moved into a GL-free file so it can be
   tested (e.g. `GameOS/gameos/utils/pixel_repack.cpp`).
 
+## Fuzzing (`tests/unit/fuzz/`)
+
+- Fuzz targets cover the readers a mod feeds: FIT, CSV, TGA (GameOS's `Image`
+  and mclib's terrain readers) and the ABL compiler (`fuzz_targets.h`). A
+  `STOP`, `Fatal` or ABL syntax error is a rejected input (the shim's stop hook
+  throws); anything else must not crash or touch memory outside its buffers.
+- `test_fuzz_replay.cpp` runs every target on its seeds (`corpus/<target>/`)
+  and 150 fixed mutations of each in every unit-test run, so CI's ASan + UBSan
+  job checks them. `MC2_FUZZ_REPLAY_MUTANTS` raises the count;
+  `MC2_FUZZ_REPLAY_LAST=<file>` saves the input a crash came from.
+- `-DMC2_FUZZ=ON` (Clang, its own build directory, with
+  `MC2_SANITIZE=address,undefined`) builds libFuzzer executables,
+  `mc2_fuzz_<target>`. How to run them: `tests/unit/fuzz/README.md`.
+  `scripts/fuzz.sh` runs all four side by side with a kept corpus.
+- `fuzz.yml` runs them nightly (5 minutes each, the corpus kept in the
+  Actions cache) and for a minute each on PRs that change the fuzzed readers
+  or the targets. A finding fails the run and leaves its input in the
+  `fuzz-findings` artifact.
+- A crash it finds gets fixed, and the input (or a smaller one) goes into
+  `corpus/<target>/` as `bad-<what it broke>`. Only `bad-*` seeds may be
+  rejected; the others must load, or they test little.
+- A new reader of mod data gets a target: a function in `fuzz/`, a few seeds,
+  a dictionary, a line in the replay test and in the `MC2_FUZZ` loop, and its
+  name in `scripts/fuzz.sh`, `fuzz.yml`'s build step and paths.
+
 ## Where TDD applies
 
 Write the test first for:

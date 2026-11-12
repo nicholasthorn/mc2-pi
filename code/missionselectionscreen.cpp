@@ -225,7 +225,7 @@ void MissionSelectionScreen::begin()
 	if ( NO_ERR != file.open( fileName ) )
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't open file %s", (const char*)fileName );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", (const char*)fileName );
 		Assert( 0, 0, errorStr );
 	}
 	

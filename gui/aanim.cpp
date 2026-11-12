@@ -441,7 +441,7 @@ long aAnimGroup::init( FitIniFile* file, const char* blockName )
 	if ( NO_ERR != file->seekBlock( blockName ) )
 	{
 		char errorStr[255];
-		sprintf( errorStr, "couldn't find block %s in file %s", blockName, file->getFilename() );
+		snprintf(errorStr,sizeof(errorStr), "couldn't find block %s in file %s", blockName, file->getFilename() );
 		Assert( 0, 0, errorStr );
 		return -1;
 	}

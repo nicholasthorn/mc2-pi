@@ -215,7 +215,7 @@ void LoadScreen::changeRes( FitIniFile& outFile )
 		if ( NO_ERR != tgaFile.open( path ) )
 		{
 			char error[256];
-			sprintf( error, "couldn't open file %s", (const char*)path );
+			snprintf(error,sizeof(error), "couldn't open file %s", (const char*)path );
 			Assert( 0, 0, error );
 			return;
 		}
@@ -231,7 +231,7 @@ void LoadScreen::changeRes( FitIniFile& outFile )
 		if ( NO_ERR != tgaFile.open( path ) )
 		{
 			char error[256];
-			sprintf( error, "couldn't open file %s", (const char*)path );
+			snprintf(error,sizeof(error), "couldn't open file %s", (const char*)path );
 			Assert( 0, 0, error );
 			return;
 		}
@@ -256,7 +256,7 @@ void LoadScreen::changeRes( FitIniFile& outFile )
 		if ( NO_ERR != tgaFile.open( path ) )
 		{
 			char error[256];
-			sprintf( error, "couldn't open file %s", (const char*)path );
+			snprintf(error,sizeof(error), "couldn't open file %s", (const char*)path );
 			Assert( 0, 0, error );
 			return;
 		}

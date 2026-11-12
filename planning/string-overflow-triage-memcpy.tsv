@@ -1,0 +1,147 @@
+group	site	dst	size_source	checked	verdict	fix
+memcpy	code/netwire.cpp:75	caller out (std::string resized to length, or commanders[MAX_PLAYERS])	u8 length from peer message	yes: take(size) vs remaining; callers check length<=MAX_NAME_LENGTH and resize first	OK: every caller sizes out to the length before the copy	-
+memcpy	GameOS/gameos/gos_net.cpp:117	event.data (vector resized to size)	outgoing message size	yes: size<=MAX_MESSAGE_SIZE, resize(size)	OK: dst resized to size	-
+memcpy	GameOS/gameos/gos_net_gns.cpp:104	GNS message buffer AllocateMessage(size)	outgoing message size	yes: allocated with size	OK	-
+memcpy	code/mover.cpp:3722	weaponFireChunks[which][]	numChunks	n/a	OK: inside #if 0, dead	-
+memcpy	code/turret.cpp:1135	weaponFireChunks[which][]	numChunks	n/a	OK: inside #if 0, dead	-
+memcpy	code/mover.cpp:3863	criticalHitChunks[which][128]	numChunks	yes: Fatal if count+numChunks>=MAX	OK: Fatal exits; also no callers	-
+memcpy	code/mover.cpp:3873	caller packedChunkBuffer	numCriticalHitChunks (local, <=128)	no	OK: no callers; count is local	-
+memcpy	code/mover.cpp:3927	radio[MAX_RADIO_CHUNKS] (multplyr.cpp:3090)	numRadioChunks (local, capped at MAX_RADIO_CHUNKS by addRadioChunk)	yes	OK	-
+memcpy	code/ablmc2.cpp:7194	line[128]	strlen of ABL string segment	yes: n clamped to 127	OK	-
+memcpy	mclib/ablenv.cpp:893	ABLStackMalloc(formalTypePtr->size)	formal array type size	yes: dst allocated with same size	OK (source size enforced by compiler type check)	-
+memcpy	mclib/ablenv.cpp:1035	ABLStackMalloc(formalTypePtr->size)	formal array type size	yes: same size	OK	-
+memcpy	mclib/ablrtn.cpp:897	ABLStackMalloc(formalTypePtr->size)	formal array type size	yes: same size	OK	-
+memcpy	mclib/ablxstmt.cpp:452	ABLStackMalloc(formalTypePtr->size)	formal array type size	yes: same size	OK	-
+memcpy	mclib/ablxstmt.cpp:261	target array (targetTypePtr->size)	strlen(src)+1	yes: min(srclen,size)	OK	-
+memcpy	mclib/ablxstd.cpp:456	function-value slot: one StackItem at the frame base (StackFrameHeader.functionValue, pushed by pushStackFrameHeader as pushInteger(0))	targetTypePtr->size: array type size declared in the .abl script	no: compiler accepts any declared type as a function return type (ablrtn.cpp:1475), stdReturn only checks type equality	FIX: a script function returning an array type copies the whole array over the frame header (static/dynamic link, return address) and the stack above it	Reject non-scalar return types when parsing function/module headers (ablrtn.cpp ~1250 and ~1475), or in execStdReturn copy only scalars
+memcpy	mclib/ablenv.cpp:1237	static variable storage dataPtr->address (size = declared ABL array size, or a scalar's value read as a pointer)	numValues from mission .fit Warrior%dStatic%d NumValues (warrior.cpp:7379)	no: symbol type, form and size not checked	FIX	In setStaticIntegerArray require symbol->typePtr->form==FRM_ARRAY with integer elements and numValues*sizeof(int)<=typePtr->size; in warrior.cpp clamp numValues to 1..1024 before readIdIntArray
+memcpy	mclib/ablenv.cpp:1282	static variable storage dataPtr->address	numValues from mission .fit (warrior.cpp:7395)	no	FIX	Same as 1237 for real arrays; clamp numValues<=1024 in warrior.cpp
+memcpy	mclib/ablenv.cpp:1260	caller values[]	numValues	no	OK: getStaticIntegerArray has no callers (same unchecked pattern if one is added)	-
+memcpy	mclib/ablenv.cpp:1305	caller values[]	numValues	no	OK: getStaticRealArray has no callers	-
+memcpy	mclib/ablrtn.cpp:762	ABLStackMalloc(sizeof(long)*NumStaticVariables)	NumStaticVariables (compiler)	yes: same size	OK	-
+memcpy	mclib/ablrtn.cpp:775	ABLStackMalloc(sizeof(StateHandleInfo)*NumStateHandles)	NumStateHandles (capped at MAX_STATE_HANDLES_PER_MODULE)	yes	OK	-
+memcpy	mclib/ffile.cpp:602	bfr (caller buffer of size)	pfe->realSize from FST table	yes: bound=min(size,realSize); LZPacketBuffer grown to pfe->size	OK	-
+memcpy	mclib/file.cpp:851	caller buffer	caller length	no (source not checked vs fileSize)	OK for dst: read(pos,...) callers pass their own buffer size; source can over-read past fileImage	Optionally clamp length to fileSize()-pos
+memcpy	mclib/file.cpp:1125	caller buffer	caller length; for PacketFile::readPacket (packet.cpp:296) it is packetSize from the .pak table; for msl.cpp:2074/2082 it is quatRAM/posRAM from the .agl	no: File::read has no dst size, readPacket has no dst size parameter	FIX (via callers): msl.cpp:2074/2082, and readPacket into fixed objects (move.cpp:906-910 MissionMap::init, move.cpp:1575-1607 scalars) when the .pak/.agl is held in RAM (FST entry, child or memory File)	msl.cpp: require quatRAM==sizeof(UnitQuaternion)*numFrames and posRAM==sizeof(Point3D)*numFrames (numFrames>0) or allocate by quatRAM/posRAM; readPacket: add a bufferSize argument, or check getPacketSize()==sizeof(dst) at fixed-size callers
+memcpy	mclib/file.cpp:1187	caller buffer	line length in data file, bounded by maxLength and fileSize	yes: i<maxLength	OK for the memcpy itself; the buffer[i]=0 right after writes buffer[maxLength] when a line fills maxLength (1-byte overflow for callers passing their full buffer size: logisticsdata.cpp:148, logisticsdata.cpp:209, multplyr.cpp:519, alphapalette.cpp:70, inifile.cpp:1454)	Stop the scan at maxLength-1, or make those callers pass sizeof-1
+memcpy	mclib/file.cpp:1286	caller buffer (ABL scanner: sourceBuffer[MAXLEN_SOURCELINE=2048], ablscan.cpp:1266)	line length in the .abl source file	no: loop stops at maxLength, then i++ for the newline, memcpy(i), buffer[i]=0; no end-of-file check	FIX: copies maxLength+1 bytes and writes NUL at [maxLength+1]	Bound the scan to maxLength-2 and to fileSize()-logicalPosition; copy at most maxLength-1 bytes and terminate inside the buffer
+memcpy	mclib/file.cpp:1356	fileImage (physicalLength)	write length	yes: logicalPosition+bytes>physicalLength rejected	OK	-
+memcpy	mclib/file.cpp:1673	fileImage (physicalLength)	write length	yes	OK	-
+memcpy	mclib/lzdecomp.cpp:404	in[16384]	min(len_left,CHUNK)	yes	OK	-
+memcpy	mclib/lzdecomp.cpp:432	dest (destLen)	inflate output	yes: have>destLen-out_size rejected	OK	-
+memcpy	mclib/tgainfo.cpp:247	tmpBuffer malloc(width*height*depth/8)	width*(depth>>3) per row	yes: tmp sized width*height*depth; callers check header vs file size	OK	-
+memcpy	mclib/tgainfo.cpp:253	buffer (caller TGA pixel area)	width*height*depth/8 from TGA header	yes: every caller checks tgaHeaderFits/tgaTextureFits or an explicit size test before flipTopToBottom	OK	-
+memcpy	mclib/tgainfo.cpp:330	ourRAM (caller, width*height*4)	width*height*4	yes: <=16384 guard and cached dims equal	OK	-
+memcpy	mclib/tgainfo.cpp:454	g_textureCache_Buffer[16384]	width*height*4	yes: <= g_textureCache_BufferSize	OK	-
+memcpy	mclib/tgainfo.cpp:372	ourRAM (width*height*4)	width*height*4	yes: header width/height must equal expected (tgaTextureFits)	OK	-
+memcpy	mclib/tgainfo.cpp:514	ourRAM (width*height)	width*height	yes: tgaTextureFits plus 8-bit check	OK	-
+memcpy	mclib/bitflag.cpp:314	ByteFlag heap (width*height)	fileSize - header - palette	no	OK: ByteFlag::initTGA has no callers (latent: a TGA footer or extra bytes would overflow)	Copy width*height if it is ever used
+memcpy	mclib/txmmgr.cpp:1939	textureCacheHeap->Malloc(txmCompressSize)	LZCompress output size	yes: same size; input bounded by fitsLzBuffers	OK	-
+memcpy	mclib/txmmgr.cpp:2101	Malloc(txmCompressSize)	LZCompress output size	yes: same size; fitsLzBuffers on file size	OK	-
+memcpy	mclib/txmmgr.cpp:2245	locked texture Height*Height*4	txmSize	yes: decompressed length >= txmSize, lzBuffer2 bounded by MAX_LZ_BUFFER_SIZE	OK	-
+memcpy	mclib/terrtxm.cpp:1347	ourRAM mipSize*mipSize*4	mipSize	yes: engine-sized	OK	-
+memcpy	mclib/terrtxm2.cpp:1196	ColorMap Malloc(width*width*4)	colorMapInfo.width from TGA header	yes for dst (allocated same); source can over-read a short file	OK	-
+memcpy	mclib/terrtxm2.cpp:1351	ColorMap Malloc(width*width*4)	TGA header width	yes (dst)	OK	-
+memcpy	mclib/terrtxm2.cpp:1513	ColorMap Malloc(width*width*4)	TGA header width	yes (dst)	OK	-
+memcpy	mclib/terrtxm2.cpp:1819	ColorMap Malloc(width*width*4)	TGA header width	yes (dst)	OK	-
+memcpy	mclib/resizeimage.h:59	raster (src->xSize floats)	image->ySize	n/a	OK: only caller rescaleMap uses square images (xSize==ySize)	Use xSize for clarity
+memcpy	code/iconsheet.cpp:25	out (outWidth*height*4)	width*4 per row	yes: extendedStripWidth guarantees outWidth>width; tgaHeaderFits on both sheets	OK (the high sheet's source row can over-read if height is not a multiple of cellY)	-
+memcpy	code/iconsheet.cpp:56	sheet (locked texture)	cellX*4 per row	yes: cell<sheetCells keeps rows in the sheet	OK	-
+memcpy	code/mechicon.cpp:608	256x256 icon texture	unitIconX*4 (resolution constant)	yes: inAtlas check on source	OK	-
+memcpy	code/mechicon.cpp:1279	256x256 icon texture	unitIconX*4	yes	OK	-
+memcpy	code/loadscreen.cpp:245	new char[size]	file size	yes: same size	OK	-
+memcpy	GameOS/gameos/utils/Image.cpp:176	pixels new[count*entryBytes]	entryBytes (2..4 validated)	yes	OK	-
+memcpy	GameOS/gameos/utils/Image.cpp:277	new[size]	width*height*bpp/8 from header	dst yes (same size); source only assert()	OK for dst (source over-read of a short TGA in release builds)	Replace assert with a real length check
+memcpy	GameOS/gameos/utils/Image.cpp:311	pixels new[width*height]	width per row	yes	OK	-
+memcpy	GameOS/gameos/utils/Image.cpp:410	p[5] on the stack	pixelSize+1 where pixelSize=header bpp/8 (bpp is a byte from the TGA)	no: bpp never validated on the RLE path	FIX: bpp>=40 gives pixelSize>=5; bpp=255 copies 32 bytes into p[5]	Reject header->bpp not in {16,24,32} at the top of loadCompressedTGA; also stop RLE runs at num_pixels
+memcpy	GameOS/gameos/utils/Image.cpp:431	p[5] on the stack	pixelSize from header bpp	no	FIX: same as 410 (raw packet path)	Same as 410
+memcpy	GameOS/gameos/utils/Image.cpp:535	newPixels lineWidth*height	lineWidth	yes	OK	-
+memcpy	code/mover.cpp:5848	ammoTypeTotal[MAX_AMMO_TYPES=10] in Mover	numAmmoTypes: distinct ammo master ids over the unit's weapons (variant/inventory data)	no: only the local totalList[100] is large; never compared with MAX_AMMO_TYPES	FIX: 11+ weapons with distinct ammo types overrun ammoTypeTotal into the following Mover members	Cap numAmmoTypes at MAX_AMMO_TYPES while building totalList (log and drop extra types)
+memcpy	code/terrobj.cpp:1249	data->cellsCovered[81] shorts (162 bytes) in TerrainObjectData	numCellsCovered*2 shorts; numCellsCovered = special-area footprint numCells from the mission .pak (<=64, globalmapio.h:206)	partly: STOP only at numCellsCovered>=162 (wrong unit; the array holds 40 cell pairs)	FIX: 41..64 cells write up to 256 bytes into 162, overrunning the derived BuildingData/GateData fields and past the struct	Check numCellsCovered<=40 (81/2) and clamp or STOP; or grow cellsCovered to [128] if the save layout may change
+memcpy	code/terrobj.cpp:1288	Malloc(numCellsCovered*4)	numCellsCovered from save (<=255)	dst yes (same size); source over-read of data->cellsCovered[81] when >40	OK for dst	Clamp to 40 on load
+memcpy	code/csvfield.h:28	pBuffer (bufferLength)	CSV field length	yes: clamped to bufferLength-1	OK	-
+memcpy	mclib/msl.cpp:730	malloc(aseFileSize+1)	aseEnd-aseScan (inside the file)	yes	OK	-
+memcpy	mclib/msl.cpp:805	malloc(aseFileSize+1)	aseEnd-aseScan	yes	OK	-
+memcpy	mclib/move.cpp:570	Malloc(sizeof*tempNumSpecialAreas)	numSpecialAreas	yes: same size	OK	-
+memcpy	mclib/move.cpp:2393	Malloc(sizeof*(numDoors+NUM_DOOR_OFFSETS))	numDoors	yes: same size	OK	-
+memcpy	mclib/stuff/database.cpp:133	Record block new BYTE[sizeof(Record)+m_length+name_length]	handle->m_length	yes: block sized from the same values	OK	-
+memcpy	mclib/stuff/database.cpp:147	Record m_name tail	name_length+1	yes	OK	-
+memcpy	mclib/utilities.h:116	lpBuffer (nBufferMax)	strlen of string-table text	yes: STOP when >= nBufferMax (exits by default)	OK while STOP exits; with MC2_STOP_EXITS=0 the copy proceeds and overruns	Clamp stringLength to nBufferMax-1 after the STOP
+memcpy	mclib/estring.cpp:274	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:344	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:351	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:401	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:424	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:428	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:483	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:881	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:883	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:902	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:906	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:1119	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:1137	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:1155	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:292	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:361	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:368	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:409	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:432	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:436	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:488	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:516	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:888	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:890	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:909	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:913	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:1110	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:1128	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/echarstring.cpp:1147	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:318	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:387	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:394	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:435	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:458	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:462	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:514	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:542	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:915	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:917	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:936	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:940	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:1135	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:1153	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/ewcharstring.cpp:1171	string buffer (Alloc rounded up to cover Len+1)	StrSize of the string or own m_Data_Length	yes: buffer allocated or checked for the same length	OK (Remove at 516/542 overlaps and should be memmove; not an overrun)	-
+memcpy	mclib/estring.cpp:1542	m_pBuffer data (m_Alloc_Length elements)	Max_Len+1: format estimate including strlen of %s arguments	partly: realloc only if Max_Len > m_Alloc_Length	FIX: when Max_Len == m_Alloc_Length it copies Max_Len+1 elements, one past the buffer	Use Max_Len >= m_Alloc_Length (realloc whenever Max_Len+1 > m_Alloc_Length)
+memcpy	mclib/echarstring.cpp:1534	m_pBuffer data	Max_Len+1	partly: same comparison	FIX: same off-by-one as estring.cpp:1542	Same
+memcpy	mclib/ewcharstring.cpp:1575	m_pBuffer data	wcslen(converted vsprintf output)+1	partly: realloc only if Max_Len > m_Alloc_Length	FIX: one element over when output length == Max_Len == m_Alloc_Length; more if the estimate was low	Same comparison fix, and copy at most m_Alloc_Length elements
+memcpy	GameOS/gameos/gameosmain.cpp:484	cmdline new[sum of strlen+1]	strlen(argv[i])	yes	OK	-
+memcpy	GameOS/gameos/gameos_debugging.cpp:48	out (MAX_LOG_LINE from callers)	strlen(text)+1 of a MAX_LOG_LINE buffer	yes	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:116	new[count]	count	yes	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:218	new char[size]	defines string size	yes	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:223	new char[size]	suffix size	yes	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:471	pvertex_data_ (vertex_capacity_)	count	yes: capacity check	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:480	pindex_data_ (index_capacity_)	count	yes	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:584	mapped GL range of bytes	bytes (draw data)	yes: mapping fails (NULL) when bytes > buffer	OK	-
+memcpy	GameOS/gameos/gameos_graphics.cpp:851	new BYTE[size]	texture file size	yes	OK	-
+memcpy	GameOS/gameos/gameos_sound.cpp:278	SDL stream (len)	min(pending,len)	yes	OK	-
+memcpy	GameOS/gameos/gameos_sound.cpp:513	new[cvt.len*len_mult]	src_datasize (smaller than tmp size on this branch)	yes	OK	-
+memcpy	GameOS/gameos/gameos_sound.cpp:537	audio_data new[audio_data_size]	audio_data_size (min with len_cvt)	yes	OK	-
+memcpy	GameOS/gameos/gameos_sound.cpp:541	audio_data new[audio_data_size]	audio_data_size <= src_datasize (no conversion: same format)	yes	OK	-
+memcpy	GameOS/gameos/utils/gl_utils.cpp:639	new[num_vertices]	num_vertices	yes	OK	-
+memcpy	GameOS/gameos/utils/shader_builder.cpp:48	puni->data_ (sized for type and num_el_)	constantSizes[type]*num_el_	yes	OK	-
+memcpy	GameOS/gameos/utils/shader_builder.cpp:665	new char[strlen+1]	strlen(prefix)+1	yes	OK	-
+memcpy	GameOS/gameos/utils/string_utils.cpp:29	malloc(strlen+1)	strlen+1	yes	OK	-
+memcpy	GameOS/gameos/utils/string_utils.cpp:40	malloc((wcslen+1)*sizeof)	wcslen+1	yes	OK	-
+memcpy	mclib/mlr/mlrindexedpolymesh.cpp:1330	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrindexedpolymesh.cpp:1435	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrindexedprimitive.cpp:276	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrindexedprimitive.cpp:374	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrpolymesh.cpp:1225	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrpolymesh.cpp:1336	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrprimitive.cpp:599	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/mlr/mlrprimitive.cpp:695	litColors (SetLength(colors.GetLength()))	colors length	yes	OK	-
+memcpy	mclib/clip.h:39	points[6]	numVertices (triangle clipper, engine)	no explicit check; engine-only, <=6 by construction	OK	-
+memcpy	mclib/clip.h:139	points[6]	numVertices (triangle clipper, engine)	no explicit check; engine-only, <=6 by construction	OK	-
+memcpy	mclib/clip.h:239	points[6]	numVertices (triangle clipper, engine)	no explicit check; engine-only, <=6 by construction	OK	-
+memcpy	mclib/clip.h:339	points[6]	numVertices (triangle clipper, engine)	no explicit check; engine-only, <=6 by construction	OK	-
+memcpy	mclib/memfunc.h:68/84/95/106	T[N] dst	n	assert only	OK: no caller uses the n-taking overloads; all MemCpy calls copy whole fixed arrays	-

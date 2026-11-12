@@ -36,6 +36,8 @@
 #ifndef ABLDBUG_H
 #include"abldbug.h"
 #endif
+#include<utils/str_bounded.h>
+#include<gameos.hpp>	// PAUSE
 
 //***************************************************************************
 int32_t ABLi_preProcess (const char* sourceFileName,
@@ -1218,6 +1220,22 @@ float ABLModule::getStaticReal (char* name) {
 
 //---------------------------------------------------------------------------
 
+// The mission .fit names the static and gives the count. How many of the
+// values to copy: none (-1) unless it is an array (for a scalar, its value
+// would be used as the address), and no more than the array holds.
+static int staticArrayFit (SymTableNodePtr symbol, const char* name, int numValues, size_t valueSize) {
+
+	TypePtr typePtr = symbol->typePtr;
+	if ((numValues < 0) || !typePtr || (typePtr->form != FRM_ARRAY))
+		return(-1);
+	const int room = (int)((size_t)typePtr->size / valueSize);
+	if (numValues > room) {
+		PAUSE(("ABL static %s holds %d values, the mission gives %d: the rest are left out", name, room, numValues));
+		return(room);
+	}
+	return(numValues);
+}
+
 int ABLModule::setStaticIntegerArray (char* name, int numValues, int* values) {
 
 	SymTableNodePtr symbol = findSymbol(name);
@@ -1233,8 +1251,12 @@ int ABLModule::setStaticIntegerArray (char* name, int numValues, int* values) {
 	if (symbol->defn.info.data.varType != VAR_TYPE_STATIC)
 		return(3);
 
+	const int count = staticArrayFit(symbol, name, numValues, sizeof(values[0]));
+	if (count < 0)
+		return(3);
+
 	StackItemPtr dataPtr = staticData + symbol->defn.info.data.offset;
-	memcpy(dataPtr->address, values, sizeof(values[0]) * numValues);
+	memcpy(dataPtr->address, values, sizeof(values[0]) * count);
 	
 	return(0);
 }
@@ -1278,8 +1300,12 @@ int ABLModule::setStaticRealArray (char* name, int numValues, float* values) {
 	if (symbol->defn.info.data.varType != VAR_TYPE_STATIC)
 		return(3);
 
+	const int count = staticArrayFit(symbol, name, numValues, sizeof(values[0]));
+	if (count < 0)
+		return(3);
+
 	StackItemPtr dataPtr = staticData + symbol->defn.info.data.offset;
-	memcpy(dataPtr->address, values, sizeof(values[0]) * numValues);
+	memcpy(dataPtr->address, values, sizeof(values[0]) * count);
 
 	return(0);
 }
@@ -1338,8 +1364,9 @@ void buildRoutineList (SymTableNodePtr curSymbol, ModuleInfo* moduleInfo) {
 	if (curSymbol) {
 		buildRoutineList(curSymbol->left, moduleInfo);
 		if (curSymbol->defn.key == DFN_FUNCTION) {
-			if (moduleInfo->numRoutines < 1024) {
-				strcpy(moduleInfo->routineInfo[moduleInfo->numRoutines].name, curSymbol->name);
+			// routineInfo holds 128 entries, not 1024
+			if (moduleInfo->numRoutines < (long)(sizeof(moduleInfo->routineInfo) / sizeof(moduleInfo->routineInfo[0]))) {
+				copyBounded(moduleInfo->routineInfo[moduleInfo->numRoutines].name, curSymbol->name);
 				moduleInfo->routineInfo[moduleInfo->numRoutines].codeSegmentSize = curSymbol->defn.info.routine.codeSegmentSize;
 				moduleInfo->numRoutines++;
 			}
@@ -1352,8 +1379,8 @@ void buildRoutineList (SymTableNodePtr curSymbol, ModuleInfo* moduleInfo) {
 
 void ABLModule::getInfo (ModuleInfo* moduleInfo) {
 
-	strcpy(moduleInfo->name, name);
-	strcpy(moduleInfo->fileName, ModuleRegistry[handle].fileName);
+	copyBounded(moduleInfo->name, name);
+	copyBounded(moduleInfo->fileName, ModuleRegistry[handle].fileName);
 
 	moduleInfo->numRoutines = 0;
 	buildRoutineList(ModuleRegistry[handle].moduleIdPtr->defn.info.routine.localSymTable, moduleInfo);

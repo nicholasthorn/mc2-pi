@@ -1,0 +1,6 @@
+module M : integer;
+	const
+		LIMIT = LIMIT;
+	code
+		return(0);
+endmodule.

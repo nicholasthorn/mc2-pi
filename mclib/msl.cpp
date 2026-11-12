@@ -53,6 +53,7 @@
 
 
 #include "../ARM/Microsoft.Xna.Arm.h"
+#include<utils/str_bounded.h>
 using namespace Microsoft::Xna::Arm;
 
 //-------------------------------------------------------------------------------
@@ -402,11 +403,9 @@ long TG_TypeMultiShape::LoadTGMultiShapeFromASE (const char *fileName, bool forc
 	//
 	bool makeBinary = false;
 
-	char drive[MAX_PATH];
-	char dir[MAX_PATH];
+	// Only the name is used; _splitpath wrote a long data path past it.
 	char name[MAX_PATH];
-	char ext[MAX_PATH];
-	_splitpath(fileName,drive,dir,name,ext);
+	splitPathName(fileName,name,sizeof(name));
 
 #ifdef _DEBUG
 	shapeName = (char *)malloc(strlen(name) + 1);
@@ -2068,17 +2067,27 @@ void _TG_Animation::LoadBinaryCopy (File *binFile)
 	int quatRAM = binFile->readInt();
 	int posRAM = binFile->readInt();		
 	
-	if (quatRAM)
+	if (quatRAM > 0)
 	{
-		quat = (Stuff::UnitQuaternion *)TG_Shape::tglHeap->Malloc(sizeof(Stuff::UnitQuaternion) * numFrames); 
+		// The byte count and the frame count are separate fields of the .agl:
+		// allocate for the larger, so the read cannot pass the end.
+		size_t quatSize = sizeof(Stuff::UnitQuaternion) * numFrames;
+		if ((size_t)quatRAM > quatSize)
+			quatSize = (size_t)quatRAM;
+		quat = (Stuff::UnitQuaternion *)TG_Shape::tglHeap->Malloc(quatSize); 
 		binFile->read((MemoryPtr)quat,quatRAM);	
 	}
 	else
 		quat = NULL;
 		
-	if (posRAM)
+	if (posRAM > 0)
 	{
-		pos = (Stuff::Point3D *)TG_Shape::tglHeap->Malloc(sizeof(Stuff::Point3D) * numFrames); 
+		// The byte count and the frame count are separate fields of the .agl:
+		// allocate for the larger, so the read cannot pass the end.
+		size_t posSize = sizeof(Stuff::Point3D) * numFrames;
+		if ((size_t)posRAM > posSize)
+			posSize = (size_t)posRAM;
+		pos = (Stuff::Point3D *)TG_Shape::tglHeap->Malloc(posSize); 
 		binFile->read((MemoryPtr)pos,posRAM);	
 	}
 	else
@@ -2190,11 +2199,9 @@ long TG_AnimateShape::LoadTGMultiShapeAnimationFromASE (const char *fileName, TG
 	//
 	bool makeBinary = false;
 
-	char drive[MAX_PATH];
-	char dir[MAX_PATH];
+	// Only the name is used; _splitpath wrote a long data path past it.
 	char name[MAX_PATH];
-	char ext[MAX_PATH];
-	_splitpath(fileName,drive,dir,name,ext);
+	splitPathName(fileName,name,sizeof(name));
 
 	FullPathFileName binaryFileName;
 	binaryFileName.init(tglPath,name,".agl");

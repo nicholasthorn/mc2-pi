@@ -31,6 +31,7 @@
 // sebi:
 //#ifndef _MBCS
 #include<gameos.hpp>
+#include<utils/str_bounded.h>
 //#else
 //#include<assert.h>
 //#define gosASSERT assert
@@ -209,23 +210,27 @@ long FitIniFile::afterOpen (void)
 				return(TOO_MANY_BLOCKS);
 
 			long count = 1;
-			while (line[count] != ']' && line[count] != '\n')
+			// Stop at the end of the line too, and cut a long name at blockId[50]
+			// instead of writing past it: the STOP below comes after the copy.
+			const long maxIdLen = sizeof(fileBlocks[currentBlockNum].blockId) - 1;
+			while (line[count] != ']' && line[count] != '\n' && line[count] != '\0')
 			{
-				fileBlocks[currentBlockNum].blockId[count-1] = line[count];
+				if (count-1 < maxIdLen)
+					fileBlocks[currentBlockNum].blockId[count-1] = line[count];
 				count++;
 			}
 			if (count >= 49)
 				STOP(("BlockId To large in Fit File %s",fileName));
 
-			if (line[count] == '\n')
+			if (line[count] != ']')
 			{
 				char error[256];
-				sprintf( error, "couldn't resolve block %s in file %s", line, getFilename() );
+				snprintf( error, sizeof(error), "couldn't resolve block %s in file %s", line, getFilename() );
 				Assert( 0, 0, error );
 				return SYNTAX_ERROR;
 			}
 			
-			fileBlocks[currentBlockNum].blockId[count-1] = '\0';
+			fileBlocks[currentBlockNum].blockId[count-1 < maxIdLen ? count-1 : maxIdLen] = '\0';
 			
 			//----------------------------------------------------------------------
 			// Since we just read all of last line, we now point to start of data
@@ -279,363 +284,49 @@ double FitIniFile::textToDouble (const char *num)
 //---------------------------------------------------------------------------
 int FitIniFile::textToInt (const char *num)
 {
-	int result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atoi(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		int numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		int power = 0;
-		for (int count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-
-	
-	return(result);
+	// Every whole-number reader goes through wholeNumberLow32 (str_bounded.h),
+	// so a value reads the same on every platform: atol into a long kept
+	// 4278190080 whole where long is 64-bit and clamped it on Windows.
+	return((int)(int32_t)wholeNumberLow32(num));
 }
 //---------------------------------------------------------------------------
 long FitIniFile::textToLong (const char *num)
 {
-	long result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		int numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		int power = 0;
-		for (int count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-
-	
-	return(result);
+	return((long)(int32_t)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 short FitIniFile::textToShort (const char *num)
 {
-	short result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((short)(int16_t)(uint16_t)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 char FitIniFile::textToChar (const char *num)
 {
-	char result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((char)(int8_t)(uint8_t)wholeNumberLow32(num));
 }
 
 //---------------------------------------------------------------------------
 unsigned long FitIniFile::textToULong (const char *num)
 {
-	unsigned long result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((unsigned long)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 unsigned short FitIniFile::textToUShort (const char *num)
 {
-	unsigned short result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((unsigned short)wholeNumberLow32(num));
 }
 
 
 //---------------------------------------------------------------------------
 unsigned char FitIniFile::textToUChar (const char *num)
 {
-	unsigned char result = 0;
-	
-	//------------------------------------
-	// Check if Hex Number
-	char *hexOffset = (char *)strstr(num,"0x");
-	if (hexOffset == NULL)
-	{
-		result = atol(num);
-	}
-	else
-	{
-		hexOffset += 2;
-		long numDigits = strlen(hexOffset)-1;
-		for (int i=0; i<=numDigits; i++)
-		{
-			if (!isalnum(hexOffset[i]) || (isalpha(hexOffset[i]) && toupper(hexOffset[i]) > 'F'))
-			{
-				hexOffset[i] = 0;	// we've reach a "wrong" character. Either start of a comment or something illegal. Either way, stop evaluation here.
-				break;
-			}
-		}
-		numDigits = strlen(hexOffset)-1;
-		long power = 0;
-		for (long count = numDigits;count >= 0 && power < 8;count--,power++)
-		{
-			unsigned char currentDigit = toupper(hexOffset[count]);
-			
-			if (currentDigit >= 'A' && currentDigit <= 'F')
-			{
-				result += (unsigned long)(currentDigit - 'A' + 10)<<(4*power);
-			}
-			else if (currentDigit >= '0' && currentDigit <= '9')
-			{
-				result += (unsigned long)(currentDigit - '0')<<(4*power);
-			}
-			else
-			{
-				//---------------------------------------------------------
-				// There is a digit in here I don't understand.  Return 0.
-				result = 0;
-				break;
-			}
-		}
-	}
-	
-	return(result);
+	return((unsigned char)wholeNumberLow32(num));
 }
 
 //---------------------------------------------------------------------------
@@ -1370,6 +1061,13 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 	// Find starting Quote
 	while (*src != '"')
 	{
+		// a value with no quote ("l Value = 4" read as a string)
+		if (*src == '\0')
+		{
+			if (bufLen)
+				dest[0] = '\0';
+			return(DATA_NOT_CORRECT_TYPE);
+		}
 		src++;
 	}
 	
@@ -1377,7 +1075,7 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 	
 	//---------------------------------------
 	// Copy each character until close quote
-	while (*src != '"' && offset < bufLen)
+	while (*src != '"' && *src != '\0' && offset < bufLen)
 	{
 		dest[offset] = *src;
 		src++;
@@ -1386,8 +1084,12 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 
 	//----------------------------------------------------
 	// If this string is longer than buffer, let em know.
+	// Cut and terminate it too: most callers ignore the error and strcpy the
+	// result, and mods carry longer text than the 2001 buffers.
 	if (offset == bufLen)
 	{
+		if (bufLen)
+			dest[bufLen - 1] = '\0';
 		return(BUFFER_TOO_SMALL);
 	}
 
@@ -1448,14 +1150,16 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 		if ( pFirstEqual && !strstr( pFirstEqual+1, "\"" ) ) 
 		{
 			long curLen = strlen( equalSign );
+			// equalSign points into line: the room left is what follows it.
+			const long room = (long)sizeof(line) - (long)(equalSign - line);
 			char tmpLine[2047];
 			do
 			{
-				readLine((MemoryPtr)tmpLine,2047);
+				readLine((MemoryPtr)tmpLine,sizeof(tmpLine) - 1);
 				pFound = strstr( tmpLine, "\"" );
 
 				long addedLen = strlen( tmpLine ) + 1;
-				if ( curLen + addedLen < 2048 )
+				if ( curLen + addedLen < room )
 				{
 					strcat( equalSign, tmpLine );
 					strcat( equalSign, "\n" );
@@ -1578,7 +1282,7 @@ long FitIniFile::readIdFloatArray (const char *varName, float *result, unsigned 
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1676,7 +1380,7 @@ long FitIniFile::readIdIntArray (const char *varName, int *result, unsigned int 
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1773,7 +1477,7 @@ long FitIniFile::readIdLongArray (const char *varName, long *result, unsigned lo
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1870,7 +1574,7 @@ long FitIniFile::readIdULongArray (const char *varName, unsigned long *result, u
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -1967,7 +1671,7 @@ long FitIniFile::readIdShortArray (const char *varName, short *result, unsigned 
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2064,7 +1768,7 @@ long FitIniFile::readIdUShortArray (const char *varName, unsigned short *result,
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2161,7 +1865,7 @@ long FitIniFile::readIdCharArray (const char *varName, char *result, unsigned lo
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2258,7 +1962,7 @@ long FitIniFile::readIdUCharArray (const char *varName, unsigned char *result, u
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2355,7 +2059,7 @@ unsigned long FitIniFile::getIdFloatArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2410,7 +2114,7 @@ unsigned long FitIniFile::getIdLongArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2465,7 +2169,7 @@ unsigned long FitIniFile::getIdULongArrayElements (const char *varName)
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2520,7 +2224,7 @@ unsigned long FitIniFile::getIdShortArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2575,7 +2279,7 @@ unsigned long FitIniFile::getIdUShortArrayElements (const char *varName)
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2630,7 +2334,7 @@ unsigned long FitIniFile::getIdCharArrayElements (const char *varName)
 	fSearch += 2;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);
@@ -2685,7 +2389,7 @@ unsigned long FitIniFile::getIdUCharArrayElements (const char *varName)
 	fSearch += 3;												//Move pointer to first number in brackets.
 	long numDigits = bSearch - fSearch;
 
-	if (numDigits > 9)
+	if ((numDigits < 0) || (numDigits > 9))	// the "[" can be found after the name
 		return(TOO_MANY_ELEMENTS);
 
 	strncpy(elementString,fSearch,numDigits);

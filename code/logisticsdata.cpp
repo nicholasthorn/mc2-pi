@@ -145,7 +145,7 @@ void LogisticsData::initComponents()
 	char* pLine = (char*)line;
 
 	// skip the first line
-	dataFile.readLine(line, 1024);
+	dataFile.readLine(line, sizeof(line) - 1);	// readLine terminates past maxLength
 
 	int		Ammo[512];
 	memset( Ammo, 0, sizeof ( int ) * 512 );
@@ -206,7 +206,7 @@ void LogisticsData::initPilots()
 
 	while( true )
 	{
-		int bytesRead = pilotFile.readLine( pilotFileName, 256 );
+		int bytesRead = pilotFile.readLine( pilotFileName, sizeof(pilotFileName) - 1 );
 		
 		if ( bytesRead < 2 )
 			break;
@@ -308,7 +308,7 @@ void LogisticsData::initVariants()
 		if ( NO_ERR != mechFile.open( variantFullPath ) )
 		{
 			char error[256];
-			sprintf( error, "couldn't open file %s", variantFullPath );
+			snprintf(error,sizeof(error), "couldn't open file %s", variantFullPath );
 			Assert( 0, 0, error );
 			return;
 		}

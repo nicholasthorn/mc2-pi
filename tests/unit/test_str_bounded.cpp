@@ -61,6 +61,137 @@ TEST_CASE("appendBounded: full buffer, zero size and missing terminator change n
     CHECK(unterminated[3] == 'd');
 }
 
+TEST_CASE("copyBounded: copies when it fits") {
+    char buf[16] = "old text";
+    copyBounded(buf, sizeof(buf), "new");
+    CHECK(std::strcmp(buf, "new") == 0);
+}
+
+TEST_CASE("copyBounded: a text longer than the buffer is cut, like a mod's long name") {
+    char buf[8];
+    std::memset(buf, 'x', sizeof(buf));
+    copyBounded(buf, sizeof(buf), "Atlas AS7-D Royal");
+    CHECK(std::strcmp(buf, "Atlas A") == 0);
+}
+
+TEST_CASE("copyBounded: exact fit, empty and NULL source") {
+    char buf[4];
+    copyBounded(buf, sizeof(buf), "abc");
+    CHECK(std::strcmp(buf, "abc") == 0);
+    copyBounded(buf, sizeof(buf), "abcd");
+    CHECK(std::strcmp(buf, "abc") == 0);
+    copyBounded(buf, sizeof(buf), "");
+    CHECK(buf[0] == '\0');
+    std::strcpy(buf, "abc");
+    copyBounded(buf, sizeof(buf), nullptr);
+    CHECK(buf[0] == '\0');
+}
+
+TEST_CASE("copyBounded: zero size writes nothing, and copying a string onto itself keeps it") {
+    char untouched[4] = "abc";
+    copyBounded(untouched, 0, "x");
+    CHECK(std::strcmp(untouched, "abc") == 0);
+
+    char self[8] = "abcdef";
+    copyBounded(self, 4, self);
+    CHECK(std::strcmp(self, "abc") == 0);
+}
+
+TEST_CASE("copyBounded and appendBounded on an array take its size") {
+    char buf[6];
+    copyBounded(buf, "MCL_MC_");
+    CHECK(std::strcmp(buf, "MCL_M") == 0);
+    copyBounded(buf, "ab");
+    appendBounded(buf, "cdefgh");
+    CHECK(std::strcmp(buf, "abcde") == 0);
+}
+
+TEST_CASE("splitPathName: the name without directory or extension") {
+    char name[32];
+    splitPathName("data\\objects\\atlas.csv", name, sizeof(name));
+    CHECK(std::strcmp(name, "atlas") == 0);
+    splitPathName("data/missions/mc2_01.fit", name, sizeof(name));
+    CHECK(std::strcmp(name, "mc2_01") == 0);
+    splitPathName("plain", name, sizeof(name));
+    CHECK(std::strcmp(name, "plain") == 0);
+    splitPathName("dir.v2/noext", name, sizeof(name));
+    CHECK(std::strcmp(name, "noext") == 0);
+    splitPathName("a/b.c.tga", name, sizeof(name));
+    CHECK(std::strcmp(name, "b.c") == 0);
+    splitPathName("", name, sizeof(name));
+    CHECK(name[0] == '\0');
+    splitPathName(nullptr, name, sizeof(name));
+    CHECK(name[0] == '\0');
+}
+
+TEST_CASE("splitPathName: a long name is cut to the buffer") {
+    char name[8];
+    splitPathName("data\\objects\\verylongmechname.csv", name, sizeof(name));
+    CHECK(std::strcmp(name, "verylon") == 0);
+    char untouched[4] = "abc";
+    splitPathName("x/y.z", untouched, 0);
+    CHECK(std::strcmp(untouched, "abc") == 0);
+}
+
+// FIT and CSV whole numbers: the value's low 32 bits on every platform. atol
+// into a long kept 4278190080 whole where long is 64-bit (Linux, Pi, Quest)
+// and clamped it to LONG_MAX on Windows.
+TEST_CASE("wholeNumberLow32: decimals, signs and the 32-bit edges") {
+    CHECK(wholeNumberLow32("0") == 0u);
+    CHECK(wholeNumberLow32("42") == 42u);
+    CHECK(wholeNumberLow32("+42") == 42u);
+    CHECK(wholeNumberLow32("  -7") == (uint32_t)-7);
+    CHECK((int32_t)wholeNumberLow32("2147483647") == 2147483647);
+    CHECK((int32_t)wholeNumberLow32("-2147483648") == (int32_t)0x80000000u);
+    CHECK(wholeNumberLow32("4278190080") == 0xFF000000u);
+    CHECK((int32_t)wholeNumberLow32("-16777216") == -16777216);
+    CHECK((int32_t)wholeNumberLow32("4278190080") == -16777216);
+}
+
+TEST_CASE("wholeNumberLow32: hex keeps its last eight digits, as the readers did") {
+    CHECK(wholeNumberLow32("0xFF000000") == 0xFF000000u);
+    CHECK(wholeNumberLow32("0xff123456") == 0xFF123456u);
+    CHECK(wholeNumberLow32("0x7f") == 0x7Fu);
+    CHECK(wholeNumberLow32("0x123456789A") == 0x3456789Au);
+    CHECK(wholeNumberLow32("0x") == 0u);
+}
+
+TEST_CASE("wholeNumberLow32: past 64 bits, still the low 32 bits of the value") {
+    // 2^64 + 5 and 2^70 + 0x1234: multiples of 2^32 drop out
+    CHECK(wholeNumberLow32("18446744073709551621") == 5u);
+    CHECK(wholeNumberLow32("1180591620717411308084") == 0x1234u);
+    CHECK(wholeNumberLow32("0x123456789ABCDEF0123456789A") == 0x3456789Au);
+}
+
+TEST_CASE("wholeNumberLow32: \"0x\" anywhere makes it hex, as stock data needs") {
+    // jumpfx.fit: Appearance = 0 // Was 0x060001AE loads 0x060001AE
+    CHECK(wholeNumberLow32("0 // Was 0x060001AE") == 0x060001AEu);
+    // "10x5": the "0x" inside is found
+    CHECK(wholeNumberLow32("10x5") == 0x5u);
+    // the readers never looked for "0X"
+    CHECK(wholeNumberLow32("0X10") == 0u);
+    // no sign for hex: the "0x" is found past it
+    CHECK(wholeNumberLow32("-0x10") == 0x10u);
+}
+
+TEST_CASE("wholeNumberLow32: whitespace, and the unsigned and signed 32-bit edges") {
+    CHECK(wholeNumberLow32("\t 42") == 42u);
+    CHECK(wholeNumberLow32("\n42") == 42u);
+    CHECK(wholeNumberLow32("4294967295") == 0xFFFFFFFFu);
+    // one below INT_MIN wraps to INT_MAX
+    CHECK((int32_t)wholeNumberLow32("-2147483649") == 2147483647);
+}
+
+TEST_CASE("wholeNumberLow32: stops at the first character that is not a digit") {
+    CHECK(wholeNumberLow32("350 // scan range") == 350u);
+    CHECK(wholeNumberLow32("12abc") == 12u);
+    CHECK(wholeNumberLow32("0xFFzz // comment") == 0xFFu);
+    CHECK(wholeNumberLow32("-") == 0u);
+    CHECK(wholeNumberLow32("") == 0u);
+    CHECK(wholeNumberLow32(nullptr) == 0u);
+    CHECK(wholeNumberLow32("abc") == 0u);
+}
+
 static void formatLine(char* out, size_t size, const char* header, const char* fmt, ...)
 {
     va_list ap;

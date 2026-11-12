@@ -1,0 +1,7 @@
+module M : integer;
+	var
+		char[8] s;
+	code
+		s = fuzznone;
+		return(0);
+endmodule.

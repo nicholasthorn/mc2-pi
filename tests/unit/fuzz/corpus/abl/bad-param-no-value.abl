@@ -1,0 +1,8 @@
+module M : integer;
+function takes (char[8] s) : integer;
+	code
+		return(1);
+endfunction;
+	code
+		return(takes(fuzznone));
+endmodule.

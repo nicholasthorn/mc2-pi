@@ -1,0 +1,4 @@
+module M : integer;
+	code
+		return(0); /* never closed
+endmodule.

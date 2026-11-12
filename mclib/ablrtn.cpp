@@ -48,6 +48,7 @@
 #ifndef ABLDBUG_H
 #include"abldbug.h"
 #endif
+#include<utils/str_bounded.h>
 
 //***************************************************************************
 
@@ -714,7 +715,7 @@ int32_t ABLi_preProcess (const char* sourceFileName, long* numErrors, long* numL
 	ifTokenGetElseError(TKN_PERIOD, ABL_ERR_SYNTAX_MISSING_PERIOD);
 
 	while (curToken != TKN_EOF) {
-		syntaxError(TKN_UNEXPECTED_TOKEN);
+		syntaxError(ABL_ERR_SYNTAX_UNEXPECTED_TOKEN);	// was the token code of that name
 		getToken();
 	}
 
@@ -1346,7 +1347,7 @@ void routine (void) {
 		// Add it to the state handle list...
 		if (NumStateHandles == MAX_STATE_HANDLES_PER_MODULE)
 			ABL_Fatal(0, "ABL: too many states in fsm [19 max]");
-		strcpy(StateHandleList[NumStateHandles].name, routineIdPtr->name);
+		copyBounded(StateHandleList[NumStateHandles].name, routineIdPtr->name);
 		StateHandleList[NumStateHandles].state = routineIdPtr;
 		NumStateHandles++;
 	}
@@ -1432,6 +1433,9 @@ SymTableNodePtr functionHeader (void) {
 			syntaxError(ABL_ERR_SYNTAX_REDEFINED_IDENTIFIER);
 		getToken();
 	}
+	else
+		// "function" with no name: the code below needs functionIdPtr
+		syntaxError(ABL_ERR_SYNTAX_MISSING_IDENTIFIER);
 
 	//---------------------
 	// Error synchronize...
@@ -1709,7 +1713,7 @@ void transState (SymTableNodePtr newState) {
 	if (CurFSM) {
 		CurFSM->setPrevState(CurFSM->getState());
 		CurFSM->setState(newState);
-		sprintf(SetStateDebugStr, "%s:%s, line %d", CurModule->getFileName(), newState->name, execLineNumber);
+		snprintf(SetStateDebugStr,sizeof(SetStateDebugStr), "%s:%s, line %d", CurModule->getFileName(), newState->name, execLineNumber);
 		NewStateSet = true;
 	}
 }

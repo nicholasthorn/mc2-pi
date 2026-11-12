@@ -1,0 +1,17 @@
+FITini
+
+[Objective0]
+st Title = "Destroy the convoy"
+st Description = "Intercept the supply convoy before it reaches the base."
+l NumConditions = 1
+l NumActions = 1
+
+[Objective0Condition0]
+st Type = "DestroyAllUnitsInGroup"
+l Value = 3
+
+[Objective0Action0]
+st Type = "DisplayTextMessage"
+st Name = "Convoy destroyed."
+
+FITend

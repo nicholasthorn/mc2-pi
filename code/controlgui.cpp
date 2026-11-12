@@ -744,7 +744,7 @@ void ControlGui::RenderObjectives()
 			char total[256];
 			char total2[256];
 			cLoadString( IDS_TOTAL, total2, 255 );
-			sprintf( total, total2, sum );
+			snprintf(total,sizeof(total), total2, sum );
 			unsigned long width = guiFont.width( total );
 			drawShadowText( 0xffffffff, 0xff000000, guiFont.getTempHandle(), OBJECTIVESTOTALRIGHT - width, pos, 0, total,
 				0, guiFont.getSize() );
@@ -1923,7 +1923,7 @@ void ControlGui::renderVehicleTab()
 	char originalStr[256];
 
 	cLoadString( IDS_RP, originalStr, 256 );
-	sprintf( buffer, originalStr, (long)LogisticsData::instance->getResourcePoints() );
+	snprintf(buffer,sizeof(buffer), originalStr, (long)LogisticsData::instance->getResourcePoints() );
 
 	//We are there.  Start flashing.
 	/// TUTORIAL!!!

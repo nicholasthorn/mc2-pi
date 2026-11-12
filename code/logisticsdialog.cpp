@@ -18,6 +18,7 @@ LogisticsDialog.cpp			: Implementation of the LogisticsDialog component.
 #include"missionbriefingscreen.h"
 #include"sounds.h"
 #include"gamesound.h"
+#include<utils/str_bounded.h>
 
 // A headset has no keyboard, so a save or a variant starts with a name nobody
 // has used, and OK works straight away. A name in the list can still be picked
@@ -693,7 +694,7 @@ bool LogisticsSaveDialog::isCorrectVersionSaveGame( char* fileName )
 	if ( NO_ERR != file.open( (char*)(const char*)path, READ, 50, do_not_make_lower))
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't open file %s", (const char*)path );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", (const char*)path );
 		STOP((errorStr));
 	}
 
@@ -720,7 +721,7 @@ void LogisticsSaveDialog::readCampaignNameFromFile( const char* fileName, char* 
 	if ( NO_ERR != file.open( (char*)(const char*)path ) )
 	{
 		char errorStr[256];
-		sprintf( errorStr, "couldn't open file %s", (const char*)path );
+		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", (const char*)path );
 		Assert( 0, 0, errorStr );
 	}
 
@@ -995,7 +996,7 @@ void LogisticsSaveDialog::updateMissionInfo()
 		long cBills;
 		file.readIdLong( "CBills", cBills );
 		cLoadString( IDS_DIALOG_CBILLS, tmp2, 255 );
-		sprintf( tmp, tmp2, cBills );
+		snprintf(tmp,sizeof(tmp), tmp2, cBills );
 		strcat( real, tmp );
 		strcat( real, "\n" );
 
@@ -1007,7 +1008,7 @@ void LogisticsSaveDialog::updateMissionInfo()
 
 
 		cLoadString( IDS_DIALOG_TIME, tmp2, 255 );
-		sprintf( tmp, tmp2, dateStr, timeStr  );
+		snprintf(tmp,sizeof(tmp), tmp2, dateStr, timeStr  );
 		strcat( real, tmp );
 
 
@@ -1162,7 +1163,7 @@ int	LogisticsSaveDialog::handleMessage( unsigned long what, unsigned long who )
 			char str[256];
 			cLoadString( IDS_DIALOG_OVERWRITE_PROMPT, str, 255 );
 			char promptString[256];
-			sprintf( promptString, str, (const char*)selectedName );
+			snprintf(promptString,sizeof(promptString), str, (const char*)selectedName );
 			LogisticsOKDialog::instance()->setText( IDS_DIALOG_QUIT_PROMPT,
 				IDS_DIALOG_NO, IDS_DIALOG_YES );
 			LogisticsOKDialog::instance()->setText( promptString );
@@ -1211,7 +1212,7 @@ int	LogisticsSaveDialog::handleMessage( unsigned long what, unsigned long who )
 			char str[256];
 			cLoadString( IDS_DIALOG_DELETE_PROMPT, str, 255 );
 			char promptString[256];
-			sprintf( promptString, str, (const char*)tmpName );
+			snprintf(promptString,sizeof(promptString), str, (const char*)tmpName );
 	
 			LogisticsOKDialog::instance()->setText( IDS_DIALOG_QUIT_PROMPT,
 						IDS_DIALOG_NO, IDS_DIALOG_YES );	
@@ -1614,7 +1615,7 @@ int	LogisticsVariantDialog::handleMessage ( unsigned long what, unsigned long wh
 				char str[256];
 				cLoadString( IDS_DIALOG_OVERWRITE_PROMPT, str, 255 );
 				char promptString[256];
-				sprintf( promptString, str, (const char*)selectedName );
+				snprintf(promptString,sizeof(promptString), str, (const char*)selectedName );
 				LogisticsOKDialog::instance()->setText( IDS_DIALOG_QUIT_PROMPT,
 					IDS_DIALOG_NO, IDS_DIALOG_YES );
 				LogisticsOKDialog::instance()->setText( promptString );
@@ -1643,7 +1644,7 @@ int	LogisticsVariantDialog::handleMessage ( unsigned long what, unsigned long wh
 		char str[256];
 		cLoadString( IDS_DIALOG_DELETE_PROMPT, str, 255 );
 		char promptString[256];
-		sprintf( promptString, str, (const char*)selectedName );
+		snprintf(promptString,sizeof(promptString), str, (const char*)selectedName );
 
 		LogisticsOKDialog::instance()->setText( IDS_DIALOG_QUIT_PROMPT,
 					IDS_DIALOG_NO, IDS_DIALOG_YES );	
@@ -1902,7 +1903,7 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 			sprintf( text2, text, missionName );
 
 			strcpy( totalText, text2 );		// not a format: text2 holds the map name
-			strcat( totalText, "\n" );
+			appendBounded( totalText, "\n" );
 
 				unsigned long type = 0;
 			file.readIdULong( "MissionType", type );
@@ -1912,8 +1913,8 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 			
 			sprintf( text2, text, mType );
 
-			strcat( totalText, text2 );
-			strcat( totalText, "\n" );
+			appendBounded( totalText, text2 );
+			appendBounded( totalText, "\n" );
 
 			unsigned long numPlayers = 2;
 
@@ -1921,8 +1922,8 @@ void LogisticsMapInfoDialog::setMap( const char* pFileName )
 			cLoadString( IDS_MP_LM_MAP_LIST_MAX_PLAYERS, text, 255 );
 			sprintf( text2, text, numPlayers );
 
-			strcat( totalText, text2 );
-			strcat( totalText, "\n" );
+			appendBounded( totalText, text2 );
+			appendBounded( totalText, "\n" );
 
 			textObjects[1].setText( totalText );
 

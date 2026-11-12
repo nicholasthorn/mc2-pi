@@ -639,7 +639,7 @@ void execute (SymTableNodePtr routineIdPtr) {
 		strcpy(SetStateDebugStr, "--");
 		while (NewStateSet) {
 			NumStateTransitions++;
-			sprintf(stateList[NumStateTransitions], "%s (%s)", CurModule->getState()->name, SetStateDebugStr);
+			snprintf(stateList[NumStateTransitions],sizeof(stateList[NumStateTransitions]), "%s (%s)", CurModule->getState()->name, SetStateDebugStr);
 			if (NumStateTransitions == 50) {
 				UserFile* userFile = UserFile::getNewFile();
 				char errStr[512];
@@ -658,7 +658,7 @@ void execute (SymTableNodePtr routineIdPtr) {
 						userFile->close();
 					}
 				}
-				sprintf(errStr, " ABL endless state loop in %s [%s:%s] ", ModuleRegistry[CurModule->getHandle()].fileName, CurModule->getState()->name, CurModule->getPrevState()->name);
+				snprintf(errStr,sizeof(errStr), " ABL endless state loop in %s [%s:%s] ", ModuleRegistry[CurModule->getHandle()].fileName, CurModule->getState()->name, CurModule->getPrevState()->name);
 				#if 0
 				ABL_Fatal(NumStateTransitions, errStr);
 				#else

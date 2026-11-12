@@ -1,0 +1,5 @@
+module M : integer;
+#debug_start
+	code
+		return(0);
+endmodule.

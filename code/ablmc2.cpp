@@ -6164,7 +6164,7 @@ void execMCPrint (void) {
 			DEBUGWINS_print(s, 0);
 			break;
 		case ABL_STACKITEM_CHAR_PTR:
-			sprintf(s, "char*=%s", (char*)value.data.characterPtr);
+			snprintf(s,sizeof(s), "char*=%s", (char*)value.data.characterPtr);
 			DEBUGWINS_print(s, 0);
 			break;
 		case ABL_STACKITEM_INTEGER_PTR:
@@ -6254,7 +6254,7 @@ void execGetWeapons (void) {
 				#ifdef BUGLOG
 				if ((numWpns != mover->numFunctionalWeapons) && BugLog) {
 					char s[50];
-					sprintf(s, "[%.2f] ablmc2.execGetWeapons: numWpns != numFunctionalWeapons (%05d)%s", scenarioTime, mover->getPartId(), mover->getName());
+					snprintf(s,sizeof(s), "[%.2f] ablmc2.execGetWeapons: numWpns != numFunctionalWeapons (%05d)%s", scenarioTime, mover->getPartId(), mover->getName());
 					BugLog->write(s);
 					BugLog->write(" ");
 				}
@@ -6494,7 +6494,7 @@ long ablFileCreateCB (void** file, const char* fName) {
 		Fatal(0, " unable to create ABL file");
 	if (((FilePtr)*file)->create(fName) != NO_ERR) {
 		char s[256];
-		sprintf(s, " ABL.ablFileOpenCB: unable to create file [%s] ", fName);
+		snprintf(s,sizeof(s), " ABL.ablFileOpenCB: unable to create file [%s] ", fName);
 		Fatal(0, s);
 	}
 	return(NO_ERR);
@@ -6660,7 +6660,7 @@ void ablEndlessStateCallback (UserFile* log) {
 	log->write(s);
 	log->write(" ");
 	if (LastCoreAttackTarget) {
-		sprintf(s, "Target = %s (%ld)", LastCoreAttackTarget->getName(), LastCoreAttackTarget->getPartId());
+		snprintf(s,sizeof(s), "Target = %s (%ld)", LastCoreAttackTarget->getName(), LastCoreAttackTarget->getPartId());
 		log->write(s);
 		Stuff::Vector3D pos;
 		pos = LastCoreAttackTarget->getPosition();

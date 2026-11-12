@@ -43,6 +43,7 @@
 #ifndef MOVE_H
 #include"move.h"
 #endif
+#include<utils/str_bounded.h>
 
 //---------------------------------------------------------------------------
 
@@ -652,7 +653,7 @@ long MoverGroup::calcJumpGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 #if DEBUGJUMPGOALS
 				char s[30];
 				sprintf(s, "[%d,%d] ", curCellRow, curCellCol);
-				strcat(debugStr, s);
+				appendBounded(debugStr, s);
 #endif
 #endif
 				}

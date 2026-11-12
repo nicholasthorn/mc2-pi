@@ -354,14 +354,20 @@ SymTableNodePtr searchSymTableDisplay (const char* name) {
 	if (separator) {
 		*separator = '\0';
 		SymTableNodePtr libraryNodePtr = searchSymTable(dup_name, SymTableDisplay[0]);
-		if (!libraryNodePtr)
+		// only a module has a member table: "integer." found the type, whose
+		// routine fields are never set
+		if (!libraryNodePtr || (libraryNodePtr->defn.key != DFN_MODULE))
+		{
+			free(dup_name);
 			return(NULL);
+		}
 		//-------------------------------------
 		// Now, search for the member symbol...
 		char* memberName = separator + 1;
 		SymTableNodePtr memberNodePtr = searchSymTable(memberName, libraryNodePtr->defn.info.routine.localSymTable);
 		if (memberNodePtr)
 			recordLibraryUsed(memberNodePtr);
+		free(dup_name);
 		return(memberNodePtr);
 		}
 	else {	

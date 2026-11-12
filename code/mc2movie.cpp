@@ -161,7 +161,7 @@ void MC2Movie::init (const char *MC2Name, RECT mRect, bool useWaveFile)
     pimpl = (MoviePlayerImpl*)gos_Malloc(sizeof(MoviePlayerImpl));
     pimpl->plm = NULL;
     char buf[1024];
-    sprintf(buf, "./data/movies/%s.mpg", MOVIEName);
+    snprintf(buf,sizeof(buf), "./data/movies/%s.mpg", MOVIEName);
     plm_t* plm = plm_create_with_filename(buf);
 
     if(!plm) {

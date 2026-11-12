@@ -75,3 +75,71 @@ void appendBounded(char* dest, size_t destSize, const char* src)
     std::memmove(dest + len, src, n);
     dest[len + n] = '\0';
 }
+
+void copyBounded(char* dest, size_t destSize, const char* src)
+{
+    if (!dest || destSize == 0)
+        return;
+    size_t n = 0;
+    if (src)
+    {
+        // strnlen is not in C++17's <cstring> everywhere; memchr is.
+        const void* end = std::memchr(src, '\0', destSize);
+        n = end ? static_cast<size_t>(static_cast<const char*>(end) - src) : destSize - 1;
+        std::memmove(dest, src, n);
+    }
+    dest[n] = '\0';
+}
+
+uint32_t wholeNumberLow32(const char* text)
+{
+    if (!text)
+        return 0;
+    // Unsigned arithmetic wraps mod 2^64, a multiple of 2^32, so the low 32
+    // bits come out right however many digits there are.
+    uint64_t value = 0;
+    const char* hex = std::strstr(text, "0x");
+    if (hex)
+    {
+        for (const char* p = hex + 2; std::isxdigit(static_cast<unsigned char>(*p)); ++p)
+        {
+            const int c = std::toupper(static_cast<unsigned char>(*p));
+            value = value * 16 + static_cast<uint64_t>(c <= '9' ? c - '0' : c - 'A' + 10);
+        }
+        return static_cast<uint32_t>(value);
+    }
+    const char* p = text;
+    while (std::isspace(static_cast<unsigned char>(*p)))
+        ++p;
+    bool negative = false;
+    if (*p == '+' || *p == '-')
+    {
+        negative = (*p == '-');
+        ++p;
+    }
+    for (; *p >= '0' && *p <= '9'; ++p)
+        value = value * 10 + static_cast<uint64_t>(*p - '0');
+    if (negative)
+        value = 0 - value;
+    return static_cast<uint32_t>(value);
+}
+
+void splitPathName(const char* path, char* name, size_t nameSize)
+{
+    if (!name || nameSize == 0)
+        return;
+    if (!path)
+        path = "";
+    const char* start = path;
+    for (const char* p = path; *p; ++p)
+    {
+        if (*p == '/' || *p == '\\')
+            start = p + 1;
+    }
+    const char* dot = std::strrchr(start, '.');
+    size_t n = dot ? static_cast<size_t>(dot - start) : std::strlen(start);
+    if (n > nameSize - 1)
+        n = nameSize - 1;
+    std::memmove(name, start, n);
+    name[n] = '\0';
+}

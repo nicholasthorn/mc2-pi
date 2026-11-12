@@ -870,7 +870,8 @@ void EWCharString::Format( const EWCSChar* p_Str, ... )
 	// make sure noone else is using this buffer
 	ChecEBuffer();
 	
-	if ( Max_Len > m_pBuffer->m_Alloc_Length )
+	// the buffer holds m_Alloc_Length chars; the result needs Max_Len + 1
+	if ( Max_Len >= m_pBuffer->m_Alloc_Length )
 	{
 		m_pBuffer->Release();
 		Alloc( Max_Len + 1 );
@@ -1556,7 +1557,8 @@ void EWCharString::Format( const char* p_Str, ... )
 	// make sure noone else is using this buffer
 	ChecEBuffer();
 	
-	if ( Max_Len > m_pBuffer->m_Alloc_Length )
+	// the buffer holds m_Alloc_Length chars; the result needs Max_Len + 1
+	if ( Max_Len >= m_pBuffer->m_Alloc_Length )
 	{
 		m_pBuffer->Release();
 		Alloc( Max_Len + 1 );

@@ -546,7 +546,7 @@ void __stdcall gos_LoadDataFromRegistry( const char* keyName, void* pData, DWORD
 
     const char* config_dir = getenv("XDG_CONFIG_HOME");
     if(config_dir == NULL) {
-        sprintf(cfg_dir, "%s/%s", home_dir, g_user_base_config_dir);
+        snprintf(cfg_dir,sizeof(cfg_dir), "%s/%s", home_dir, g_user_base_config_dir);
     } else {
         strncpy(cfg_dir, config_dir, 1023);
         cfg_dir[cfg_dir_size-1] = '\0';

@@ -16,6 +16,7 @@ PilotReadyScreen.cpp			: Implementation of the PilotReadyScreen component.
 #include"gamesound.h"
 #include"multplyr.h"
 #include"chatwindow.h"
+#include<utils/str_bounded.h>
 
 PilotReadyScreen* PilotReadyScreen::s_instance = NULL;
 
@@ -799,8 +800,8 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 		char fileName[256];
 		strcpy( fileName, artPath );
 		strcat( fileName, "MCL_PR_" );
-		strcat( fileName, pPilot->getName() );
-		strcat( fileName, ".tga" );
+		appendBounded( fileName, pPilot->getName() );
+		appendBounded( fileName, ".tga" );
 		EString str = fileName;
 		str.MakeLower();
 		statics[pilotPicture].setTexture( str );

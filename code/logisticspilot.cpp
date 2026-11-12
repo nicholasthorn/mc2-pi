@@ -15,6 +15,7 @@
 #include"../resource.h"
 #include"mechicon.h"
 #include"objmgr.h"
+#include<utils/str_bounded.h>
 
 char	LogisticsPilot::skillTexts[NUM_SPECIALTY_SKILLS][255] = {0};
 extern const char* SpecialtySkillsTable[NUM_SPECIALTY_SKILLS];
@@ -64,15 +65,15 @@ int LogisticsPilot::init( char* pilotFileName )
 	fileName = pilotFileName;
 	
 	char path[256];
-	strcpy( path, warriorPath );
-	strcat( path, fileName );
-	strcat( path, ".fit" );
+	copyBounded( path, warriorPath );
+	appendBounded( path, fileName );
+	appendBounded( path, ".fit" );
 
 	FitIniFile pilotFile;
 	if ( NO_ERR != pilotFile.open( path ) )
 	{
 		char errorString[256];
-		sprintf( errorString, "Couldn't open file %s", (const char*)fileName);
+		snprintf(errorString,sizeof(errorString), "Couldn't open file %s", (const char*)fileName);
 		Assert( 0, 0, errorString );
 		return -1;
 	}

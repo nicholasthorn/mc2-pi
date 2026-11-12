@@ -193,6 +193,101 @@ TEST_CASE("FitIniFile reads a FIT through a memory-buffer parent")
 	mem.close();
 }
 
+// readLine writes up to maxLength characters and a terminator, so callers
+// pass sizeof - 1 (the few that passed their whole buffer now do too).
+// readLineEx wrote two bytes past maxLength, and its caller, the ABL
+// scanner, passes its whole buffer: it now stays inside maxLength.
+TEST_CASE("File::readLine and readLineEx keep a long line inside maxLength")
+{
+	static const char text[] = "abcdefghijkl\nxy";
+	char image[sizeof(text)];
+	memcpy(image, text, sizeof(text));
+	const int len = (int)strlen(image);
+
+	const char* path = "file_longline.txt";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs(text, fp);
+	fclose(fp);
+
+	for (int fromDisk = 0; fromDisk < 2; fromDisk++)
+	{
+		CAPTURE(fromDisk);
+		for (int ex = 0; ex < 2; ex++)
+		{
+			CAPTURE(ex);
+			File f;
+			if (fromDisk)
+				REQUIRE(f.open(path) == NO_ERR);
+			else
+				REQUIRE(f.open(image, len) == NO_ERR);
+			unsigned char buf[16];
+			memset(buf, 'x', sizeof(buf));
+			if (ex)
+			{
+				f.readLineEx(buf, 8);
+				CHECK(memchr(buf, 0, 8) != nullptr);
+				CHECK(strncmp((const char*)buf, "abcdef", 6) == 0);
+			}
+			else
+			{
+				// up to maxLength chars and a terminator: callers pass sizeof - 1
+				f.readLine(buf, 7);
+				CHECK(strcmp((const char*)buf, "abcdefg") == 0);
+			}
+			CHECK(buf[8] == 'x');
+			CHECK(buf[9] == 'x');
+			f.close();
+		}
+	}
+
+	// the last line of a memory file, with no newline, stops at the end
+	File f;
+	REQUIRE(f.open(image, len) == NO_ERR);
+	unsigned char line[32];
+	f.readLineEx(line, sizeof(line));
+	CHECK(strcmp((const char*)line, "abcdefghijkl\n") == 0);
+	memset(line, 'x', sizeof(line));
+	f.readLineEx(line, sizeof(line));
+	CHECK(strcmp((const char*)line, "xy") == 0);
+	CHECK(f.eof());
+	f.close();
+	remove(path);
+}
+
+// A whole number past the signed 32-bit range read the same on no two
+// platforms: atol into a 64-bit long kept 4278190080 whole on Linux, and
+// clamped it to LONG_MAX on Windows. Now it is its low 32 bits everywhere.
+TEST_CASE("FitIniFile whole numbers past 32 bits read the same on every platform")
+{
+	const char* path = "inifile_wide.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[B]\nl Colour = 4278190080\nl Hex = 0xFF000000\nl Neg = -16777216 // black\n"
+		  "ul Mask = 4278190080\nl Max = 2147483647\nl Min = -2147483648\nFITend\n", fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	REQUIRE(fit.seekBlock("B") == NO_ERR);
+	long l = 0;
+	CHECK(fit.readIdLong("Colour", l) == NO_ERR);
+	CHECK(l == -16777216L);
+	CHECK(fit.readIdLong("Hex", l) == NO_ERR);
+	CHECK(l == -16777216L);
+	CHECK(fit.readIdLong("Neg", l) == NO_ERR);
+	CHECK(l == -16777216L);
+	CHECK(fit.readIdLong("Max", l) == NO_ERR);
+	CHECK(l == 2147483647L);
+	CHECK(fit.readIdLong("Min", l) == NO_ERR);
+	CHECK(l == -2147483647L - 1);
+	DWORD u = 0;
+	CHECK(fit.readIdULong("Mask", u) == NO_ERR);
+	CHECK(u == 0xFF000000u);
+	fit.close();
+	remove(path);
+}
+
 TEST_CASE("File::getMemoryView is NULL for a disk file")
 {
 	File f;
@@ -303,6 +398,33 @@ TEST_CASE("FitIniFile reads an array and a string on the last line of a file")
 		CHECK(strcmp(name, "last") == 0);
 		fit.close();
 	}
+	remove(path);
+}
+
+// A mod's string longer than the caller's buffer used to fill the buffer with
+// no terminator, so the next strcpy or strlen ran past it. It is now cut to
+// fit and terminated, and still reported as too long.
+TEST_CASE("FitIniFile readIdString cuts a string longer than the buffer and terminates it")
+{
+	const char* path = "inifile_longstring.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[B]\nst Name = \"Atlas AS7-D Royal\"\nst Exact = \"abcd\"\n", fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	REQUIRE(fit.seekBlock("B") == NO_ERR);
+	char name[8];
+	memset(name, 'x', sizeof(name));
+	CHECK(fit.readIdString("Name", name, sizeof(name)) == (long)BUFFER_TOO_SMALL);
+	CHECK(strcmp(name, "Atlas A") == 0);
+
+	char exact[4];
+	memset(exact, 'x', sizeof(exact));
+	CHECK(fit.readIdString("Exact", exact, sizeof(exact)) == (long)BUFFER_TOO_SMALL);
+	CHECK(strcmp(exact, "abc") == 0);
+	fit.close();
 	remove(path);
 }
 

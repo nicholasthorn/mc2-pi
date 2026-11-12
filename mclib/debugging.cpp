@@ -17,6 +17,7 @@
 #endif
 
 #include<string.h>
+#include<utils/str_bounded.h>
 
 extern UserHeapPtr systemHeap;
 
@@ -62,10 +63,10 @@ void GameDebugWindow::setFont (const char* fontFile) {
 void GameDebugWindow::print (const char* s) {
 	
 	if (numLines < MAX_DEBUG_WINDOW_LINES)
-		strcpy(textBuffer[numLines++], s);
+		copyBounded(textBuffer[numLines++], s);
 	else {
 		numLines++;
-		strcpy(textBuffer[linePos++], s);
+		copyBounded(textBuffer[linePos++], s);
 		if (linePos == MAX_DEBUG_WINDOW_LINES)
 			linePos = 0;
 	}

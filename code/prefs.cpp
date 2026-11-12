@@ -246,7 +246,7 @@ int CPrefs::load( const char* pFileName ) {
 				}
 
 				sprintf( blockName, "IPAddress%d", i );
-				result = prefsFile->readIdString( blockName, &ipAddresses[i][0], 255 );
+				result = prefsFile->readIdString( blockName, &ipAddresses[i][0], sizeof(ipAddresses[i]) );
 
 
 				sprintf( blockName, "UnitName%d", i );

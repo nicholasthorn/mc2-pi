@@ -104,6 +104,7 @@
 #define	TESTING_WITH_PLAYER	1
 
 #include"platform_windows.h"
+#include<utils/str_bounded.h>
 
 enum {
 	T_A = 0,
@@ -1052,7 +1053,7 @@ long MechWarrior::init (FitIniFile* warriorFile) {
 	if (result != NO_ERR)
 		photoIndex = 0;
 
-	strcpy( callsign, name );
+	copyBounded( callsign, name );
     const int len = strlen( callsign );
 	for ( int i = 0; i < len; i ++ )
 		CharUpper( callsign );
@@ -7379,6 +7380,9 @@ long MechWarrior::loadBrainParameters (FitIniFile* brainFile, long warriorId) {
 				result = brainFile->readIdLong("NumValues", numValues);
 				if (result != NO_ERR)
 					return(result);
+				// NumValues is data: keep it within values[]
+				if ((numValues < 0) || (numValues > 1024))
+					return(TOO_MANY_ELEMENTS);
 
 				int values[1024];
 				result = brainFile->readIdIntArray("Values", values, numValues);
@@ -7394,6 +7398,9 @@ long MechWarrior::loadBrainParameters (FitIniFile* brainFile, long warriorId) {
 				result = brainFile->readIdLong("NumValues", numValues);
 				if (result != NO_ERR)
 					return(result);
+				// NumValues is data: keep it within values[]
+				if ((numValues < 0) || (numValues > 1024))
+					return(TOO_MANY_ELEMENTS);
 
 				float values[1024];
 				result = brainFile->readIdFloatArray("Values", values, numValues);
@@ -8275,11 +8282,11 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 {
 	used = data.used;
 
-	strcpy(name,data.name);
-	strcpy(callsign,data.callsign);
-	strcpy(videoStr,data.videoStr);
-	strcpy(audioStr,data.audioStr);
-	strcpy(brainStr,data.brainStr);
+	copyBounded(name,data.name);
+	copyBounded(callsign,data.callsign);
+	copyBounded(videoStr,data.videoStr);
+	copyBounded(audioStr,data.audioStr);
+	copyBounded(brainStr,data.brainStr);
 
 	index = data.index;
 	paintScheme = data.paintScheme;

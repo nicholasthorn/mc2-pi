@@ -13,6 +13,7 @@ mpprefs.cpp			: Implementation of the mpprefs component.ef
 #include"multplyr.h"
 #include"gamesound.h"
 #include"chatwindow.h"
+#include<utils/str_bounded.h>
 
 #define MP_PREFS_BASE	200
 #define MP_PREFS_STRIPE	201
@@ -83,7 +84,7 @@ int MPPrefs::init( FitIniFile& file )
 		if ( NO_ERR != tmpFile.open( path ) )
 		{
 			char error[256];
-			sprintf( error, "couldn't open file %s", (const char*)path );
+			snprintf(error,sizeof(error), "couldn't open file %s", (const char*)path );
 			Assert( 0, 0, error );
 			return -1;
 		}
@@ -171,7 +172,7 @@ void MPPrefs::begin()
 		if ((findResult.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0 )
 		{
 			aBmpListItem* pItem = new aBmpListItem;
-			sprintf(path, "%s%s", path2insignia, findResult.cFileName  );
+			snprintf(path,sizeof(path), "%s%s", path2insignia, findResult.cFileName  );
 			if ( !pItem->setBmp( findResult.cFileName ) )
 			{
 				delete pItem;
@@ -298,7 +299,7 @@ void MPPrefs::update()
 		MC2Player* pInfo = MPlayer->getPlayerInfo( MPlayer->commanderID );
 
 		if ( pInfo )
-			strcpy( pInfo->insigniaFile, pName );
+			copyBounded( pInfo->insigniaFile, pName );
 
 		MPlayer->sendPlayerUpdate( 0, 5, -1 );
 
@@ -579,7 +580,7 @@ void MPPrefs::saveSettings()
 	MC2Player* pInfo = MPlayer->getPlayerInfo( MPlayer->commanderID );
 
 	if ( pInfo )
-		strcpy( pInfo->name, txt );
+		copyBounded( pInfo->name, txt );
 
 	// check and see if name has changed
 	comboBox[1].EditBox().getEntry( txt );
@@ -590,7 +591,7 @@ void MPPrefs::saveSettings()
 	}
 
 	if ( txt && pInfo )
-		strcpy( pInfo->unitName, txt );
+		copyBounded( pInfo->unitName, txt );
 
 
 	// colors should already be updated by now
@@ -602,9 +603,9 @@ void MPPrefs::saveSettings()
 		if ( pItem )
 		{
 			const char* pName = pItem->getBmp();
-			strcpy( prefs.insigniaFile, pName );
+			copyBounded( prefs.insigniaFile, pName );
 			if ( pInfo )
-				strcpy( pInfo->insigniaFile, pName );
+				copyBounded( pInfo->insigniaFile, pName );
 		}
 	}
 
@@ -628,9 +629,11 @@ void MPPrefs::cancelSettings()
 	MC2Player* pInfo = MPlayer->getPlayerInfo( MPlayer->commanderID );
 	if ( pInfo )
 	{
-		strcpy( pInfo->name, prefs.playerName[0] );
-		strcpy( pInfo->unitName, prefs.unitName[0] );
-		strcpy( pInfo->insigniaFile, prefs.insigniaFile );
+		copyBounded( pInfo->name, prefs.playerName[0] );
+		copyBounded( pInfo->unitName, prefs.unitName[0] );
+		// options.cfg can name one too long to send: keep the current one then
+		if ( strlen( prefs.insigniaFile ) < sizeof( pInfo->insigniaFile ) )
+			copyBounded( pInfo->insigniaFile, prefs.insigniaFile );
 	}
 
 	MPlayer->sendPlayerUpdate( 0, 5, -1 );
@@ -651,8 +654,14 @@ void MPPrefs::initColors()
 
 int aBmpListItem::setBmp( const char* pFileName )
 {
+	// the name goes to the other players in insigniaFile: one too long is left
+	// off the list (cut to fit, it would name another file or none)
 	if ( strlen( pFileName ) >= MAXLEN_INSIGNIA_FILE )
+	{
+		PAUSE(( "insignia file name %s is too long (%d characters at most)",
+			pFileName, MAXLEN_INSIGNIA_FILE - 1 ));
 		return 0;
+	}
 
 	FullPathFileName path;
 	path.init(path2insignia, pFileName, ".tga" );

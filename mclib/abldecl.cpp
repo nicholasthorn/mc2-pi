@@ -241,7 +241,9 @@ void doConst (SymTableNodePtr constantIdPtr) {
 			if (sign == TKN_PLUS)
 				constantIdPtr->defn.info.constant.value.integer = curLiteral.value.integer;
 			else
-				constantIdPtr->defn.info.constant.value.integer = -(curLiteral.value.integer);
+				// through unsigned: -2147483648 scans as INT_MIN, whose int negation
+				// overflows; this wraps it back to INT_MIN, as x86 did
+				constantIdPtr->defn.info.constant.value.integer = (int)(0u - (unsigned int)curLiteral.value.integer);
 			constantIdPtr->typePtr = setType(IntegerTypePtr);
 			}
 		else {
@@ -260,11 +262,14 @@ void doConst (SymTableNodePtr constantIdPtr) {
 			syntaxError(ABL_ERR_SYNTAX_UNDEFINED_IDENTIFIER);
 		else if (idPtr->defn.key != DFN_CONST)
 			syntaxError(ABL_ERR_SYNTAX_NOT_A_CONSTANT_IDENTIFIER);
+		// the constant being defined ("LIMIT = LIMIT") has no type yet
+		else if (!idPtr->typePtr)
+			syntaxError(ABL_ERR_SYNTAX_INVALID_CONSTANT);
 		else if (idPtr->typePtr == IntegerTypePtr) {
 			if (sign == TKN_PLUS)
 				constantIdPtr->defn.info.constant.value.integer = idPtr->defn.info.constant.value.integer;
 			else
-				constantIdPtr->defn.info.constant.value.integer = -(idPtr->defn.info.constant.value.integer);
+				constantIdPtr->defn.info.constant.value.integer = (int)(0u - (unsigned int)idPtr->defn.info.constant.value.integer);
 			constantIdPtr->typePtr = setType(IntegerTypePtr);
 			}
 		else if (idPtr->typePtr == CharTypePtr) {

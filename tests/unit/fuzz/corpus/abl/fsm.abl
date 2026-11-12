@@ -1,0 +1,70 @@
+//------------------------------------------------------------
+// A guard brain, written for the fuzz corpus.
+//------------------------------------------------------------
+fsm FuzzGuard;
+
+	var
+		static integer		scanRange;
+		static real			lastTime;
+		static boolean		alert;
+		static integer[20]	weaponList;
+		static char[40]		moduleName;
+
+//------------------------------------------------------------
+function init;
+	code
+		scanRange = 350;
+		lastTime = -100.0;
+		alert = false;
+		weaponList[0] = fuzzint(3);
+endfunction;
+
+//------------------------------------------------------------
+function update : integer;
+	var
+		integer		i;
+		real		total;
+		char[40]	text;
+	code
+		total = 0.0;
+		i = 0;
+		while (i < 20) do
+			weaponList[i] = i * 2;
+			total = total + fuzzreal(1.5, total);
+			i = i + 1;
+		endwhile;
+		if ((total > 10.0) and (not alert)) then
+			alert = true;
+		else
+			alert = false;
+		endif;
+		switch (scanRange)
+			case 350:
+				scanRange = 400;
+			endcase;
+			case 400:
+				scanRange = 350;
+			endcase;
+		endswitch;
+		concat(text, "range ");
+		concat(text, scanRange);
+		fuzzname(text);
+		return(scanRange);
+endfunction;
+
+//------------------------------------------------------------
+state noWeapons;
+	code
+		fuzznone;
+endstate;
+
+//------------------------------------------------------------
+state start;
+	code
+		update;
+		if (weaponList[0] == 0) then
+			trans noWeapons;
+		endif;
+endstate;
+
+endfsm.
