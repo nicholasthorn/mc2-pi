@@ -34,6 +34,7 @@
 #include"ablenv.h"
 #endif
 #include<utils/str_bounded.h>
+#include<stdint.h>
 
 //***************************************************************************
 #pragma warning(disable:4244)
@@ -981,6 +982,21 @@ void accumulateValue (float* valuePtr, SyntaxErrorType errCode) {
 
 //***************************************************************************
 
+// The 2001 MSVC build made an integer literal's float an int with _ftol,
+// which converts to 64 bits and keeps the low 32: 4278190080, the colour
+// the stock scripts pass to fadeToColor (mc2_01, mc2_08, mc2_17, mc2_18,
+// multiplayer), became 0xFF000000. A plain (int) cast of a value past the
+// int range is undefined: INT_MIN on x86-64, INT_MAX on ARM. Past the
+// 64-bit range _ftol gave 0x8000000000000000, whose low 32 bits are 0.
+int ablIntegerLiteral (float value) {
+
+	if (!((value > -9223372036854775808.0f) && (value < 9223372036854775808.0f)))
+		return(0);
+	return((int)(uint32_t)(uint64_t)(int64_t)value);
+}
+
+//***************************************************************************
+
 void getNumber (void) {
 
 	long wholeCount = 0;
@@ -1064,15 +1080,7 @@ void getNumber (void) {
 //			curToken = TKN_ERROR;
 //			return;
 //		}
-		// numberValue is a float, so this can be true: a literal past the int
-		// range made the cast below undefined
-		if ((numberValue < -2147483648.0f) || (numberValue >= 2147483648.0f))
-		{
-			syntaxError(ABL_ERR_SYNTAX_INTEGER_OUT_OF_RANGE);
-			curToken = TKN_ERROR;
-			return;
-		}
-		curLiteral.value.integer = (int)numberValue;
+		curLiteral.value.integer = ablIntegerLiteral(numberValue);
 		}
 	else
 		curLiteral.value.real = numberValue;

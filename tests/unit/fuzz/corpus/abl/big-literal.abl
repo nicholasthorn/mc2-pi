@@ -1,0 +1,8 @@
+module M : integer;
+	var
+		integer colour;
+	code
+		colour = 4278190080;
+		fuzzint(4278190080);
+		return(colour);
+endmodule.
