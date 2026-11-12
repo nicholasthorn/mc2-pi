@@ -126,7 +126,9 @@ support battle.
 `ci.yml` also runs the unit tests under ASan + UBSan and cppcheck on changed
 files; both workflows skip a push that changes only docs or only merges
 `pi-port` in (`scripts/ci_skip.sh`);
-`.github/workflows/static.yml` runs cppcheck on the whole tree nightly. New
+`.github/workflows/static.yml` runs cppcheck on the whole tree nightly;
+`.github/workflows/fuzz.yml` runs the libFuzzer targets nightly and on PRs that
+change the fuzzed readers (`tests/unit/fuzz/README.md`). New
 code builds with `-Wall -Wextra -Werror` (`.claude/rules/build-conventions.md`). See `.claude/rules/` for the
 detailed conventions.
 

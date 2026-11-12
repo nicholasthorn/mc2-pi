@@ -26,6 +26,16 @@ tests. `MC2_FUZZ_REPLAY_MUTANTS=5000` runs more, and
 running it, so after a crash it holds the input that crashed (feed it to the
 matching `mc2_fuzz_*`, or turn it into a `bad-*` seed).
 
+## In CI (`.github/workflows/fuzz.yml`)
+
+libFuzzer runs nightly, 5 minutes per target with the four side by side, and
+for 1 minute per target on pull requests that change the fuzzed readers, the
+targets or the workflow; on demand with the time as an input. Each target's
+corpus is kept in the Actions cache from night to night (cut down to what
+still adds coverage), never written back here. A finding fails the run: the
+summary names the target and the first report, and the `fuzz-findings`
+artifact holds the input and the logs.
+
 ## With libFuzzer (Clang, Linux)
 
 ```bash
@@ -35,8 +45,15 @@ cmake -S . -B build-fuzz -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 cmake --build build-fuzz --target mc2_fuzz_fit mc2_fuzz_csv mc2_fuzz_tga mc2_fuzz_abl
 ```
 
-Run one from `tests/unit/fuzz`, with a scratch corpus so the seeds stay as
-they are:
+`scripts/fuzz.sh` runs them as CI does (all four side by side, a corpus kept
+between runs, a summary at the end):
+
+```bash
+scripts/fuzz.sh --build-dir build-fuzz --seconds 300 --corpus-dir ~/fuzz-corpus --minimize
+```
+
+Or run one by hand from `tests/unit/fuzz`, with a scratch corpus so the seeds
+stay as they are:
 
 ```bash
 mkdir -p /tmp/fit && ../../../build-fuzz/out/tests/unit/mc2_fuzz_fit /tmp/fit corpus/fit \

@@ -101,11 +101,17 @@ Coverage is still to come (`planning/QUALITY-ROADMAP.md`).
 - `-DMC2_FUZZ=ON` (Clang, its own build directory, with
   `MC2_SANITIZE=address,undefined`) builds libFuzzer executables,
   `mc2_fuzz_<target>`. How to run them: `tests/unit/fuzz/README.md`.
+  `scripts/fuzz.sh` runs all four side by side with a kept corpus.
+- `fuzz.yml` runs them nightly (5 minutes each, the corpus kept in the
+  Actions cache) and for a minute each on PRs that change the fuzzed readers
+  or the targets. A finding fails the run and leaves its input in the
+  `fuzz-findings` artifact.
 - A crash it finds gets fixed, and the input (or a smaller one) goes into
   `corpus/<target>/` as `bad-<what it broke>`. Only `bad-*` seeds may be
   rejected; the others must load, or they test little.
 - A new reader of mod data gets a target: a function in `fuzz/`, a few seeds,
-  a dictionary, a line in the replay test and in the `MC2_FUZZ` loop.
+  a dictionary, a line in the replay test and in the `MC2_FUZZ` loop, and its
+  name in `scripts/fuzz.sh`, `fuzz.yml`'s build step and paths.
 
 ## Where TDD applies
 

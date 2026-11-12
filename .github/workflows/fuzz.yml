@@ -1,0 +1,111 @@
+name: Fuzz
+
+# libFuzzer over the readers a mod feeds (tests/unit/fuzz: FIT, CSV, TGA, the
+# ABL compiler), under ASan + UBSan, through scripts/fuzz.sh. Every unit-test
+# run already replays fixed mutations of the seeds (test_fuzz_replay.cpp);
+# this lets coverage-guided fuzzing keep finding new paths.
+#
+# - Nightly: 5 minutes per target, the four side by side. The corpus each
+#   target builds up is kept in the Actions cache from night to night (cut
+#   down to what still adds coverage), never written back to the repository.
+# - Pull requests that change the fuzzed readers, the targets or this
+#   workflow: 1 minute per target, from the latest nightly corpus.
+# - On demand, with the time per target as an input.
+#
+# A finding fails the run; its input and logs are in the fuzz-findings
+# artifact and the run's summary names the target and the first report.
+# Reproduce and keep it fixed as tests/unit/fuzz/README.md says.
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  pull_request:
+    paths:
+      - "tests/unit/fuzz/**"
+      - "tests/unit/heap_shim.cpp"
+      - "mclib/file.cpp"
+      - "mclib/inifile.cpp"
+      - "mclib/csvfile.cpp"
+      - "mclib/tgainfo.cpp"
+      - "mclib/abl*.cpp"
+      - "mclib/abl*.h"
+      - "GameOS/gameos/utils/Image.cpp"
+      - "scripts/fuzz.sh"
+      - ".github/workflows/fuzz.yml"
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: "Seconds per target"
+        type: number
+        default: 300
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: libFuzzer (FIT, CSV, TGA, ABL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      # libFuzzer ships in the compiler-rt package matching the clang version
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake ninja-build pkg-config clang \
+            libsdl2-dev libsdl2-mixer-dev libsdl2-ttf-dev zlib1g-dev libglew-dev libgl-dev
+          ver="$(clang --version | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -1)"
+          sudo apt-get install -y -qq "libclang-rt-${ver}-dev"
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: fuzz
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DMC2_FUZZ=ON -DMC2_SANITIZE=address,undefined -DMC2_NET=OFF
+          cmake --build build --target mc2_fuzz_fit mc2_fuzz_csv mc2_fuzz_tga mc2_fuzz_abl
+      # Each run saves a new cache entry; the newest one is restored. A pull
+      # request reads the default branch's (the nightly) corpus.
+      - name: Restore corpus
+        uses: actions/cache/restore@v6
+        with:
+          path: fuzz-corpus
+          key: fuzz-corpus-${{ github.run_id }}
+          restore-keys: fuzz-corpus-
+      - name: Fuzz
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request)      seconds=60 ;;
+            workflow_dispatch) seconds="${{ inputs.seconds }}" ;;
+            *)                 seconds=300 ;;
+          esac
+          bash scripts/fuzz.sh --build-dir build --seconds "$seconds" \
+            --corpus-dir fuzz-corpus --out-dir fuzz-out --minimize
+      # Kept even when a target found something, so the night's coverage is
+      # not lost; pull requests do not overwrite the nightly corpus.
+      - name: Save corpus
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/cache/save@v6
+        with:
+          path: fuzz-corpus
+          key: fuzz-corpus-${{ github.run_id }}
+      - name: Upload findings
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-findings
+          path: |
+            fuzz-out/*/crash-*
+            fuzz-out/*/timeout-*
+            fuzz-out/*/oom-*
+            fuzz-out/*.log
+          if-no-files-found: warn
