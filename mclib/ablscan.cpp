@@ -982,17 +982,18 @@ void accumulateValue (float* valuePtr, SyntaxErrorType errCode) {
 
 //***************************************************************************
 
-// The 2001 MSVC build made an integer literal's float an int with _ftol,
-// which converts to 64 bits and keeps the low 32: 4278190080, the colour
-// the stock scripts pass to fadeToColor (mc2_01, mc2_08, mc2_17, mc2_18,
-// multiplayer), became 0xFF000000. A plain (int) cast of a value past the
-// int range is undefined: INT_MIN on x86-64, INT_MAX on ARM. Past the
-// 64-bit range _ftol gave 0x8000000000000000, whose low 32 bits are 0.
-int ablIntegerLiteral (float value) {
+// An integer literal's value from its digits, as its low 32 bits: the
+// whole-number rule the FIT and CSV readers follow (wholeNumberLow32).
+// The 2001 build went through the literal's float and _ftol (64 bits, low
+// 32 kept), which gives the same for every literal in the stock, Omnitech
+// and mod-pack scripts: 4278190080 (fadeToColor in mc2_01, mc2_08, mc2_17,
+// mc2_18, multiplayer) is 0xFF000000, and no other literal there is past
+// 2^24, where a float stops holding whole numbers exactly (16356 scripts
+// checked, 2026-11-12). A plain (int) cast of a float past the int range
+// was undefined: INT_MIN on x86-64, INT_MAX on ARM.
+int ablIntegerLiteral (const char* digits) {
 
-	if (!((value > -9223372036854775808.0f) && (value < 9223372036854775808.0f)))
-		return(0);
-	return((int)(uint32_t)(uint64_t)(int64_t)value);
+	return((int)(int32_t)wholeNumberLow32(digits));
 }
 
 //***************************************************************************
@@ -1080,7 +1081,8 @@ void getNumber (void) {
 //			curToken = TKN_ERROR;
 //			return;
 //		}
-		curLiteral.value.integer = ablIntegerLiteral(numberValue);
+		*tokenp = '\0';	// the digits, for ablIntegerLiteral
+		curLiteral.value.integer = ablIntegerLiteral(tokenString);
 		}
 	else
 		curLiteral.value.real = numberValue;

@@ -255,9 +255,8 @@ void getToken(void);
 void getWord (void);
 void accumulateValue (float* valuePtr, SyntaxErrorType errCode);
 void getNumber (void);
-// The int an integer literal's float stands for, as the 2001 build's _ftol
-// made it: through 64 bits, keeping the low 32 (ablscan.cpp).
-int ablIntegerLiteral (float value);
+// An integer literal's value from its digits, as its low 32 bits (ablscan.cpp).
+int ablIntegerLiteral (const char* digits);
 void getString (void);
 void getSpecial (void);
 bool tokenIn (TokenCodeType* tokenList);
