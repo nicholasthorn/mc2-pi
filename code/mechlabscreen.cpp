@@ -339,22 +339,16 @@ void MechLabScreen::begin()
 		if ( stockLayout )
 		{
 			char path[256];
-			strcpy( path, artPath );
-			strcat( path, "MCL_MC_" );
 			char mechName[64];
 			EString fileName = pVariant->getFileName( );
 			splitPathName( fileName, mechName, sizeof(mechName) );
-			strcat( path, mechName );
-			strcat( path, "_B.tga" );
+			snprintf( path, sizeof(path), "%sMCL_MC_%s_B.tga", artPath, mechName );
 			CharLower( path );
 
 			for ( int i = 51; i < 54; i++ )
 				statics[i].setTexture( path );
 
-			strcpy( path, artPath );
-			strcat( path, "MCL_MC_" );
-			strcat( path, mechName );
-			strcat( path, "_A.tga" );
+			snprintf( path, sizeof(path), "%sMCL_MC_%s_A.tga", artPath, mechName );
 			CharLower( path );
 
 			statics[50].setTexture( path );

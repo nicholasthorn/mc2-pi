@@ -61,8 +61,6 @@ void stdReturn (void) {
 
 	if (curToken == TKN_LPAREN) {
 		getToken();
-		// A call to a function with no return type gives a NULL type: an
-		// argument like that is the wrong type, not a NULL to read through.
 		TypePtr paramType = expression();
 		if (paramType != CurRoutineIdPtr->typePtr)
 			syntaxError(ABL_ERR_SYNTAX_INCOMPATIBLE_TYPES);
@@ -88,6 +86,8 @@ void stdPrint (void) {
 		syntaxError(ABL_ERR_SYNTAX_WRONG_NUMBER_OF_PARAMS);
 
 	TypePtr paramType = expression();
+	// A call to a function with no return type gives a NULL type: an argument
+	// like that is the wrong type, not a NULL to read through (and below).
 	if ((paramType != IntegerTypePtr) &&
 		(paramType != RealTypePtr) &&
 		(paramType != CharTypePtr) &&

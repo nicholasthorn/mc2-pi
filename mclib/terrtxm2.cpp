@@ -1081,9 +1081,9 @@ void TerrainColorMap::resetWaterDetailTextures (const char *fileName)
 		{
 			copyBounded(waterFile, sizeof(waterFile), fileName);
 			char dName[1024];
-			sprintf(dName,"%04ld.tga",i);
+			snprintf(dName,sizeof(dName),"%04ld.tga",i);
 			char *subStringToBeReplaced = &(waterFile[strlen(waterFile)-strlen("0000.tga")]);
-			strcpy(subStringToBeReplaced, dName);
+			copyBounded(subStringToBeReplaced, sizeof(waterFile) - (subStringToBeReplaced - waterFile), dName);
 		}
 		
 		bool textureIsOK = true;
