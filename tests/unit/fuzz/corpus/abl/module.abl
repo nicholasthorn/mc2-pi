@@ -1,0 +1,30 @@
+module FuzzMission : integer;
+
+	const
+		LIMIT = 12;
+
+	var
+		eternal integer		missionState;
+		static real			elapsed;
+		static integer[4]	counts;
+
+//------------------------------------------------------------
+function countUp (integer amount) : integer;
+	var
+		integer		j;
+	code
+		for j = 0 to 3 do
+			counts[j] = counts[j] + amount;
+		endfor;
+		return(counts[0]);
+endfunction;
+
+//------------------------------------------------------------
+	code
+		elapsed = elapsed + 0.5;
+		if (countUp(1) > LIMIT) then
+			missionState = 1;
+		endif;
+		return(missionState);
+
+endmodule.

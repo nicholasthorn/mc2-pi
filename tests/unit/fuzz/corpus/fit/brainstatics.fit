@@ -1,0 +1,12 @@
+FITini
+[Warrior0Static0]
+st Name = "weaponList"
+l Type = 2
+l NumValues = 4
+l[4] Values = 1, 2, 3, 4
+
+[Warrior0Static1]
+st Name = "scanRange"
+l Type = 1
+f Value = 350.0
+FITend

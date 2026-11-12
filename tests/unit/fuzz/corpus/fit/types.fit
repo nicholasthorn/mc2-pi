@@ -1,0 +1,19 @@
+FITini
+[Main]
+st Name = "Atlas"
+st FileName = "data\objectstlas.csv"
+l Value = 42
+f Value2 = 1.5
+b Flag = TRUE
+c S = 7
+uc Type = 200
+ul NumValues = 3
+f[3] Pos = 1.5, -2, 3e2
+l[3] Ids = 1, 2, 3
+uc[2] Values = 4, 5
+
+[Second]
+st Name = "a string that runs
+over two lines"
+l Value = 0x7fffffff
+FITend

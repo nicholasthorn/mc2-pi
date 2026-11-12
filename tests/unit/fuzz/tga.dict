@@ -1,0 +1,10 @@
+# libFuzzer dictionary for mc2_fuzz_tga (README.md)
+"\x00\x00\x0A"
+"\x00\x00\x02"
+"\x00\x01\x01"
+"\x00\x00\x03"
+"\xFF\x7F"
+"\x80"
+"\x18"
+" "
+"\x08"

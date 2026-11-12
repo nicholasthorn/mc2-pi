@@ -1,0 +1,4 @@
+module Mé : integer;
+	code
+		return(0);
+endmodule.

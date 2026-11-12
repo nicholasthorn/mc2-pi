@@ -1,0 +1,7 @@
+module M : integer;
+function ;
+	code
+endfunction;
+	code
+		return(0);
+endmodule.

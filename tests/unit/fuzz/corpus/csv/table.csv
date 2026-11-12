@@ -1,0 +1,5 @@
+Name,Type,NameID,FitID,Weight,Notes
+madcat,MECH,101,5001,75,"heavy"
+uziel,VEHICLE,102,5002,50.5,
+,,,,,
+atlas,MECH,103,5003,100,"assault, slow"

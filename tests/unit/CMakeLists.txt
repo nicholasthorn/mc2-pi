@@ -58,6 +58,15 @@ add_executable(mc2_tests
     test_tga_readers.cpp
     test_move_save_bounds.cpp
     test_txmcachename.cpp
+    test_fuzz_replay.cpp
+
+    # Fuzz targets (fuzz/fuzz_targets.h), replayed by test_fuzz_replay.cpp
+    # and built as libFuzzer executables with MC2_FUZZ.
+    fuzz/fuzz_support.cpp
+    fuzz/fuzz_fit.cpp
+    fuzz/fuzz_csv.cpp
+    fuzz/fuzz_tga.cpp
+    fuzz/fuzz_abl.cpp
 
     # Real engine TUs: the file / ini / packet / FST / CSV stack. This is the
     # whole link frontier; nothing else from mclib or GameOS is needed.
@@ -76,6 +85,21 @@ add_executable(mc2_tests
     ${MC2_SRC}/mclib/waveparse.cpp     # wave_ParseWaveMemory (sound bite chunk walk)
     ${MC2_SRC}/mclib/pqueue.cpp        # PriorityQueue (A* open list)
     ${MC2_SRC}/mclib/tgainfo.cpp       # terrain tile and mask TGA readers
+    # the ABL compiler and VM, for fuzz/fuzz_abl.cpp
+    ${MC2_SRC}/mclib/abldbug.cpp
+    ${MC2_SRC}/mclib/abldecl.cpp
+    ${MC2_SRC}/mclib/ablenv.cpp
+    ${MC2_SRC}/mclib/ablerr.cpp
+    ${MC2_SRC}/mclib/ablexec.cpp
+    ${MC2_SRC}/mclib/ablexpr.cpp
+    ${MC2_SRC}/mclib/ablrtn.cpp
+    ${MC2_SRC}/mclib/ablscan.cpp
+    ${MC2_SRC}/mclib/ablstd.cpp
+    ${MC2_SRC}/mclib/ablstmt.cpp
+    ${MC2_SRC}/mclib/ablsymt.cpp
+    ${MC2_SRC}/mclib/ablxexpr.cpp
+    ${MC2_SRC}/mclib/ablxstd.cpp
+    ${MC2_SRC}/mclib/ablxstmt.cpp
 
     # GL- and SDL-free GameOS helpers
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
@@ -111,15 +135,18 @@ add_executable(mc2_tests
 # plain -I paths inherited from the top-level include_directories) so the
 # strict warnings below report the test code, not the 2001 headers it uses.
 get_target_property(_mc2_engine_includes mc2_tests INCLUDE_DIRECTORIES)
-set_target_properties(mc2_tests PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}")
-target_include_directories(mc2_tests SYSTEM PRIVATE
-    ${_mc2_engine_includes}
-    ${MC2_SRC}/mclib
-    ${MC2_SRC}/GameOS/include
-    ${MC2_SRC}/GameOS/gameos
-    ${MC2_SRC}/thirdparty
-    ${MC2_SRC}/code
-)
+function(mc2_test_includes target)
+    set_target_properties(${target} PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(${target} SYSTEM PRIVATE
+        ${_mc2_engine_includes}
+        ${MC2_SRC}/mclib
+        ${MC2_SRC}/GameOS/include
+        ${MC2_SRC}/GameOS/gameos
+        ${MC2_SRC}/thirdparty
+        ${MC2_SRC}/code
+    )
+endfunction()
+mc2_test_includes(mc2_tests)
 
 # New code in this target is held to -Wall -Wextra -Werror (GCC/Clang); the
 # legacy engine .cpp files above keep the global flags.
@@ -129,6 +156,8 @@ set_source_files_properties(
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp test_iconsheet.cpp test_vr_edge_fade.cpp
     test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_tga_readers.cpp test_move_save_bounds.cpp test_txmcachename.cpp
+    test_fuzz_replay.cpp fuzz/fuzz_support.cpp fuzz/fuzz_fit.cpp fuzz/fuzz_csv.cpp fuzz/fuzz_tga.cpp fuzz/fuzz_abl.cpp
+    fuzz/libfuzzer_main.cpp fuzz/fuzz_gos_stubs.cpp
     test_netwire.cpp test_netlan.cpp test_netlobby.cpp test_netsession.cpp test_netrules.cpp test_netforce.cpp test_gos_net.cpp test_gos_net_gns.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pixel_repack.cpp
     ${MC2_SRC}/GameOS/gameos/utils/audio_pan.cpp
@@ -166,7 +195,22 @@ add_custom_target(mc2_test_fixtures ALL
             ${CMAKE_CURRENT_SOURCE_DIR}/fixtures ${CMAKE_CURRENT_BINARY_DIR}/fixtures
     # the shipped bench scenarios, so a test can check they still load
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${MC2_SRC}/bench ${CMAKE_CURRENT_BINARY_DIR}/fixtures/bench)
+            ${MC2_SRC}/bench ${CMAKE_CURRENT_BINARY_DIR}/fixtures/bench
+    # the fuzz seeds, replayed by test_fuzz_replay.cpp
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus ${CMAKE_CURRENT_BINARY_DIR}/fixtures/fuzz_corpus)
+
+# The seed list for test_fuzz_replay.cpp ("<target> <path under fixtures/>"),
+# which builds as C++0x and so cannot list a directory itself. Re-globbed on
+# every build, so a new seed is picked up without reconfiguring by hand.
+file(GLOB _mc2_fuzz_seeds CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus
+     ${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus/*/*)
+set(_mc2_fuzz_list "")
+foreach(_seed ${_mc2_fuzz_seeds})
+    string(REGEX REPLACE "/.*" "" _target "${_seed}")
+    string(APPEND _mc2_fuzz_list "${_target} fuzz_corpus/${_seed}\n")
+endforeach()
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fuzz_corpus.txt "${_mc2_fuzz_list}")
 add_dependencies(mc2_tests mc2_test_fixtures)
 target_compile_definitions(mc2_tests PRIVATE MC2_TEST_FIXTURE_DIR="fixtures")
 
@@ -188,4 +232,33 @@ if(MC2_NET)
     add_test(NAME net_two_process
         COMMAND ${CMAKE_COMMAND} -DNET_PING=$<TARGET_FILE:net_ping> -P ${MC2_SRC}/tests/net/two_process.cmake)
     set_tests_properties(net_two_process PROPERTIES TIMEOUT 90)
+endif()
+
+# libFuzzer executables (-DMC2_FUZZ=ON, Clang; fuzz/README.md): the same
+# engine files and shim as mc2_tests, without the tests, one per target.
+if(MC2_FUZZ)
+    get_target_property(_mc2_test_sources mc2_tests SOURCES)
+    set(_mc2_fuzz_sources "")
+    foreach(_src ${_mc2_test_sources})
+        get_filename_component(_name "${_src}" NAME)
+        if(NOT _name MATCHES "^test_" AND NOT _name STREQUAL "gos_net_gns.cpp")
+            list(APPEND _mc2_fuzz_sources "${_src}")
+        endif()
+    endforeach()
+    foreach(_target fit csv tga abl)
+        if(_target STREQUAL "fit")
+            set(_fn fuzzFitFile)
+        elseif(_target STREQUAL "csv")
+            set(_fn fuzzCsvFile)
+        elseif(_target STREQUAL "tga")
+            set(_fn fuzzTga)
+        else()
+            set(_fn fuzzAblScript)
+        endif()
+        add_executable(mc2_fuzz_${_target} ${_mc2_fuzz_sources} fuzz/libfuzzer_main.cpp fuzz/fuzz_gos_stubs.cpp)
+        mc2_test_includes(mc2_fuzz_${_target})
+        target_compile_definitions(mc2_fuzz_${_target} PRIVATE MC2_FUZZ_TARGET=${_fn})
+        target_link_options(mc2_fuzz_${_target} PRIVATE -fsanitize=fuzzer)
+        target_link_libraries(mc2_fuzz_${_target} PRIVATE windows ZLIB::ZLIB ${ADDITIONAL_LIBS})
+    endforeach()
 endif()
