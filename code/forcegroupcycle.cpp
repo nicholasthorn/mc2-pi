@@ -5,8 +5,8 @@ namespace forcegroups {
 namespace {
 
 // key order: group 1 is first, group 0 last
-int position(int group) { return group == 0 ? kGroups - 1 : group - 1; }
-int groupAt(int pos) { return pos == kGroups - 1 ? 0 : pos + 1; }
+int position(int group) { return (group + kGroups - 1) % kGroups; }
+int groupAt(int pos) { return (pos + 1) % kGroups; }
 
 } // namespace
 

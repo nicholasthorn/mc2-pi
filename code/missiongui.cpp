@@ -3328,9 +3328,15 @@ int MissionInterfaceManager::forceShot()
 void MissionInterfaceManager::selectForceGroup( int forceGroup, bool deselect )
 {
 	// a group with no living unit changes nothing (it used to clear the selection)
-	bool live[10];
-	liveForceGroups( live );
-	if ( forceGroup < 0 || forceGroup > 9 || !live[forceGroup] )
+	if ( forceGroup < 0 || forceGroup > 9 )
+		return;
+	bool anyLive = false;
+	for (long i=0;i<Team::home->getRosterSize() && !anyLive;i++)
+	{
+		Mover* pMover = (Mover*)Team::home->getMover( i );
+		anyLive = countsInForceGroup( pMover ) && pMover->isInUnitGroup( forceGroup );
+	}
+	if ( !anyLive )
 		return;
 	lastForceGroup = forceGroup;
 
@@ -3367,7 +3373,13 @@ void MissionInterfaceManager::selectForceGroup( int forceGroup, bool deselect )
 			pMover->setSelected( !bAllSelected );
 	}
 }
-// which force groups have a unit selecting them would pick (as selectForceGroup does)
+// a unit that selecting its force group would pick (as selectForceGroup does)
+bool MissionInterfaceManager::countsInForceGroup( Mover* pMover )
+{
+	return pMover && !pMover->isDisabled() && pMover->isOnGUI() && (pMover->getCommander()->getId() == Commander::home->getId());
+}
+
+// which force groups have such a unit
 void MissionInterfaceManager::liveForceGroups( bool live[10] )
 {
 	for ( int g = 0; g < 10; g++ )
@@ -3377,7 +3389,7 @@ void MissionInterfaceManager::liveForceGroups( bool live[10] )
 	for (long i=0;i<pTeam->getRosterSize();i++)
 	{
 		Mover* pMover = (Mover*)pTeam->getMover( i );
-		if (!pMover || pMover->isDisabled() || !pMover->isOnGUI() || (pMover->getCommander()->getId() != Commander::home->getId()))
+		if ( !countsInForceGroup( pMover ) )
 			continue;
 		for ( int g = 0; g < 10; g++ )
 		{
