@@ -309,9 +309,9 @@ MissionInterfaceManager::Command		MissionInterfaceManager::commands[MAX_COMMAND]
 		KEY_PAUSE,		-1, -1,						true,		&MissionInterfaceManager::togglePause, 0, -1,
 		// force groups without number keys (the Quest's right stick sends these);
 		// kept last: hotkeys are saved by their index in this table
-		KEY_GRAVE,			-1, -1,						true,		&MissionInterfaceManager::selectNextForceGroup, 0, -1,
-		SHIFT | KEY_GRAVE,	-1, -1,						true,		&MissionInterfaceManager::selectPreviousForceGroup, 0, -1,
-		CTRL | KEY_GRAVE,	-1, -1,						true,		&MissionInterfaceManager::makeNewForceGroup, 0, -1
+		KEY_GRAVE,			-1, -1,						true,		&MissionInterfaceManager::selectNextForceGroup, 0, IDS_HOTKEY_NEXT_GROUP,
+		SHIFT | KEY_GRAVE,	-1, -1,						true,		&MissionInterfaceManager::selectPreviousForceGroup, 0, IDS_HOTKEY_PREVIOUS_GROUP,
+		CTRL | KEY_GRAVE,	-1, -1,						true,		&MissionInterfaceManager::makeNewForceGroup, 0, IDS_HOTKEY_NEW_GROUP
 
 };
 
@@ -3405,7 +3405,21 @@ void MissionInterfaceManager::stepForceGroup( int direction )
 	liveForceGroups( live );
 	int group = forcegroups::cycle( live, lastForceGroup, direction );
 	if ( group != -1 )
+	{
 		selectForceGroup( group, true );
+		showForceGroupText( IDS_GROUP_SELECTED, group );
+	}
+}
+
+// says which group the next / previous / new group keys chose: they have no
+// number of their own, and in a headset the force bar may be out of sight
+void MissionInterfaceManager::showForceGroupText( int textId, int group )
+{
+	char format[64];
+	char text[64];
+	cLoadString( textId, format, sizeof( format ) - 1 );
+	snprintf( text, sizeof( text ), format, group );
+	instance()->controlGui.setForceGroupText( text );
 }
 
 int MissionInterfaceManager::selectNextForceGroup()
@@ -3441,6 +3455,7 @@ int MissionInterfaceManager::makeNewForceGroup()
 		return 1;
 	}
 	makeForceGroup( group );
+	showForceGroupText( IDS_GROUP_MADE, group );
 	return 1;
 }
 

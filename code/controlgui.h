@@ -285,6 +285,9 @@ class ControlGui
 
 		void	setChatText( const char* playerName, const char* message, unsigned long backgroundColor, 
 			unsigned long textColor );
+		// a line saying which force group was chosen: replaces the last line
+		// when that was one too, so stepping through groups adds one line
+		void	setForceGroupText( const char* message );
 		void	toggleChat( bool setTeamOnly );
 		void eatChatKey();
 		void	cancelInfo();
@@ -395,6 +398,7 @@ class ControlGui
 		bool				twoMinWarningPlayed;
 		bool				thirtySecondWarningPlayed;
 		bool				bChatting;
+		bool				lastChatIsForceGroup;
 
 		long					idToUnPress;
 		aFont					guiFont;
