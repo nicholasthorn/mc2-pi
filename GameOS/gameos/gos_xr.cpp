@@ -101,6 +101,8 @@ struct Image {
     GLuint fbo = 0;
     GLuint depth = 0;           // eyes only
     bool acquired = false;
+    uint32_t index = 0;         // the image acquire() attached
+    int mips = 1;               // mip levels (the interface panel: vr_hud::mipLevels)
 };
 
 struct State {
@@ -647,7 +649,7 @@ void releaseInput()
 
 // staticImage: filled once (fillImage) and shown on every frame after
 bool createImage(Image& image, int width, int height, bool withDepth, const char* name,
-                 bool staticImage = false)
+                 bool staticImage = false, int mipCount = 1)
 {
     uint32_t count = 0;
     xrEnumerateSwapchainFormats(g.session, 0, &count, nullptr);
@@ -668,17 +670,20 @@ bool createImage(Image& image, int width, int height, bool withDepth, const char
     info.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
     if(staticImage)
         info.createFlags = XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT;
+    if(mipCount > 1)        // glGenerateMipmap reads it
+        info.usageFlags |= XR_SWAPCHAIN_USAGE_SAMPLED_BIT;
     info.format = format;
     info.sampleCount = 1;
     info.width = (uint32_t)width;
     info.height = (uint32_t)height;
     info.faceCount = 1;
     info.arraySize = 1;
-    info.mipCount = 1;
+    info.mipCount = (uint32_t)mipCount;
     if(!ok(xrCreateSwapchain(g.session, &info, &image.swapchain), "xrCreateSwapchain"))
         return false;
     image.width = width;
     image.height = height;
+    image.mips = mipCount;
 
     xrEnumerateSwapchainImages(image.swapchain, 0, &count, nullptr);
     image.images.assign(count, xrStruct<XrSwapchainImageOpenGLESKHR>(XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR));
@@ -695,7 +700,7 @@ bool createImage(Image& image, int width, int height, bool withDepth, const char
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
     }
-    printf("[XR] %s: %dx%d, %u images\n", name, width, height, count);
+    printf("[XR] %s: %dx%d, %u images, %d mip levels\n", name, width, height, count, mipCount);
     return true;
 }
 
@@ -836,6 +841,7 @@ bool acquire(Image& image)
         return false;
     }
     image.acquired = true;
+    image.index = index;
     glBindFramebuffer(GL_FRAMEBUFFER, image.fbo);
     if(image.depth && g.samples > 1)
         g.framebufferTexture2DMultisample(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
@@ -864,6 +870,13 @@ bool copyFrame(int width, int height)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, width, height, 0, 0, g.quad.width, g.quad.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // the smaller levels, so the compositor can sample one near the panel's
+    // size on the eyes instead of skipping texels of the full frame (sparkle)
+    if(g.quad.mips > 1) {
+        glBindTexture(GL_TEXTURE_2D, g.quad.images[g.quad.index].image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
     release(g.quad);
     g.quadHasImage = true;
     // the panel takes the size of the screen in its image, not of a screen
@@ -1125,8 +1138,11 @@ bool init()
 
     int width = 0, height = 0;
     SDL_GL_GetDrawableSize(SDL_GL_GetCurrentWindow(), &width, &height);
+    // MC2_XR_HUD_MIPS=0: the interface panel without mip levels, to compare
+    const char* hudMips = getenv("MC2_XR_HUD_MIPS");
+    const int quadMips = (hudMips && hudMips[0] == '0') ? 1 : vr_hud::mipLevels(width, height);
     if(initLoader(vm, activityRef) && createInstance(vm, activityRef) && createSession()
-            && createImage(g.quad, width, height, false, "screen") && (!g.useEyes || createEyes())) {
+            && createImage(g.quad, width, height, false, "screen", false, quadMips) && (!g.useEyes || createEyes())) {
         readHudSettings();
         if(createActions()) {
             g.pointerImagesReady = createPointerImages();

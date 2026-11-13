@@ -75,3 +75,12 @@ TEST_CASE("MC2_XR_HUD_EVERY_FRAME turns it off") {
 }
 
 }
+
+TEST_CASE("the panel image's mip chain goes down to one pixel") {
+    CHECK(vr_hud::mipLevels(3664, 1920) == 12);  // the headset's surface
+    CHECK(vr_hud::mipLevels(1920, 3664) == 12);  // whichever side is longer
+    CHECK(vr_hud::mipLevels(1024, 768) == 11);
+    CHECK(vr_hud::mipLevels(2, 1) == 2);
+    CHECK(vr_hud::mipLevels(1, 1) == 1);
+    CHECK(vr_hud::mipLevels(0, 0) == 1);         // no size: one level
+}

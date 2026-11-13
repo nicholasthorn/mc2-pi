@@ -25,6 +25,22 @@ inline bool rests(const Frame& f)
     return !f.changed || (f.gameStepped && f.framesSinceDrawn < 2);
 }
 
+// Mip levels for the interface panel's image: down to 1 pixel on its longer
+// side. The panel shows the headset's whole 3664x1920 frame on a quad about
+// 1300 eye pixels across (800 for a stock menu's), and the compositor samples
+// one level only: without smaller levels it skips texels, and fine text and
+// edges sparkle as the head moves.
+inline int mipLevels(int width, int height)
+{
+    int longest = width > height ? width : height;
+    int levels = 1;
+    while(longest > 1) {
+        longest /= 2;
+        ++levels;
+    }
+    return levels;
+}
+
 }  // namespace vr_hud
 
 #endif
