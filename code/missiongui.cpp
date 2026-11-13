@@ -101,6 +101,7 @@
 #include"platform_windows.h"
 
 #include"gvehicl.h" // remove
+#include "forcegroupcycle.h"
 
 	static const char* terrainStr[NUM_TERRAIN_TYPES] = {
 			"Blue Water",	//MC_BLUEWATER_TYPE
@@ -166,6 +167,7 @@ int MissionInterfaceManager::mouseY = 0;
 GameObject* MissionInterfaceManager::target = NULL;
 MissionInterfaceManager* MissionInterfaceManager::s_instance = NULL;
 gosEnum_KeyIndex MissionInterfaceManager::WAYPOINT_KEY = (gosEnum_KeyIndex)-1;
+int MissionInterfaceManager::lastForceGroup = -1;
 
 
 extern bool drawTerrainTiles;
@@ -304,7 +306,12 @@ MissionInterfaceManager::Command		MissionInterfaceManager::commands[MAX_COMMAND]
 		KEY_EQUALS,			-1,	-1,				false,		&MissionInterfaceManager::zoomIn,0, -1,
 		ALT | KEY_PERIOD, -1, -1,						false, &MissionInterfaceManager::rotateObjectLeft, 0, -1,
 		ALT | KEY_COMMA, -1, -1,				false,	&MissionInterfaceManager::rotateObjectRight, 0, -1,
-		KEY_PAUSE,		-1, -1,						true,		&MissionInterfaceManager::togglePause, 0, -1
+		KEY_PAUSE,		-1, -1,						true,		&MissionInterfaceManager::togglePause, 0, -1,
+		// force groups without number keys (the Quest's right stick sends these);
+		// kept last: hotkeys are saved by their index in this table
+		KEY_GRAVE,			-1, -1,						true,		&MissionInterfaceManager::selectNextForceGroup, 0, -1,
+		SHIFT | KEY_GRAVE,	-1, -1,						true,		&MissionInterfaceManager::selectPreviousForceGroup, 0, -1,
+		CTRL | KEY_GRAVE,	-1, -1,						true,		&MissionInterfaceManager::makeNewForceGroup, 0, -1
 
 };
 
@@ -320,6 +327,7 @@ void MissionInterfaceManager::init (void)
 	dragEnd.Zero();
 	isDragging = FALSE;	
 	terrainLineChanged = 0;
+	lastForceGroup = -1;
 	
 	for (long i=0;i<MAX_TEAMS;i++)
 	{
@@ -3319,6 +3327,13 @@ int MissionInterfaceManager::forceShot()
 
 void MissionInterfaceManager::selectForceGroup( int forceGroup, bool deselect )
 {
+	// a group with no living unit changes nothing (it used to clear the selection)
+	bool live[10];
+	liveForceGroups( live );
+	if ( forceGroup < 0 || forceGroup > 9 || !live[forceGroup] )
+		return;
+	lastForceGroup = forceGroup;
+
 	Team* pTeam = Team::home;
 	bool bAllSelected = deselect ? false : true;
 	if ( deselect )
@@ -3352,8 +3367,73 @@ void MissionInterfaceManager::selectForceGroup( int forceGroup, bool deselect )
 			pMover->setSelected( !bAllSelected );
 	}
 }
+// which force groups have a unit selecting them would pick (as selectForceGroup does)
+void MissionInterfaceManager::liveForceGroups( bool live[10] )
+{
+	for ( int g = 0; g < 10; g++ )
+		live[g] = false;
+
+	Team* pTeam = Team::home;
+	for (long i=0;i<pTeam->getRosterSize();i++)
+	{
+		Mover* pMover = (Mover*)pTeam->getMover( i );
+		if (!pMover || pMover->isDisabled() || !pMover->isOnGUI() || (pMover->getCommander()->getId() != Commander::home->getId()))
+			continue;
+		for ( int g = 0; g < 10; g++ )
+		{
+			if ( pMover->isInUnitGroup( g ) )
+				live[g] = true;
+		}
+	}
+}
+
+int MissionInterfaceManager::selectNextForceGroup()
+{
+	bool live[10];
+	liveForceGroups( live );
+	int group = forcegroups::cycle( live, lastForceGroup, 1 );
+	if ( group != -1 )
+		selectForceGroup( group, true );
+	return 1;
+}
+
+int MissionInterfaceManager::selectPreviousForceGroup()
+{
+	bool live[10];
+	liveForceGroups( live );
+	int group = forcegroups::cycle( live, lastForceGroup, -1 );
+	if ( group != -1 )
+		selectForceGroup( group, true );
+	return 1;
+}
+
+// the selection becomes the first group with no living unit
+int MissionInterfaceManager::makeNewForceGroup()
+{
+	bool anySelected = false;
+	Team* pTeam = Team::home;
+	for (long i=0;i<pTeam->getRosterSize();i++)
+	{
+		Mover* pMover = (Mover*)pTeam->getMover( i );
+		if (pMover && pMover->isSelected() && (pMover->getCommander()->getId() == Commander::home->getId()))
+			anySelected = true;
+	}
+
+	bool live[10];
+	liveForceGroups( live );
+	int group = forcegroups::firstFree( live );
+	if ( !anySelected || group == -1 )
+	{
+		soundSystem->playDigitalSample( INVALID_GUI );
+		return 1;
+	}
+	makeForceGroup( group );
+	return 1;
+}
+
 void MissionInterfaceManager::makeForceGroup( int forceGroup )
 {
+	lastForceGroup = forceGroup;
 	Team* pTeam = Team::home;
 
 	for (int i=0;i<pTeam->getRosterSize();i++)

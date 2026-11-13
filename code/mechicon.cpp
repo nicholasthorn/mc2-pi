@@ -979,6 +979,14 @@ void ForceGroupIcon::render()
 
 	gosFontHandle->render( buffer, textArea[locationIndex].left + 1, pilotTextTop[locationIndex], 0, 0, 0xffffffff, 0, 0 );
 
+	// the group's number at the strip's right end: the colours alone are hard to
+	// tell apart (two reds, two blues), more so in a headset
+	if ( forceGroup != -1 )
+	{
+		char groupText[2] = { (char)('0' + forceGroup % 10), 0 };
+		gosFontHandle->render( groupText, textArea[locationIndex].right - 2, pilotTextTop[locationIndex], 0, 0, 0xffffffff, 0, 1 );
+	}
+
 	// draw the health bar
 	drawBar( health );
 
