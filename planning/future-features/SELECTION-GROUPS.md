@@ -143,7 +143,7 @@ digit on the icon.
 Today each Quest button has one job. A small, general layer gives a button up
 to three: **click**, **double click** and **long press**. It is worth having
 beyond groups (the user's suggestion, 2026-11-13), so it is specced here as
-its own piece and groups are its first user.
+its own piece, with chords below, and groups are its first user.
 
 - A pure classifier in `vr_controls` (unit-tested, no OpenXR): given a
   button's down / up state and the time each frame, it reports `CLICK`,
@@ -167,6 +167,27 @@ its own piece and groups are its first user.
   step to see it, as the other buttons do. `gos_xr.cpp` stays free of game
   knowledge: the game decides what the key means.
 
+#### Chords: a left-hand button held, a right-hand button pressed
+
+The fourth pattern (also the user's suggestion): one thumb holds a left-hand
+button while the other presses a right-hand one. Both thumbs are free for
+this, unlike two buttons on one hand.
+
+- **Left modifiers:** X, Y and the left stick click. Menu is not one: it sends
+  Escape and pauses on press.
+- **Right buttons:** A, B and the right stick click.
+- When the right button goes down while a left modifier is held, `gos_xr`
+  **releases the left button's key and sends the chord's key instead**, and the
+  right button's own key is not sent. The left key was down only for the
+  moment before: Space, J and F only change the cursor mode until the other
+  hand clicks, so that moment does nothing. While the left button stays held,
+  further right presses repeat the chord; when it is let go, it goes back to
+  its own job on the next press.
+- The trigger and grip are never chords: "hold X, click with the right
+  trigger" stays run-to-there, as today.
+- That gives up to nine chords. None is taken except as below; the rest are
+  free for later features.
+
 #### The group button
 
 Recommended: **the right stick click**, in a mission.
@@ -176,6 +197,7 @@ Recommended: **the right stick click**, in a mission.
 | click | select visible units, **unchanged** | E |
 | double click | next group (the first press's "select visible" is replaced) | `` ` `` |
 | long press | new group from the selection | Ctrl + `` ` `` |
+| X held + right stick click | previous group | Shift + `` ` `` |
 
 - The cycle visits the groups with a living unit, in the order 1 to 9 then 0,
   wrapping. With no groups made, every unit is in group 1, so a double click
@@ -255,7 +277,8 @@ so `ondisksizes.cpp` is untouched.
   Ctrl + `` ` ``, an empty group's number, a group whose units all died, then
   save, load and press the number again. Stock and Omnitech.
 - Unit tests for the classifier: click, double click, long press, a slow
-  second press (two clicks), a long press then a click.
+  second press (two clicks), a long press then a click; a chord, a chord
+  repeated while the modifier stays held, the modifier let go between.
 - Quest, by the user: click still selects visible units; double click cycles
   through two groups; long press makes a group;
   check that the icon digits are readable at the interface's usual distance.
@@ -266,10 +289,13 @@ so `ondisksizes.cpp` is untouched.
 1. **Quest button**: right stick click with double click to cycle and long
    press to make a group (recommended), or another button? Which other tap
    buttons (A, menu) should get double click or long press, and for what?
-2. **Press timings**: 0.3 s for a double click and 0.5 s for a long press, to
+2. **Long press or chord for "new group"**: long press on the right stick
+   (recommended, one thumb) or Y held + right stick click (no timing, two
+   hands)?
+3. **Press timings**: 0.3 s for a double click and 0.5 s for a long press, to
    be tuned in the headset.
-3. **Empty group no-op**: change it (recommended), or keep the shipped
+4. **Empty group no-op**: change it (recommended), or keep the shipped
    behaviour where an empty group's number clears the selection?
-4. **The message line**: wanted, or are the icons enough?
-5. **`` ` `` for next group**: fine on the user's keyboard layout? On some
+5. **The message line**: wanted, or are the icons enough?
+6. **`` ` `` for next group**: fine on the user's keyboard layout? On some
    layouts the key is elsewhere; it can be rebound once it is in the table.
