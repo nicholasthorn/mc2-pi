@@ -762,8 +762,12 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
 - **Buttons** (remapped 2026-11-02, for what is used mid-fight; pointing at
   small HUD buttons is the slow part in a headset): held while the other hand
   clicks, B waypoints (Ctrl), X run (Space), Y jump (J), left stick click force
-  fire (F). Right stick click selects the visible units (E); the left menu
-  button is Escape (pause menu). This gives up Shift (add to a selection) and
+  fire (F). Right stick click selects the visible units (E, on release);
+  double clicked it selects the next force group, held 0.5 s it makes the
+  selection a new group, and with X held it selects the previous group
+  (2026-11-13, `vr_controls::pressEvents` / `chordPress`, sending grave with
+  Shift or Ctrl; X's Space is held back once it is a chord's modifier). The
+  left menu button is Escape (pause menu). This gives up Shift (add to a selection) and
   Alt (the mouse moving the camera); turning still sends Shift by itself, and
   the game matches modifiers exactly, so a command held while turning waits for
   the turn to end. The stick pans with B held: Ctrl + arrow rotates the light in

@@ -142,6 +142,14 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Helicopter dust cloud** (`mech3d.cpp`) draws with the plain matrix,
       unlike the water wake next to it. Check whether it looks wrong.
 
+- [ ] **Selection groups** (branch `spec/selection-groups`), stock and Omnitech,
+      any renderer. Every icon shows a 1 at the right end of its strip at the
+      start. Select two mechs, Ctrl + 2: their strips change colour and show 2;
+      press 1, 2, Shift + 1. Grave goes 1, 2, 1...; Shift + grave goes back.
+      Select one mech, Ctrl + grave: it becomes group 3. Let a group's units
+      all die: its number and grave leave the selection alone. Save, load,
+      press 2. Check that a long pilot name does not run into the digit.
+
 ## Path-finding on a worker, VR mesh list (branch `perf/vr-path-worker`)
 
 Only a headset session holds a game step back for the worker, so no desktop check or
@@ -269,6 +277,13 @@ The interface only rests in a headset session, so no desktop run covers it.
       Added after that run, still to see: holding B, the left stick pans and the
       lighting stays put; in a text box (a save's name) X, Y and the stick clicks
       type nothing; X does not skip a movie.
+- [ ] **Selection groups on the controllers** (branch `spec/selection-groups`):
+      right stick click still selects the units in view (now on release);
+      double click steps through the groups; held half a second, the
+      selection becomes a new group (its icons show the new number); hold X
+      and click the right stick: the previous group, and no mech runs. A
+      double click that is too slow, or a hold that is too short, should not
+      be a common miss: say if 0.3 s and 0.5 s need tuning.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.
