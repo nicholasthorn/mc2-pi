@@ -148,7 +148,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       press 1, 2, Shift + 1. Grave goes 1, 2, 1...; Shift + grave goes back.
       Select one mech, Ctrl + grave: it becomes group 3. Let a group's units
       all die: its number and grave leave the selection alone. Save, load,
-      press 2. Check that a long pilot name does not run into the digit.
+      press 2. Check that a long pilot name does not run into the digit (it is
+      cut short). Grave, Shift + grave and Ctrl + grave say "Group n" / "New
+      group: n" in the message lines, stepping through groups changes one line,
+      and F1 and the hotkey options list the three commands (key shown as `).
 
 ## Path-finding on a worker, VR mesh list (branch `perf/vr-path-worker`)
 
@@ -283,7 +286,9 @@ The interface only rests in a headset session, so no desktop run covers it.
       selection becomes a new group (its icons show the new number); hold X
       and click the right stick: the previous group, and no mech runs. A
       double click that is too slow, or a hold that is too short, should not
-      be a common miss: say if 0.3 s and 0.5 s need tuning.
+      be a common miss: say if 0.3 s and 0.5 s need tuning. Double click
+      while pushing the right stick sideways: still the next group (the turn
+      pauses for a moment), not the previous one.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.
