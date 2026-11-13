@@ -5,7 +5,6 @@
 #include"mclib.h"
 #include"dobjtype.h"
 #include"movobj.h"
-#include"utils/pe_strings.h"
 
 static FitIniFilePtr MovObjFile = NULL;
 static bool MovObjOpened = false;
@@ -72,19 +71,4 @@ long openTypeProfile (long objTypeNum, FitIniFile& profile, PacketFile* pak) {
 	FullPathFileName fitName;
 	fitName.init(objectPath, name, ".fit");
 	return(profile.open((const char*)fitName));
-}
-
-//---------------------------------------------------------------------------
-long typeNameId (FitIniFile& typeFile, long nameId) {
-
-	if (nameId != 0)
-		return(nameId);
-
-	char typeName[256];
-	if ((typeFile.seekBlock("ObjectType") != NO_ERR) ||
-		(typeFile.readIdString("Name", typeName, 255) != NO_ERR))
-		return(nameId);
-
-	uint32_t runtimeId = addRuntimeString(typeName);
-	return(runtimeId ? (long)runtimeId : nameId);
 }

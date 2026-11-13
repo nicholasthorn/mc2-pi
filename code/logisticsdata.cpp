@@ -20,6 +20,7 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #include"logisticsscreen.h"
 #include"packet.h"
 #include"movobj.h"
+#include"typename.h"
 #include"gamesound.h"
 #include"prefs.h"
 #include"comndr.h"

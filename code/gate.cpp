@@ -14,7 +14,7 @@
 #include"gate.h"
 #endif
 
-#include"movobj.h"
+#include"typename.h"
 
 #ifndef MCLIB_H
 #include"mclib.h"

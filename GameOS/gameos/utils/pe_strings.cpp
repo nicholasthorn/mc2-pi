@@ -2,7 +2,7 @@
 
 #include <cctype>
 
-#include <deque>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -158,41 +158,41 @@ bool isPlaceholderString(const char* text)
 
 namespace {
 
-// a deque keeps every string where it is as more are added, so the pointers
-// findRuntimeString hands out stay good
-std::deque<std::string>& runtimeStrings()
+typedef std::pair<std::string, std::string> RuntimeStringKey;	// key, text
+
+// each text lives once, in its map key: map nodes never move, so the
+// pointers findRuntimeString hands out stay good
+std::map<RuntimeStringKey, uint32_t>& runtimeStringIds()
 {
-    static std::deque<std::string> strings;
-    return strings;
+    static std::map<RuntimeStringKey, uint32_t> ids;
+    return ids;
 }
 
-std::map<std::string, uint32_t>& runtimeStringIds()
+std::vector<const std::string*>& runtimeStrings()
 {
-    static std::map<std::string, uint32_t> ids;
-    return ids;
+    static std::vector<const std::string*> strings;
+    return strings;
 }
 
 } // namespace
 
-uint32_t addRuntimeString(const char* text)
+uint32_t addRuntimeString(const char* text, const char* key)
 {
     if (!text || !text[0])
         return 0;
-    std::map<std::string, uint32_t>& ids = runtimeStringIds();
-    std::map<std::string, uint32_t>::const_iterator it = ids.find(text);
-    if (it != ids.end())
-        return it->second;
-    std::deque<std::string>& strings = runtimeStrings();
+    std::vector<const std::string*>& strings = runtimeStrings();
     const uint32_t id = kRuntimeStringBase + (uint32_t)strings.size();
-    strings.push_back(text);
-    ids[text] = id;
-    return id;
+    std::pair<std::map<RuntimeStringKey, uint32_t>::iterator, bool> added =
+        runtimeStringIds().insert(std::make_pair(RuntimeStringKey(key ? key : "", text), id));
+    if (added.second)
+        strings.push_back(&added.first->first.second);
+    return added.first->second;
 }
 
 const char* findRuntimeString(uint32_t id)
 {
-    const std::deque<std::string>& strings = runtimeStrings();
+    const std::vector<const std::string*>& strings = runtimeStrings();
     if (id < kRuntimeStringBase || id - kRuntimeStringBase >= strings.size())
         return NULL;
-    return strings[id - kRuntimeStringBase].c_str();
+    return strings[id - kRuntimeStringBase]->c_str();
 }

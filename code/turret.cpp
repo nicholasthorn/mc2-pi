@@ -16,7 +16,7 @@
 #include"turret.h"
 #endif
 
-#include"movobj.h"
+#include"typename.h"
 
 #include"movemgr.h"
 

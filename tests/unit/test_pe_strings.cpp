@@ -148,6 +148,14 @@ TEST_CASE("addRuntimeString: text named in data gets an id no string table uses"
 	CHECK(gate != petrol);
 	CHECK(std::string(findRuntimeString(gate)) == "Kurita Heavy Gate");
 
+	// the same text under another key (another type of that name) is apart
+	const uint32_t support1 = addRuntimeString("Bridge Support", "bridge_side1");
+	const uint32_t support1a = addRuntimeString("Bridge Support", "bridge_side1a");
+	CHECK(support1 != support1a);
+	CHECK(addRuntimeString("Bridge Support", "bridge_side1") == support1);
+	CHECK(std::string(findRuntimeString(support1a)) == "Bridge Support");
+	CHECK(addRuntimeString("Petrol Station", NULL) == petrol);
+
 	// earlier text stays where it was after many more are added
 	const char* petrolText = findRuntimeString(petrol);
 	for (int i = 0; i < 1000; i++)

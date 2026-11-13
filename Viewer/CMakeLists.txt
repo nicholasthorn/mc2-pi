@@ -10,6 +10,7 @@ set(VIEWER_SOURCES
     "../code/mechlopedia.cpp"
     "../code/mission2.cpp"
     "../code/movobj.cpp"
+    "../code/typename.cpp"
     "../code/prefs.cpp"
     "../code/radio.cpp"
     "../code/simplecamera.cpp"
