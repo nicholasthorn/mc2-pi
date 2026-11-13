@@ -254,6 +254,7 @@ set(SOURCES
     "code/keyboardref.cpp"
     "code/mechicon.cpp"
     "code/iconsheet.cpp"
+    "code/typename.cpp"
     "code/missiongui.cpp"
     "code/mpconnectiontype.cpp"
     "code/mpgamebrowser.cpp"
@@ -332,7 +333,7 @@ endif()
 # "#pragma warning" lines; the unit tests see it as a SYSTEM header, the game
 # target cannot, so only that warning is relaxed here.
 if(MC2_STRICT_WARNINGS)
-    set_source_files_properties(code/benchscenario.cpp
+    set_source_files_properties(code/benchscenario.cpp code/typename.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
     set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netlobby.cpp code/netrules.cpp code/netforce.cpp code/iconsheet.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")

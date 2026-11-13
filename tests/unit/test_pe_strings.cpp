@@ -133,4 +133,42 @@ TEST_CASE("isPlaceholderString: what a string table holds for an unused id")
 	CHECK_FALSE(isPlaceholderString(NULL));
 }
 
+TEST_CASE("addRuntimeString: text named in data gets an id no string table uses")
+{
+	// Omnitech's Petrol Station type has name id 0 and only [ObjectType] Name
+	const uint32_t petrol = addRuntimeString("Petrol Station");
+	CHECK(petrol >= kRuntimeStringBase);
+	CHECK(petrol > 0xFFFFu);
+	REQUIRE(findRuntimeString(petrol));
+	CHECK(std::string(findRuntimeString(petrol)) == "Petrol Station");
+
+	// the same text keeps its id; other text gets another one
+	CHECK(addRuntimeString("Petrol Station") == petrol);
+	const uint32_t gate = addRuntimeString("Kurita Heavy Gate");
+	CHECK(gate != petrol);
+	CHECK(std::string(findRuntimeString(gate)) == "Kurita Heavy Gate");
+
+	// the same text under another key (another type of that name) is apart
+	const uint32_t support1 = addRuntimeString("Bridge Support", "bridge_side1");
+	const uint32_t support1a = addRuntimeString("Bridge Support", "bridge_side1a");
+	CHECK(support1 != support1a);
+	CHECK(addRuntimeString("Bridge Support", "bridge_side1") == support1);
+	CHECK(std::string(findRuntimeString(support1a)) == "Bridge Support");
+	CHECK(addRuntimeString("Petrol Station", NULL) == petrol);
+
+	// earlier text stays where it was after many more are added
+	const char* petrolText = findRuntimeString(petrol);
+	for (int i = 0; i < 1000; i++)
+		addRuntimeString(("Building " + std::to_string(i)).c_str());
+	CHECK((const void*)findRuntimeString(petrol) == (const void*)petrolText);
+	CHECK(std::string(petrolText) == "Petrol Station");
+
+	// no text, no id; ids nobody handed out find nothing
+	CHECK(addRuntimeString("") == 0);
+	CHECK(addRuntimeString(NULL) == 0);
+	CHECK_FALSE(findRuntimeString(0));
+	CHECK_FALSE(findRuntimeString(30000));
+	CHECK_FALSE(findRuntimeString(kRuntimeStringBase + 1000000));
+}
+
 } // TEST_SUITE("PeStrings")

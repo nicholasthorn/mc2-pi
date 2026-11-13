@@ -147,6 +147,11 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
     // (LoadString finds nothing for it). The table only has a placeholder there.
     if(id == 0)
         return "";
+    // text the data named a type by, registered at load (addRuntimeString)
+    if(id >= kRuntimeStringBase) {
+        if(const char* runtime = findRuntimeString(id))
+            return runtime;
+    }
     gos_StringRes* pstrres = (gos_StringRes*)(handle);
     const char* str = pstrres->getStringByIdFptr(id);
     if(NULL == str || isPlaceholderString(str)) {

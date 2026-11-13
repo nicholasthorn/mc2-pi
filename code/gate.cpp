@@ -14,6 +14,8 @@
 #include"gate.h"
 #endif
 
+#include"typename.h"
+
 #ifndef MCLIB_H
 #include"mclib.h"
 #endif
@@ -159,6 +161,7 @@ long GateType::init (FilePtr objFile, unsigned long fileSize)
 	//------------------------------------------------------------------
 	// Initialize the base object Type from the current file.
 	result = ObjectType::init(&bldgFile);
+	gateTypeName = typeNameId(bldgFile, gateTypeName);
 	return(result);
 }
 	
