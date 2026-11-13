@@ -585,6 +585,48 @@ TEST_CASE("chords: the button with the modifier held, repeated until the modifie
 	CHECK_FALSE(c.modifierUsed);
 }
 
+TEST_CASE("taps: held until the game reads the keyboard, then a frame up before the next")
+{
+	vr_controls::TapQueue q;
+	CHECK(vr_controls::currentTap(q, 5) == nullptr);
+	vr_controls::KeyTap e;
+	e.key = 8;
+	vr_controls::KeyTap grave;
+	grave.key = 53;
+	grave.shift = true;
+	vr_controls::pushTap(q, e);
+	vr_controls::pushTap(q, grave);
+	// several headset frames before the game's next step: still E
+	for (int frame = 0; frame < 3; ++frame)
+	{
+		const vr_controls::KeyTap* t = vr_controls::currentTap(q, 5);
+		REQUIRE(t != nullptr);
+		CHECK(t->key == 8);
+	}
+	// the game read it: up for a frame, then the next one
+	CHECK(vr_controls::currentTap(q, 6) == nullptr);
+	const vr_controls::KeyTap* t = vr_controls::currentTap(q, 6);
+	REQUIRE(t != nullptr);
+	CHECK(t->key == 53);
+	CHECK(t->shift);
+	CHECK(vr_controls::currentTap(q, 6) != nullptr);
+	CHECK(vr_controls::currentTap(q, 7) == nullptr);
+	CHECK(vr_controls::currentTap(q, 8) == nullptr);
+}
+
+TEST_CASE("taps: a full queue drops the newest")
+{
+	vr_controls::TapQueue q;
+	for (int i = 1; i <= vr_controls::TapQueue::kSize + 2; ++i)
+	{
+		vr_controls::KeyTap t;
+		t.key = i;
+		vr_controls::pushTap(q, t);
+	}
+	CHECK(q.count == vr_controls::TapQueue::kSize);
+	CHECK(q.taps[vr_controls::TapQueue::kSize - 1].key == vr_controls::TapQueue::kSize);
+}
+
 TEST_CASE("chords: the modifier let go first keeps the button out of its own patterns")
 {
 	vr_controls::Chord c;

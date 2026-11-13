@@ -3456,6 +3456,11 @@
 #define IDS_HOTKEY_TILTD                43249
 #define IDS_HOTKEY_CHAT                 43250
 #define IDS_HOTKEY_CHAT_TEAM            43251
+#define IDS_HOTKEY_NEXT_GROUP           43252
+#define IDS_HOTKEY_PREVIOUS_GROUP       43253
+#define IDS_HOTKEY_NEW_GROUP            43254
+#define IDS_GROUP_SELECTED              43255
+#define IDS_GROUP_MADE                  43256
 #define IDS_MISSION_FAILED              44000
 #define IDS_MISSION_SUCCESS             44001
 #define IDS_STRINGNEXT                  45000

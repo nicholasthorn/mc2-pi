@@ -181,6 +181,7 @@ struct State {
     // group); see the controls in planning/future-features/VR-TABLETOP.md
     vr_controls::PressPattern rightStickPress;
     vr_controls::Chord groupChord;
+    vr_controls::TapQueue taps;     // the keys those press, held until the game reads them
     uint32_t stickActions = 0;
     bool pointerHeld = false;       // a button went down with the pointer on a target
     uint32_t heldButtons = 0;       // the pointing hand's, as mouse button bits
@@ -601,35 +602,32 @@ void adjustHud(const float left[2])
     }
 }
 
-// Keys sent for one frame only (a press pattern or a chord); the input latch
-// keeps them until the game's next step reads them.
-struct KeyTaps {
-    bool selectVisible = false;     // E
-    bool nextGroup = false;         // `
-    bool previousGroup = false;     // shift + `
-    bool newGroup = false;          // ctrl + `
-};
-
-void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT], const KeyTaps& taps)
+// tap: a key a button event presses (vr_controls::currentTap), or nullptr
+void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT], const vr_controls::KeyTap* tap)
 {
     using namespace vr_controls;
+    // while a tap is down its Shift wins, so the camera keys pause: without
+    // Shift a turn would pan, and with it a pan would turn
+    if(tap)
+        camera = 0;
     input::setVirtualKey(SDL_SCANCODE_UP, (camera & PAN_UP) != 0);
     input::setVirtualKey(SDL_SCANCODE_DOWN, (camera & PAN_DOWN) != 0);
     input::setVirtualKey(SDL_SCANCODE_LEFT, (camera & (PAN_LEFT | ROTATE_LEFT)) != 0);
     input::setVirtualKey(SDL_SCANCODE_RIGHT, (camera & (PAN_RIGHT | ROTATE_RIGHT)) != 0);
     // the game turns the camera on shift + left / right
-    input::setVirtualKey(SDL_SCANCODE_LSHIFT, (camera & (ROTATE_LEFT | ROTATE_RIGHT)) != 0 || taps.previousGroup);
+    input::setVirtualKey(SDL_SCANCODE_LSHIFT, tap ? tap->shift : (camera & (ROTATE_LEFT | ROTATE_RIGHT)) != 0);
     input::setVirtualKey(SDL_SCANCODE_KP_PLUS, (camera & ZOOM_IN) != 0);
     input::setVirtualKey(SDL_SCANCODE_KP_MINUS, (camera & ZOOM_OUT) != 0);
-    input::setVirtualKey(SDL_SCANCODE_LCTRL, buttons[BUTTON_B] || taps.newGroup);    // the game's waypoint key
+    input::setVirtualKey(SDL_SCANCODE_LCTRL, buttons[BUTTON_B] || (tap && tap->ctrl));    // the game's waypoint key
     // these would type in a text box or skip a movie outside a mission
     const bool orders = g.ordersAge < kOrdersFrames;
     // X stays up while it is the modifier of a chord
     input::setVirtualKey(SDL_SCANCODE_SPACE, orders && buttons[BUTTON_X] && !g.groupChord.modifierUsed);
     input::setVirtualKey(SDL_SCANCODE_J, orders && buttons[BUTTON_Y]);
     input::setVirtualKey(SDL_SCANCODE_F, orders && buttons[BUTTON_LEFT_STICK]);
-    input::setVirtualKey(SDL_SCANCODE_E, orders && taps.selectVisible);
-    input::setVirtualKey(SDL_SCANCODE_GRAVE, orders && (taps.nextGroup || taps.previousGroup || taps.newGroup));
+    // taps are queued only while a mission takes orders
+    input::setVirtualKey(SDL_SCANCODE_E, tap && tap->key == SDL_SCANCODE_E);
+    input::setVirtualKey(SDL_SCANCODE_GRAVE, tap && tap->key == SDL_SCANCODE_GRAVE);
     input::setVirtualKey(SDL_SCANCODE_ESCAPE, buttons[BUTTON_MENU]);
 }
 
@@ -650,9 +648,10 @@ void parkPointer()
 void releaseInput()
 {
     const bool none[BUTTON_COUNT] = {};
-    setKeys(0, none, KeyTaps());
+    setKeys(0, none, nullptr);
     g.rightStickPress = vr_controls::PressPattern();
     g.groupChord = vr_controls::Chord();
+    g.taps = vr_controls::TapQueue();
     parkPointer();
     g.stickActions = 0;
     g.pointerHeld = false;
@@ -1505,16 +1504,31 @@ void pollInput()
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)
         ++g.ordersAge;
-    // the right stick click: X held makes it a chord; otherwise its patterns
-    KeyTaps taps;
+    // the right stick click: X held makes it a chord; otherwise its patterns.
+    // Click: select visible (E); double click: next force group (`); long
+    // press: new group (ctrl + `); with X: previous group (shift + `).
     const double now = (double)g.frame.predictedDisplayTime * 1e-9;
-    taps.previousGroup = vr_controls::chordPress(g.groupChord, buttons[BUTTON_X], buttons[BUTTON_RIGHT_STICK]);
+    const bool previousGroup = vr_controls::chordPress(g.groupChord, buttons[BUTTON_X], buttons[BUTTON_RIGHT_STICK]);
     const uint32_t press = vr_controls::pressEvents(g.rightStickPress,
             buttons[BUTTON_RIGHT_STICK] && !g.groupChord.buttonInChord, now, true);
-    taps.selectVisible = (press & vr_controls::PRESS_CLICK) != 0;
-    taps.nextGroup = (press & vr_controls::PRESS_DOUBLE) != 0;
-    taps.newGroup = (press & vr_controls::PRESS_LONG) != 0;
-    setKeys(g.stickActions, buttons, taps);
+    if(g.ordersAge < kOrdersFrames) {
+        auto push = [](int key, bool shift, bool ctrl) {
+            vr_controls::KeyTap tap;
+            tap.key = key;
+            tap.shift = shift;
+            tap.ctrl = ctrl;
+            vr_controls::pushTap(g.taps, tap);
+        };
+        if(press & vr_controls::PRESS_CLICK)
+            push(SDL_SCANCODE_E, false, false);         // select visible
+        if(press & vr_controls::PRESS_DOUBLE)
+            push(SDL_SCANCODE_GRAVE, false, false);     // next group
+        if(previousGroup)
+            push(SDL_SCANCODE_GRAVE, true, false);      // previous group
+        if(press & vr_controls::PRESS_LONG)
+            push(SDL_SCANCODE_GRAVE, false, true);      // new group
+    }
+    setKeys(g.stickActions, buttons, vr_controls::currentTap(g.taps, input::keyboardSamples()));
     g.pointerVisible = true;
 
     // the pointer: on the interface where the pointing hand's ray meets the
