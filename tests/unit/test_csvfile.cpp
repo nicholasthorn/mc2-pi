@@ -251,4 +251,127 @@ TEST_CASE("CSV dialect edge cases: quotes and embedded commas are NOT RFC-4180")
 	csv.close();
 }
 
+// seekRowCol jumps to a row instead of rescanning the file from the top for
+// every cell (Omnitech's variant CSVs made that most of a mission load). Reads
+// in any order, and of the same row again, must give what the file holds.
+namespace
+{
+const char *kOrderScratch = "csv_order_scratch.csv";
+
+void writeOrderScratch (const char *eol, bool finalEol)
+{
+	FILE *f = fopen(kOrderScratch, "wb");
+	REQUIRE(f != nullptr);
+	for (int r = 1; r <= 300; r++)
+	{
+		if (r == 50)
+			fprintf(f, "// a comment row%s", eol);
+		else if (r == 120)
+			fprintf(f, "%s", eol);
+		else
+			fprintf(f, "name%d,%d,%d,x%d", r, r * 7, r % 13, r);
+		if (r != 300 && r != 50 && r != 120)
+			fprintf(f, "%s", eol);
+	}
+	if (finalEol)
+		fprintf(f, "%s", eol);
+	fclose(f);
+}
+
+long cellLong (CSVFile &csv, int row, int col)
+{
+	long v = -1;
+	csv.readLong(row, col, v);
+	return v;
+}
+} // namespace
+
+TEST_CASE("cells read in any order give the file's values (CRLF, with and without a final newline)")
+{
+	for (int finalEol = 0; finalEol <= 1; finalEol++)
+	{
+		writeOrderScratch("\r\n", finalEol != 0);
+		CSVFile csv;
+		REQUIRE(csv.open(kOrderScratch) == NO_ERR);
+
+		// The reader cannot reach the last rows (countRows stops one short,
+		// like the column count above), so values are pinned up to row 290
+		// and the rest only for reading the same in any order.
+		long forward[302];
+		for (int r = 1; r <= 301; r++)
+			forward[r] = cellLong(csv, r, 2);
+		for (int r = 301; r >= 1; r--)
+			CHECK(cellLong(csv, r, 2) == forward[r]);
+		// forward, backward, scattered, and the same row twice between others
+		for (int r = 1; r <= 290; r++)
+			if (r != 50 && r != 120)
+				CHECK(cellLong(csv, r, 2) == r * 7);
+		for (int r = 290; r >= 1; r--)
+			if (r != 50 && r != 120)
+				CHECK(cellLong(csv, r, 3) == r % 13);
+		for (int i = 0; i < 300; i++)
+		{
+			const int r = (i * 37) % 290 + 1;
+			if (r == 50 || r == 120)
+				continue;
+			CHECK(cellLong(csv, r, 2) == r * 7);
+			CHECK(cellLong(csv, 1, 2) == 7);
+			CHECK(cellLong(csv, r, 3) == r % 13);
+		}
+		char name[32] = {0};
+		CHECK(csv.readString(290, 1, name, sizeof(name)) == 0);
+		CHECK(strcmp(name, "name290") == 0);
+		// (the last column is out of reach too: see the countCols test)
+		CHECK(csv.readString(289, 3, name, sizeof(name)) == 0);
+		CHECK(strcmp(name, "3") == 0);
+		// the comment and empty rows read as nothing
+		CHECK(csv.readString(50, 1, name, sizeof(name)) != 0);
+		CHECK(cellLong(csv, 120, 2) == 0);
+
+		csv.close();
+		remove(kOrderScratch);
+	}
+}
+
+TEST_CASE("an LF-only CSV reads the same whatever the order")
+{
+	// File::readLine leaves phantom rows in an LF-only file; whatever row
+	// numbers that gives, a row reads the same in any order
+	writeOrderScratch("\n", true);
+	CSVFile csv;
+	REQUIRE(csv.open(kOrderScratch) == NO_ERR);
+	long forward[700];
+	for (int r = 1; r < 700; r++)
+		forward[r] = cellLong(csv, r, 2);
+	for (int r = 699; r >= 1; r--)
+		CHECK(cellLong(csv, r, 2) == forward[r]);
+	for (int i = 0; i < 700; i++)
+	{
+		const int r = (i * 53) % 699 + 1;
+		CHECK(cellLong(csv, r, 2) == forward[r]);
+	}
+	csv.close();
+	remove(kOrderScratch);
+}
+
+TEST_CASE("a cell read leaves the file where reading its row does, and row 0 is no row")
+{
+	writeOrderScratch("\r\n", true);
+	CSVFile csv;
+	REQUIRE(csv.open(kOrderScratch) == NO_ERR);
+	CHECK(cellLong(csv, 5, 2) == 35);
+	const unsigned long afterRow5 = csv.getLogicalPosition();
+	CHECK(cellLong(csv, 9, 2) == 63);
+	CHECK(cellLong(csv, 9, 3) == 9);
+	CHECK(cellLong(csv, 5, 3) == 5);
+	CHECK(csv.getLogicalPosition() == afterRow5);
+	CHECK(cellLong(csv, 5, 2) == 35);	// the same row again, kept in memory
+	CHECK(csv.getLogicalPosition() == afterRow5);
+	long v = 99;
+	CHECK(csv.readLong(0, 2, v) == NO_ERR);	// readLong reports nothing; the value is 0
+	CHECK(v == 0);
+	csv.close();
+	remove(kOrderScratch);
+}
+
 } // TEST_SUITE("CsvFile")

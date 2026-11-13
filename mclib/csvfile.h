@@ -27,6 +27,8 @@
 #include"file.h"
 #endif
 
+#include <vector>
+
 //---------------------------------------------------------------------------
 // Macro Definitions
 
@@ -47,6 +49,12 @@ class CSVFile : public File
 		DWORD totalCols;			//NUmber of COLS CSV file has.
 		
 		char dataBuffer[2048];
+
+		// seekRowCol: where each row starts (from countRows) and the last row
+		// read, so a cell does not rescan the file from the top
+		std::vector<long> rowStart;
+		DWORD bufferedRow;			//the row in rowBuffer, 0 for none
+		char rowBuffer[2048];
 
 	// Member Functions
 	//------------------

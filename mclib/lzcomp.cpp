@@ -528,14 +528,14 @@ CompressDone:
 // LZ Compress Routine
 // Takes a pointer to dest buffer, a pointer to source buffer and len of source.
 // returns length of compressed image.
-size_t LZCompress (MemoryPtr dest, MemoryPtr src, size_t srcLen)
+size_t LZCompress (MemoryPtr dest, MemoryPtr src, size_t srcLen, int level)
 {
     int ret, flush;
     unsigned have;
     z_stream strm;
     unsigned char in[CHUNK];
     unsigned char out[CHUNK];
-    int compression_level = -1; // tradeoff between speed/memeory used = to 6, available 0 - 9
+    int compression_level = level; // tradeoff between speed/memeory used: -1 = 6, available 0 - 9
 
     /* allocate deflate state */
     strm.zalloc = Z_NULL;
