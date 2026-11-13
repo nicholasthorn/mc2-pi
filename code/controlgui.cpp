@@ -3066,6 +3066,8 @@ void ControlGui::setForceGroupText( const char* message )
 		ChatInfo& last = chatInfos[MAX_CHAT_COUNT - 1];
 		snprintf( last.message, sizeof( last.message ), "%s", message );
 		last.time = scenarioTime;
+		if ( MPlayer && ChatWindow::instance() )
+			ChatWindow::instance()->update();
 	}
 	else
 		setChatText( "", message, 0x00ffffff, 0 );

@@ -287,7 +287,7 @@ The interface only rests in a headset session, so no desktop run covers it.
       and click the right stick: the previous group, and no mech runs. A
       double click that is too slow, or a hold that is too short, should not
       be a common miss: say if 0.3 s and 0.5 s need tuning. Double click
-      while pushing the right stick sideways: still the next group (the turn
+      while pushing the right stick sideways: still the next group (the camera
       pauses for a moment), not the previous one.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced

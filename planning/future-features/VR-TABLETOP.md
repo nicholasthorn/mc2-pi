@@ -768,7 +768,9 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   (2026-11-13, `vr_controls::pressEvents` / `chordPress`, sending grave with
   Shift or Ctrl; X's Space is held back once it is a chord's modifier). Each
   such key is held, with its own Shift, until the game reads the keyboard
-  (`vr_controls::TapQueue`), and turning pauses meanwhile. The
+  (`vr_controls::TapQueue`), and the camera keys pause meanwhile. The Quest sends the default
+  keys (grave with Shift or Ctrl), so rebinding those commands in the
+  options leaves the controller without them. The
   left menu button is Escape (pause menu). This gives up Shift (add to a selection) and
   Alt (the mouse moving the camera); turning still sends Shift by itself, and
   the game matches modifiers exactly, so a command held while turning waits for

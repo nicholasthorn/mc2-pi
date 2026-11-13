@@ -606,10 +606,10 @@ void adjustHud(const float left[2])
 void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT], const vr_controls::KeyTap* tap)
 {
     using namespace vr_controls;
-    // while a tap is down its Shift wins, and turning (shift + arrow) pauses
-    // rather than pan for the frames without Shift
+    // while a tap is down its Shift wins, so the camera keys pause: without
+    // Shift a turn would pan, and with it a pan would turn
     if(tap)
-        camera &= ~(ROTATE_LEFT | ROTATE_RIGHT);
+        camera = 0;
     input::setVirtualKey(SDL_SCANCODE_UP, (camera & PAN_UP) != 0);
     input::setVirtualKey(SDL_SCANCODE_DOWN, (camera & PAN_DOWN) != 0);
     input::setVirtualKey(SDL_SCANCODE_LEFT, (camera & (PAN_LEFT | ROTATE_LEFT)) != 0);
@@ -1512,23 +1512,21 @@ void pollInput()
     const uint32_t press = vr_controls::pressEvents(g.rightStickPress,
             buttons[BUTTON_RIGHT_STICK] && !g.groupChord.buttonInChord, now, true);
     if(g.ordersAge < kOrdersFrames) {
-        vr_controls::KeyTap tap;
-        if(press & vr_controls::PRESS_CLICK) {
-            tap.key = SDL_SCANCODE_E;
+        auto push = [](int key, bool shift, bool ctrl) {
+            vr_controls::KeyTap tap;
+            tap.key = key;
+            tap.shift = shift;
+            tap.ctrl = ctrl;
             vr_controls::pushTap(g.taps, tap);
-        }
-        tap.key = SDL_SCANCODE_GRAVE;
+        };
+        if(press & vr_controls::PRESS_CLICK)
+            push(SDL_SCANCODE_E, false, false);         // select visible
         if(press & vr_controls::PRESS_DOUBLE)
-            vr_controls::pushTap(g.taps, tap);
-        if(previousGroup) {
-            tap.shift = true;
-            vr_controls::pushTap(g.taps, tap);
-            tap.shift = false;
-        }
-        if(press & vr_controls::PRESS_LONG) {
-            tap.ctrl = true;
-            vr_controls::pushTap(g.taps, tap);
-        }
+            push(SDL_SCANCODE_GRAVE, false, false);     // next group
+        if(previousGroup)
+            push(SDL_SCANCODE_GRAVE, true, false);      // previous group
+        if(press & vr_controls::PRESS_LONG)
+            push(SDL_SCANCODE_GRAVE, false, true);      // new group
     }
     setKeys(g.stickActions, buttons, vr_controls::currentTap(g.taps, input::keyboardSamples()));
     g.pointerVisible = true;
