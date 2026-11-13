@@ -672,6 +672,11 @@ class GameObject {
 		virtual bool lineOfSight (Stuff::Vector3D point, bool checkVisibleBits = true);
 
 		virtual bool lineOfSight (GameObjectPtr target, float startExtRad = 0.0f, bool checkVisibleBits = true);
+
+		// Where a missed shot at target (or at targetPoint, with no target)
+		// lands, in missPoint. False when the shooter can see none of the
+		// places beside it: the caller then hits the target for no damage.
+		bool pickMissPoint (GameObjectPtr target, Stuff::Vector3D* targetPoint, Stuff::Vector3D& missPoint);
 	
 		virtual float relFacingTo (Stuff::Vector3D goal, long bodyLocation = -1);
 

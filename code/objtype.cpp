@@ -17,6 +17,8 @@
 #include"movobj.h"
 #endif
 
+#include"mechtypefit.h"
+
 #ifndef DOBJNUM_H
 #include"dobjnum.h"
 #endif
@@ -229,35 +231,10 @@ bool ObjectType::handleDestruction (GameObjectPtr collidee, GameObjectPtr collid
 //
 // Anything but a mech is a loose objects/<CSVname>.fit in the stock type
 // format. A mech has only its CSV, so its type FIT is built here the way
-// every stock mech type reads: names from CSVname, explosion object 41,
-// destroyed object 101, extent 12, explosion radius 80, destruct and
-// explosion damage by weight class. Absent file: stock behaviour. The
-// movobj.fit lookup itself is in movobj.cpp.
-
-static void buildMechTypeFit (char* fit, size_t fitSize, const char* name, long tonnage) {
-
-	long destructDamage = 65, explosionDamage = 30;
-	if (tonnage < 40) {
-		destructDamage = 35;
-		explosionDamage = 15;
-		}
-	else if (tonnage < 60) {
-		destructDamage = 45;
-		explosionDamage = 20;
-		}
-	else if (tonnage < 80) {
-		destructDamage = 55;
-		explosionDamage = 25;
-	}
-	snprintf(fit, fitSize,
-		"FITini\r\n\r\n"
-		"[ObjectClass]\r\nl ObjectTypeNum = %d\r\n\r\n"
-		"[ObjectType]\r\nst Name = \"%s\"\r\nl ExplosionObject = 41\r\nl DestroyedObject = 101\r\n"
-		"f ExtentRadius = 12\r\nst AppearanceName = \"%s\"\r\n\r\n"
-		"[MechProfile]\r\nst ProfileName = \"%s\"\r\nf destructdamage = %ld\r\n"
-		"f explosiondamage = %ld\r\nf explosionradius = 80\r\n\r\nFITend\r\n",
-		BATTLEMECH_TYPE, name, name, name, destructDamage, explosionDamage);
-}
+// every stock mech type reads (buildMechTypeFit, mechtypefit.cpp), with the
+// move type the CSV's first row gives: Omnitech's copters, VTOLs, dropships
+// and aerospace fighters fly. Absent file: stock behaviour. The movobj.fit
+// lookup itself is in movobj.cpp.
 
 // Opens the type file for an Omnitech type number: a loose .fit in
 // looseFile, or a mech FIT built into fit[] and opened as builtFile.
@@ -277,8 +254,9 @@ static bool openMovObjType (long objTypeNum, long& typeClass, File& looseFile,
 			return(false);
 		float tonnage = 50.0;
 		csvFile.readFloat(3, 5, tonnage);		// as BattleMechType::init reads it
+		long moveType = chassisMoveType(csvFile);
 		csvFile.close();
-		buildMechTypeFit(fit, fitSize, name, (long)tonnage);
+		buildMechTypeFit(fit, fitSize, BATTLEMECH_TYPE, name, (long)tonnage, moveType);
 		if (builtFile.open(fit, (int)strlen(fit)) != NO_ERR)
 			return(false);
 		typeFile = &builtFile;

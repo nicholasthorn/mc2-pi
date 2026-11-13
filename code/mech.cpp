@@ -8364,53 +8364,16 @@ long BattleMech::fireWeapon (GameObjectPtr target, float targetTime, long weapon
 						//-------------------------------------------------------------------------------------------
 						// If we missed, pick sights away from the target and check LOS to each one.  If all are
 						// invisible, just hit the target with zero points of damage.
-						float missRadius = target ? 25.0 : 5.0;
-
 						Stuff::Vector3D positionOffset;
-						if (target)
-							positionOffset = target->getPosition();
-						else if (targetPoint)
-							positionOffset = *targetPoint;
-		
-						positionOffset.x += missRadius;
-						positionOffset.z = land->getTerrainElevation(positionOffset);
-
-						bool canSeeHit = lineOfSight(positionOffset,true);
-
+						bool canSeeHit = pickMissPoint(target, targetPoint, positionOffset);
 						if (!canSeeHit)
 						{
-							positionOffset.x -= (missRadius * 2.0f);
-							positionOffset.z = land->getTerrainElevation(positionOffset);
-
-							canSeeHit = lineOfSight(positionOffset,true); 
-
-							if (!canSeeHit)
-							{
-								positionOffset.x += missRadius;
-								positionOffset.y += missRadius;
-
-								positionOffset.z = land->getTerrainElevation(positionOffset);
-
-								canSeeHit = lineOfSight(positionOffset,true);
-
-								if (!canSeeHit)
-								{
-									positionOffset.y -= (missRadius * 2.0f);
-									positionOffset.z = land->getTerrainElevation(positionOffset);
-
-									canSeeHit = lineOfSight(positionOffset,true);
-
-									if (!canSeeHit)
-									{
-										//OK, no miss location is visible.  Hit the target with ZERO damage!!
-										curShotInfo.init(getWatchID(),
-														 inventory[weaponIndex].masterID,
-														 0.0f,
-														 -1,
-														 entryAngle);
-									}
-								}
-							}
+							//OK, no miss location is visible.  Hit the target with ZERO damage!!
+							curShotInfo.init(getWatchID(),
+											 inventory[weaponIndex].masterID,
+											 0.0f,
+											 -1,
+											 entryAngle);
 						}
 
 						//-------------------------------------------------------------------------
@@ -8475,53 +8438,16 @@ long BattleMech::fireWeapon (GameObjectPtr target, float targetTime, long weapon
 				//-------------------------------------------------------------------------------------------
 				// If we missed, pick sights away from the target and check LOS to each one.  If all are
 				// invisible, just hit the target with zero points of damage.
-				float missRadius = target ? 25.0 : 5.0;
-
 				Stuff::Vector3D positionOffset;
-				if (target)
-					positionOffset = target->getPosition();
-				else if (targetPoint)
-					positionOffset = *targetPoint;
-
-				positionOffset.x += missRadius;
-				positionOffset.z = land->getTerrainElevation(positionOffset);
-
-				bool canSeeHit = lineOfSight(positionOffset,true);
-
+				bool canSeeHit = pickMissPoint(target, targetPoint, positionOffset);
 				if (!canSeeHit)
 				{
-					positionOffset.x -= (missRadius * 2.0f);
-					positionOffset.z = land->getTerrainElevation(positionOffset);
-
-					canSeeHit = lineOfSight(positionOffset,true); 
-
-					if (!canSeeHit)
-					{
-						positionOffset.x += missRadius;
-						positionOffset.y += missRadius;
-
-						positionOffset.z = land->getTerrainElevation(positionOffset);
-
-						canSeeHit = lineOfSight(positionOffset,true);
-
-						if (!canSeeHit)
-						{
-							positionOffset.y -= (missRadius * 2.0f);
-							positionOffset.z = land->getTerrainElevation(positionOffset);
-
-							canSeeHit = lineOfSight(positionOffset,true);
-
-							if (!canSeeHit)
-							{
-								//OK, no miss location is visible.  Hit the target with ZERO damage!!
-								shotInfo.init(getWatchID(),
-											 inventory[weaponIndex].masterID,
-											 0.0f,
-											 -1,
-											 entryAngle);
-							}
-						}
-					}
+					//OK, no miss location is visible.  Hit the target with ZERO damage!!
+					shotInfo.init(getWatchID(),
+								 inventory[weaponIndex].masterID,
+								 0.0f,
+								 -1,
+								 entryAngle);
 				}
 
 				//-------------------------------------------------------------------------

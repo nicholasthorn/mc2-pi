@@ -373,6 +373,17 @@ bool WeaponBolt::isVisible (void)
 }
 
 //---------------------------------------------------------------------------
+// A missed shot whose end point is well above the ground or the water (one
+// fired up past a copter) struck nothing there.
+static bool missEndsInAir (const Stuff::Vector3D& point)
+{
+	float surface = land->getTerrainElevation(point);
+	if (surface < Terrain::waterElevation)
+		surface = Terrain::waterElevation;
+	return(point.z > surface + 10.0f);
+}
+
+//---------------------------------------------------------------------------
 long WeaponBolt::update (void)
 {
 	Stuff::Vector3D laserDirection;
@@ -663,7 +674,24 @@ long WeaponBolt::update (void)
 					Stuff::Vector3D hotSpot = *targetPosition;
 					int cellR, cellC;
 					land->worldToCell(hotSpot,cellR, cellC);
-					if (GameMap->getDeepWater(cellR, cellC) || GameMap->getShallowWater(cellR, cellC))
+					if (missEndsInAir(hotSpot))
+					{
+						// fired up past a copter (GameObject::pickMissPoint): it struck
+						// nothing, so no ground or water effect where it ends
+						if (missEffect)
+						{
+							missEffect->Kill();
+							delete missEffect;
+							missEffect = NULL;
+						}
+						if (waterMissEffect)
+						{
+							waterMissEffect->Kill();
+							delete waterMissEffect;
+							waterMissEffect = NULL;
+						}
+					}
+					else if (GameMap->getDeepWater(cellR, cellC) || GameMap->getShallowWater(cellR, cellC))
 					{
 						if (waterMissEffect && waterMissEffect->IsExecuted())
 						{
@@ -919,7 +947,24 @@ long WeaponBolt::update (void)
 					Stuff::Vector3D hotSpot = *targetPosition;
 					int cellR, cellC;
 					land->worldToCell(hotSpot,cellR, cellC);
-					if (GameMap->getDeepWater(cellR, cellC) || GameMap->getShallowWater(cellR, cellC))
+					if (missEndsInAir(hotSpot))
+					{
+						// fired up past a copter (GameObject::pickMissPoint): it struck
+						// nothing, so no ground or water effect where it ends
+						if (missEffect)
+						{
+							missEffect->Kill();
+							delete missEffect;
+							missEffect = NULL;
+						}
+						if (waterMissEffect)
+						{
+							waterMissEffect->Kill();
+							delete waterMissEffect;
+							waterMissEffect = NULL;
+						}
+					}
+					else if (GameMap->getDeepWater(cellR, cellC) || GameMap->getShallowWater(cellR, cellC))
 					{
 						if (waterMissEffect && waterMissEffect->IsExecuted())
 						{

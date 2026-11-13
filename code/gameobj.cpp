@@ -14,6 +14,7 @@
 
 #ifndef GAMEOBJ_H
 #include"gameobj.h"
+#include"missaim.h"
 #endif
 
 #ifndef CARNAGE_H
@@ -1852,6 +1853,84 @@ bool GameObject::lineOfSight (Stuff::Vector3D point, bool checkVisibleBits) {
 		LOSclear = Team::lineOfSight(firingPosition, targetPosition, getTeamId(), 15.0, checkVisibleBits);
 	
 	return(LOSclear);
+}
+
+//---------------------------------------------------------------------------
+static float missGroundHeight (float x, float y, void* /*context*/) {
+
+	Stuff::Vector3D point;
+	point.x = x;
+	point.y = y;
+	point.z = 0.0f;
+	// off the map there is no ground to meet (the caller drops such a point)
+	if (!land->IsGameSelectTerrainPosition(point))
+		return(-1.0e6f);
+	return(land->getTerrainElevation(point));
+}
+
+bool GameObject::pickMissPoint (GameObjectPtr target, Stuff::Vector3D* targetPoint, Stuff::Vector3D& missPoint) {
+
+	//-------------------------------------------------------------------------
+	// Pick places away from the target (25 units to each side, 5 for a point)
+	// and use the first the shooter can see. On the ground, as the 2001 code
+	// had it, except beside a copter (MoveType air): its position stays on the
+	// ground and only its model flies, so the miss passes it at the height of
+	// its hit nodes and carries on, to the ground or (fired upward) into the
+	// sky, where the bolt plays no impact effect (missaim.h, weaponbolt.cpp).
+	float missRadius = target ? 25.0f : 5.0f;
+
+	Stuff::Vector3D base;
+	base.Zero();
+	if (target)
+		base = target->getPosition();
+	else if (targetPoint)
+		base = *targetPoint;
+
+	bool airborne = false;
+	float aimZ = 0.0f;
+	if (target && target->isMover() && target->appearance
+			&& (((MoverPtr)target)->getMoveType() == MOVETYPE_AIR)) {
+		airborne = true;
+		aimZ = (target->appearance->getHitNodeLeft().z + target->appearance->getHitNodeRight().z) * 0.5f;
+	}
+
+	static const float sideX[4] = {1.0f, -1.0f, 0.0f, 0.0f};
+	static const float sideY[4] = {0.0f, 0.0f, 1.0f, -1.0f};
+	for (long i = 0; i < 4; i++) {
+		missPoint = base;
+		missPoint.x += sideX[i] * missRadius;
+		missPoint.y += sideY[i] * missRadius;
+		missPoint.z = airborne ? aimZ : land->getTerrainElevation(missPoint);
+		if (lineOfSight(missPoint, true)) {
+			if (airborne) {
+				Stuff::Vector3D eye = getLOSPosition();
+				MissVec from = {eye.x, eye.y, eye.z};
+				MissVec beside = {missPoint.x, missPoint.y, missPoint.z};
+				Stuff::Vector3D toBeside;
+				toBeside.Subtract(missPoint, eye);
+				// at most as far again past the copter, and no more than 200 units
+				float maxPast = toBeside.GetLength();
+				if (maxPast > 200.0f)
+					maxPast = 200.0f;
+				MissVec landing = missFlyPast(from, beside, missGroundHeight, NULL, maxPast, 8.0f);
+				Stuff::Vector3D landed;
+				landed.x = landing.x;
+				landed.y = landing.y;
+				landed.z = landing.z;
+				// off the playable map: the ground beside the copter instead (the
+				// march stepped off it, missGroundHeight)
+				if (land->IsGameSelectTerrainPosition(landed))
+					missPoint = landed;
+				else
+					missPoint.z = land->getTerrainElevation(missPoint);
+			}
+			return(true);
+		}
+	}
+
+	// none visible: the last place, on the ground, as before
+	missPoint.z = land->getTerrainElevation(missPoint);
+	return(false);
 }
 
 //---------------------------------------------------------------------------
