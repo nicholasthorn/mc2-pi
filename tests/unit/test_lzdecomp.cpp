@@ -18,6 +18,7 @@
 #include "ffile.h"
 #include "fastfile.h"
 #include "lz.h"
+#include "csvfile.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -424,6 +425,44 @@ TEST_CASE("an uncompressed FST (0xCADDECAF, size == realSize) written by FastFil
 		CHECK(opened);
 	}
 	remove(fst.c_str());
+}
+
+// Stock CSVs are read from an FST, where a position is within the packed
+// entry and readLine reads from memory: CSVFile's row index must give the
+// same cells there as reading the file through from the top.
+TEST_CASE("a CSV inside an FST reads the same cells in any order")
+{
+	std::string csv;
+	for (int r = 1; r <= 200; r++)
+		csv += "name" + std::to_string(r) + "," + std::to_string(r * 7) + "," + std::to_string(r % 13) + ",x" + std::to_string(r) + "\r\n";
+	for (int compressed = 0; compressed <= 1; compressed++)
+	{
+		const std::string fst = "lzt_scratch_csv.fst";
+		{
+			FastFile ff;
+			REQUIRE(ff.create(fst.c_str(), compressed != 0) == NO_ERR);
+			REQUIRE(ff.reserve(1) == NO_ERR);
+			REQUIRE(ff.writeFast("lzt_scratch/order.csv", (void *)csv.data(), (int)csv.size()) == NO_ERR);
+			ff.close();
+		}
+		{
+			FstRegistry reg(fst.c_str());
+			REQUIRE(reg.ok);
+			CSVFile f;
+			REQUIRE(f.open("lzt_scratch/order.csv") == NO_ERR);
+			for (int i = 0; i < 400; i++)
+			{
+				const int r = (i * 37) % 190 + 1;
+				long v = -1;
+				CHECK(f.readLong(r, 2, v) == NO_ERR);
+				CHECK(v == r * 7);
+				CHECK(f.readLong(r, 3, v) == NO_ERR);
+				CHECK(v == r % 13);
+			}
+			f.close();
+		}
+		remove(fst.c_str());
+	}
 }
 
 } // TEST_SUITE("LZDecomp")

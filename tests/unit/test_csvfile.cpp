@@ -354,4 +354,24 @@ TEST_CASE("an LF-only CSV reads the same whatever the order")
 	remove(kOrderScratch);
 }
 
+TEST_CASE("a cell read leaves the file where reading its row does, and row 0 is no row")
+{
+	writeOrderScratch("\r\n", true);
+	CSVFile csv;
+	REQUIRE(csv.open(kOrderScratch) == NO_ERR);
+	CHECK(cellLong(csv, 5, 2) == 35);
+	const unsigned long afterRow5 = csv.getLogicalPosition();
+	CHECK(cellLong(csv, 9, 2) == 63);
+	CHECK(cellLong(csv, 9, 3) == 9);
+	CHECK(cellLong(csv, 5, 3) == 5);
+	CHECK(csv.getLogicalPosition() == afterRow5);
+	CHECK(cellLong(csv, 5, 2) == 35);	// the same row again, kept in memory
+	CHECK(csv.getLogicalPosition() == afterRow5);
+	long v = 99;
+	CHECK(csv.readLong(0, 2, v) == NO_ERR);	// readLong reports nothing; the value is 0
+	CHECK(v == 0);
+	csv.close();
+	remove(kOrderScratch);
+}
+
 } // TEST_SUITE("CsvFile")

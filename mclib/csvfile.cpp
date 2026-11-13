@@ -436,6 +436,8 @@ long CSVFile::seekRowCol (DWORD row, DWORD col)
 	// start. Rescanning from the top for every cell made Omnitech's variant
 	// CSVs (loose files, read a line at a time) most of a mission load.
 	char *tmp = rowBuffer;
+	if (row == 0)		//rows count from 1: the scan below never found row 0
+		return -1;
 	if (row != bufferedRow)
 	{
 		if ((row >= 1) && (row <= rowStart.size()))
@@ -455,6 +457,8 @@ long CSVFile::seekRowCol (DWORD row, DWORD col)
 		}
 		bufferedRow = row;
 	}
+	else if (row < rowStart.size())
+		seek(rowStart[row]);		//just past the row, as reading it leaves the file
 	
 	char *currentChk = tmp;
 	if (col)

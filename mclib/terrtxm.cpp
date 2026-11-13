@@ -1439,7 +1439,7 @@ long TerrainTextures::createTransition (DWORD typeInfo, DWORD overlayInfo)
 			}
 
 			MemoryPtr lzBuffer = (MemoryPtr)malloc(mipSize * mipSize * sizeof(DWORD) * 2);
-			long bufferSize = LZCompress(lzBuffer,ourRAM,(mipSize * mipSize * sizeof(DWORD)),LZ_COMPRESS_FAST);
+			long bufferSize = LZCompress(lzBuffer,ourRAM,(mipSize * mipSize * sizeof(DWORD)));
 
 			// A name that did not fit is not saved (the texture is still used)
 			if (nameFits)
