@@ -2,6 +2,7 @@
 
 #include <cctype>
 
+#include <utility>
 #include <vector>
 
 namespace {
@@ -153,4 +154,45 @@ bool isPlaceholderString(const char* text)
         if (std::tolower((unsigned char)*text) != *word)
             return false;
     return *text == '\0' || *text == '_';
+}
+
+namespace {
+
+typedef std::pair<std::string, std::string> RuntimeStringKey;	// key, text
+
+// each text lives once, in its map key: map nodes never move, so the
+// pointers findRuntimeString hands out stay good
+std::map<RuntimeStringKey, uint32_t>& runtimeStringIds()
+{
+    static std::map<RuntimeStringKey, uint32_t> ids;
+    return ids;
+}
+
+std::vector<const std::string*>& runtimeStrings()
+{
+    static std::vector<const std::string*> strings;
+    return strings;
+}
+
+} // namespace
+
+uint32_t addRuntimeString(const char* text, const char* key)
+{
+    if (!text || !text[0])
+        return 0;
+    std::vector<const std::string*>& strings = runtimeStrings();
+    const uint32_t id = kRuntimeStringBase + (uint32_t)strings.size();
+    std::pair<std::map<RuntimeStringKey, uint32_t>::iterator, bool> added =
+        runtimeStringIds().insert(std::make_pair(RuntimeStringKey(key ? key : "", text), id));
+    if (added.second)
+        strings.push_back(&added.first->first.second);
+    return added.first->second;
+}
+
+const char* findRuntimeString(uint32_t id)
+{
+    const std::vector<const std::string*>& strings = runtimeStrings();
+    if (id < kRuntimeStringBase || id - kRuntimeStringBase >= strings.size())
+        return NULL;
+    return strings[id - kRuntimeStringBase]->c_str();
 }

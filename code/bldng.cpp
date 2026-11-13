@@ -60,6 +60,8 @@
 #include"bldng.h"
 #endif
 
+#include"typename.h"
+
 #ifndef GAMESOUND_H
 #include"gamesound.h"
 #endif
@@ -295,6 +297,7 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 		perimeterAlarmTimer = 0.0f;
 
 	result = ObjectType::init(&bldgFile);
+	buildingTypeName = typeNameId(bldgFile, buildingTypeName);
 	teamId = fileTeamId;
 	extentRadius = realExtent;
 	if (perimeterAlarmRange > 0.0f)
@@ -1106,9 +1109,13 @@ char* Building::getName (void)
 	if (customName[0])
 		return(customName);
 
-	if (((BuildingTypePtr)getObjectType())->buildingTypeName != -1)
+	long nameId = ((BuildingTypePtr)getObjectType())->buildingTypeName;
+	if (nameId != -1)
 	{
-		cLoadString(((BuildingTypePtr)getObjectType())->buildingTypeName, lastName, 254);
+		// as the hover label reads it: an id under the string range is an offset
+		if (nameId < IDS_MC2_STRING_START)
+			nameId += IDS_MC2_STRING_START;
+		cLoadString(nameId, lastName, 254);
 		return(lastName);
 	}
 
