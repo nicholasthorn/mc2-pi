@@ -203,6 +203,7 @@ ControlGui::ControlGui()
 	tabFlashTime = 0;
 
 	memset( chatInfos, 0, MAX_CHAT_COUNT * sizeof ( ChatInfo ) );
+	lastChatIsForceGroup = false;
 
 	chatEdit.text.SetBufferSize( 512 );
 	playerNameEdit.setBufferSize( 16 ); // pre - alloc 
@@ -3029,6 +3030,7 @@ void ControlGui::setChatText( const char* playerName, const char* message, unsig
 	}
 
 	i = MAX_CHAT_COUNT - 1;
+	lastChatIsForceGroup = false;
 
 	gosASSERT( strlen( message ) < sizeof( chatInfos[i].message ) );
 	gosASSERT( strlen( playerName ) < sizeof( chatInfos[i].playerName ) );
@@ -3055,6 +3057,21 @@ void ControlGui::setChatText( const char* playerName, const char* message, unsig
 		ChatWindow::instance()->update();
 	}
 
+}
+
+void ControlGui::setForceGroupText( const char* message )
+{
+	if ( lastChatIsForceGroup )
+	{
+		ChatInfo& last = chatInfos[MAX_CHAT_COUNT - 1];
+		snprintf( last.message, sizeof( last.message ), "%s", message );
+		last.time = scenarioTime;
+		if ( MPlayer && ChatWindow::instance() )
+			ChatWindow::instance()->update();
+	}
+	else
+		setChatText( "", message, 0x00ffffff, 0 );
+	lastChatIsForceGroup = true;
 }
 
 void ControlGui::renderChatText()

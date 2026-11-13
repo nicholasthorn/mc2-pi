@@ -5459,6 +5459,11 @@ BEGIN
     IDS_HOTKEY_TILTD        "Tilt Camera Down"
     IDS_HOTKEY_CHAT         "Chat"
     IDS_HOTKEY_CHAT_TEAM    "Team Chat"
+    IDS_HOTKEY_NEXT_GROUP   "Next Group"
+    IDS_HOTKEY_PREVIOUS_GROUP "Previous Group"
+    IDS_HOTKEY_NEW_GROUP    "Make Selection a New Group"
+    IDS_GROUP_SELECTED      "Group %d"
+    IDS_GROUP_MADE          "New group: %d"
 END
 
 STRINGTABLE DISCARDABLE 

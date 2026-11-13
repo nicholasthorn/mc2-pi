@@ -977,15 +977,24 @@ void ForceGroupIcon::render()
 	for (int i = 0; i < strlen( buffer ); i++ )
 		CharUpper( buffer );
 
-	gosFontHandle->render( buffer, textArea[locationIndex].left + 1, pilotTextTop[locationIndex], 0, 0, 0xffffffff, 0, 0 );
-
 	// the group's number at the strip's right end: the colours alone are hard to
-	// tell apart (two reds, two blues), more so in a headset
+	// tell apart (two reds, two blues), more so in a headset. A name that would
+	// run into it is cut short.
+	char groupText[2] = { 0, 0 };
 	if ( forceGroup != -1 )
 	{
-		char groupText[2] = { (char)('0' + forceGroup % 10), 0 };
-		gosFontHandle->render( groupText, textArea[locationIndex].right - 2, pilotTextTop[locationIndex], 0, 0, 0xffffffff, 0, 1 );
+		groupText[0] = (char)('0' + forceGroup % 10);
+		long nameRoom = textArea[locationIndex].right - 2 - (long)gosFontHandle->width( groupText ) - 2
+			- (textArea[locationIndex].left + 1);
+		size_t nameLength = strlen( buffer );
+		while ( nameLength > 0 && (long)gosFontHandle->width( buffer ) > nameRoom )
+			buffer[--nameLength] = 0;
 	}
+
+	gosFontHandle->render( buffer, textArea[locationIndex].left + 1, pilotTextTop[locationIndex], 0, 0, 0xffffffff, 0, 0 );
+
+	if ( groupText[0] )
+		gosFontHandle->render( groupText, textArea[locationIndex].right - 2, pilotTextTop[locationIndex], 0, 0, 0xffffffff, 0, 1 );
 
 	// draw the health bar
 	drawBar( health );

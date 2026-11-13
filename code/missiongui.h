@@ -311,6 +311,7 @@ public:
 		static bool countsInForceGroup( Mover* pMover );
 		static void liveForceGroups( bool live[10] );
 		static void stepForceGroup( int direction );
+		static void showForceGroupText( int textId, int group );
 		// the force group last selected or made (-1 none), where the next /
 		// previous group commands count from
 		static int lastForceGroup;

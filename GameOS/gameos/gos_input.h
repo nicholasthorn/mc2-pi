@@ -56,6 +56,9 @@ void setVirtualPointer(float x, float y, uint32_t buttons);
 // the pointer is off the interface: the cursor stays, the buttons go up
 void clearVirtualPointer();
 void setVirtualKey(int scancode, bool down);
+// how many times the game has read the keyboard (updateKeyboardState), so a
+// key pressed for it can be held until it has been seen
+uint32_t keyboardSamples();
 
 void resetKeypress();
 
