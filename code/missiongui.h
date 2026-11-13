@@ -240,6 +240,7 @@ public:
 		void setTarget( GameObject* pTarget ){ target = pTarget; }
 		static void selectForceGroup( int forceGroup, bool deselectOthers );
 		static void liveForceGroups( bool live[10] );
+		static void stepForceGroup( int direction );
 		void doRepair( GameObject* who);
 		void doRepairBay( GameObject* who);
 		void doEject( GameObject* who );

@@ -3387,23 +3387,24 @@ void MissionInterfaceManager::liveForceGroups( bool live[10] )
 	}
 }
 
-int MissionInterfaceManager::selectNextForceGroup()
+void MissionInterfaceManager::stepForceGroup( int direction )
 {
 	bool live[10];
 	liveForceGroups( live );
-	int group = forcegroups::cycle( live, lastForceGroup, 1 );
+	int group = forcegroups::cycle( live, lastForceGroup, direction );
 	if ( group != -1 )
 		selectForceGroup( group, true );
+}
+
+int MissionInterfaceManager::selectNextForceGroup()
+{
+	stepForceGroup( 1 );
 	return 1;
 }
 
 int MissionInterfaceManager::selectPreviousForceGroup()
 {
-	bool live[10];
-	liveForceGroups( live );
-	int group = forcegroups::cycle( live, lastForceGroup, -1 );
-	if ( group != -1 )
-		selectForceGroup( group, true );
+	stepForceGroup( -1 );
 	return 1;
 }
 
@@ -5452,7 +5453,11 @@ int MissionInterfaceManager::loadHotKeys( FitIniFile& file )
 		{
 			char header[256];
 			sprintf( header, "Key%d", i );
-			file.readIdLong( header, commands[i].key );		
+			// a key missing from older prefs keeps its default (readIdLong
+			// gives 0 for a missing name, which would unbind it)
+			long savedKey;
+			if ( file.readIdLong( header, savedKey ) == NO_ERR )
+				commands[i].key = savedKey;
 		}
 
 		long tmp;

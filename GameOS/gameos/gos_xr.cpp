@@ -178,7 +178,7 @@ struct State {
     bool buttonDown[BUTTON_COUNT] = {};
     // the right stick click's patterns (click: select visible, double click:
     // next force group, long press: new group) and its chord with X (previous
-    // group); see planning/future-features/SELECTION-GROUPS.md
+    // group); see the controls in planning/future-features/VR-TABLETOP.md
     vr_controls::PressPattern rightStickPress;
     vr_controls::Chord groupChord;
     uint32_t stickActions = 0;
