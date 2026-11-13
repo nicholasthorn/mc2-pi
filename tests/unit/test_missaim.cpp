@@ -12,15 +12,24 @@
 namespace
 {
 
-float flatGround(float, float, void* context)
+bool flatGround(float, float, void* context, float* height)
 {
-	return context ? *(const float*)context : 0.0f;
+	*height = context ? *(const float*)context : 0.0f;
+	return true;
 }
 
 // ground rising 1 unit per unit of x past x = 100 (a hill behind the target)
-float hillGround(float x, float, void*)
+bool hillGround(float x, float, void*, float* height)
 {
-	return x > 100.0f ? x - 100.0f : 0.0f;
+	*height = x > 100.0f ? x - 100.0f : 0.0f;
+	return true;
+}
+
+// flat ground on a map ending at x = 250
+bool edgeGround(float x, float, void*, float* height)
+{
+	*height = 0.0f;
+	return x <= 250.0f;
 }
 
 MissVec vec(float x, float y, float z)
@@ -80,6 +89,66 @@ TEST_CASE("missFlyPast: no direction or no step leaves the shot beside the targe
 	MissVec noStep = missFlyPast(vec(0, 0, 200), vec(100, 0, 100), flatGround, NULL, 1000.0f, 0.0f);
 	CHECK(noStep.x == doctest::Approx(100.0f));
 	CHECK(noStep.z == doctest::Approx(0.0f));
+}
+
+TEST_CASE("missFlyPast: a shot that leaves the map ends in the air at the edge")
+{
+	// fired upward toward x = 250, the map edge: it stops there, still up
+	MissVec p = missFlyPast(vec(0, 0, 20), vec(200, 0, 120), edgeGround, NULL, 200.0f, 8.0f);
+	CHECK(p.x == doctest::Approx(250.0f).epsilon(0.01));
+	CHECK(p.x <= 250.0f);
+	CHECK(p.z == doctest::Approx(145.0f).epsilon(0.01));
+	// a point beside the target off the map comes back unchanged
+	MissVec off = missFlyPast(vec(0, 0, 20), vec(300, 0, 120), edgeGround, NULL, 200.0f, 8.0f);
+	CHECK(off.x == doctest::Approx(300.0f));
+	CHECK(off.z == doctest::Approx(120.0f));
+}
+
+TEST_CASE("missSurface: water counts only where the cell has it and it is higher")
+{
+	CHECK(missSurface(10.0f, true, 30.0f) == doctest::Approx(30.0f));		// lake: the surface
+	CHECK(missSurface(50.0f, true, 30.0f) == doctest::Approx(50.0f));		// bank above the level
+	CHECK(missSurface(10.0f, false, 30.0f) == doctest::Approx(10.0f));		// dry valley below it
+}
+
+TEST_CASE("missEndsInAir: more than 10 units above the surface")
+{
+	CHECK(missEndsInAir(120.0f, 0.0f));
+	CHECK_FALSE(missEndsInAir(10.0f, 0.0f));
+	CHECK_FALSE(missEndsInAir(5.0f, 30.0f));
+}
+
+TEST_CASE("missSides: left and right of the line of fire first, then beyond and in front")
+{
+	MissVec out[4];
+	// fired along +x at a target at (100, 0, 200)
+	missSides(vec(0, 0, 0), vec(100, 0, 200), 25.0f, true, out);
+	CHECK(out[0].x == doctest::Approx(100.0f));		// right of +x is -y
+	CHECK(out[0].y == doctest::Approx(-25.0f));
+	CHECK(out[1].y == doctest::Approx(25.0f));
+	CHECK(out[2].x == doctest::Approx(125.0f));		// beyond
+	CHECK(out[3].x == doctest::Approx(75.0f));		// in front
+	for (int i = 0; i < 4; i++)
+		CHECK(out[i].z == doctest::Approx(200.0f));
+
+	missSides(vec(0, 0, 0), vec(100, 0, 200), 25.0f, false, out);
+	CHECK(out[0].y == doctest::Approx(25.0f));		// left first
+	CHECK(out[1].y == doctest::Approx(-25.0f));
+
+	// fired along +y: right is +x, whichever way the map axes run
+	missSides(vec(0, 0, 0), vec(0, 100, 0), 10.0f, true, out);
+	CHECK(out[0].x == doctest::Approx(10.0f));
+	CHECK(out[0].y == doctest::Approx(100.0f));
+}
+
+TEST_CASE("missSides: straight down, the 2001 order")
+{
+	MissVec out[4];
+	missSides(vec(50, 50, 300), vec(50, 50, 0), 5.0f, true, out);
+	CHECK(out[0].x == doctest::Approx(55.0f));
+	CHECK(out[1].x == doctest::Approx(45.0f));
+	CHECK(out[2].y == doctest::Approx(55.0f));
+	CHECK(out[3].y == doctest::Approx(45.0f));
 }
 
 } // TEST_SUITE("MissAim")

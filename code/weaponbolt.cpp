@@ -40,6 +40,8 @@
 
 #include<gameos.hpp>
 
+#include"missaim.h"
+
 //---------------------------------------------------------------------------
 extern bool hasGuardBand;
 extern MidLevelRenderer::MLRClipper * theClipper;
@@ -374,13 +376,13 @@ bool WeaponBolt::isVisible (void)
 
 //---------------------------------------------------------------------------
 // A missed shot whose end point is well above the ground or the water (one
-// fired up past a copter) struck nothing there.
+// fired up past a copter) struck nothing there (missaim.h).
 static bool missEndsInAir (const Stuff::Vector3D& point)
 {
-	float surface = land->getTerrainElevation(point);
-	if (surface < Terrain::waterElevation)
-		surface = Terrain::waterElevation;
-	return(point.z > surface + 10.0f);
+	int cellR, cellC;
+	land->worldToCell(point, cellR, cellC);
+	bool water = GameMap->getDeepWater(cellR, cellC) || GameMap->getShallowWater(cellR, cellC);
+	return(missEndsInAir(point.z, missSurface(land->getTerrainElevation(point), water, Terrain::waterElevation)));
 }
 
 //---------------------------------------------------------------------------
