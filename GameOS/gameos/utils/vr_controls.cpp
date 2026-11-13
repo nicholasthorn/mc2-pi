@@ -323,4 +323,29 @@ bool chordPress(Chord& chord, bool modifier, bool button)
     return pressed;
 }
 
+void pushTap(TapQueue& queue, const KeyTap& tap)
+{
+    if(queue.count < TapQueue::kSize)
+        queue.taps[queue.count++] = tap;
+}
+
+const KeyTap* currentTap(TapQueue& queue, uint32_t samples)
+{
+    if(queue.count == 0)
+        return nullptr;
+    if(!queue.holding) {
+        queue.holding = true;
+        queue.since = samples;
+        return &queue.taps[0];
+    }
+    if(samples == queue.since)
+        return &queue.taps[0];
+    // read: let it go, and the next one waits a frame
+    for(int i = 1; i < queue.count; ++i)
+        queue.taps[i - 1] = queue.taps[i];
+    --queue.count;
+    queue.holding = false;
+    return nullptr;
+}
+
 }

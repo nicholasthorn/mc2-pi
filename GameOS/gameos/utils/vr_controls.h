@@ -142,6 +142,29 @@ struct Chord {
 };
 bool chordPress(Chord& chord, bool modifier, bool button);
 
+// Keys a button event presses once, with the Shift and Ctrl the game must see
+// with them. Each is held until the game has read the keyboard (its read
+// count moves on), then all keys are up for a frame so the next tap is a new
+// press. While a tap is held its Shift state wins over Shift held for other
+// reasons (turning the camera), so a next group is never a previous group.
+struct KeyTap {
+    int key = 0;            // SDL scancode
+    bool shift = false;
+    bool ctrl = false;
+};
+struct TapQueue {
+    enum { kSize = 4 };
+    KeyTap taps[kSize];
+    int count = 0;
+    bool holding = false;   // taps[0] is down, since the read count 'since'
+    uint32_t since = 0;
+};
+// A tap to press; dropped when kSize are already waiting.
+void pushTap(TapQueue& queue, const KeyTap& tap);
+// The tap to hold down this frame, given the game's keyboard read count;
+// nullptr when none (or for the frame between two taps).
+const KeyTap* currentTap(TapQueue& queue, uint32_t samples);
+
 }
 
 #endif // VR_CONTROLS_H

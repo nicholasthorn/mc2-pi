@@ -17,6 +17,7 @@ static struct {
 } g_virtual_mouse;
 static const int NUM_VIRTUAL_KEYS = 512;
 static InputLatch g_virtual_keys[NUM_VIRTUAL_KEYS];
+static uint32_t g_keyboard_samples = 0;
 
 namespace input {
 
@@ -173,6 +174,7 @@ void updateKeyboardState() {
     assert(array_len <= sizeof(ki->last_state_)/sizeof(ki->last_state_[0]));
 
     ki->first_pressed_ = -1;
+    ++g_keyboard_samples;
 
     for(int i=0; i<array_len; ++i) {
 
@@ -212,6 +214,10 @@ void setVirtualPointer(float x, float y, uint32_t buttons) {
 void clearVirtualPointer() {
     g_virtual_mouse.active = false;
     g_virtual_mouse.buttons.set(0);
+}
+
+uint32_t keyboardSamples() {
+    return g_keyboard_samples;
 }
 
 void setVirtualKey(int scancode, bool down) {
