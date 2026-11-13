@@ -502,3 +502,101 @@ TEST_CASE("a beam to a far pick still has a valid orientation")
 	INFO("worst at step ", worst);
 	CHECK(worstError < 0.001f);
 }
+
+TEST_SUITE("VRControls") {
+
+namespace {
+
+// feeds one button through a press pattern: each step is (down, seconds)
+uint32_t step(vr_controls::PressPattern& p, bool down, double t, bool hasLong)
+{
+	return vr_controls::pressEvents(p, down, t, hasLong);
+}
+
+}
+
+TEST_CASE("press patterns: without a long press a click fires on the way down")
+{
+	vr_controls::PressPattern p;
+	CHECK(step(p, true, 1.0, false) == vr_controls::PRESS_CLICK);
+	CHECK(step(p, true, 2.0, false) == 0u);		// held: nothing more, ever
+	CHECK(step(p, false, 2.1, false) == 0u);
+}
+
+TEST_CASE("press patterns: with a long press the click waits for the release")
+{
+	vr_controls::PressPattern p;
+	CHECK(step(p, true, 1.0, true) == 0u);
+	CHECK(step(p, true, 1.2, true) == 0u);
+	CHECK(step(p, false, 1.3, true) == vr_controls::PRESS_CLICK);
+}
+
+TEST_CASE("press patterns: a long press fires once while held, and no click")
+{
+	vr_controls::PressPattern p;
+	CHECK(step(p, true, 1.0, true) == 0u);
+	CHECK(step(p, true, 1.49, true) == 0u);
+	CHECK(step(p, true, 1.5, true) == vr_controls::PRESS_LONG);
+	CHECK(step(p, true, 2.5, true) == 0u);
+	CHECK(step(p, false, 2.6, true) == 0u);
+	// and a quick press after it is a click, not a double
+	CHECK(step(p, true, 2.7, true) == 0u);
+	CHECK(step(p, false, 2.8, true) == vr_controls::PRESS_CLICK);
+}
+
+TEST_CASE("press patterns: a double click is a click, then a double on the second press")
+{
+	vr_controls::PressPattern p;
+	CHECK(step(p, true, 1.0, true) == 0u);
+	CHECK(step(p, false, 1.1, true) == vr_controls::PRESS_CLICK);
+	CHECK(step(p, true, 1.35, true) == vr_controls::PRESS_DOUBLE);
+	CHECK(step(p, true, 2.0, true) == 0u);		// no long press on the second press
+	CHECK(step(p, false, 2.1, true) == 0u);		// nor a click
+	// a third press soon after is a click again
+	CHECK(step(p, true, 2.2, true) == 0u);
+	CHECK(step(p, false, 2.3, true) == vr_controls::PRESS_CLICK);
+}
+
+TEST_CASE("press patterns: a slow second press is two clicks")
+{
+	vr_controls::PressPattern p;
+	step(p, true, 1.0, false);
+	step(p, false, 1.1, false);
+	CHECK(step(p, true, 1.45, false) == vr_controls::PRESS_CLICK);
+	CHECK(step(p, false, 1.5, false) == 0u);
+	CHECK(step(p, true, 1.7, false) == vr_controls::PRESS_DOUBLE);
+}
+
+TEST_CASE("chords: the button with the modifier held, repeated until the modifier is let go")
+{
+	vr_controls::Chord c;
+	CHECK_FALSE(vr_controls::chordPress(c, true, false));
+	CHECK_FALSE(c.modifierUsed);
+	CHECK(vr_controls::chordPress(c, true, true));
+	CHECK(c.modifierUsed);
+	CHECK(c.buttonInChord);
+	CHECK_FALSE(vr_controls::chordPress(c, true, true));	// held: once
+	CHECK_FALSE(vr_controls::chordPress(c, true, false));
+	CHECK_FALSE(c.buttonInChord);
+	CHECK(c.modifierUsed);
+	CHECK(vr_controls::chordPress(c, true, true));		// again, modifier still held
+	vr_controls::chordPress(c, true, false);
+	CHECK_FALSE(vr_controls::chordPress(c, false, false));
+	CHECK_FALSE(c.modifierUsed);
+}
+
+TEST_CASE("chords: the modifier let go first keeps the button out of its own patterns")
+{
+	vr_controls::Chord c;
+	CHECK(vr_controls::chordPress(c, true, true));
+	CHECK_FALSE(vr_controls::chordPress(c, false, true));
+	CHECK_FALSE(c.modifierUsed);
+	CHECK(c.buttonInChord);
+	vr_controls::chordPress(c, false, false);
+	CHECK_FALSE(c.buttonInChord);
+	// pressed alone, it is no chord
+	CHECK_FALSE(vr_controls::chordPress(c, false, true));
+	CHECK_FALSE(c.buttonInChord);
+}
+
+}
