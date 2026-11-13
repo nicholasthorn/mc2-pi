@@ -2600,6 +2600,8 @@ int LogisticsData::addBuilding( long fitID, PacketFile& objectFile, float scale 
 			gosASSERT( 0 );
 
 		file.readIdString( "AppearanceName", bldg.fileName, 63 );
+		// no EncyclopediaID (6 of Omnitech's listed buildings): no description
+		bldg.encycloID = 0;
 		file.readIdLong( "EncyclopediaID", bldg.encycloID );
 
 
@@ -2646,6 +2648,10 @@ int LogisticsData::addBuilding( long fitID, PacketFile& objectFile, float scale 
 			}
 		}
 		
+		// name id 0 (20 of Omnitech's listed buildings): the type's own Name,
+		// as the hover label has it, so the Mechlopedia lists them
+		bldg.nameID = typeNameId( file, bldg.nameID );
+
 		bldg.scale = scale;
 		buildings.Append( bldg );
 

@@ -25,4 +25,11 @@ void closeMovObjFile (void);
 // movobj.fit names (not a mech: those have only a CSV).
 long openTypeProfile (long objTypeNum, FitIniFile& profile, PacketFile* pak);
 
+// A building, turret or gate type's name id, from its type file: 0 (no
+// string; 156 of Omnitech's own types have it) becomes an id for the file's
+// [ObjectType] Name, so the hover label and the Mechlopedia show that
+// instead of "missing string res" or nothing. Leaves the file in its
+// [ObjectType] block.
+long typeNameId (FitIniFile& typeFile, long nameId);
+
 #endif

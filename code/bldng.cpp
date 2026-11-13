@@ -60,6 +60,8 @@
 #include"bldng.h"
 #endif
 
+#include"movobj.h"
+
 #ifndef GAMESOUND_H
 #include"gamesound.h"
 #endif
@@ -295,7 +297,7 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 		perimeterAlarmTimer = 0.0f;
 
 	result = ObjectType::init(&bldgFile);
-	buildingTypeName = nameIdOrTypeName(&bldgFile, buildingTypeName);
+	buildingTypeName = typeNameId(bldgFile, buildingTypeName);
 	teamId = fileTeamId;
 	extentRadius = realExtent;
 	if (perimeterAlarmRange > 0.0f)

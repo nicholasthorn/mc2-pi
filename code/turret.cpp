@@ -16,6 +16,8 @@
 #include"turret.h"
 #endif
 
+#include"movobj.h"
+
 #include"movemgr.h"
 
 #ifndef GAMESOUND_H
@@ -232,7 +234,7 @@ long TurretType::init (FilePtr objFile, unsigned long fileSize) {
 	//------------------------------------------------------------------
 	// Initialize the base object Type from the current file.
 	result = ObjectType::init(&bldgFile);
-	turretTypeName = nameIdOrTypeName(&bldgFile, turretTypeName);
+	turretTypeName = typeNameId(bldgFile, turretTypeName);
 	return(result);
 }
 	
