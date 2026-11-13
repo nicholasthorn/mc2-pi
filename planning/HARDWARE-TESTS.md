@@ -186,6 +186,11 @@ The interface only rests in a headset session, so no desktop run covers it.
       the stock menus no longer pixelated, Omnitech's front end and missions as
       before, the pointer and screen changes fine (judged in play, MC2 test and
       Omnitech).
+- [x] **Interface panel without sparkle** (`vr-panel-mipmaps`, 2026-11-13): the main menu,
+      logistics and the mission HUD, moving the head slowly: no shimmering text or edges (judged
+      in play, MC2 test and Omnitech). `MC2_XR_HUD_MIPS=0` in `mc2args.txt` turns it off to compare.
+- [ ] **Cost of the panel's mip levels** (PR 151): a `-bench` run with and without
+      `MC2_XR_HUD_MIPS=0`, the interface's redraw time on game-step frames.
 - [x] **Omnitech's results screens** (2026-11-11): after a Clan Wars mission the
       results' Done button showed and left the screen.
 
