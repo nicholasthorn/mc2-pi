@@ -107,6 +107,41 @@ enum : uint32_t {
 };
 uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint32_t previous);
 
+// Press patterns on a tap button (one with no job while held): a click, a
+// double click (a second press within kDoubleClick seconds of a click's
+// release) and a long press (held kLongPress seconds). A button without a
+// long press clicks as it goes down; with one, it clicks on release, so a
+// long press never clicks first. A long press fires once, while still held.
+// The second press of a double click gives only PRESS_DOUBLE, and a third
+// press is a click again.
+enum : uint32_t {
+    PRESS_CLICK = 1u << 0,
+    PRESS_DOUBLE = 1u << 1,
+    PRESS_LONG = 1u << 2,
+};
+const double kDoubleClick = 0.3;
+const double kLongPress = 0.5;
+struct PressPattern {
+    bool down = false;
+    bool used = false;          // this press already gave a double or long press
+    double downAt = 0.0;
+    double clickUpAt = -1.0;    // when the last click's press ended (< 0: none)
+};
+// The events of one frame, given the button now and the time in seconds.
+uint32_t pressEvents(PressPattern& press, bool down, double seconds, bool hasLong);
+
+// A chord: a button pressed while a modifier on the other hand is held.
+// chordPress is true on the frame the button goes down with the modifier
+// held. From then until the modifier is let go, modifierUsed says the
+// modifier's own key should stay up; until the button is let go,
+// buttonInChord says the button's own press patterns should not see it.
+struct Chord {
+    bool modifierUsed = false;
+    bool buttonInChord = false;
+    bool buttonWas = false;
+};
+bool chordPress(Chord& chord, bool modifier, bool button);
+
 }
 
 #endif // VR_CONTROLS_H

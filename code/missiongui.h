@@ -57,7 +57,7 @@ extern UserHeapPtr guiHeap;
 void *gMalloc (long size);
 void gFree (void *me);
 
-#define MAX_COMMAND 107
+#define MAX_COMMAND 110
 //--------------------------------------------------------------------------------------
 class MissionInterfaceManager
 {
@@ -308,6 +308,12 @@ public:
 	private:
 
 		void makeForceGroup( int forceGroup );
+		static bool countsInForceGroup( Mover* pMover );
+		static void liveForceGroups( bool live[10] );
+		static void stepForceGroup( int direction );
+		// the force group last selected or made (-1 none), where the next /
+		// previous group commands count from
+		static int lastForceGroup;
 		bool moveCameraAround( bool lineOfSight, bool passable, bool ctrl, bool bGui, long moverCount, long nonMoverCount );
 		bool canJump(); // selected units can jump
 		bool canJumpToWPos();
@@ -328,6 +334,9 @@ public:
 		int conserveAmmo();
 		int selectVisible();
 		int addVisibleToSelection();
+		int selectNextForceGroup();
+		int selectPreviousForceGroup();
+		int makeNewForceGroup();
 		int aimLeg();
 		int aimArm();
 		int aimHead();

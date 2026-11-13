@@ -281,4 +281,46 @@ uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint3
     return actions;
 }
 
+uint32_t pressEvents(PressPattern& press, bool down, double seconds, bool hasLong)
+{
+    uint32_t events = 0;
+    if(down && !press.down) {
+        press.down = true;
+        press.downAt = seconds;
+        press.used = false;
+        if(press.clickUpAt >= 0.0 && seconds - press.clickUpAt <= kDoubleClick) {
+            events |= PRESS_DOUBLE;
+            press.used = true;
+        } else if(!hasLong) {
+            events |= PRESS_CLICK;
+        }
+    } else if(down) {
+        if(hasLong && !press.used && seconds - press.downAt >= kLongPress) {
+            events |= PRESS_LONG;
+            press.used = true;
+        }
+    } else if(press.down) {
+        press.down = false;
+        if(!press.used && hasLong)
+            events |= PRESS_CLICK;
+        press.clickUpAt = press.used ? -1.0 : seconds;
+    }
+    return events;
+}
+
+bool chordPress(Chord& chord, bool modifier, bool button)
+{
+    const bool pressed = modifier && button && !chord.buttonWas;
+    if(pressed) {
+        chord.modifierUsed = true;
+        chord.buttonInChord = true;
+    }
+    if(!button)
+        chord.buttonInChord = false;
+    if(!modifier)
+        chord.modifierUsed = false;
+    chord.buttonWas = button;
+    return pressed;
+}
+
 }
