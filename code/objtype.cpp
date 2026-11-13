@@ -15,6 +15,7 @@
 #ifndef OBJTYPE_H
 #include"objtype.h"
 #include"movobj.h"
+#include"utils/pe_strings.h"
 #endif
 
 #ifndef DOBJNUM_H
@@ -126,6 +127,21 @@ long ObjectType::init (FilePtr objFile, unsigned long fileSize) {
 	return(NO_ERR);
 }
 	
+//---------------------------------------------------------------------------
+long ObjectType::nameIdOrTypeName (FitIniFilePtr objFile, long nameId) {
+
+	if (nameId != 0)
+		return(nameId);
+
+	char typeName[256];
+	if ((objFile->seekBlock("ObjectType") != NO_ERR) ||
+		(objFile->readIdString("Name", typeName, 255) != NO_ERR))
+		return(nameId);
+
+	uint32_t runtimeId = addRuntimeString(typeName);
+	return(runtimeId ? (long)runtimeId : nameId);
+}
+
 //---------------------------------------------------------------------------
 long ObjectType::init (FitIniFilePtr objFile) {
 

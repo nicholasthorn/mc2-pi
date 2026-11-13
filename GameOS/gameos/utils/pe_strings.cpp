@@ -2,6 +2,7 @@
 
 #include <cctype>
 
+#include <deque>
 #include <vector>
 
 namespace {
@@ -153,4 +154,45 @@ bool isPlaceholderString(const char* text)
         if (std::tolower((unsigned char)*text) != *word)
             return false;
     return *text == '\0' || *text == '_';
+}
+
+namespace {
+
+// a deque keeps every string where it is as more are added, so the pointers
+// findRuntimeString hands out stay good
+std::deque<std::string>& runtimeStrings()
+{
+    static std::deque<std::string> strings;
+    return strings;
+}
+
+std::map<std::string, uint32_t>& runtimeStringIds()
+{
+    static std::map<std::string, uint32_t> ids;
+    return ids;
+}
+
+} // namespace
+
+uint32_t addRuntimeString(const char* text)
+{
+    if (!text || !text[0])
+        return 0;
+    std::map<std::string, uint32_t>& ids = runtimeStringIds();
+    std::map<std::string, uint32_t>::const_iterator it = ids.find(text);
+    if (it != ids.end())
+        return it->second;
+    std::deque<std::string>& strings = runtimeStrings();
+    const uint32_t id = kRuntimeStringBase + (uint32_t)strings.size();
+    strings.push_back(text);
+    ids[text] = id;
+    return id;
+}
+
+const char* findRuntimeString(uint32_t id)
+{
+    const std::deque<std::string>& strings = runtimeStrings();
+    if (id < kRuntimeStringBase || id - kRuntimeStringBase >= strings.size())
+        return NULL;
+    return strings[id - kRuntimeStringBase].c_str();
 }

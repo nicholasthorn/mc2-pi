@@ -295,6 +295,7 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 		perimeterAlarmTimer = 0.0f;
 
 	result = ObjectType::init(&bldgFile);
+	buildingTypeName = nameIdOrTypeName(&bldgFile, buildingTypeName);
 	teamId = fileTeamId;
 	extentRadius = realExtent;
 	if (perimeterAlarmRange > 0.0f)

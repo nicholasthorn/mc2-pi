@@ -232,6 +232,7 @@ long TurretType::init (FilePtr objFile, unsigned long fileSize) {
 	//------------------------------------------------------------------
 	// Initialize the base object Type from the current file.
 	result = ObjectType::init(&bldgFile);
+	turretTypeName = nameIdOrTypeName(&bldgFile, turretTypeName);
 	return(result);
 }
 	

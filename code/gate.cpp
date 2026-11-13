@@ -159,6 +159,7 @@ long GateType::init (FilePtr objFile, unsigned long fileSize)
 	//------------------------------------------------------------------
 	// Initialize the base object Type from the current file.
 	result = ObjectType::init(&bldgFile);
+	gateTypeName = nameIdOrTypeName(&bldgFile, gateTypeName);
 	return(result);
 }
 	

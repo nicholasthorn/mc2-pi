@@ -85,6 +85,13 @@ class ObjectType {
 		virtual long init (FilePtr objFile, unsigned long fileSize);
 
 		long init (FitIniFilePtr objFile);
+
+		// A building, turret or gate type's name id, from its type file: 0
+		// (no string; 156 of MechCommander Omnitech's own types have it)
+		// becomes an id for the file's [ObjectType] Name, so the hover label
+		// shows that instead of "missing string res". Leaves the file in
+		// its [ObjectType] block.
+		static long nameIdOrTypeName (FitIniFilePtr objFile, long nameId);
 		
 		virtual ~ObjectType (void) {
 			destroy();
