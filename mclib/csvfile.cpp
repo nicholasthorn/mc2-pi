@@ -48,6 +48,8 @@ CSVFile::CSVFile (void) : File()
 {
 	totalRows = totalCols = 0L;
 	dataBuffer[0] = '\0';
+	bufferedRow = 0;
+	rowBuffer[0] = '\0';
 }
 
 //---------------------------------------------------------------------------
@@ -65,10 +67,15 @@ long CSVFile::countRows (void)
 	seek(0);		//Start at the top.
 	char tmp[2048];
 	
+	// where each line starts, for seekRowCol: row n is the nth line read here
+	rowStart.clear();
+	bufferedRow = 0;
+	rowStart.push_back(logicalPosition);
 	readLine((MemoryPtr)tmp,2047);
 	while (!eof())
 	{
 		count++;
+		rowStart.push_back(logicalPosition);
 		readLine((MemoryPtr)tmp,2047);
 	}
 	
@@ -194,6 +201,8 @@ void CSVFile::atClose (void)
 	}
 
 	totalRows = totalCols = 0;
+	rowStart.clear();
+	bufferedRow = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -422,16 +431,30 @@ long CSVFile::seekRowCol (DWORD row, DWORD col)
 	if ((row > totalRows) || (col > totalCols))
 		return -1;
 		
-	DWORD rowCount = 0;
-	
-	seek(0);		//Start at the top.
-	char tmp[2048];
-	
-	do
+	//--------------------------------------------------------------------
+	// The row: the one already read, or straight from where countRows saw it
+	// start. Rescanning from the top for every cell made Omnitech's variant
+	// CSVs (loose files, read a line at a time) most of a mission load.
+	char *tmp = rowBuffer;
+	if (row != bufferedRow)
 	{
-		rowCount++;
-		readLine((MemoryPtr)tmp,2047);
-	} while (rowCount != row);  
+		if ((row >= 1) && (row <= rowStart.size()))
+		{
+			seek(rowStart[row - 1]);
+			readLine((MemoryPtr)tmp,2047);
+		}
+		else
+		{
+			DWORD rowCount = 0;
+			seek(0);		//Start at the top.
+			do
+			{
+				rowCount++;
+				readLine((MemoryPtr)tmp,2047);
+			} while (rowCount != row);  
+		}
+		bufferedRow = row;
+	}
 	
 	char *currentChk = tmp;
 	if (col)

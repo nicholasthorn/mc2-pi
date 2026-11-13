@@ -360,6 +360,23 @@ TEST_CASE("zlib data (what this port's LZCompress writes) still decodes")
 	CHECK(decode(tooShort, packed, tooShort.size()) == 0);
 }
 
+// The texture cache compresses at zlib's fastest level (LZ_COMPRESS_FAST):
+// the data must decode the same, whatever the level.
+TEST_CASE("zlib data at the fast level decodes to the same bytes")
+{
+	const Bytes plain = pseudoText(50000);
+	for (int level : {LZ_COMPRESS_FAST, 0, 9})
+	{
+		Bytes packed(plain.size() * 2 + 64, 0);
+		const size_t packedLen = LZCompress(packed.data(), const_cast<uint8_t *>(plain.data()), plain.size(), level);
+		REQUIRE(packedLen > 2);
+		packed.resize(packedLen);
+		Bytes out(plain.size(), 0);
+		CHECK(decode(out, packed, out.size()) == plain.size());
+		CHECK(out == plain);
+	}
+}
+
 TEST_CASE("an LZ FST (0xFADDECAF) with original LZ, zlib and raw-stored entries reads through File::open")
 {
 	const Bytes lzPlain = pseudoText(70000);

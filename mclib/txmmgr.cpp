@@ -1923,7 +1923,7 @@ DWORD MC_TextureManager::textureFromMemory (DWORD *data, gos_TextureFormat key, 
 	}
 	
 	actualTextureSize += txmSize;
-	DWORD txmCompressSize = LZCompress(lzBuffer2,(MemoryPtr)data,txmSize);
+	DWORD txmCompressSize = LZCompress(lzBuffer2,(MemoryPtr)data,txmSize,LZ_COMPRESS_FAST);
 	compressedTextureSize += txmCompressSize;
 	
  	//-------------------------------------------------------
@@ -2091,7 +2091,7 @@ DWORD MC_TextureManager::loadTexture (const char *textureFullPathName, gos_Textu
 		textureFile.close();
 
 		actualTextureSize += txmSize;
-		DWORD txmCompressSize = LZCompress(lzBuffer2,lzBuffer1,txmSize);
+		DWORD txmCompressSize = LZCompress(lzBuffer2,lzBuffer1,txmSize,LZ_COMPRESS_FAST);
 		compressedTextureSize += txmCompressSize;
 
 		masterTextureNodes[i].textureData = (DWORD *)textureCacheHeap->Malloc(txmCompressSize);
