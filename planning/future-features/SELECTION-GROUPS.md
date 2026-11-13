@@ -138,29 +138,64 @@ digit on the icon.
 
 ### Quest
 
-Recommended: **the right stick click becomes the group button** in a mission.
+#### Press patterns: click, double click, long press
 
-- **Click: next group** (sends `` ` ``). The cycle visits the groups with a
-  living unit, then **"all visible"** (today's E) as its last step, so the
-  button keeps its current job one step further on. With no groups made, every
-  unit is in group 1 and the first click selects them all, as E does today.
-- **Hold (0.5 s): new group** from the selection (sends Ctrl + `` ` ``). The
-  click is acted on at release, so a hold never also cycles. A short haptic
-  pulse when the group is made would help but is not required.
-- The stray-click problem in `HARDWARE-TESTS.md` gets milder, not worse: a
-  stray click now selects a group instead of every visible unit.
+Today each Quest button has one job. A small, general layer gives a button up
+to three: **click**, **double click** and **long press**. It is worth having
+beyond groups (the user's suggestion, 2026-11-13), so it is specced here as
+its own piece and groups are its first user.
 
-`gos_xr.cpp` stays free of game knowledge: it only times the press and holds
-the right virtual key (and `LCTRL` for the hold, alongside B) for long enough
-for the 30 Hz game step to see it, as the other buttons do. The cycle order,
-which groups are empty and "all visible" live in `MissionInterfaceManager`,
-where they also serve the keyboard.
+- A pure classifier in `vr_controls` (unit-tested, no OpenXR): given a
+  button's down / up state and the time each frame, it reports `CLICK`,
+  `DOUBLE_CLICK` or `LONG_PRESS` events. Defaults: long press at 0.5 s held,
+  double click when the second press starts within 0.3 s of the first
+  release. Both are constants first, settings only if the headset says so.
+- **A click fires on press** when the button has no long press, as today, and
+  **on release** when it has one (so a long press never fires the click
+  first; a click under 0.5 s still feels instant). A double click is the
+  click followed by a second event, so it adds no wait: it suits a button
+  whose click is harmless to repeat (a selection, which the double click then
+  replaces). No proposed binding waits out the 0.3 s.
+- **Long press** fires when the time is reached, not at release, so the
+  player feels it happen; a short haptic pulse marks it (OpenXR haptic output
+  action, optional in the first cut).
+- **Only on tap buttons**: A, the right stick click and menu. B, X, Y and the
+  left stick click are **held while the other hand clicks** (waypoints, run,
+  jump, force fire); a long press there is what they already are, and a double
+  tap would send their key twice. They stay as they are.
+- Each event becomes a virtual key held for long enough for the 30 Hz game
+  step to see it, as the other buttons do. `gos_xr.cpp` stays free of game
+  knowledge: the game decides what the key means.
+
+#### The group button
+
+Recommended: **the right stick click**, in a mission.
+
+| Press | Does | Sends |
+|---|---|---|
+| click | select visible units, **unchanged** | E |
+| double click | next group (the first press's "select visible" is replaced) | `` ` `` |
+| long press | new group from the selection | Ctrl + `` ` `` |
+
+- The cycle visits the groups with a living unit, in the order 1 to 9 then 0,
+  wrapping. With no groups made, every unit is in group 1, so a double click
+  selects them all.
+- Because the button has a long press, its click (E) is sent on release, so a
+  long press makes the group from the selection the player had, not from the
+  visible units.
+- The stray-click problem in `HARDWARE-TESTS.md` is unchanged.
+
+The cycle order, which groups are empty and the "new group" number live in
+`MissionInterfaceManager`, where they also serve the keyboard.
 
 Alternatives rejected:
 
-- **A tap cycles, A held places the interface.** Recentring would have to move
-  from press to release, and the interface would jump into view on every
-  cycle. A is also on the same thumb as B, so it is no faster.
+- **A double click cycles.** A's press recentres the interface, so every
+  cycle would pull the interface in front of the head. A is a fallback if the
+  right stick proves too easy to click by accident.
+- **Right stick click: click cycles, "all visible" as the cycle's last step**
+  (this spec's first draft). Changes what one click has always done; with
+  double click available there is no need.
 - **Y or X held + right stick flick.** Holding J or Space puts the cursor in a
   jump or run mode, and the flick would also turn the camera.
 - **A button on the interface.** Pointing at small HUD buttons is the slow
@@ -176,8 +211,7 @@ Alternatives rejected:
   colours alone are not. Units in no group show no digit.
 - **Selecting** a group, by any means, highlights its units and icons as a
   selection does today; nothing else changes. The camera does not move.
-- **A short line** in the game's message area ("Group 2", "All visible", "New
-  group 3") when the group is chosen by the cycle or made by Ctrl + `` ` ``, so
+- **A short line** in the game's message area ("Group 2", "New group 3") when the group is chosen by the cycle or made by Ctrl + `` ` ``, so
   a player who cannot see the icons (head turned in VR) knows what happened.
   If the message area cannot take a line without a sound or a log entry, drop
   this; the icons are enough.
@@ -206,32 +240,36 @@ so `ondisksizes.cpp` is untouched.
 - **Game:** `code/missiongui.cpp` / `.h` (three commands, empty-group no-op,
   last-group memory, cycle order), `code/mechicon.cpp` (digit), hotkey help
   strings for the F1 list (resource strings in `res/`).
-- **Platform (VR only):** `GameOS/gameos/gos_xr.cpp` (right stick click: click
-  vs hold, which keys); press timing in `vr_controls` so it can be unit-tested.
+- **Platform (VR only):** the press-pattern classifier in `vr_controls`
+  (unit-tested), and `GameOS/gameos/gos_xr.cpp` (which events send which
+  keys, click on release for the right stick).
 - **Docs:** `VR-TABLETOP.md` controls section, `HARDWARE-TESTS.md`.
 - **Untouched:** renderer (GL and GLES), shaders, engine, save format, data,
   build, multiplayer.
 
 ## Verification
 
-- Unit tests: the cycle order (skip empty and all-dead groups, wrap, "all
-  visible" last step, start at 1) as a pure function over a list of group
-  masks and alive flags; the click-or-hold timing in `vr_controls`.
+- Unit tests: the cycle order (skip empty and all-dead groups, wrap, start
+  at 1) as a pure function over a list of group masks and alive flags.
 - Desktop GL, by a person: Ctrl + 2, 2, Shift + 2, `` ` `` and Shift + `` ` ``,
   Ctrl + `` ` ``, an empty group's number, a group whose units all died, then
   save, load and press the number again. Stock and Omnitech.
-- Quest, by the user: click to cycle through two groups and "all visible";
-  hold to make a group; check that the icon digits are readable at the
-  interface's usual distance.
+- Unit tests for the classifier: click, double click, long press, a slow
+  second press (two clicks), a long press then a click.
+- Quest, by the user: click still selects visible units; double click cycles
+  through two groups; long press makes a group;
+  check that the icon digits are readable at the interface's usual distance.
 - Smoke runs are unaffected (no input in `-autoexit` runs); CI as usual.
 
 ## Open questions
 
-1. **Quest button**: right stick click (recommended, keeps "all visible" as
-   the cycle's last step), or another choice? E's job changes from one click
-   to "one click when no groups are made, otherwise at the end of the cycle".
-2. **Empty group no-op**: change it (recommended), or keep the shipped
+1. **Quest button**: right stick click with double click to cycle and long
+   press to make a group (recommended), or another button? Which other tap
+   buttons (A, menu) should get double click or long press, and for what?
+2. **Press timings**: 0.3 s for a double click and 0.5 s for a long press, to
+   be tuned in the headset.
+3. **Empty group no-op**: change it (recommended), or keep the shipped
    behaviour where an empty group's number clears the selection?
-3. **The message line**: wanted, or are the icons enough?
-4. **`` ` `` for next group**: fine on the user's keyboard layout? On some
+4. **The message line**: wanted, or are the icons enough?
+5. **`` ` `` for next group**: fine on the user's keyboard layout? On some
    layouts the key is elsewhere; it can be rebound once it is in the table.
