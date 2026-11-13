@@ -1661,48 +1661,16 @@ void Turret::fireWeapon (GameObjectPtr target, long weaponId) {
 					//-------------------------------------------------------------------------------------------
 					// If we missed, pick sights away from the target and check LOS to each one.  If all are
 					// invisible, just hit the target with zero points of damage.
-					float missRadius = target ? 25.0 : 5.0;
-
-					Stuff::Vector3D positionOffset = target->getPosition();
-					positionOffset.x += missRadius;
-					positionOffset.z = land->getTerrainElevation(positionOffset);
-
-					bool canSeeHit = lineOfSight(positionOffset,true);
-
+					Stuff::Vector3D positionOffset;
+					bool canSeeHit = pickMissPoint(target, NULL, positionOffset);
 					if (!canSeeHit)
 					{
-						positionOffset.x -= (missRadius * 2.0f);
-						positionOffset.z = land->getTerrainElevation(positionOffset);
-
-						canSeeHit = lineOfSight(positionOffset,true); 
-
-						if (!canSeeHit)
-						{
-							positionOffset.x += missRadius;
-							positionOffset.y += missRadius;
-
-							positionOffset.z = land->getTerrainElevation(positionOffset);
-
-							canSeeHit = lineOfSight(positionOffset,true);
-
-							if (!canSeeHit)
-							{
-								positionOffset.y -= (missRadius * 2.0f);
-								positionOffset.z = land->getTerrainElevation(positionOffset);
-
-								canSeeHit = lineOfSight(positionOffset,true);
-
-								if (!canSeeHit)
-								{
-									//OK, no miss location is visible.  Hit the target with ZERO damage!!
-									curShotInfo.init(this->getWatchID(),
-													 weaponMasterId,
-													 0.0f,
-													 -1,
-													 entryAngle);
-								}
-							}
-						}
+						//OK, no miss location is visible.  Hit the target with ZERO damage!!
+						curShotInfo.init(this->getWatchID(),
+										 weaponMasterId,
+										 0.0f,
+										 -1,
+										 entryAngle);
 					}
 		
 					//-------------------------------------------------------------------------
@@ -1752,48 +1720,16 @@ void Turret::fireWeapon (GameObjectPtr target, long weaponId) {
 				//-------------------------------------------------------------------------------------------
 				// If we missed, pick sights away from the target and check LOS to each one.  If all are
 				// invisible, just hit the target with zero points of damage.
-				float missRadius = target ? 25.0 : 5.0;
-
-				Stuff::Vector3D positionOffset = target->getPosition();
-				positionOffset.x += missRadius;
-				positionOffset.z = land->getTerrainElevation(positionOffset);
-
-				bool canSeeHit = lineOfSight(positionOffset,true);
-
+				Stuff::Vector3D positionOffset;
+				bool canSeeHit = pickMissPoint(target, NULL, positionOffset);
 				if (!canSeeHit)
 				{
-					positionOffset.x -= (missRadius * 2.0f);
-					positionOffset.z = land->getTerrainElevation(positionOffset);
-
-					canSeeHit = lineOfSight(positionOffset,true); 
-
-					if (!canSeeHit)
-					{
-						positionOffset.x += missRadius;
-						positionOffset.y += missRadius;
-
-						positionOffset.z = land->getTerrainElevation(positionOffset);
-
-						canSeeHit = lineOfSight(positionOffset,true);
-
-						if (!canSeeHit)
-						{
-							positionOffset.y -= (missRadius * 2.0f);
-							positionOffset.z = land->getTerrainElevation(positionOffset);
-
-							canSeeHit = lineOfSight(positionOffset,true);
-
-							if (!canSeeHit)
-							{
-								//OK, no miss location is visible.  Hit the target with ZERO damage!!
-								shotInfo.init(this->getWatchID(),
-											 weaponMasterId,
-											 0.0f,
-											 -1,
-											 entryAngle);
-							}
-						}
-					}
+					//OK, no miss location is visible.  Hit the target with ZERO damage!!
+					shotInfo.init(this->getWatchID(),
+								 weaponMasterId,
+								 0.0f,
+								 -1,
+								 entryAngle);
 				}
 									
 				//-------------------------------------------------------------------------
