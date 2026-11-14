@@ -750,6 +750,14 @@ typedef enum {
 	NUM_MOVETYPES
 } MoveType;
 
+// A type's MoveType as read from its data. wolfman-MC2X documents
+// "2 = drone" for its small flying units (Drone, JamFly, Kamikaze); they
+// fly as air units here. Any other value is left for setMoveType to reject.
+#define	MOVETYPE_MC2X_DRONE		2
+inline long moveTypeFromData (long moveType) {
+	return (moveType == MOVETYPE_MC2X_DRONE) ? (long)MOVETYPE_AIR : moveType;
+}
+
 class LogisticsPilot;
 
 class Mover : public GameObject {

@@ -321,6 +321,7 @@ long GroundVehicleType::init (FilePtr objFile, unsigned long fileSize) {
 	result = vehicleFile.readIdLong("MoveType", moveType);
 	if (result != NO_ERR)
 		moveType = MOVETYPE_GROUND;
+	moveType = moveTypeFromData(moveType);
 
 	result = vehicleFile.readIdFloat("LOSFactor",LOSFactor);
 	if (result != NO_ERR)

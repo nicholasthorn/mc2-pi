@@ -680,6 +680,7 @@ long BattleMechType::init (FilePtr objFile, unsigned long fileSize)
 	result = mechFile.readIdLong("MoveType", moveType);
 	if (result != NO_ERR)
 		moveType = MOVETYPE_GROUND;
+	moveType = moveTypeFromData(moveType);
 
 	result = mechFile.readIdFloat("LOSFactor",LOSFactor);
 	if (result != NO_ERR)
