@@ -803,6 +803,7 @@ long SoundSystem::playSupportSample (unsigned long supportSampleId, const char* 
 		}
 			
 		long ourChannel = SUPPORT_CHANNEL;
+		long supportSize = 0;
 		
 		if (fileName) 
 		{
@@ -821,7 +822,7 @@ long SoundSystem::playSupportSample (unsigned long supportSampleId, const char* 
 			long result = supportDataFile->seekPacket(supportSampleId);
 			if (result != NO_ERR)
 				return(-1);
-			long supportSize = supportDataFile->getPacketSize();
+			supportSize = supportDataFile->getPacketSize();
 			if (supportSize > 0)
 			{
 				supportSoundBite = (MemoryPtr)soundHeap->Malloc(supportSize);
@@ -844,7 +845,7 @@ long SoundSystem::playSupportSample (unsigned long supportSampleId, const char* 
 		MemoryPtr dataOffset = NULL;
 		DWORD length = 0;
 		DWORD bitsPerSec = 0;
-		wave_ParseWaveMemory(supportSoundBite,&waveFormat,&dataOffset,&length);
+		wave_ParseWaveMemorySized(supportSoundBite,(size_t)supportSize,&waveFormat,&dataOffset,&length);
 		if (!waveFormat || !dataOffset || !waveFormat->nChannels)
 		{
 			// not a sound (a short or broken packet): nothing to play
