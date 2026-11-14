@@ -558,6 +558,8 @@ static uint32_t netDataHash (const char* missionName) {
 	path.init(objectPath, "object2", ".pak");
 	hash = netHashFile(hash, path, total);
 	path.init(missionPath, "gamesys", ".fit");
+	if (!fileExists(path))	// wolfman-MC2X's name for it (FitIniFile::open's fallback)
+		path.init(missionPath, "mc2xgsys", ".fit");
 	hash = netHashFile(hash, path, total);
 	hash = netHashLogisticsFiles(hash, total);
 	printf("[NET] game data: %lu bytes, hash %08x\n", total, (unsigned)hash);
