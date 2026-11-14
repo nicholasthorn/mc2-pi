@@ -28,4 +28,8 @@ typedef struct {
 // the header is packed, so it may sit at any address.
 bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWaveHeader, MemoryPtr* lplpWaveSamples, DWORD *lpcbWaveSize);
 
+// The same, reading nothing past memSize bytes: a buffer too short for the
+// headers fails, and a data chunk running past the end is cut to it.
+bool wave_ParseWaveMemorySized(MemoryPtr lpChunkOfMemory, size_t memSize, MC2_WAVEFORMATEX** lplpWaveHeader, MemoryPtr* lplpWaveSamples, DWORD *lpcbWaveSize);
+
 #endif
