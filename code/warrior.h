@@ -87,9 +87,9 @@ class BldgAppearance;
 
 //***************************************************************************
 
-// 160 as in MechCommander Omnitech (stock 120; slot 0 is never used): Clan
-// Wars mission 21 has 126 parts. Only sizes the static warriorList.
-#define	MAX_WARRIORS				160
+// 200 as in MechCommander Omnitech 6.28 (stock 120; slot 0 is never used):
+// Carver V Redux mission 13 has 169 parts. Only sizes the static warriorList.
+#define	MAX_WARRIORS				200
 
 #define	MOVEGOAL_NONE				0xFFFFFFFF
 #define	MOVEGOAL_LOCATION			0x00000000

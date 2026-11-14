@@ -210,9 +210,9 @@ MoverPtr Team::getMover (long index) {
 
 void Team::addToRoster (MoverPtr mover) {
 
-	// roster[] holds MAX_MOVERS_PER_TEAM (120, in the save format), but
-	// MAX_WARRIORS is 160 since the Omnitech limits, so a team can now have
-	// more movers: past the limit they are left off the roster, logged
+	// roster[] holds MAX_MOVERS_PER_TEAM (120, in the save format; Omnitech
+	// 6.28 has 150), but MAX_WARRIORS is 200 as in Omnitech, so a team can
+	// have more movers: past the limit they are left off the roster, logged
 	if (!mover)
 		return;
 	if (rosterSize >= MAX_MOVERS_PER_TEAM) {

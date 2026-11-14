@@ -34,6 +34,15 @@
 
 #define	DEBUGGING
 
+// The limits the game starts the ABL VM with (initABL in code/ablmc2.cpp):
+// MechCommander Omnitech 6.28's, from its initABL, twice stock's (20479,
+// 102400, 200, 100). Fan campaigns built for Omnitech declare more than 100
+// static variables in one mission script.
+#define	ABL_RUNTIME_STACK_SIZE		40958
+#define	ABL_MAX_CODE_BUFFER_SIZE	204800
+#define	ABL_MAX_REGISTERED_MODULES	400
+#define	ABL_MAX_STATIC_VARIABLES	200
+
 void ABLi_init (unsigned long runtimeStackSize, // = 20480,
 				unsigned long maxCodeBufferSize, // = 10240,
 				unsigned long maxRegisteredModules, // = 200,
