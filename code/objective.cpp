@@ -1219,6 +1219,10 @@ bool CDisplayTextMessage::Read( FitIniFile* missionFile )
 	long result = 0;
 	ECharString tmpECStr;
 	result = sReadIdString(missionFile, "Message", tmpECStr);
+	// wolfman-MC2X's DisplayInfoMessage (read as this action) keeps its
+	// line under InfoMsg
+	if (NO_ERR != result)
+		result = sReadIdString(missionFile, "InfoMsg", tmpECStr);
 	if (NO_ERR != result) { return false; }
 	m_message = tmpECStr.Data();
 	return true;
@@ -1674,6 +1678,11 @@ static condition_species_type ConditionSpeciesMap(const char *speciesString) {
 }
 
 static action_species_type ActionSpeciesMap(const char *speciesString) {
+	// wolfman-MC2X's one new action, a line of text in the message area:
+	// stock's text message shows it. (An unknown name is read as PlayBIK,
+	// whose read then fails, so the action was dropped.)
+	if (0 == strcmp(speciesString, "DisplayInfoMessage"))
+		return DISPLAY_TEXT_MESSAGE;
 	action_species_type retval = PLAY_BIK;
 	int i;
 	for (i = 0; i < (int)NUM_ACTION_SPECIES; i += 1) {
