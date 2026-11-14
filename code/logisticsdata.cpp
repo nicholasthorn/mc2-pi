@@ -56,6 +56,8 @@ LogisticsData::LogisticsData()
 	missionInfo = 0;
 	rpJustAdded = false;
 	salvageCraftOverride = -1;
+	repairTruckOverride = -1;
+	artilleryPieceOverride = -1;
 
 	bNewMechs = bNewWeapons = bNewPilots = 0;
 }
@@ -2795,6 +2797,8 @@ bool LogisticsData::canHaveSalavageCraft()
 }
 bool LogisticsData::canHaveRepairTruck()
 {
+	if ( repairTruckOverride >= 0 )
+		return repairTruckOverride != 0;
 	if ( !missionInfo )
 		return true;
 	return missionInfo->canHaveRepairTruck();
@@ -2807,6 +2811,8 @@ bool LogisticsData::canHaveScoutCopter()
 }
 bool LogisticsData::canHaveArtilleryPiece()
 {
+	if ( artilleryPieceOverride >= 0 )
+		return artilleryPieceOverride != 0;
 	if ( !missionInfo )
 		return true;
 	return missionInfo->canHaveArtilleryPiece();

@@ -37,6 +37,9 @@ public:
 	// MechCommander Omnitech's ABL setsalvagecraftenabled / togglesalvagecraft:
 	// -1 = the mission's own setting, 0 / 1 = off / on. Mission::init resets it.
 	int				salvageCraftOverride;
+	// wolfman-MC2X's togglerepairtruck / toggleartillerypiece, the same way
+	int				repairTruckOverride;
+	int				artilleryPieceOverride;
 
 	static LogisticsData*		instance;
 

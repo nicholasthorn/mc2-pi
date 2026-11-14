@@ -6970,6 +6970,242 @@ void execScanAreaRepair (void) {
 
 //*****************************************************************************
 
+//*****************************************************************************
+// wolfman-MC2X commands its shipped missions call (R70 and REAP3; see
+// planning/future-features/MC2X-COMPAT.md). Written from MC2X's scripting
+// manual (MC2X Advanced Scripting Options.pdf) and the scripts' usage, on
+// stock engine calls; MC2X's source is not public.
+//*****************************************************************************
+
+// Campaign variables 0 to 4 (getcampaignglobalvar / setcampaignglobalvar).
+// Held for the session only: no campaign save field yet. The shipped
+// scripts only read them (all 0), and ask for index 5 too, which is 0.
+#define	NUM_CAMPAIGN_GLOBALS	5
+static int CampaignGlobals[NUM_CAMPAIGN_GLOBALS] = {0, 0, 0, 0, 0};
+
+void execNewPower (void) {
+
+	//-----------------------------------------------------
+	//	NEW POWER order: powers a unit up or down. Stock takes
+	//		newpower(boolean) for the calling unit; wolfman-MC2X's
+	//		mission scripts also call newpower(part id, boolean)
+	//		for another unit (optional parameters, "?|b").
+	//		PARAMS:	[integer	part id (-1 = self)]
+	//				boolean		up
+	//		RETURN: integer		1 when done (the order's result)
+	//-----------------------------------------------------
+
+	ABLStackItem first;
+	ABLi_popAnything(&first);
+	long partId = -1;
+	bool up = false;
+	if (ABLi_moreParams()) {
+		if (first.type == ABL_STACKITEM_INTEGER)
+			partId = first.data.integer;
+		up = ABLi_popBoolean();
+	}
+	else if (first.type == ABL_STACKITEM_BOOLEAN)
+		up = first.data.boolean;
+	else if (first.type == ABL_STACKITEM_INTEGER)
+		up = (first.data.integer != 0);
+
+	if (ABLi_getSkipOrder()) {
+		ABLi_pushInteger(1);
+		return;
+	}
+
+	MechWarriorPtr warrior = CurWarrior;
+	if (partId != -1) {
+		GameObjectPtr obj = getObject(partId);
+		warrior = obj ? obj->getPilot() : NULL;
+	}
+	long result = 0;
+	if (warrior)
+		result = warrior->corePower(up);
+	ABLi_pushInteger(result);
+}
+
+//-----------------------------------------------------------------------------
+
+void execTeleportToPoint (void) {
+
+	//-----------------------------------------------------
+	//	TELEPORT TO POINT (MC2X): moves a unit to a position at
+	//		once (on the ground there), through the mover's own
+	//		teleport, applied in its next update.
+	//		PARAMS:	integer		part id (-1 = self)
+	//				real[3]		position (x, y, z; z is ignored)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	float* point = ABLi_popRealPtr();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover() || !point || !land)
+		return;
+	Stuff::Vector3D position;
+	position.x = point[0];
+	position.y = point[1];
+	position.z = 0.0f;
+	position.z = land->getTerrainElevation(position);
+	((MoverPtr)obj)->setTeleportPosition(position);
+}
+
+//-----------------------------------------------------------------------------
+
+void execSetPartId (void) {
+
+	//-----------------------------------------------------
+	//	SET PART ID (MC2X): gives a unit a new part id, so scripts
+	//		can name units a dropship brought in (3330, 3331...).
+	//		Movers only, within the mover id range.
+	//		PARAMS:	integer		unit's part id (-1 = self)
+	//				integer		new part id
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	long newPartId = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover())
+		return;
+	if ((newPartId < MIN_MOVER_PART_ID) || (newPartId > MAX_MOVER_PART_ID))
+		return;
+	obj->setPartId(newPartId);
+}
+
+//-----------------------------------------------------------------------------
+
+void execSetUnitForceGroup (void) {
+
+	//-----------------------------------------------------
+	//	SET UNIT FORCE GROUP (MC2X): puts a unit in one of the
+	//		player's selection groups (Ctrl + number).
+	//		PARAMS:	integer		part id (-1 = self)
+	//				integer		group, 1 to 9 (0 also works: key 0)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	long group = ABLi_popInteger();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover() || (group < 0) || (group > 9))
+		return;
+	((MoverPtr)obj)->addToUnitGroup(group);
+}
+
+//-----------------------------------------------------------------------------
+
+void execGetCampaignGlobalVar (void) {
+
+	//-----------------------------------------------------
+	//	GET CAMPAIGN GLOBAL VAR (MC2X)
+	//		PARAMS:	integer		index, 0 to 4
+	//		RETURN: integer		its value (0 for any other index)
+	//-----------------------------------------------------
+
+	long index = ABLi_popInteger();
+	int value = 0;
+	if ((index >= 0) && (index < NUM_CAMPAIGN_GLOBALS))
+		value = CampaignGlobals[index];
+	ABLi_pushInteger(value);
+}
+
+void execSetCampaignGlobalVar (void) {
+
+	//-----------------------------------------------------
+	//	SET CAMPAIGN GLOBAL VAR (MC2X)
+	//		PARAMS:	integer		index, 0 to 4
+	//				integer		value
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long index = ABLi_popInteger();
+	long value = ABLi_popInteger();
+	if ((index >= 0) && (index < NUM_CAMPAIGN_GLOBALS))
+		CampaignGlobals[index] = (int)value;
+}
+
+//-----------------------------------------------------------------------------
+
+void execToggleRepairTruck (void) {
+
+	// TOGGLE REPAIR TRUCK (MC2X): flips the repair truck support option for
+	// the rest of the mission, as togglesalvagecraft does the salvage craft.
+	if (LogisticsData::instance)
+		LogisticsData::instance->repairTruckOverride = LogisticsData::instance->canHaveRepairTruck() ? 0 : 1;
+}
+
+void execToggleArtilleryPiece (void) {
+
+	// TOGGLE ARTILLERY PIECE (MC2X): the same for the artillery piece.
+	if (LogisticsData::instance)
+		LogisticsData::instance->artilleryPieceOverride = LogisticsData::instance->canHaveArtilleryPiece() ? 0 : 1;
+}
+
+//-----------------------------------------------------------------------------
+
+void execToggleDeployer (void) {
+
+	// TOGGLE DEPLOYER (MC2X): MC2X's VTOL deployer support unit, which this
+	// game does not have. Accepted so the scripts compile; nothing happens.
+}
+
+void execSetDeployerEnabled (void) {
+
+	// SET DEPLOYER ENABLED (MC2X): see toggledeployer.
+	ABLi_popBoolean();
+}
+
+//-----------------------------------------------------------------------------
+
+void execAutoScan (void) {
+
+	// AUTOSCAN (MC2X): true when the player turned on MC2X's AutoScan
+	// option (its idle units repair and capture on their own). This game has
+	// no such option, so false, MC2X's default.
+	ABLi_pushBoolean(false);
+}
+
+//-----------------------------------------------------------------------------
+
+void execAutoMedicalWithinRadius (void) {
+
+	//-----------------------------------------------------
+	//	AUTO MEDICAL WITHIN RADIUS (MC2X): with no enemies within
+	//		the radius, heals the wounds of the pilots of friendly
+	//		units within it. MC2X's player brain calls it for refit
+	//		vehicles, only with its AutoScan option on (autoscan).
+	//		PARAMS:	integer				unit's part id (-1 = self)
+	//				integer or real		radius (meters)
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	float radius = ABLi_popIntegerReal();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover())
+		return;
+	if (countEnemiesWithin(obj, radius) > 0)
+		return;
+	for (long i = 0; i < ObjectManager->getNumMovers(); i++) {
+		MoverPtr mover = ObjectManager->getMover(i);
+		if (!mover || !mover->getExistsAndAwake() || mover->isDestroyed())
+			continue;
+		if (!mover->getTeam() || !obj->isFriendly(mover->getTeam()))
+			continue;
+		if (obj->distanceFrom(mover->getPosition()) > radius)
+			continue;
+		MechWarriorPtr pilot = mover->getPilot();
+		if (pilot && (pilot->getStatus() == WARRIOR_STATUS_NORMAL) && (pilot->getWounds() > 0.0f))
+			pilot->setWounds(0.0f);
+	}
+}
+
 void execAutoRepairWithinRadius (void) {
 
 	//-----------------------------------------------------
@@ -7577,7 +7813,20 @@ void initABL (void) {
 	ABLi_addFunction("convertcoords", false, "iRI", "i", execConvertCoords);
 	ABLi_addFunction("newmoveto", true, "Ri", "i", execCoreMoveTo);
 	ABLi_addFunction("newmovetoobject", true, "ii", "i", execCoreMoveToObject);
-	ABLi_addFunction("newpower", true, "b", "i", execCorePower);
+	// newpower: stock (boolean) or wolfman-MC2X (part id, boolean)
+	ABLi_addFunction("newpower", true, "?|b", "i", execNewPower);
+	// wolfman-MC2X commands its shipped missions call
+	ABLi_addFunction("teleporttopoint", false, "iR", NULL, execTeleportToPoint);
+	ABLi_addFunction("setpartid", false, "ii", NULL, execSetPartId);
+	ABLi_addFunction("setunitforcegroup", false, "ii", NULL, execSetUnitForceGroup);
+	ABLi_addFunction("getcampaignglobalvar", false, "i", "i", execGetCampaignGlobalVar);
+	ABLi_addFunction("setcampaignglobalvar", false, "ii", NULL, execSetCampaignGlobalVar);
+	ABLi_addFunction("togglerepairtruck", false, NULL, NULL, execToggleRepairTruck);
+	ABLi_addFunction("toggleartillerypiece", false, NULL, NULL, execToggleArtilleryPiece);
+	ABLi_addFunction("toggledeployer", false, NULL, NULL, execToggleDeployer);
+	ABLi_addFunction("setdeployerenabled", false, "b", NULL, execSetDeployerEnabled);
+	ABLi_addFunction("autoscan", false, NULL, "b", execAutoScan);
+	ABLi_addFunction("automedicalwithinradius", false, "i*", NULL, execAutoMedicalWithinRadius);
 	ABLi_addFunction("newattack", true, "ii", "i", execCoreAttack);
 	ABLi_addFunction("newcapture", true, "ii", "i", execCoreCapture);
 	ABLi_addFunction("newscan", true, "ii", "i", execCoreScan);

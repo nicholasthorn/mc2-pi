@@ -1861,8 +1861,11 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	gameplayMarked = false;
 	// Omnitech ABL state is per mission
 	ablClearQueuedBrains();
-	if (LogisticsData::instance)
+	if (LogisticsData::instance) {
 		LogisticsData::instance->salvageCraftOverride = -1;
+		LogisticsData::instance->repairTruckOverride = -1;
+		LogisticsData::instance->artilleryPieceOverride = -1;
+	}
 
 	#ifdef LAB_ONLY
 	x=GetCycles();
