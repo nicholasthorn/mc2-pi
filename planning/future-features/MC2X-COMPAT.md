@@ -2,9 +2,10 @@
 
 Status: in progress, 2026-11-14 (branch `claude/mc2x-compat-b44556`). Built:
 the loader fixes, the ABL commands MC2X's missions call, the fixes the
-sanitizer runs found, the in-mission interface on MC2X's own layouts; all
-32 missions run 300 frames. Not built: the front end and the rest of
-"Effort".
+sanitizer runs found, the in-mission interface and the front end on MC2X's
+own layouts; all 32 missions run 300 frames, and a REAP3 campaign plays
+from the main menu through logistics, a mission, salvage and pilot review.
+Not built: steps 7 and 8 of "Effort".
 Companion to `MOD-COMPAT.md` (MechCommander Omnitech), whose work this leans
 on.
 
@@ -279,9 +280,8 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     and 6, mission part).** The campaign variables are saved with the
     campaign (`code/campaignglobals.cpp`, an `MC2XCampaignGlobals` block
     written only when one is not 0). For the renamed layouts,
-    `mc2xArtName` / `openArtLayout` (`code/mc2xart.cpp`) open the stock
-    file, else MC2X's; used for the HUD, the key reference and the
-    start-up dialogs. MC2X's HUD files place the HUD in the same 1024x768
+    `mc2xArtName` (`mclib/mc2xart.cpp`) gives MC2X's name for a stock
+    one (step 17 moved the fallback into `FitIniFile::open`). MC2X's HUD files place the HUD in the same 1024x768
     centre column as stock's, so they are read as stock's: the first 20
     command buttons (same numbers) and stock's 8 support buttons from
     where MC2X has them among its 22 (`mc2xVehicleButton`), with stock's
@@ -292,8 +292,34 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     stock art in the folder and no local changes.** MC2X's extra buttons
     (formations, its 14 other support units) are not shown.
 
-Not tried: the GLES build, the front end (main menu, campaign screens,
-loading screens: still stock names), and play past 300 frames.
+17. **The front end (2026-11-14, step 6).** The fallback moved into
+    `FitIniFile::open`: a `.fit` in the art or camera folder that is not
+    there is opened under MC2X's name (`mc2xArtName`, now in `mclib/`,
+    with the names MC2X shortened, `mcl_gn_deploymentteams` to
+    `mc2x_deploymentteams`, and `cameras.fit` / `colors.fit` to
+    `mc2xcams.fit` / `mc2xcols.fit`), so every screen finds its layout
+    with no change at its call site; `openedMC2XName()` tells the HUD.
+    Two data files MC2X renamed are chosen the same way:
+    `art/mc2x_inv.csv` for `buildings.csv` (logistics, the Mechlopedia,
+    the network hash), `objects/mc2xpilots.csv` for `pilots.csv` (no
+    pilots, so pilot ready could not launch). MC2X keeps its campaigns
+    only in `mission.fst`: the new campaign dialog now also lists a
+    campaign `.fit` found in a fast file, its entries as tall as their
+    text ("Test Mission Collection" wrapped over the next one). A mech whose name id points at
+    a long encyclopedia text takes its CSV name, under a new string id,
+    so every later lookup shows the name.
+    MC2X's front-end layouts mostly have stock's counts; the mech bay
+    (20 buttons, stock 7) and pilot ready (80 statics, stock 74) have
+    more, and are read by stock's indexes, which hold.
+    **Result: with no stock art in the folder, a UI walk of REAP3's
+    campaign passes under ASan + UBSan**: new campaign, save and load,
+    briefing, mech bay, purchase, mech lab (swap, own, accept), pilot
+    ready, launch, the mission's options, win, salvage, pilot review and
+    a second launch. MC2X's extra front-end buttons do nothing.
+
+Not tried: the GLES build, play past 300 frames, MC2X's operation maps
+(`mc2x_ops_*`) and per-campaign main menus, which stock screens never
+open.
 
 ## ABL
 
@@ -359,10 +385,9 @@ Two routes:
 1. Map MC2X's names to stock's and read its files where the indexes agree,
    as `MOD-COMPAT.md` step 12 did for Omnitech's screens (index sets chosen by
    static count), leaving MC2X's extra buttons and support units inert.
-   Days, and the result looks like MC2X with dead buttons. Before adding
-   dozens more renames one by one (four fallbacks are on the branch), put
-   them in one stock-name to MC2X-name table consulted where files are
-   opened, so call sites stay as they are.
+   Days, and the result looks like MC2X with dead buttons. Built (Progress
+   16 and 17): one stock-name to MC2X-name table, consulted by
+   `FitIniFile::open`, so call sites stay as they are.
 2. Build MC2X's HUD features (formations, the 22 support units, the
    deployer/transport/kamikaze units, skills). Weeks, and needs their
    behaviour, which only the manual and play describe.
@@ -408,13 +433,12 @@ stock or Omnitech units).
 | done | campaign globals in the campaign save | |
 | done | long `DescIndex` names, move type 2 (drones) | |
 | done | in-mission HUD, key reference, dialogs, route 1 | |
-| 6 | front end, route 1 (main menu, campaign and logistics screens, loading screens) | 3-5 days |
+| done | front end, route 1 (main menu, campaign and logistics screens, loading screens) | |
 | 7 | component 255, mission keys (support switches, failure actions, tac map water colour) | 1-2 days |
 | 8 | HUD features, route 2 | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
-REAP3's missions run with stock's HUD over MC2X data, with no local
-workaround but the UI art; with step 6 it can be started from the menus.
+REAP3 runs from the menus on MC2X's own art with no local workaround.
 
 ## Recommendation
 
@@ -433,8 +457,7 @@ own features, which no data file explains. Order:
 2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
 3. 3000-frame runs of the REAP3 missions, to find what 300 frames do not
    reach.
-4. Step 6 only if people ask for MC2X; step 8 not unless MC2X's author
-   documents the features.
+4. Step 6: done. Step 8 not unless MC2X's author documents the features.
 
 Dark Gray: Borderworlds is gone; use REAP3 as the MC2X test campaign, and
 CVE-G (Carver V on MC2X) when its download can be fetched.
