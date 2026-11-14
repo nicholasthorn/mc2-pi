@@ -296,7 +296,9 @@ void PilotReadyScreen::showMissionMap()
 
 	long handle = MissionBriefingScreen::getMissionTGA( LogisticsData::instance->getCurrentMission() );
 	statics[map].setTexture( handle );
-	statics[map].setUVs( 0, 127, 127, 0 );
+	// the whole map: stock's and Omnitech's are 128 wide, MC2X's 256
+	const long mapEdge = handle ? (long)statics[map].getFileWidth() - 1 : 127;
+	statics[map].setUVs( 0, mapEdge, mapEdge, 0 );
 	statics[map].setColor( handle ? 0xffffffff : 0 );
 }
 
