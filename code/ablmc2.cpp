@@ -6983,6 +6983,13 @@ void execScanAreaRepair (void) {
 #define	NUM_CAMPAIGN_GLOBALS	5
 static int CampaignGlobals[NUM_CAMPAIGN_GLOBALS] = {0, 0, 0, 0, 0};
 
+// A new or loaded campaign starts with them at 0 (LogisticsData).
+void ablResetCampaignGlobals (void) {
+
+	for (long i = 0; i < NUM_CAMPAIGN_GLOBALS; i++)
+		CampaignGlobals[i] = 0;
+}
+
 void execNewPower (void) {
 
 	//-----------------------------------------------------
@@ -7048,6 +7055,9 @@ void execTeleportToPoint (void) {
 	position.x = point[0];
 	position.y = point[1];
 	position.z = 0.0f;
+	// a position off the map would put the mover outside the move maps
+	if (!Terrain::IsValidTerrainPosition(position))
+		return;
 	position.z = land->getTerrainElevation(position);
 	((MoverPtr)obj)->setTeleportPosition(position);
 }
@@ -7072,6 +7082,10 @@ void execSetPartId (void) {
 	if (!obj || !obj->isMover())
 		return;
 	if ((newPartId < MIN_MOVER_PART_ID) || (newPartId > MAX_MOVER_PART_ID))
+		return;
+	// an id another unit has would make every later command on it ambiguous
+	GameObjectPtr holder = ObjectManager->findByPartId(newPartId);
+	if (holder && (holder != obj))
 		return;
 	obj->setPartId(newPartId);
 }
