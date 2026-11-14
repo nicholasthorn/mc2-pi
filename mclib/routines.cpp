@@ -181,6 +181,9 @@ long RandomNumber (long range)
 	//gosASSERT(RAND_MAX==(1<<15)-1 );		// This is always TRUE in VC
 	//return( (gos_rand()*range)>>15 );			// Used to used mod (%) - which costs 40+ cycles (AG)
 
+    // a script's random(0) (Dark Gray: Border Worlds) was a division by zero
+    if (range == 0)
+        return 0;
     return gos_rand()%range;
 }
 

@@ -78,4 +78,12 @@ TEST_CASE("RandomNumber(range) stays in [0, range)")
 	}
 }
 
+// A mod's script can ask for random(0) (Dark Gray: Border Worlds does): that
+// was gos_rand() % 0, a division by zero that ended the game.
+TEST_CASE("RandomNumber(0) is 0")
+{
+	g_nextRand = 12345;
+	CHECK(RandomNumber(0) == 0);
+}
+
 } // TEST_SUITE("Routines")
