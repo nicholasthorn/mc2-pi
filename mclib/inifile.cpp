@@ -515,6 +515,7 @@ long FitIniFile::open (const char* fName, FileMode _mode, long numChild, bool do
 //---------------------------------------------------------------------------
 long FitIniFile::open (FilePtr _parent, unsigned long fileSize, long numChild)
 {
+	openedMC2X = false;
 	// A memory file or FST entry cannot be a parent (children read through
 	// the parent's handle): read the FIT straight out of its image instead,
 	// at most to its end. The view is not freed on close (no parent, not an
