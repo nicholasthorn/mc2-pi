@@ -508,7 +508,7 @@ static uint32_t netHashFile (uint32_t hash, const char* path, unsigned long& tot
 static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 
 	char path[1024];
-	snprintf(path, sizeof(path), "%scompbas.csv", objectPath);
+	MasterComponent::tableFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 
 	snprintf(path, sizeof(path), "%spilots.csv", objectPath);

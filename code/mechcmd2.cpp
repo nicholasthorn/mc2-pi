@@ -1636,6 +1636,12 @@ void __stdcall InitializeGameEngine()
 		File effectFile;
 		long result = effectFile.open(effectsName);
 		if (result != NO_ERR)
+		{
+			// wolfman-MC2X names its effect library mc2x.fx
+			effectsName.init(effectsPath,"mc2x.fx","");
+			result = effectFile.open(effectsName);
+		}
+		if (result != NO_ERR)
 			STOP(("Could not find MC2.fx"));
 			
 		long effectsSize = effectFile.fileSize();

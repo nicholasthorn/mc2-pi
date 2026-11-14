@@ -120,9 +120,8 @@ void LogisticsData::init()
 //*************************************************************************************************
 void LogisticsData::initComponents()
 {
-	char componentPath[256];
-	strcpy( componentPath, objectPath );
-	strcat( componentPath, "compbas.csv" );
+	char componentPath[1024];
+	MasterComponent::tableFileName( componentPath, sizeof( componentPath ) );
 
 	
 	File componentFile;

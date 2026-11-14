@@ -1971,13 +1971,11 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	//----------------------------------------------------------------------
 	// Now that we have some base values, load the master component table...
 	if (!MasterComponent::masterList) {
-		FullPathFileName compFileName;
-		compFileName.init(objectPath,"compbas",".csv");
-#ifdef _DEBUG
-		long loadErr = 
-#endif
-		    MasterComponent::loadMasterList(compFileName, 255, baseSensorRange);
-		gosASSERT(loadErr == NO_ERR);
+		char compFileName[1024];
+		MasterComponent::tableFileName(compFileName, sizeof(compFileName));
+		// without it every unit's weapons and ammo are garbage
+		if (MasterComponent::loadMasterList(compFileName, 255, baseSensorRange) != NO_ERR)
+			STOP(("cannot read the component table %s", compFileName));
 	}
 
 	result = gameSystemFile->readIdUChar("GodMode", godMode);
@@ -2454,6 +2452,9 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 
 	FullPathFileName libraryFileName2;
 	libraryFileName2.init(missionPath, "corebrain", ".abx");
+	// wolfman-MC2X ships its core brain library as mc2xcore.abx instead
+	if (!fileExists(libraryFileName2))
+		libraryFileName2.init(missionPath, "mc2xcore", ".abx");
 	library = ABLi_loadLibrary(libraryFileName2, &numErrors, &numLinesProcessed);
 	gosASSERT(library != NULL);
 	

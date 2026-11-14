@@ -789,13 +789,11 @@ void Mission::load (const char *loadFileName)
 	//----------------------------------------------------------------------
 	// Now that we have some base values, load the master component table...
 	if (!MasterComponent::masterList) {
-		FullPathFileName compFileName;
-		compFileName.init(objectPath,"compbas",".csv");
-#ifdef _DEBUG
-		long loadErr = 
-#endif
-			MasterComponent::loadMasterList(compFileName, 255, baseSensorRange);
-		gosASSERT(loadErr == NO_ERR);
+		char compFileName[1024];
+		MasterComponent::tableFileName(compFileName, sizeof(compFileName));
+		// without it every unit's weapons and ammo are garbage
+		if (MasterComponent::loadMasterList(compFileName, 255, baseSensorRange) != NO_ERR)
+			STOP(("cannot read the component table %s", compFileName));
 	}
 
 	result = gameSystemFile->readIdUChar("GodMode", godMode);
