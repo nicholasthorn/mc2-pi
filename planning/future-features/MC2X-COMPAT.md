@@ -3,7 +3,7 @@
 Status: in progress, 2026-11-14 (branch `claude/mc2x-compat-b44556`). Built:
 the loader fixes, the ABL commands MC2X's missions call, the fixes the
 sanitizer runs found; all 32 missions run 300 frames. Not built: the
-interface, move type 2, long strings and the rest of "Effort".
+interface and the rest of "Effort".
 Companion to `MOD-COMPAT.md` (MechCommander Omnitech), whose work this leans
 on.
 
@@ -262,6 +262,18 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     as air, long strings logged instead of stopping, and stock's UI art in
     the test folder.
 
+15. **Long names and drones (2026-11-14, steps 3 and 4).** The 12 long
+    strings are unit types' `DescIndex`, a display name in stock data,
+    which MC2X points at encyclopedia texts (up to 590 characters):
+    `cLoadStringIfFits` loads a name only if it fits, and otherwise a mech
+    keeps its CSV name and a vehicle its type's `[ObjectType] Name`. Move
+    type 2 is documented in MC2X's own data, "2 = drone"; it is read as air
+    where mech and vehicle types load (`moveTypeFromData`).
+    **Result: all 32 missions pass 300 frames under ASan + UBSan from a
+    build with no local changes at all.** The only workaround left is in
+    the test folder: stock's interface art beside MC2X's renamed layouts
+    (step 6).
+
 Not tried: the GLES build, front-end walks (MC2X's front end is all
 renamed layouts), and play past 300 frames.
 
@@ -376,16 +388,14 @@ stock or Omnitech units).
 | done | ASan + UBSan on all 32 missions, its four fixes, part ids, trigger map | |
 | done | the called ABL commands, `newpower`'s second form, the ABL stack fixes (`reap3m02`) | |
 | 2 | campaign globals in the campaign save | half a day |
-| 3 | long strings: find and size the buffers (12 ids) | half a day |
-| 4 | move type 2 for Drone, JamFly, Kamikaze | 1 day, once its meaning is known |
+| done | long `DescIndex` names, move type 2 (drones) | |
 | 6 | HUD and front end, route 1 (renamed layouts, stock behaviour) | 4-6 days |
 | 7 | component 255, mission keys (support switches, failure actions, tac map water colour) | 1-2 days |
 | 8 | HUD features, route 2 | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
-With steps 3 and 4 (about two days) REAP3's missions run with stock's HUD
-over MC2X data and no local workarounds but the UI art; with step 6 it can
-be started from the menus.
+REAP3's missions run with stock's HUD over MC2X data, with no local
+workaround but the UI art; with step 6 it can be started from the menus.
 
 ## Recommendation
 
@@ -402,7 +412,8 @@ own features, which no data file explains. Order:
 
 1. Merge this branch (the fallbacks and checks are harmless to stock data).
 2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
-3. Steps 2 to 4, measured by REAP3 missions passing 3000-frame smokes.
+3. Step 2 (campaign globals in the save), and 3000-frame runs of the REAP3
+   missions to find what 300 frames do not reach.
 4. Step 6 only if people ask for MC2X; step 8 not unless MC2X's author
    documents the features.
 
@@ -411,6 +422,5 @@ CVE-G (Carver V on MC2X) when its download can be fetched.
 
 ## Open questions
 
-- What move type 2 is (low flyer, hover).
 - Whether MC2X's terms allow a converter that reads its install (no
   redistribution) the way the remaster's importer does.
