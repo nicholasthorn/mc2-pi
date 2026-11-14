@@ -216,6 +216,13 @@ bool File::eof (void)
 long File::open (const char* fName, FileMode _mode, long numChild, bool doNotLower)
 {
 	gosASSERT( !isOpen() );
+	// A failed open keeps its name (close() frees it); a second open on the
+	// same object, such as a retry under another name, would leak it.
+	if ((parent == NULL) && (fileName != NULL) && !isOpen())
+	{
+		systemHeap->Free(fileName);
+		fileName = NULL;
+	}
 	//-------------------------------------------------------------
 	long fNameLength = strlen(fName);
 	
@@ -586,6 +593,13 @@ long File::create (const char* fName)
 long File::createWithCase(const char* fName )
 {
 	gosASSERT( !isOpen() );
+	// A failed open keeps its name (close() frees it); a second open on the
+	// same object, such as a retry under another name, would leak it.
+	if ((parent == NULL) && (fileName != NULL) && !isOpen())
+	{
+		systemHeap->Free(fileName);
+		fileName = NULL;
+	}
 	//-------------------------------------------------------------
 	long fNameLength = strlen(fName);
 	
