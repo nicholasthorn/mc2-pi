@@ -887,9 +887,7 @@ unsigned char File::readByte (void)
 
 	if (inRAM && fileImage)
 	{
-		char *readAddress = (char*)fileImage+logicalPosition;
-		memcpy((char *)&value,readAddress,sizeof(value));
-		logicalPosition += sizeof(value);
+		read((MemoryPtr)&value,sizeof(value));	// bounded by the image; zero past it
 	}
 	else if (fastFile)
 	{
@@ -923,9 +921,7 @@ short File::readWord (void)
 
 	if (inRAM && fileImage)
 	{
-		char *readAddress = (char*)fileImage+logicalPosition;
-		memcpy((char *)(&value),readAddress,sizeof(value));
-		logicalPosition += sizeof(value);
+		read((MemoryPtr)&value,sizeof(value));	// bounded by the image; zero past it
 	}
 	else if (fastFile)
 	{
@@ -965,9 +961,7 @@ int File::readInt(void)
 
 	if (inRAM && fileImage)	
 	{
-		char *readAddress = (char*)fileImage+logicalPosition;
-		memcpy((char *)(&value),readAddress,sizeof(value));
-		logicalPosition += sizeof(value);
+		read((MemoryPtr)&value,sizeof(value));	// bounded by the image; zero past it
 	}
 	else if (fastFile)
 	{
@@ -1004,9 +998,7 @@ long File::readLong (void)
 
 	if (inRAM && fileImage)	
 	{
-		char *readAddress = (char*)fileImage+logicalPosition;
-		memcpy((char *)(&value),readAddress,sizeof(value));
-		logicalPosition += sizeof(value);
+		read((MemoryPtr)&value,sizeof(value));	// bounded by the image; zero past it
 	}
 	else if (fastFile)
 	{
@@ -1056,9 +1048,7 @@ float File::readFloat( void )
 
 	if (inRAM && fileImage)	
 	{
-		char *readAddress = (char*)fileImage+logicalPosition;
-		memcpy((char *)(&value),readAddress,sizeof(value));
-		logicalPosition += sizeof(value);
+		read((MemoryPtr)&value,sizeof(value));	// bounded by the image; zero past it
 	}
 	else if (fastFile)
 	{
@@ -1122,10 +1112,19 @@ long File::read (MemoryPtr buffer, long length)
 	
 	if (inRAM && fileImage)
 	{
-		char *readAddress = (char *)fileImage+logicalPosition;
-		memcpy((char *)buffer,readAddress,length);
-		logicalPosition += length;
-		return(length);
+		// stop at the end: a short or broken file (one wolfman-MC2X model is
+		// 25 bytes shorter than its loader reads) must not read past the
+		// image; the rest of the buffer is zeroed, as no data
+		const unsigned long size = getLength();
+		const unsigned long avail = (logicalPosition < size) ? size - logicalPosition : 0;
+		if (length < 0)
+			length = 0;
+		const long count = ((unsigned long)length > avail) ? (long)avail : length;
+		if (count > 0)
+			memcpy((char *)buffer,(char *)fileImage+logicalPosition,count);
+		memset((char *)buffer+count,0,length-count);
+		logicalPosition += count;
+		return(count);
 	}
 	else if (fastFile)
 	{
