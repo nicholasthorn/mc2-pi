@@ -100,8 +100,11 @@ class ControlButton
 	void setColor( unsigned long newColor );
 	static void makeUVs( gos_VERTEX* vertices, int State, ButtonData& data );
 
+	// fileIndex: the block number to read for each button (NULL: i), for
+	// wolfman-MC2X's support buttons, which are in another order
 	static void initButtons( FitIniFile& file, long buttonCount, 
-			ControlButton* buttons, ButtonData* buttonData, const char* str, aFont* font = 0 );
+			ControlButton* buttons, ButtonData* buttonData, const char* str, aFont* font = 0,
+			const int* fileIndex = 0 );
 
 
 	enum States

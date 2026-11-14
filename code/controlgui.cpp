@@ -38,6 +38,7 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"malloc.h"
 
 #include"chatwindow.h"
+#include"mc2xart.h"
 
 
 
@@ -2272,12 +2273,12 @@ bool ControlGui::getVehicleCommand( )
 	return false;
 }
 
-void ControlButton::initButtons( FitIniFile& buttonFile, long buttonCount, ControlButton* Buttons, ButtonData* Data, const char* str, aFont* font )
+void ControlButton::initButtons( FitIniFile& buttonFile, long buttonCount, ControlButton* Buttons, ButtonData* Data, const char* str, aFont* font, const int* fileIndex )
 {
 	char path[256];
 	for ( int i = 0; i < buttonCount; ++i )
 	{
-		sprintf( path, "%s%d", str, i );
+		sprintf( path, "%s%d", str, fileIndex ? fileIndex[i] : i );
 		Data[i].textureHandle = 0;
 
 		long result = buttonFile.seekBlock( path );
@@ -2672,12 +2673,17 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 	FitIniFile buttonFile;
 	char path[256];
 
-	// a mod need not have every layout: Omnitech has no 1920
+	// a mod need not have every layout: Omnitech has no 1920. wolfman-MC2X
+	// names them mc2x_buttonlayout<w> (1024 and up): its 54 command and 22
+	// support buttons are read as stock's 20 and 8 (mc2xHud below)
 	int layoutWidth = hudLayoutWidth( resolutionX );
+	bool mc2xHud = false;
 	for ( ;; )
 	{
-		snprintf( path, sizeof( path ), "%sbuttonlayout%d.fit", artPath, layoutWidth );
-		if ( NO_ERR == buttonFile.open( path ) )
+		char layoutName[64];
+		snprintf( layoutName, sizeof( layoutName ), "buttonlayout%d", layoutWidth );
+		snprintf( path, sizeof( path ), "%s%s.fit", artPath, layoutName );
+		if ( NO_ERR == openArtLayout( buttonFile, layoutName, &mc2xHud ) )
 			break;
 		const int smaller = hudLayoutWidth( layoutWidth - 1 );
 		if ( smaller == layoutWidth )
@@ -2743,6 +2749,9 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 
 	long buttonCount;
 	buttonFile.readIdLong( "ButtonCount", buttonCount );
+	// MC2X's first 20 are stock's, same numbers; the rest are its own
+	if ( mc2xHud && buttonCount > LAST_COMMAND )
+		buttonCount = LAST_COMMAND;
 	Assert( buttonCount == 20, buttonCount, "wrong number of control buttons" );
 
 	// clean up old texture memeory
@@ -2783,6 +2792,14 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 	 }
 
 	 buttonFile.readIdLong( "ButtonCount", buttonCount );
+	 // MC2X has 22 in its own order: read stock's 8 from where they are
+	 int mc2xVehicles[LAST_VEHICLE];
+	 if ( mc2xHud )
+	 {
+		 buttonCount = LAST_VEHICLE;
+		 for ( int i = 0; i < LAST_VEHICLE; i++ )
+			 mc2xVehicles[i] = mc2xVehicleButton( i );
+	 }
 	 Assert( buttonCount == 8, buttonCount, "wrong number of vehicle buttons" );
 
 	 if ( !vehicleButtons )
@@ -2791,7 +2808,13 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 		vehicleData = new ButtonData[buttonCount];
 	 memset( vehicleData, 0, buttonCount * sizeof( ButtonData ) );
 
-	ControlButton::initButtons( buttonFile, buttonCount, vehicleButtons, vehicleData, "Vehicle" );
+	ControlButton::initButtons( buttonFile, buttonCount, vehicleButtons, vehicleData, "Vehicle", 0, mc2xHud ? mc2xVehicles : 0 );
+	if ( mc2xHud )
+	{
+		// MC2X numbers its 22 from 100 in its own order: give them stock's ids
+		for ( int i = 0; i < LAST_VEHICLE; i++ )
+			vehicleButtons[i].ID = LARGE_AIRSTRIKE + i;
+	}
 	
 	getButton( TACMAP_TAB )->press( true );
 

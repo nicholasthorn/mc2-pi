@@ -9,6 +9,7 @@
 //-----------------------------------
 // Include Files
 #ifndef MCLIB_H
+#include"mc2xart.h"
 #include"mclib.h"
 #endif
 
@@ -392,7 +393,7 @@ void initDialogs()
 	path.init( artPath, "mcl_dialog", ".fit" );
 
 	FitIniFile file;
-	if ( NO_ERR != file.open( path ) )
+	if ( NO_ERR != openArtLayout( file, "mcl_dialog" ) )
 	{
 		char error[256];
 		sprintf( error, "couldn't open file %s", (const char*)path );
@@ -405,7 +406,7 @@ void initDialogs()
 
 	path.init( artPath, "mcl_sm", ".fit" );
 
-	if ( NO_ERR != file.open( path ) )
+	if ( NO_ERR != openArtLayout( file, "mcl_sm" ) )
 	{
 		char error[256];
 		sprintf( error, "couldn't open file %s", (const char*)path );
@@ -417,7 +418,7 @@ void initDialogs()
 	file.close();
 
 	path.init( artPath, "mcl_dialog_onebutton", ".fit" );
-	if ( NO_ERR != file.open( path ) )
+	if ( NO_ERR != openArtLayout( file, "mcl_dialog_onebutton" ) )
 	{
 		char error[256];
 		sprintf( error, "couldn't open file %s", (const char*)path );
