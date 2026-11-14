@@ -196,9 +196,8 @@ void LogisticsData::initPilots()
 
 	pilots.Clear();
 
-	char pilotPath[256];
-	strcpy( pilotPath, objectPath );
-	strcat( pilotPath, "pilots.csv" );
+	char pilotPath[512];
+	pilotListFileName( pilotPath, sizeof( pilotPath ) );
 
 	
 	File pilotFile;
@@ -228,11 +227,34 @@ void LogisticsData::initPilots()
 	}
 }
 
+// folder + stockName, or folder + mc2xName when only wolfman-MC2X's renamed
+// copy is there.
+static void stockOrMC2XFileName( char* path, size_t pathSize, const char* folder,
+	const char* stockName, const char* mc2xName )
+{
+	snprintf( path, pathSize, "%s%s", folder, stockName );
+	if ( fileExists( path ) )
+		return;
+	char mc2x[512];
+	snprintf( mc2x, sizeof( mc2x ), "%s%s", folder, mc2xName );
+	if ( fileExists( mc2x ) )
+		snprintf( path, pathSize, "%s", mc2x );
+}
+
+void LogisticsData::inventoryFileName( char* path, size_t pathSize )
+{
+	stockOrMC2XFileName( path, pathSize, artPath, "buildings.csv", "mc2x_inv.csv" );
+}
+
+void LogisticsData::pilotListFileName( char* path, size_t pathSize )
+{
+	stockOrMC2XFileName( path, pathSize, objectPath, "pilots.csv", "mc2xpilots.csv" );
+}
+
 void LogisticsData::initVariants()
 {
-	char variantPath[256];
-	strcpy( variantPath, artPath );
-	strcat( variantPath, "buildings.csv" );
+	char variantPath[512];
+	inventoryFileName( variantPath, sizeof( variantPath ) );
 
 
 	CSVFile variantFile;

@@ -43,6 +43,13 @@ public:
 
 	static LogisticsData*		instance;
 
+	// The object inventory (mechs, vehicles, buildings for logistics and the
+	// Mechlopedia): art/buildings.csv, or wolfman-MC2X's art/mc2x_inv.csv
+	// (same columns) when only that is there.
+	static void inventoryFileName( char* path, size_t pathSize );
+	// The pilot roster: objects/pilots.csv, or MC2X's objects/mc2xpilots.csv.
+	static void pilotListFileName( char* path, size_t pathSize );
+
 	LogisticsComponent* getComponent( int componentID );
 	LogisticsPilot*		getPilot( int pilotID );
 	LogisticsPilot*		getPilot( const char* pilotName );

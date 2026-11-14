@@ -511,7 +511,7 @@ static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 	MasterComponent::tableFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 
-	snprintf(path, sizeof(path), "%spilots.csv", objectPath);
+	LogisticsData::pilotListFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 	File pilotList;
 	if (pilotList.open(path) == NO_ERR) {
@@ -523,7 +523,7 @@ static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 		pilotList.close();
 	}
 
-	snprintf(path, sizeof(path), "%sbuildings.csv", artPath);
+	LogisticsData::inventoryFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 	CSVFile objects;
 	if (objects.open(path) == NO_ERR) {
