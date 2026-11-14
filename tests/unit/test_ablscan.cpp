@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 extern ModuleEntryPtr ModuleRegistry;
 
@@ -85,6 +86,95 @@ TEST_CASE("ABL char array assignment: a source with no terminator is read to its
 	const char* shortText = (const char*)(m.getStaticData() + shortCopy->defn.info.data.offset)->address;
 	CHECK(strcmp(copyText, "abcd") == 0);
 	CHECK(strcmp(shortText, "xy") == 0);
+	m.destroy();
+}
+
+// Optional trailing parameters ("|" in the registered list): wolfman-MC2X
+// calls newpower(partId, false) where stock calls newpower(false), so one
+// command must compile both. The callback asks ABLi_moreParams().
+TEST_CASE("ABL optional parameters: both forms compile and run")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer one;\n"
+		"\t\tstatic integer two;\n"
+		"\tcode\n"
+		"\t\tone = fuzzoptional(true);\n"
+		"\t\ttwo = fuzzoptional(7, false);\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	m.execute();
+	CHECK(m.getStaticInteger((char*)"one") == 1001);
+	CHECK(m.getStaticInteger((char*)"two") == 2070);
+	m.destroy();
+}
+
+TEST_CASE("ABL optional parameters: too few, too many or the wrong type is an error")
+{
+	const char* bad[] = {
+		"fuzzoptional()",
+		"fuzzoptional(1, true, 2)",
+		"fuzzoptional(1, 2)",
+	};
+	for (const char* call : bad)
+	{
+		CAPTURE(call);
+		std::string source = std::string(
+			"module M : integer;\n"
+			"\tvar\n"
+			"\t\tinteger x;\n"
+			"\tcode\n"
+			"\t\tx = ") + call + ";\n"
+			"\t\treturn(x);\n"
+			"endmodule.\n";
+		AblCompiled c(source.c_str());
+		CHECK(c.handle < 0);
+	}
+}
+
+// A command registered with a result must leave exactly one value on the ABL
+// stack, and one without none. setobjectdamage pushed nothing: each call as a
+// statement took one slot too many off the stack, and a later push landed
+// in the running frame (wolfman-MC2X's reap3m02 lost its local array's
+// address). The executor now evens the stack after every callback.
+TEST_CASE("ABL commands that break the stack contract cannot corrupt the frame")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer before;\n"
+		"\t\tstatic integer after;\n"
+		"\t\tstatic integer result;\n"
+		"\t\tinteger[3] local;\n"
+		"\t\tinteger x;\n"
+		"\tcode\n"
+		"\t\tlocal[0] = 11;\n"
+		"\t\tlocal[1] = 22;\n"
+		"\t\tlocal[2] = 33;\n"
+		"\t\tx = 44;\n"
+		"\t\tbefore = local[0] + local[1] + local[2] + x;\n"
+		"\t\tfuzznopush(1);\n"
+		"\t\tfuzznopush(2);\n"
+		"\t\tfuzznopush(3);\n"
+		"\t\tfuzzextrapush(4);\n"
+		"\t\tresult = fuzznopush(5);\n"
+		"\t\tx = x + 0;\n"
+		"\t\tafter = local[0] + local[1] + local[2] + x;\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	m.execute();
+	CHECK(m.getStaticInteger((char*)"before") == 110);
+	CHECK(m.getStaticInteger((char*)"after") == 110);
+	CHECK(m.getStaticInteger((char*)"result") == 0);
 	m.destroy();
 }
 

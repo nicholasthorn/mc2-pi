@@ -159,6 +159,39 @@ void execNothing(void)
 {
 }
 
+// fuzzoptional("?|b"): one argument of any kind, then an optional boolean.
+// Run by test_ablscan.cpp: returns arguments * 1000 + an integer first
+// argument * 10 + the last boolean.
+void execOptional(void)
+{
+	ABLStackItem first;
+	ABLi_popAnything(&first);
+	int result = 1000;
+	bool last = (first.type == ABL_STACKITEM_BOOLEAN) && first.data.boolean;
+	if (ABLi_moreParams())
+	{
+		result = 2000;
+		if (first.type == ABL_STACKITEM_INTEGER)
+			result += first.data.integer * 10;
+		last = ABLi_popBoolean();
+	}
+	ABLi_pushInteger(result + (last ? 1 : 0));
+}
+
+// Callbacks that break the stack contract, as several 2001 commands did
+// (setobjectdamage, stopmusic): fuzznopush is registered with a result and
+// pushes none, fuzzextrapush has none and pushes one. Run by test_ablscan.cpp.
+void execNoPush(void)
+{
+	ABLi_popInteger();
+}
+
+void execExtraPush(void)
+{
+	ABLi_popInteger();
+	ABLi_pushInteger(77);
+}
+
 void initAbl()
 {
 	ABLi_init(20479, 102400, 200, 100,
@@ -172,6 +205,9 @@ void initAbl()
 	ABLi_addFunction("fuzzname", false, "C", "i", execNothing);
 	ABLi_addFunction("fuzzorder", true, "ib", "i", execNothing);
 	ABLi_addFunction("fuzznone", false, NULL, NULL, execNothing);
+	ABLi_addFunction("fuzzoptional", false, "?|b", "i", execOptional);
+	ABLi_addFunction("fuzznopush", false, "i", "i", execNoPush);
+	ABLi_addFunction("fuzzextrapush", false, "i", NULL, execExtraPush);
 }
 
 } // namespace

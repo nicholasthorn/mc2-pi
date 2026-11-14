@@ -190,6 +190,39 @@ char* ABLi_popBooleanPtr (void) {
 
 //---------------------------------------------------------------------------
 
+// A command's callback pops its arguments and, if it is registered with a
+// result, leaves exactly one value (a push, or the last argument peeked and
+// poked). Several 2001 commands broke that (setobjectdamage, stopmusic and
+// setradio pushed nothing): each call took a slot too many, and a later
+// push landed in the running frame (wolfman-MC2X's reap3m02 lost a local
+// array's address). The stack is evened here and the command logged once.
+static void evenStackAfterCallback (long key, StackItemPtr tosBefore, const char* name) {
+
+	static bool reported[MAX_STANDARD_FUNCTIONS];
+	StackItemPtr expected = tosBefore + ((FunctionInfoTable[key].returnType == RETURN_TYPE_NONE) ? 0 : 1);
+	if (tos == expected)
+		return;
+	if (!reported[key]) {
+		reported[key] = true;
+		fprintf(stderr, "ABL: %s left the stack %ld item(s) off; evened%c", name ? name : "?", (long)(tos - expected), 10);
+	}
+	while (tos < expected)
+		pushInteger(0);	// a zero result, integer or real
+	if (tos > expected)
+		tos = expected;
+}
+
+//---------------------------------------------------------------------------
+
+bool ABLi_moreParams (void) {
+
+	// each pop leaves the token that ended its argument: a comma or the
+	// closing parenthesis
+	return(codeToken == TKN_COMMA);
+}
+
+//---------------------------------------------------------------------------
+
 long ABLi_popAnything (ABLStackItem* value) {
 
 	getCodeToken();
@@ -1021,6 +1054,7 @@ TypePtr execStandardRoutineCall (SymTableNodePtr routineIdPtr, bool skipOrder) {
 			if (FunctionInfoTable[key].numParams > 0)
 				getCodeToken();
 			SkipOrder = skipOrder;
+			StackItemPtr tosBefore = tos;
 			if (FunctionCallbackTable[key])
 				(*FunctionCallbackTable[key])();
 			else
@@ -1029,6 +1063,7 @@ TypePtr execStandardRoutineCall (SymTableNodePtr routineIdPtr, bool skipOrder) {
 				sprintf(err, " ABL: Undefined ABL RoutineKey %d in %s:%d", key, CurModule->getName(), execLineNumber);
 				ABL_Fatal(key,err);
 			}
+			evenStackAfterCallback(key, tosBefore, routineIdPtr->name);
 
 			getCodeToken();
 			switch (FunctionInfoTable[key].returnType) {
