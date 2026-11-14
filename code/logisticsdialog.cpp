@@ -749,7 +749,7 @@ bool LogisticsSaveDialog::isCorrectVersionSaveGame( char* fileName )
 	{
 		char errorStr[256];
 		snprintf(errorStr,sizeof(errorStr), "couldn't open file %s", (const char*)path );
-		STOP((errorStr));
+		STOP(("%s", errorStr));
 	}
 
 	

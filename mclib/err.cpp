@@ -31,7 +31,7 @@ void Assert (bool test, long errCode, const char* errMessage) {
 	if (!test) {
 		char msg[512];
 		snprintf(msg,sizeof(msg), " [ASSERT %ld] %s ", errCode, errMessage);
-		STOP((msg));
+		STOP(("%s", msg));	// msg holds text from data files: never a format
 	}
 }
 

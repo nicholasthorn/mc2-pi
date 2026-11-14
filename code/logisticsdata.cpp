@@ -1136,6 +1136,21 @@ long	LogisticsData::save( FitIniFile& file )
 			(*pIter).save( file, pilotCount++ );
 		}
 
+	// pilots an Omnitech mission hired (hirePilot); stock saves have none
+	if ( hiredPilots.Count() )
+	{
+		file.writeBlock( "HiredPilots" );
+		file.writeIdLong( "Count", hiredPilots.Count() );
+		int hiredCount = 0;
+		for ( EList< EString, const EString& >::EIterator hIter = hiredPilots.Begin();
+			!hIter.IsDone(); hIter++ )
+		{
+			char key[32];
+			sprintf( key, "Pilot%d", hiredCount++ );
+			file.writeIdString( key, *hIter );
+		}
+	}
+
 	int mechCount = 0;
 	// save the inventory
 	for ( MECH_LIST::EIterator mIter = inventory.Begin();
@@ -1177,6 +1192,7 @@ long	LogisticsData::load( FitIniFile& file )
 	clearInventory();
 	resourcePoints = 0;
 	pilots.Clear();
+	hiredPilots.Clear();
 	initPilots();
 	clearVariants();
 
@@ -1265,6 +1281,20 @@ long	LogisticsData::load( FitIniFile& file )
 		}
 
 		loadMech( file, count );
+	}
+
+	if ( NO_ERR == file.seekBlock( "HiredPilots" ) )
+	{
+		long hiredCount = 0;
+		file.readIdLong( "Count", hiredCount );
+		for ( long i = 0; i < hiredCount && i < 255; i++ )
+		{
+			char key[32];
+			char pilotName[255];
+			sprintf( key, "Pilot%ld", i );
+			if ( NO_ERR == file.readIdString( key, pilotName, 254 ) )
+				hirePilot( pilotName );
+		}
 	}
 
 	updateAvailability();
@@ -1619,7 +1649,7 @@ long LogisticsData::updateAvailability()
 	{
 		EString error;
 		error.Format( "Couldn't open %s", (char*)(const char*)purchaseFileName );
-		PAUSE(((char*)(const char*)error ));
+		PAUSE(( "%s", (const char*)error ));	// a file name from the campaign: never a format
 		return NO_PURCHASE_FILE;
 	}
 	// read in available components
@@ -1750,6 +1780,7 @@ long LogisticsData::updateAvailability()
 	// a pilot Omnitech offered once stays, see keepPlayedMissionsPilots
 	if ( omnitechData() )
 		keepPlayedMissionsPilots();
+	reapplyHiredPilots();
 
 	for (PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
 	{
@@ -1798,6 +1829,46 @@ void LogisticsData::keepPlayedMissionsPilots()
 				if ( (*pIter).getFileName().Compare( pilotName, 0 ) == 0 )
 					(*pIter).setAvailable( true );
 			}
+		}
+	}
+}
+
+bool LogisticsData::hirePilot( const char* pilotFileName )
+{
+	if ( !pilotFileName || !pilotFileName[0] )
+		return false;
+
+	bool found = false;
+	for ( PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
+	{
+		if ( (*pIter).getFileName().Compare( pilotFileName, 0 ) == 0 )
+		{
+			(*pIter).setAvailable( true );
+			found = true;
+		}
+	}
+	if ( !found )
+		return false;
+
+	for ( EList< EString, const EString& >::EIterator hIter = hiredPilots.Begin(); !hIter.IsDone(); hIter++ )
+	{
+		if ( (*hIter).Compare( pilotFileName, 0 ) == 0 )
+			return true;
+	}
+	hiredPilots.Append( EString( pilotFileName ) );
+	return true;
+}
+
+// updateAvailability makes the pilots the purchase files name available; a
+// hired pilot stays whatever they say
+void LogisticsData::reapplyHiredPilots()
+{
+	for ( EList< EString, const EString& >::EIterator hIter = hiredPilots.Begin(); !hIter.IsDone(); hIter++ )
+	{
+		for ( PILOT_LIST::EIterator pIter = pilots.Begin(); !pIter.IsDone(); pIter++ )
+		{
+			if ( (*pIter).getFileName().Compare( *hIter, 0 ) == 0 )
+				(*pIter).setAvailable( true );
 		}
 	}
 }
@@ -2400,6 +2471,7 @@ void				LogisticsData::startNewCampaign( const char* fileName )
 	inventory.Clear();
 	resourcePoints = 0;
 	pilots.Clear();
+	hiredPilots.Clear();
 	initPilots();
 
 	FitIniFile file;
@@ -2428,6 +2500,7 @@ void LogisticsData::startMultiPlayer()
 	inventory.Clear();
 	resourcePoints = 0;
 	pilots.Clear();
+	hiredPilots.Clear();
 	initPilots();
 
 	// kill all old designer mechs
