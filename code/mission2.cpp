@@ -290,20 +290,24 @@ void Mission::initTGLForLogistics()
 		TG_Shape::tglHeap->init(tglHeapSize,"TinyGeom");
 		
 		//Start up the TGL RAM pools.
+		// Sixteen times the original sizes, as for missions: the 3D mech in the
+		// logistics screens is one shape set, and a mod's large mech (wolfman-MC2X's
+		// Fafnir, five times an Atlas) ran out, so its last shapes (the legs) were
+		// not drawn (TG_Shape::MultiTransformShape)
 		colorPool 		= new TG_VertexPool;
-		colorPool->init(2000);
+		colorPool->init(32000);
 		
 		vertexPool 		= new TG_GOSVertexPool;
-		vertexPool->init(2000);
+		vertexPool->init(32000);
 		
 		facePool 		= new TG_DWORDPool;
-		facePool->init(4000);
+		facePool->init(64000);
 		
 		shadowPool 		= new TG_ShadowPool;
-		shadowPool->init(2000);
+		shadowPool->init(32000);
 		
 		trianglePool 	= new TG_TrianglePool;
-		trianglePool->init(2000);
+		trianglePool->init(32000);
 	}
 }
 
