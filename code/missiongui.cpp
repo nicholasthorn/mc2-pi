@@ -5642,6 +5642,9 @@ void testKeyStuff()
 
 int MissionInterfaceManager::toggleHotKeys()
 {
+	// no key reference layout (KeyboardRef::init logged it): not an empty pause screen
+	if ( !bDrawHotKeys && !keyboardRef->isLoaded() )
+		return 1;
 	bDrawHotKeys ^= 1;
 	if ( bDrawHotKeys )
 	{

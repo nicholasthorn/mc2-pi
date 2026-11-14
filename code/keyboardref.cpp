@@ -20,7 +20,8 @@ KeyboardRef.cpp			: Implementation of the KeyboardRef component.
 
 KeyboardRef::KeyboardRef(  )
 :	listItemTemplate( IDS_KEYBOARD_REF_FONT ),
-	listItemTemplate2( IDS_KEYBOARD_REF_FONT )
+	listItemTemplate2( IDS_KEYBOARD_REF_FONT ),
+	loaded( false )
 {
 }
 
@@ -94,12 +95,17 @@ int KeyboardRef::init()
 	file.close();
 
 	path.init( artPath, "mcui_keyref_entry", ".fit" );
-	file.open( path );
+	if ( file.open( path ) != NO_ERR )
+	{
+		PAUSE(( "KeyboardRef: cannot open %s, no key reference", (const char*)path ));
+		return false;
+	}
 
 	listItemTemplate.init( file, "Text0" );
 	listItemTemplate2.init( file, "Text1" );
 
 	buttons[0].setMessageOnRelease( );
+	loaded = true;
 
 
 	return true;

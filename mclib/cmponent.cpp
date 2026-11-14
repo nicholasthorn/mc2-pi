@@ -633,8 +633,12 @@ bool MasterComponent::isDefensiveWeapon (void) {
 void MasterComponent::tableFileName (char* path, size_t pathSize) {
 
 	snprintf(path, pathSize, "%scompbas.csv", objectPath);
-	if (!fileExists(path))
-		snprintf(path, pathSize, "%smc2xcomp.csv", objectPath);
+	if (fileExists(path))
+		return;
+	char mc2x[1024];
+	snprintf(mc2x, sizeof(mc2x), "%smc2xcomp.csv", objectPath);
+	if (fileExists(mc2x))
+		snprintf(path, pathSize, "%s", mc2x);
 }
 
 //---------------------------------------------------------------------------

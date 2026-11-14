@@ -263,7 +263,10 @@ Two routes:
 1. Map MC2X's names to stock's and read its files where the indexes agree,
    as `MOD-COMPAT.md` step 12 did for Omnitech's screens (index sets chosen by
    static count), leaving MC2X's extra buttons and support units inert.
-   Days, and the result looks like MC2X with dead buttons.
+   Days, and the result looks like MC2X with dead buttons. Before adding
+   dozens more renames one by one (four fallbacks are on the branch), put
+   them in one stock-name to MC2X-name table consulted where files are
+   opened, so call sites stay as they are.
 2. Build MC2X's HUD features (formations, the 22 support units, the
    deployer/transport/kamikaze units, skills). Weeks, and needs their
    behaviour, which only the manual and play describe.
