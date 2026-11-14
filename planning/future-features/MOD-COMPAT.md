@@ -623,13 +623,18 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
        `/root/mco-datafix-backup-c5r`). UBSan in mission 6: a move to a
        turret cast it to `Building` (`Mover::calcGlobalPath`; turrets say
        `isBuilding()`), now called through the virtual on `GameObject`;
-       other such casts in `warrior.cpp` were not hit and are unchanged.
+       the same cast in three `MechWarrior` path searches (`warrior.cpp`)
+       is fixed the same way. A sweep of every pack with the final build
+       (196 missions) found no other `getunitmates` overflow.
        All 26 run clean under ASan + UBSan. Not fixed: eight Redux missions put
        up to 161 movers on one team; the roster holds 120
        (`MAX_MOVERS_PER_TEAM`, in the in-mission save; Omnitech 150), so
        the rest stay off it, logged. `hirepilot` (mission 11) is not
        reached in a 3000-frame run, and mode 1 of the message commands
-       (a box that waits for Enter) is still shown as plain lines.
+       (a box that waits for Enter) is still shown as plain lines. About 20
+       other ABL commands that write lists into a script variable
+       (`getweapons`, `getcontacts`, ...) are still unbounded, and a list
+       element passed in place of the list (`list[k]`) overstates the room.
 
 14. **Front-end labels and the mech view (2026-11-02, branch
    `omnitech-frontend-labels-mech`).** From a Quest playtest of the menus.
