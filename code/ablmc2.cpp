@@ -110,6 +110,8 @@
 
 #include"bldng.h"
 #include"logisticsdata.h"
+#include"msglines.h"
+#include<string>
 #include<vector>
 
 MoverGroupPtr			CurGroup = NULL;
@@ -1328,28 +1330,31 @@ void execGetUnitMates (void) {
 
 	long objectId = ABLi_popInteger();
 	int* mateList = ABLi_popIntegerPtr();
+	// the script's list may be shorter than the unit (Carver V Redux mission
+	// 14 passes an integer[1]): fill what it holds, and say so
+	const long listMax = ABLi_lastPointerSize() / (long)sizeof(int);
 
-	long numObjs = 0;
+	long numObjects = 0;
 	if ((objectId >= MIN_UNIT_PART_ID) && (objectId <= MAX_UNIT_PART_ID)) {
 		//--------------------------------------------
 		// We have a group.  Act accordingly.
-		long numObjects = getMovers(objectId, moverList);
-		for (long i = 0; i < numObjects; i++)
-			mateList[i] = moverList[i]->getPartId();
-		numObjs = numObjects;
+		numObjects = getMovers(objectId, moverList);
 		}
 	else {
 		GameObjectPtr object = getObject(objectId);
 		if (object && object->isMover()) {
 			MoverGroupPtr group = ((MoverPtr)object)->getGroup();
-			if (group) {
-				long numObjects = group->getMovers(moverList);
-				for (long i = 0; i < numObjects; i++)
-					mateList[i] = moverList[i]->getPartId();
-				numObjs = numObjects;
-			}
+			if (group)
+				numObjects = group->getMovers(moverList);
 		}
 	}
+	long numObjs = numObjects;
+	if (numObjs > listMax) {
+		fprintf(stderr, "getunitmates: unit %ld has %ld movers, the script's list holds %ld\n", objectId, numObjects, listMax);
+		numObjs = listMax;
+	}
+	for (long i = 0; i < numObjs; i++)
+		mateList[i] = moverList[i]->getPartId();
 	ABLi_pushInteger(numObjs);		
 }
 
@@ -7004,25 +7009,62 @@ void execAutoRepairWithinRadius (void) {
 // missions' usage, on stock engine calls; no Omnitech code.
 //*****************************************************************************
 
-// Brain changes (setbrain, and addmovertoplayer's switch to pbrain) are
-// queued: compiling a brain resets the ABL compiler's globals, and the unit
-// asking may be running the brain being replaced. Mission::update applies
-// the queue before any script runs that frame.
+// Brain changes (setbrain, addmovertoplayer's switch to pbrain, and the new
+// pilot and brain of addnewpilottoplayer) are queued: compiling a brain
+// resets the ABL compiler's globals, and the unit asking may be running the
+// brain being replaced. Mission::update applies the queue before any script
+// runs that frame.
 struct QueuedBrain {
 	GameObjectWatchID	who;
 	char				name[64];
+	char				pilot[64];		// a new pilot's file name, or empty
 };
 static std::vector<QueuedBrain> QueuedBrains;
 
-static void queueBrain (GameObjectPtr obj, const char* name) {
+static void queueBrain (GameObjectPtr obj, const char* name, const char* pilot = NULL) {
 
 	if (!obj || !name || !name[0])
 		return;
 	QueuedBrain q;
+	if ((strlen(name) >= sizeof(q.name)) || (pilot && (strlen(pilot) >= sizeof(q.pilot)))) {
+		fprintf(stderr, "setbrain: brain or pilot name too long (%s, %s); part %ld unchanged\n",
+			name, pilot ? pilot : "", obj->getPartId());
+		return;
+	}
 	q.who = obj->getWatchID();
 	strncpy(q.name, name, sizeof(q.name) - 1);
 	q.name[sizeof(q.name) - 1] = '\0';
+	strncpy(q.pilot, pilot ? pilot : "", sizeof(q.pilot) - 1);
+	q.pilot[sizeof(q.pilot) - 1] = '\0';
 	QueuedBrains.push_back(q);
+}
+
+// addnewpilottoplayer: a new pilot from its file, with a brain, in a mover.
+// The pilot joins the mover's team, the force bar shows the new picture, and
+// a player's new pilot joins the campaign roster (Omnitech's "DO NOT add
+// pilots used in the campaign before" warns that their record is replaced).
+static void applyNewPilot (MoverPtr mover, const char* pilotName, const char* brainName) {
+
+	FullPathFileName pilotFile;
+	pilotFile.init(warriorPath, pilotName, ".fit");
+	FullPathFileName brainFile;
+	brainFile.init(warriorPath, brainName, ".abl");
+	if (!fileExists(pilotFile) || !fileExists(brainFile)) {
+		fprintf(stderr, "addnewpilottoplayer: no pilot %s or brain %s\n", (const char*)pilotFile, (const char*)brainFile);
+		return;
+	}
+	const bool players = (mover->getCommanderId() == Commander::home->getId());
+	if (players)
+		mission->missionInterface->removeMover(mover);
+	mover->loadPilot(pilotName, brainName, NULL);
+	if (mover->getPilot() && mover->getTeam())
+		mover->getPilot()->setTeam(mover->getTeam());
+	if (players) {
+		mission->missionInterface->addMover(mover);
+		if (LogisticsData::instance && !LogisticsData::instance->hirePilot(pilotName))
+			fprintf(stderr, "addnewpilottoplayer: %s is not in pilots.csv, not on the roster after the mission\n", pilotName);
+	}
+	fprintf(stderr, "addnewpilottoplayer: part %ld now has %s, running %s\n", mover->getPartId(), pilotName, brainName);
 }
 
 void ablClearQueuedBrains (void) {
@@ -7038,6 +7080,11 @@ void ablApplyQueuedBrains (void) {
 	todo.swap(QueuedBrains);
 	for (size_t i = 0; i < todo.size(); i++) {
 		GameObjectPtr obj = ObjectManager->getByWatchID(todo[i].who);
+		if (todo[i].pilot[0]) {
+			if (obj && obj->isMover() && !MPlayer)
+				applyNewPilot((MoverPtr)obj, todo[i].pilot, todo[i].name);
+			continue;
+		}
 		MechWarriorPtr pilot = obj ? obj->getPilot() : NULL;
 		if (!pilot)
 			continue;
@@ -7168,11 +7215,14 @@ void execSetBrain (void) {
 void execSetTextMsg (void) {
 
 	//-----------------------------------------------------
-	//	SET TEXT MSG (Omnitech):
+	//	SET TEXT MSG, SET LARGE MSG (Omnitech):
 	//		Shows text in the mission's message lines; '*' starts a
-	//		new line. Mode 1 (a box that waits for Enter) and the
-	//		duration are not implemented: every message shows like
-	//		mode 0, for the message lines' own time.
+	//		new line, and a line longer than a message line holds
+	//		goes on in the next. Mode 1 (a box that waits for Enter)
+	//		and the duration are not implemented: every message
+	//		shows like mode 0, for the message lines' own time.
+	//		setlargemsg (Omnitech's large message box) shows the same
+	//		way.
 	//		PARAMS:	integer		mode (0 timed, 1 wait for Enter)
 	//				char[]		text
 	//				integer		seconds (mode 0)
@@ -7185,20 +7235,56 @@ void execSetTextMsg (void) {
 
 	if (!text || !mission || !mission->missionInterface)
 		return;
-	const char* p = text;
-	while (*p) {
-		const char* end = strchr(p, '*');
-		size_t len = end ? (size_t)(end - p) : strlen(p);
-		char line[512];		// ControlGui chat lines hold 511 characters (ChatInfo::message)
-		size_t n = (len < sizeof(line) - 1) ? len : sizeof(line) - 1;
-		memcpy(line, p, n);
-		line[n] = '\0';
-		if (n)
-			mission->missionInterface->getControlGui()->setChatText("", line, 0x00ffffff, 0);
-		p += len;
-		if (*p == '*')
-			p++;
+	// ControlGui chat lines hold 511 characters (ChatInfo::message)
+	const std::vector<std::string> lines = msglines::split(text, 511);
+	for (size_t i = 0; i < lines.size(); i++)
+		mission->missionInterface->getControlGui()->setChatText("", lines[i].c_str(), 0x00ffffff, 0);
+}
+
+void execHirePilot (void) {
+
+	//-----------------------------------------------------
+	//	HIRE PILOT (Omnitech): puts a pilot (file name, as in
+	//		pilots.csv) on the player's roster for the rest of
+	//		the campaign.
+	//		PARAMS:	char[]		pilot file name
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	char* pilotName = ABLi_popCharPtr();
+	if (MPlayer || !LogisticsData::instance || !pilotName)
+		return;
+	if (LogisticsData::instance->hirePilot(pilotName))
+		fprintf(stderr, "hirepilot: %s joins the roster\n", pilotName);
+	else
+		fprintf(stderr, "hirepilot: no pilot %s in pilots.csv\n", pilotName);
+}
+
+void execAddNewPilotToPlayer (void) {
+
+	//-----------------------------------------------------
+	//	ADD NEW PILOT TO PLAYER (Omnitech): a new pilot from
+	//		its file, with a brain, in one of the player's units
+	//		(applyNewPilot). Applied before the next frame's
+	//		scripts run.
+	//		PARAMS:	integer		part id
+	//				char[]		pilot file name
+	//				char[]		brain name
+	//		RETURN: NONE
+	//-----------------------------------------------------
+
+	long partId = ABLi_popInteger();
+	char* pilotName = ABLi_popCharPtr();
+	char* brainName = ABLi_popCharPtr();
+
+	GameObjectPtr obj = getObject(partId);
+	if (!obj || !obj->isMover() || !pilotName || !pilotName[0])
+		return;
+	if (!brainName || !brainName[0]) {
+		fprintf(stderr, "addnewpilottoplayer: no brain given for %s, using pbrain\n", pilotName);
+		brainName = (char*)"pbrain";
 	}
+	queueBrain(obj, brainName, pilotName);
 }
 
 void execAddResourcePoints (void) {
@@ -7362,25 +7448,27 @@ void execSetMechGesture (void) {
 
 void initABL (void) {
 
+	// Twice stock's sizes, for the doubled limits below (Omnitech 6.28 puts
+	// all of ABL in one 4,096,000-byte heap)
 	AblSymbolHeap = new UserHeap;
-	long heapErr = AblSymbolHeap->init(767999);
+	long heapErr = AblSymbolHeap->init(1535999);
 	if (heapErr != NO_ERR)
 		ABL_Fatal(0, "ABLi_init: unable to create ABL symbol table heap");
 
 	AblStackHeap = new UserHeap;
-	heapErr = AblStackHeap->init(511999);
+	heapErr = AblStackHeap->init(1023999);
 	if (heapErr != NO_ERR)
 		ABL_Fatal(0, "ABLi_init: unable to create ABL stack heap");
 
 	AblCodeHeap = new UserHeap;
-	heapErr = AblCodeHeap->init(307199);
+	heapErr = AblCodeHeap->init(614399);
 	if (heapErr != NO_ERR)
 		ABL_Fatal(0, "ABLi_init: unable to create ABL code heap");
 
-	ABLi_init(20479, //AblRunTimeStackSize,
-			  102400, //AblMaxCodeBlockSize,
-			  200, //AblMaxRegisteredModules,
-			  100, //AblMaxStaticVariables,
+	ABLi_init(ABL_RUNTIME_STACK_SIZE,
+			  ABL_MAX_CODE_BUFFER_SIZE,
+			  ABL_MAX_REGISTERED_MODULES,
+			  ABL_MAX_STATIC_VARIABLES,
 			  ablSystemMallocCallback,
 			  ablStackMallocCallback,
 			  ablCodeMallocCallback,
@@ -7676,6 +7764,9 @@ void initABL (void) {
 	ABLi_addFunction("removemoverfromplayer", false, "i", NULL, execRemoveMoverFromPlayer);
 	ABLi_addFunction("setbrain", false, "iC", NULL, execSetBrain);
 	ABLi_addFunction("settextmsg", false, "iCi", NULL, execSetTextMsg);
+	ABLi_addFunction("setlargemsg", false, "iCi", NULL, execSetTextMsg);
+	ABLi_addFunction("hirepilot", false, "C", NULL, execHirePilot);
+	ABLi_addFunction("addnewpilottoplayer", false, "iCC", NULL, execAddNewPilotToPlayer);
 	ABLi_addFunction("addresourcepoints", false, "i", NULL, execAddResourcePoints);
 	ABLi_addFunction("addmoney", false, "i", NULL, execAddMoney);
 	ABLi_addFunction("setsalvagecraftenabled", false, "b", NULL, execSetSalvageCraftEnabled);

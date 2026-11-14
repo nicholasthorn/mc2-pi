@@ -1233,8 +1233,15 @@ SensorSystemPtr SensorSystemManager::newSensor (void) {
 	// that guarded callers (mech.cpp:3350 stub-chassis fallback) survive
 	// gracefully.  Unguarded callers in normal load paths never hit this
 	// because they only fire when a COMPONENT_FORM_SENSOR is present.
-	if (!freeSensors)
+	if (!freeSensors) {
+		// most callers do not check: say why the crash that follows happens
+		static bool told = false;
+		if (!told) {
+			fprintf(stderr, "SensorSystemManager: all %d sensor systems in use (MAX_SENSORS)\n", MAX_SENSORS);
+			told = true;
+		}
 		return nullptr;
+	}
 
 	freeSensors--;
 

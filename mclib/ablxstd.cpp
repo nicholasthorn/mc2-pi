@@ -150,10 +150,25 @@ char* ABLi_popCharPtr (void) {
 
 //---------------------------------------------------------------------------
 
+// Bytes in the variable the last ABLi_popIntegerPtr / ABLi_popRealPtr named:
+// a game function writing a list into it stops there.
+static long LastPointerSize = 0;
+
+long ABLi_lastPointerSize (void) {
+
+	return(LastPointerSize);
+}
+
+static void notePointerSize (SymTableNodePtr idPtr) {
+
+	LastPointerSize = (idPtr && idPtr->typePtr) ? idPtr->typePtr->size : 0;
+}
+
 int* ABLi_popIntegerPtr (void) {
 
 	getCodeToken();
 	SymTableNodePtr idPtr = getCodeSymTableNodePtr();
+	notePointerSize(idPtr);
 	execVariable(idPtr, USE_REFPARAM);
 	int* integerPtr = (int*)(&((StackItemPtr)tos->address)->integer);
 	pop();
@@ -167,6 +182,7 @@ float* ABLi_popRealPtr (void) {
 
 	getCodeToken();
 	SymTableNodePtr idPtr = getCodeSymTableNodePtr();
+	notePointerSize(idPtr);
 	execVariable(idPtr, USE_REFPARAM);
 	float* realPtr = (float*)(&((StackItemPtr)tos->address)->real);
 	pop();

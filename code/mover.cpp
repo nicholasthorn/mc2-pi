@@ -4317,9 +4317,9 @@ long Mover::calcGlobalPath (GlobalPathStep* globalPath, GameObjectPtr obj, Stuff
 		if (goalArea == -1) {
 			Stuff::Vector3D goalPos = obj->getPosition();
 			if (obj->isBuilding()) {
-				BuildingPtr building = (BuildingPtr)obj;
+				// virtual on GameObject: a turret also says isBuilding(), and is no Building
 				long goalRow = 0, goalCol = 0;
-				bool foundGoal = building->calcAdjacentAreaCell(moveLevel, -1, goalRow, goalCol);
+				bool foundGoal = obj->calcAdjacentAreaCell(moveLevel, -1, goalRow, goalCol);
 				if (foundGoal)
 					land->cellToWorld(goalRow, goalCol, goalPos);
 				else {
