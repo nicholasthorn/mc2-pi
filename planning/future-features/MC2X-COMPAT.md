@@ -2,8 +2,9 @@
 
 Status: in progress, 2026-11-14 (branch `claude/mc2x-compat-b44556`). Built:
 the loader fixes, the ABL commands MC2X's missions call, the fixes the
-sanitizer runs found; all 32 missions run 300 frames. Not built: the
-interface and the rest of "Effort".
+sanitizer runs found, the in-mission interface on MC2X's own layouts; all
+32 missions run 300 frames. Not built: the front end and the rest of
+"Effort".
 Companion to `MOD-COMPAT.md` (MechCommander Omnitech), whose work this leans
 on.
 
@@ -274,8 +275,25 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     the test folder: stock's interface art beside MC2X's renamed layouts
     (step 6).
 
-Not tried: the GLES build, front-end walks (MC2X's front end is all
-renamed layouts), and play past 300 frames.
+16. **Campaign variables and the in-mission interface (2026-11-14, steps 2
+    and 6, mission part).** The campaign variables are saved with the
+    campaign (`code/campaignglobals.cpp`, an `MC2XCampaignGlobals` block
+    written only when one is not 0). For the renamed layouts,
+    `mc2xArtName` / `openArtLayout` (`code/mc2xart.cpp`) open the stock
+    file, else MC2X's; used for the HUD, the key reference and the
+    start-up dialogs. MC2X's HUD files place the HUD in the same 1024x768
+    centre column as stock's, so they are read as stock's: the first 20
+    command buttons (same numbers) and stock's 8 support buttons from
+    where MC2X has them among its 22 (`mc2xVehicleButton`), with stock's
+    ids. MC2X has no layout under 1024 wide; `smoke.sh --screen` runs the
+    test folder at 1024x768. A screenshot of `metropolitan` shows MC2X's
+    HUD art in place.
+    **Result: all 32 missions pass 300 frames under ASan + UBSan with no
+    stock art in the folder and no local changes.** MC2X's extra buttons
+    (formations, its 14 other support units) are not shown.
+
+Not tried: the GLES build, the front end (main menu, campaign screens,
+loading screens: still stock names), and play past 300 frames.
 
 ## ABL
 
@@ -387,9 +405,10 @@ stock or Omnitech units).
 | done | loader fallbacks and checks on this branch | |
 | done | ASan + UBSan on all 32 missions, its four fixes, part ids, trigger map | |
 | done | the called ABL commands, `newpower`'s second form, the ABL stack fixes (`reap3m02`) | |
-| 2 | campaign globals in the campaign save | half a day |
+| done | campaign globals in the campaign save | |
 | done | long `DescIndex` names, move type 2 (drones) | |
-| 6 | HUD and front end, route 1 (renamed layouts, stock behaviour) | 4-6 days |
+| done | in-mission HUD, key reference, dialogs, route 1 | |
+| 6 | front end, route 1 (main menu, campaign and logistics screens, loading screens) | 3-5 days |
 | 7 | component 255, mission keys (support switches, failure actions, tac map water colour) | 1-2 days |
 | 8 | HUD features, route 2 | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
@@ -412,8 +431,8 @@ own features, which no data file explains. Order:
 
 1. Merge this branch (the fallbacks and checks are harmless to stock data).
 2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
-3. Step 2 (campaign globals in the save), and 3000-frame runs of the REAP3
-   missions to find what 300 frames do not reach.
+3. 3000-frame runs of the REAP3 missions, to find what 300 frames do not
+   reach.
 4. Step 6 only if people ask for MC2X; step 8 not unless MC2X's author
    documents the features.
 
