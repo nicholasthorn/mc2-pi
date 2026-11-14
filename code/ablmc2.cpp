@@ -6977,18 +6977,10 @@ void execScanAreaRepair (void) {
 // stock engine calls; MC2X's source is not public.
 //*****************************************************************************
 
-// Campaign variables 0 to 4 (getcampaignglobalvar / setcampaignglobalvar).
-// Held for the session only: no campaign save field yet. The shipped
-// scripts only read them (all 0), and ask for index 5 too, which is 0.
-#define	NUM_CAMPAIGN_GLOBALS	5
-static int CampaignGlobals[NUM_CAMPAIGN_GLOBALS] = {0, 0, 0, 0, 0};
-
-// A new or loaded campaign starts with them at 0 (LogisticsData).
-void ablResetCampaignGlobals (void) {
-
-	for (long i = 0; i < NUM_CAMPAIGN_GLOBALS; i++)
-		CampaignGlobals[i] = 0;
-}
+// Campaign variables 0 to 4 (getcampaignglobalvar / setcampaignglobalvar),
+// saved with the campaign (code/campaignglobals.cpp). The shipped scripts
+// also ask for index 5, which reads 0.
+#include "campaignglobals.h"
 
 void execNewPower (void) {
 
@@ -7122,10 +7114,7 @@ void execGetCampaignGlobalVar (void) {
 	//-----------------------------------------------------
 
 	long index = ABLi_popInteger();
-	int value = 0;
-	if ((index >= 0) && (index < NUM_CAMPAIGN_GLOBALS))
-		value = CampaignGlobals[index];
-	ABLi_pushInteger(value);
+	ABLi_pushInteger(campaignglobals::get(index));
 }
 
 void execSetCampaignGlobalVar (void) {
@@ -7139,8 +7128,7 @@ void execSetCampaignGlobalVar (void) {
 
 	long index = ABLi_popInteger();
 	long value = ABLi_popInteger();
-	if ((index >= 0) && (index < NUM_CAMPAIGN_GLOBALS))
-		CampaignGlobals[index] = (int)value;
+	campaignglobals::set(index, (int)value);
 }
 
 //-----------------------------------------------------------------------------

@@ -30,8 +30,8 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #ifndef VIEWER
 #include"multplyr.h"
 #include"chatwindow.h"
-// wolfman-MC2X campaign globals (code/ablmc2.cpp)
-extern void ablResetCampaignGlobals (void);
+// wolfman-MC2X campaign globals, saved with the campaign
+#include"campaignglobals.h"
 #else
 	bool MissionResults::FirstTimeResults = false;
 #endif
@@ -1122,6 +1122,10 @@ long	LogisticsData::save( FitIniFile& file )
 			(*mIter)->save( file, mechCount++ );
 		}
 
+#ifndef VIEWER
+	campaignglobals::save( file );
+#endif
+
 	return 0;
 }
 
@@ -1146,7 +1150,7 @@ void LogisticsData::clearVariants()
 long	LogisticsData::load( FitIniFile& file )
 {
 #ifndef VIEWER
-	ablResetCampaignGlobals();	// not in the save yet
+	campaignglobals::load( file );
 #endif
 	clearInventory();
 	resourcePoints = 0;
@@ -2368,7 +2372,7 @@ void				LogisticsData::startNewCampaign( const char* fileName )
 		delete MPlayer;
 		MPlayer = NULL;
 	}
-	ablResetCampaignGlobals();
+	campaignglobals::reset();
 #endif
 
 	inventory.Clear();
