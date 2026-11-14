@@ -72,9 +72,22 @@ int KeyboardRef::init()
     path.init( artPath, fileName, ".fit" );
 
 	FitIniFile file;
-	file.open( path );
+	// a mod can lack the layout (wolfman-MC2X renames it mc2x_keyref_*): the
+	// key list is left empty rather than built from rects that are not there
+	if ( file.open( path ) != NO_ERR )
+	{
+		PAUSE(( "KeyboardRef: cannot open %s, no key reference", (const char*)path ));
+		return false;
+	}
 
 	LogisticsScreen::init( file, "Static", "Text", "Rect", "Button" );
+
+	if ( rectCount < 3 || buttonCount < 1 )
+	{
+		PAUSE(( "KeyboardRef: %s has %ld rects and %ld buttons, needs 3 and 1", (const char*)path, rectCount, buttonCount ));
+		file.close();
+		return false;
+	}
 
 	listBox.init( rects[2].left(), rects[2].top(), rects[2].width(), rects[2].height() );
 
