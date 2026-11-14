@@ -1014,6 +1014,10 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 		return(result);
 
 	name[0] = '\0';
+	// the type's own name, for a DescIndex too long to be one (wolfman-MC2X)
+	char typeName[MAXLEN_MOVER_NAME];
+	if (vehicleFile->readIdString("Name", typeName, MAXLEN_MOVER_NAME - 1) != NO_ERR)
+		typeName[0] = '\0';
 
 	result = vehicleFile->seekBlock("General");
 	if (result != NO_ERR)
@@ -1033,7 +1037,8 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 		descID = -1;
 	else
 	{
-		cLoadString( descID, name, MAXLEN_MOVER_NAME );
+		if (!cLoadStringIfFits( descID, name, MAXLEN_MOVER_NAME ))
+			copyBounded( name, sizeof(name), typeName );
 		char buffer[256];
 
 		cLoadString( IDS_MFDVEHICLE_PRINTSTRING, buffer, 256 );

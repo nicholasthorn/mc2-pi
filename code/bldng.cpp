@@ -313,7 +313,7 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 	if (objectNameID != -1)	
 	{
 		char s[255];
-		cLoadString(objectNameID, s, 254);
+		cLoadStringIfFits(objectNameID, s, 254);	// not used; a long text is no error
 	}
 
 	for (long i=0;i<18;i++)

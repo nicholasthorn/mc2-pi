@@ -1405,7 +1405,8 @@ long BattleMech::init (DWORD variantNum)
 
 	mechFile->readInt(5,2,descID);
 
-	cLoadString( descID, thisMechName, 127 );
+	// a description too long for a name (wolfman-MC2X) keeps the CSV name
+	cLoadStringIfFits( descID, thisMechName, 127 );
 
 	char tmp[256];
 	cLoadString( IDS_MFDMCH_PRINTSTRING, tmp, 256 );

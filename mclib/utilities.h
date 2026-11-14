@@ -121,6 +121,27 @@ inline int cLoadString(
 	return stringLength;
 }
 
+// For a string that should be a short name: loads it only if it fits the
+// buffer and returns false otherwise, leaving the buffer as it was.
+// wolfman-MC2X points some unit types' DescIndex, a name in stock data,
+// at long encyclopedia texts (up to 590 characters).
+inline bool cLoadStringIfFits(
+  unsigned int uID,
+  char* lpBuffer,
+  int nBufferMax,
+  HSTRRES handle = gosResourceHandle
+  )
+{
+	const char * tmpBuffer = gos_GetResourceString(handle, uID);
+	if (!tmpBuffer || nBufferMax <= 0)
+		return false;
+	size_t stringLength = strlen(tmpBuffer);
+	if (stringLength >= (size_t)nBufferMax)
+		return false;
+	memcpy(lpBuffer, tmpBuffer, stringLength + 1);
+	return true;
+}
+
 #else
 
 inline char * cLoadString (unsigned int uID)
