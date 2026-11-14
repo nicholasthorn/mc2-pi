@@ -161,7 +161,8 @@ void execNothing(void)
 
 void initAbl()
 {
-	ABLi_init(20479, 102400, 200, 100,
+	ABLi_init(ABL_RUNTIME_STACK_SIZE, ABL_MAX_CODE_BUFFER_SIZE,
+		ABL_MAX_REGISTERED_MODULES, ABL_MAX_STATIC_VARIABLES,
 		trackedMalloc, trackedMalloc, trackedMalloc, trackedMalloc,
 		trackedFree, trackedFree, trackedFree, trackedFree,
 		fileCreate, fileOpen, fileClose, fileEof, fileRead, fileReadInt, fileReadLong,

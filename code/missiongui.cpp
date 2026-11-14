@@ -4436,7 +4436,7 @@ void MissionInterfaceManager::beginVtol (long supportID, long commanderID, Stuff
 	if (vehicleID[commanderID] == 0) {
 		char s[1024];
 		sprintf(s, "beginvtol: supportID = %ld, commanderID = %ld, vehicleID = %ld, vehicleFile = %s", supportID, commanderID, vehicleID[commanderID], vehicleFile);
-		PAUSE((s));
+		PAUSE(("%s", s));
 	}
 
 	if ( !vTol[commanderID] )

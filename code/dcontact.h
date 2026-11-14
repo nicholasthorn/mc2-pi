@@ -11,7 +11,7 @@
 #ifndef DCONTACT_H
 #define DCONTACT_H
 
-#define	MAX_SENSORS						150	// # sensor systems allowed per mission
+#define	MAX_SENSORS						200	// # sensor systems allowed per mission (Omnitech 6.28: 200; stock 150)
 #define	MAX_ECMS						50
 #define	MAX_CONTACTS_PER_SENSOR			200
 

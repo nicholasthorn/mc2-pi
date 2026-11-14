@@ -4046,9 +4046,9 @@ bool MechWarrior::movementDecisionTree (void) {
 				// to it. If it happens to be adjacent to blocked
 				// cells, this could be off...
 				if (moveTarget->isBuilding()) {
-					BuildingPtr building = (BuildingPtr)moveTarget;
+					// virtual on GameObject: a turret also says isBuilding(), and is no Building
 					long goalRow = 0, goalCol = 0;
-					bool foundGoal = building->calcAdjacentAreaCell(getVehicle()->moveLevel, -1, goalRow, goalCol);
+					bool foundGoal = moveTarget->calcAdjacentAreaCell(getVehicle()->moveLevel, -1, goalRow, goalCol);
 					if (foundGoal)
 						land->cellToWorld(goalRow, goalCol, targetPos);
 					else {
@@ -6057,9 +6057,9 @@ long MechWarrior::orderMoveToObject (bool unitOrder, bool setTacOrder, long orig
 		// to it. If it happens to be adjacent to blocked
 		// cells, this could be off...
 		if (target->isBuilding()) {
-			BuildingPtr building = (BuildingPtr)target;
+			// virtual on GameObject: a turret also says isBuilding(), and is no Building
 			long goalRow = 0, goalCol = 0;
-			bool foundGoal = building->calcAdjacentAreaCell(getVehicle()->moveLevel, fromArea, goalRow, goalCol);
+			bool foundGoal = target->calcAdjacentAreaCell(getVehicle()->moveLevel, fromArea, goalRow, goalCol);
 			if (foundGoal)
 				land->cellToWorld(goalRow, goalCol, goal);
 			else {
@@ -7806,9 +7806,9 @@ long MechWarrior::calcTacOrder (long goalAction,
 				// to it. If it happens to be adjacent to blocked
 				// cells, this could be off...
 				if (currentTarget->isBuilding()) {
-					BuildingPtr building = (BuildingPtr)currentTarget;
+					// virtual on GameObject: a turret also says isBuilding(), and is no Building
 					long goalRow = 0, goalCol = 0;
-					bool foundGoal = building->calcAdjacentAreaCell(getVehicle()->moveLevel, fromArea, goalRow, goalCol);
+					bool foundGoal = currentTarget->calcAdjacentAreaCell(getVehicle()->moveLevel, fromArea, goalRow, goalCol);
 					if (foundGoal)
 						land->cellToWorld(goalRow, goalCol, goal);
 					else {

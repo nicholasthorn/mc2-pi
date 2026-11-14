@@ -362,6 +362,7 @@ class SensorSystemManager {
 		TeamSensorSystemPtr		teamSensors[MAX_TEAMS];
 		ECMInfo					ecms[MAX_ECMS];
 		long					numEcms;
+		bool					toldPoolEmpty;			// newSensor said the pool ran out (once per mission)
 		long 					teamToUpdate;
 		static float			updateFrequency;
 		
@@ -388,6 +389,7 @@ class SensorSystemManager {
 		
 		void init (void) {
 			freeSensors = 0;
+			toldPoolEmpty = false;
 			sensorPool = NULL;
 			freeList = NULL;
 			for (long i = 0; i < MAX_TEAMS; i++)

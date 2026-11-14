@@ -657,7 +657,7 @@ void Mission::load (const char *loadFileName)
 	{
 		char msg[2048];
 		cLoadString(IDS_QUICKSAVE_VERSION_WRONG,msg,2047);
-		PAUSE((msg));
+		PAUSE(("%s", msg));
 		return;
 	}
 

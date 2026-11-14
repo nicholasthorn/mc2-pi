@@ -1159,6 +1159,7 @@ void SensorSystemManager::operator delete (void* us) {
 
 long SensorSystemManager::init (bool debug) {
 
+	toldPoolEmpty = false;
 	if (MAX_SENSORS < 2)
 		Fatal(0, " Way too few sensors in Sensor System Manager! ");
 
@@ -1233,8 +1234,14 @@ SensorSystemPtr SensorSystemManager::newSensor (void) {
 	// that guarded callers (mech.cpp:3350 stub-chassis fallback) survive
 	// gracefully.  Unguarded callers in normal load paths never hit this
 	// because they only fire when a COMPONENT_FORM_SENSOR is present.
-	if (!freeSensors)
+	if (!freeSensors) {
+		// most callers do not check: say why the crash that follows happens
+		if (!toldPoolEmpty) {
+			fprintf(stderr, "SensorSystemManager: all %d sensor systems in use (MAX_SENSORS)\n", MAX_SENSORS);
+			toldPoolEmpty = true;
+		}
 		return nullptr;
+	}
 
 	freeSensors--;
 

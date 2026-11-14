@@ -192,6 +192,11 @@ public:
 	void				appendAvailability(const char* pFileName, bool* availableArray );
 	void				keepPlayedMissionsPilots();
 
+	// Omnitech's hirepilot: puts a pilot from pilots.csv on the player's roster
+	// for good, through later missions' purchase files and the campaign save.
+	// False when no pilot has that file name.
+	bool				hirePilot( const char* pilotFileName );
+
 	bool				skipLogistics();
 	bool				showChooseMission();
 	bool				skipPilotReview();
@@ -242,6 +247,7 @@ private:
 	MECH_LIST										inventory;
 	COMPONENT_LIST									components;
 	PILOT_LIST										pilots;
+	EList< EString, const EString& >				hiredPilots;	// file names, see hirePilot
 	VEHICLE_LIST									vehicles;
 	BUILDING_LIST									buildings;
 	
@@ -265,6 +271,7 @@ private:
 
 	void initComponents();
 	void initPilots();
+	void reapplyHiredPilots();
 	void initVariants();
 
 	void addVehicle( long fitID, PacketFile& objectFile, float scale );
