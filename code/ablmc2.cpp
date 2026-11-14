@@ -1330,28 +1330,31 @@ void execGetUnitMates (void) {
 
 	long objectId = ABLi_popInteger();
 	int* mateList = ABLi_popIntegerPtr();
+	// the script's list may be shorter than the unit (Carver V Redux mission
+	// 14 passes an integer[1]): fill what it holds, and say so
+	const long listMax = ABLi_lastPointerSize() / (long)sizeof(int);
 
-	long numObjs = 0;
+	long numObjects = 0;
 	if ((objectId >= MIN_UNIT_PART_ID) && (objectId <= MAX_UNIT_PART_ID)) {
 		//--------------------------------------------
 		// We have a group.  Act accordingly.
-		long numObjects = getMovers(objectId, moverList);
-		for (long i = 0; i < numObjects; i++)
-			mateList[i] = moverList[i]->getPartId();
-		numObjs = numObjects;
+		numObjects = getMovers(objectId, moverList);
 		}
 	else {
 		GameObjectPtr object = getObject(objectId);
 		if (object && object->isMover()) {
 			MoverGroupPtr group = ((MoverPtr)object)->getGroup();
-			if (group) {
-				long numObjects = group->getMovers(moverList);
-				for (long i = 0; i < numObjects; i++)
-					mateList[i] = moverList[i]->getPartId();
-				numObjs = numObjects;
-			}
+			if (group)
+				numObjects = group->getMovers(moverList);
 		}
 	}
+	long numObjs = numObjects;
+	if (numObjs > listMax) {
+		fprintf(stderr, "getunitmates: unit %ld has %ld movers, the script's list holds %ld\n", objectId, numObjects, listMax);
+		numObjs = listMax;
+	}
+	for (long i = 0; i < numObjs; i++)
+		mateList[i] = moverList[i]->getPartId();
 	ABLi_pushInteger(numObjs);		
 }
 
@@ -7023,6 +7026,11 @@ static void queueBrain (GameObjectPtr obj, const char* name, const char* pilot =
 	if (!obj || !name || !name[0])
 		return;
 	QueuedBrain q;
+	if ((strlen(name) >= sizeof(q.name)) || (pilot && (strlen(pilot) >= sizeof(q.pilot)))) {
+		fprintf(stderr, "setbrain: brain or pilot name too long (%s, %s); part %ld unchanged\n",
+			name, pilot ? pilot : "", obj->getPartId());
+		return;
+	}
 	q.who = obj->getWatchID();
 	strncpy(q.name, name, sizeof(q.name) - 1);
 	q.name[sizeof(q.name) - 1] = '\0';
@@ -7244,7 +7252,7 @@ void execHirePilot (void) {
 	//-----------------------------------------------------
 
 	char* pilotName = ABLi_popCharPtr();
-	if (!LogisticsData::instance || !pilotName)
+	if (MPlayer || !LogisticsData::instance || !pilotName)
 		return;
 	if (LogisticsData::instance->hirePilot(pilotName))
 		fprintf(stderr, "hirepilot: %s joins the roster\n", pilotName);
@@ -7272,6 +7280,10 @@ void execAddNewPilotToPlayer (void) {
 	GameObjectPtr obj = getObject(partId);
 	if (!obj || !obj->isMover() || !pilotName || !pilotName[0])
 		return;
+	if (!brainName || !brainName[0]) {
+		fprintf(stderr, "addnewpilottoplayer: no brain given for %s, using pbrain\n", pilotName);
+		brainName = (char*)"pbrain";
+	}
 	queueBrain(obj, brainName, pilotName);
 }
 

@@ -138,6 +138,9 @@ long ABLi_popAnything (ABLStackItem* value);
 char* ABLi_popCharPtr (void);
 int* ABLi_popIntegerPtr (void);
 float* ABLi_popRealPtr (void);
+// Size in bytes of the variable the last ABLi_popIntegerPtr / ABLi_popRealPtr
+// named (a whole array, even when an element of it was passed)
+long ABLi_lastPointerSize (void);
 char* ABLi_popBooleanPtr (void);
 
 void ABLi_pushInteger (int value);
