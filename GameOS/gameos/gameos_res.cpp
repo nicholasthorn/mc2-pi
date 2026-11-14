@@ -115,11 +115,15 @@ void __stdcall gos_CloseResourceDLL(HSTRRES handle)
 // Strings the game's own table lacks or only has a placeholder for, from a
 // Windows resource DLL in the game folder: mc2res.dll (MechCommander Omnitech
 // keeps the names and descriptions of its new units there) or, failing that,
-// mc2xres.dll (wolfman-MC2X's name for it). Read on the first miss; real text
-// in the game's table always wins, so stock text is never replaced.
-static const char* getExtraString(DWORD id)
+// mc2xres.dll (wolfman-MC2X's name for it). Read on the first lookup. Real
+// text in the game's table wins over mc2res.dll, so stock text is never
+// replaced; mc2xres.dll is MC2X's whole table, which gives some stock ids
+// other text (a mech's name where stock has a weapon's description), so its
+// text wins (*replacesTable).
+static const char* getExtraString(DWORD id, bool* replacesTable)
 {
     static std::map<uint32_t, std::string>* extra = NULL;
+    static bool mc2xTable = false;
     if (!extra) {
         extra = new std::map<uint32_t, std::string>();
         static const char* const names[] = { "mc2res.dll", "mc2xres.dll" };
@@ -133,12 +137,15 @@ static const char* getExtraString(DWORD id)
             while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
                 dll.insert(dll.end(), buf, buf + n);
             fclose(f);
-            if (readPeStringTable(dll.data(), dll.size(), *extra))
-                fprintf(stderr, "gos_res: %u strings from %s for ids the game's table lacks\n",
-                        (unsigned)extra->size(), name);
+            if (readPeStringTable(dll.data(), dll.size(), *extra)) {
+                mc2xTable = (strcmp(name, "mc2xres.dll") == 0);
+                fprintf(stderr, "gos_res: %u strings from %s %s\n", (unsigned)extra->size(), name,
+                        mc2xTable ? "over the game's table" : "for ids the game's table lacks");
+            }
             break;
         }
     }
+    *replacesTable = mc2xTable;
     std::map<uint32_t, std::string>::const_iterator it = extra->find(id);
     return it == extra->end() ? NULL : it->second.c_str();
 }
@@ -158,11 +165,11 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
     }
     gos_StringRes* pstrres = (gos_StringRes*)(handle);
     const char* str = pstrres->getStringByIdFptr(id);
-    if(NULL == str || isPlaceholderString(str)) {
-        const char* extra = getExtraString(id);
-        if(extra && (NULL == str || !isPlaceholderString(extra)))
-            str = extra;
-    }
+    bool replacesTable = false;
+    const char* extra = getExtraString(id, &replacesTable);
+    if(extra && (replacesTable || NULL == str || isPlaceholderString(str))
+        && (NULL == str || !isPlaceholderString(extra)))
+        str = extra;
 
     if(NULL == str) {
         fprintf(stderr, "Requested string id: %u not found, return dummy string\n", id);
