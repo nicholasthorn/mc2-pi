@@ -27,6 +27,8 @@ const Whole kWholeNames[] = {
 	// data/cameras
 	{ "cameras", "mc2xcams" },
 	{ "colors", "mc2xcols" },
+	// data/missions
+	{ "gamesys", "mc2xgsys" },
 };
 
 struct Rename

@@ -1389,7 +1389,7 @@ void Turret::fireWeapon (GameObjectPtr target, long weaponId) {
 		bool indirectFireWeapon = false;
 		
 		//--------------------------------------------------------------------
-		for (long i=0;i<20;i++)
+		for (long i=0;i<Mover::MAX_INDIRECT_FIRE_WEAPONS;i++)
 		{
 			if (Mover::IndirectFireWeapons[i] == ((TurretTypePtr)getObjectType())->weaponMasterId[weaponId])
 			{

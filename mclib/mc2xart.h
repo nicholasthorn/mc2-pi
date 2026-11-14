@@ -4,7 +4,8 @@
 // mcl_<x> is mc2x_<x> (a few drop a part as well, mcl_gn_deploymentteams is
 // mc2x_deploymentteams), buttonlayout<w> is mc2x_buttonlayout<w> and
 // mcui_keyref<x> is mc2x_keyref<x>; in the camera folder cameras.fit is
-// mc2xcams.fit and colors.fit mc2xcols.fit. FitIniFile::open tries MC2X's
+// mc2xcams.fit and colors.fit mc2xcols.fit; in the missions folder gamesys.fit
+// is mc2xgsys.fit. FitIniFile::open tries MC2X's
 // name when a file in those folders is not there, so stock and Omnitech data
 // never reach it. Names only, so it can be unit tested.
 

@@ -65,6 +65,7 @@ TEST_CASE("mc2xArtName: names MC2X shortened as well")
 	CHECK(mapped("mcl_mp_mapinfo") == "mc2x_mapinfo");
 	CHECK(mapped("cameras") == "mc2xcams");
 	CHECK(mapped("colors") == "mc2xcols");
+	CHECK(mapped("gamesys") == "mc2xgsys");
 	// the rest of mcl_gn_ and mcl_mp_ only change the prefix
 	CHECK(mapped("mcl_mp_param") == "mc2x_mp_param");
 }

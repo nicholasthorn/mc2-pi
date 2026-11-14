@@ -460,16 +460,16 @@ long FitIniFile::byteToTextHex (char *result, byte num, unsigned long bufLen)
 }	
 
 //---------------------------------------------------------------------------
-// A layout in the art folder, or a camera file, that is not there may be
-// under wolfman-MC2X's name for it (mc2xart.h); stock and Omnitech data
-// always have theirs.
+// A layout in the art folder, a camera file or the game system file that is
+// not there may be under wolfman-MC2X's name for it (mc2xart.h); stock and
+// Omnitech data always have theirs.
 long FitIniFile::openMC2XLayout (const char* fName, FileMode _mode, long numChild, bool doNotLower)
 {
 	const size_t nameLength = fName ? strlen(fName) : 0;
 	if ((_mode != READ) || (nameLength <= 4) || (S_stricmp(fName + nameLength - 4, ".fit") != 0))
 		return(FILE_NOT_OPEN);
 	const char* folder = NULL;
-	const char* const folders[] = { artPath, cameraPath };
+	const char* const folders[] = { artPath, cameraPath, missionPath };
 	for (const char* candidate : folders) {
 		const size_t length = strlen(candidate);
 		if ((nameLength > length + 4) && (strncmp(fName, candidate, length) == 0))
