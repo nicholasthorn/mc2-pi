@@ -771,11 +771,11 @@ long MOVE_readData (PacketFile* packetFile, long whichPacket) {
 			return(numPacketsRead);
 		}
 		if (tempNumSpecialAreas > 0) {
-			// Stock or Omnitech wide footprints (528 bytes each, Clan Wars);
-			// reading the wide ones raw used to overflow this buffer.
+			// Stock, Omnitech wide (528 bytes each, Clan Wars) or MC2X (520)
+			// footprints; reading the wide ones raw used to overflow this buffer.
 			tempSpecialAreaFootPrints = (GameObjectFootPrint*)systemHeap->Malloc(sizeof(GameObjectFootPrint) * tempNumSpecialAreas);
 			gosASSERT(tempSpecialAreaFootPrints != NULL);
-			if (!readPathRecords(packetFile, countPacket + 1, tempSpecialAreaFootPrints, tempNumSpecialAreas, narrowGameObjectFootPrint<GameObjectFootPrint>)) {
+			if (!readFootPrints(packetFile, countPacket + 1, tempSpecialAreaFootPrints, tempNumSpecialAreas)) {
 				reportBadPathPacket(packetFile, countPacket + 1, "special area footprints", 0, tempNumSpecialAreas);
 				GlobalMoveMap[0]->badLoad = true;
 				return(numPacketsRead);
