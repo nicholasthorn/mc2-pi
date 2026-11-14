@@ -257,9 +257,15 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
         // arr = "aaa";
         // this will copy size bytes (25) from "aaa", which is effectively only 4 bytes!
         // so this fixes it
-        const int srclen = strlen(src) + 1;
+        // The source string ends at its terminator or at the end of its own
+        // array, whichever comes first: a char array filled to its last byte
+        // has no terminator (a wolfman-MC2X brain), and strlen read past it.
 		long size = targetTypePtr->size;
-		memcpy(dest, src, /*size*/srclen<size?srclen:size);
+		long srcSize = (expressionTypePtr && (expressionTypePtr->form == FRM_ARRAY)) ? expressionTypePtr->size : size;
+		long srclen = (long)strnlen(src, (size_t)(srcSize < size ? srcSize : size));
+		memcpy(dest, src, srclen);
+		if (srclen < size)
+			dest[srclen] = 0;
 		}
 	else if ((targetTypePtr == IntegerTypePtr) || (targetTypePtr->form == FRM_ENUM)) {
 		//------------------------------------------------------

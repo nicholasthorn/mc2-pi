@@ -49,6 +49,45 @@ struct AblCompiled
 TEST_SUITE("AblScan")
 {
 
+// A char array assignment copied strlen(source) + 1 bytes (bounded by the
+// target), so a source filled to its last byte, with no terminator, was read
+// past its end: ASan, a char[12] in a wolfman-MC2X brain (redrockoutpost).
+// Each static array is its own heap block, so this one is too. The length
+// is now bounded by the source array's size as well.
+TEST_CASE("ABL char array assignment: a source with no terminator is read to its size only")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic char[4] full;\n"
+		"\t\tstatic char[8] copy;\n"
+		"\t\tstatic char[8] shortcopy;\n"
+		"\tcode\n"
+		"\t\tfull[0] = \"a\";\n"
+		"\t\tfull[1] = \"b\";\n"
+		"\t\tfull[2] = \"c\";\n"
+		"\t\tfull[3] = \"d\";\n"
+		"\t\tcopy = full;\n"
+		"\t\tshortcopy = \"xy\";\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	m.execute();
+
+	SymTableNodePtr copy = m.findSymbol("copy");
+	SymTableNodePtr shortCopy = m.findSymbol("shortcopy");
+	REQUIRE(copy != nullptr);
+	REQUIRE(shortCopy != nullptr);
+	const char* copyText = (const char*)(m.getStaticData() + copy->defn.info.data.offset)->address;
+	const char* shortText = (const char*)(m.getStaticData() + shortCopy->defn.info.data.offset)->address;
+	CHECK(strcmp(copyText, "abcd") == 0);
+	CHECK(strcmp(shortText, "xy") == 0);
+	m.destroy();
+}
+
 TEST_CASE("ablIntegerLiteral: past the int range, the value's low 32 bits")
 {
 	CHECK((uint32_t)ablIntegerLiteral("4278190080") == 0xFF000000u);
