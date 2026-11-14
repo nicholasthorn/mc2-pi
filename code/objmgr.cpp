@@ -1020,7 +1020,7 @@ void GameObjectManager::loadTerrainObjects (PacketFile* terrainFile,
 	{
 		if ((turrets[i]->parentId != 0xffffffff) && (turrets[i]->parentId != 0)) 
 		{
-			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((turrets[i]->parentId>>16),(turrets[i]->parentId & 0x0000ffff));
+			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((turrets[i]->parentId>>16),(turrets[i]->parentId & 0x0000ffff), BUILDING);
 			if (controlBuilding && !controlBuilding->getFlag(OBJECT_FLAG_CONTROLBUILDING)) 
 			{
 				controlBuilding->setFlag(OBJECT_FLAG_CAPTURABLE, true);
@@ -1043,7 +1043,7 @@ void GameObjectManager::loadTerrainObjects (PacketFile* terrainFile,
 	{
 		if ((gates[i]->parentId != 0xffffffff) && (gates[i]->parentId != 0))
 		{
-			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((gates[i]->parentId>>16),(gates[i]->parentId & 0x0000ffff));
+			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((gates[i]->parentId>>16),(gates[i]->parentId & 0x0000ffff), BUILDING);
 			if (controlBuilding && !controlBuilding->getFlag(OBJECT_FLAG_CONTROLBUILDING)) 
 			{
 				controlBuilding->setFlag(OBJECT_FLAG_CONTROLBUILDING, true);
@@ -2175,7 +2175,7 @@ GameObjectPtr GameObjectManager::findByBlockVertex (long blockNum, long vertex) 
 
 //---------------------------------------------------------------------------
 
-GameObjectPtr GameObjectManager::findByCellPosition (long row, long col) 
+GameObjectPtr GameObjectManager::findByCellPosition (long row, long col, long objectClass)
 {
 	//-------------------------------------------------------------------------------------
 	// Must implement for Linkage code.  10/20/99 -fs
@@ -2185,7 +2185,7 @@ GameObjectPtr GameObjectManager::findByCellPosition (long row, long col)
 	for (long objIndex = 1; objIndex <= numObjects; objIndex++)
 	{
 		GameObjectPtr obj = objList[objIndex];
-		if (obj->getExists())
+		if (obj->getExists() && ((objectClass < 0) || (obj->getObjectClass() == objectClass)))
 		{
 			int cellR, cellC;
 			objList[objIndex]->getCellPosition(cellR,cellC);
@@ -3621,7 +3621,7 @@ long GameObjectManager::Load (PacketFilePtr file, long packetNum)
 	{
 		if ((turrets[i]->parentId != 0xffffffff) && (turrets[i]->parentId != 0)) 
 		{
-			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((turrets[i]->parentId>>16),(turrets[i]->parentId & 0x0000ffff));
+			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((turrets[i]->parentId>>16),(turrets[i]->parentId & 0x0000ffff), BUILDING);
 			if (controlBuilding && !controlBuilding->getFlag(OBJECT_FLAG_CONTROLBUILDING)) 
 			{
 				controlBuilding->setFlag(OBJECT_FLAG_CAPTURABLE, true);
@@ -3644,7 +3644,7 @@ long GameObjectManager::Load (PacketFilePtr file, long packetNum)
 	{
 		if ((gates[i]->parentId != 0xffffffff) && (gates[i]->parentId != 0))
 		{
-			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((gates[i]->parentId>>16),(gates[i]->parentId & 0x0000ffff));
+			BuildingPtr controlBuilding = (BuildingPtr)ObjectManager->findByCellPosition((gates[i]->parentId>>16),(gates[i]->parentId & 0x0000ffff), BUILDING);
 			if (controlBuilding && !controlBuilding->getFlag(OBJECT_FLAG_CONTROLBUILDING)) 
 			{
 				controlBuilding->setFlag(OBJECT_FLAG_CONTROLBUILDING, true);
