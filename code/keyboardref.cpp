@@ -6,7 +6,6 @@ KeyboardRef.cpp			: Implementation of the KeyboardRef component.
 //===========================================================================//
 \*************************************************************************************************/
 
-#include"mc2xart.h"
 #include"keyboardref.h"
 #include"mclib.h"
 #include "../resource.h"
@@ -74,9 +73,9 @@ int KeyboardRef::init()
     path.init( artPath, fileName, ".fit" );
 
 	FitIniFile file;
-	// wolfman-MC2X names it mc2x_keyref_*; a mod with neither gets an empty
-	// key list rather than one built from rects that are not there
-	if ( openArtLayout( file, fileName ) != NO_ERR )
+	// a mod can lack the layout: the key list is left empty rather than
+	// built from rects that are not there
+	if ( file.open( path ) != NO_ERR )
 	{
 		PAUSE(( "KeyboardRef: cannot open %s, no key reference", (const char*)path ));
 		return false;
@@ -96,7 +95,7 @@ int KeyboardRef::init()
 	file.close();
 
 	path.init( artPath, "mcui_keyref_entry", ".fit" );
-	if ( openArtLayout( file, "mcui_keyref_entry" ) != NO_ERR )
+	if ( file.open( path ) != NO_ERR )
 	{
 		PAUSE(( "KeyboardRef: cannot open %s, no key reference", (const char*)path ));
 		return false;

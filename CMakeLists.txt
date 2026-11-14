@@ -258,7 +258,6 @@ set(SOURCES
     "code/missaim.cpp"
     "code/mechtypefit.cpp"
     "code/campaignglobals.cpp"
-    "code/mc2xart.cpp"
     "code/forcegroupcycle.cpp"
     "code/missiongui.cpp"
     "code/mpconnectiontype.cpp"
@@ -338,7 +337,7 @@ endif()
 # "#pragma warning" lines; the unit tests see it as a SYSTEM header, the game
 # target cannot, so only that warning is relaxed here.
 if(MC2_STRICT_WARNINGS)
-    set_source_files_properties(code/benchscenario.cpp code/typename.cpp code/campaignglobals.cpp code/mc2xart.cpp
+    set_source_files_properties(code/benchscenario.cpp code/typename.cpp code/campaignglobals.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
     set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netlobby.cpp code/netrules.cpp code/netforce.cpp code/iconsheet.cpp code/forcegroupcycle.cpp code/missaim.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")

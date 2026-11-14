@@ -38,7 +38,6 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"malloc.h"
 
 #include"chatwindow.h"
-#include"mc2xart.h"
 
 
 
@@ -2680,11 +2679,12 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 	bool mc2xHud = false;
 	for ( ;; )
 	{
-		char layoutName[64];
-		snprintf( layoutName, sizeof( layoutName ), "buttonlayout%d", layoutWidth );
-		snprintf( path, sizeof( path ), "%s%s.fit", artPath, layoutName );
-		if ( NO_ERR == openArtLayout( buttonFile, layoutName, &mc2xHud ) )
+		snprintf( path, sizeof( path ), "%sbuttonlayout%d.fit", artPath, layoutWidth );
+		if ( NO_ERR == buttonFile.open( path ) )
+		{
+			mc2xHud = buttonFile.openedMC2XName();
 			break;
+		}
 		const int smaller = hudLayoutWidth( layoutWidth - 1 );
 		if ( smaller == layoutWidth )
 		{

@@ -141,7 +141,7 @@ add_executable(mc2_tests
     ${MC2_SRC}/code/missaim.cpp
     ${MC2_SRC}/code/mechtypefit.cpp
     ${MC2_SRC}/code/campaignglobals.cpp
-    ${MC2_SRC}/code/mc2xart.cpp
+    ${MC2_SRC}/mclib/mc2xart.cpp
     ${MC2_SRC}/code/forcegroupcycle.cpp
 )
 
@@ -197,7 +197,7 @@ set_source_files_properties(
     ${MC2_SRC}/code/missaim.cpp
     ${MC2_SRC}/code/mechtypefit.cpp
     ${MC2_SRC}/code/campaignglobals.cpp
-    ${MC2_SRC}/code/mc2xart.cpp
+    ${MC2_SRC}/mclib/mc2xart.cpp
     ${MC2_SRC}/code/forcegroupcycle.cpp
     ${MC2_SRC}/GameOS/gameos/utils/jpeg_decode.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pe_strings.cpp

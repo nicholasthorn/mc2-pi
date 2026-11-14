@@ -76,6 +76,7 @@ set(SOURCES ${SOURCES}
     mech3d.cpp
     soundsys.cpp
     waveparse.cpp
+    mc2xart.cpp
     move.cpp
     echarstring.cpp
     estring.cpp
@@ -89,6 +90,9 @@ include_directories(${THIRDPARTY_INCLUDE_DIRS})
 
 add_definitions(-DBGR)
 add_library(mclib ${SOURCES})
+
+# new code: strict warnings (see MC2_STRICT_WARNINGS)
+set_source_files_properties(mc2xart.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 
 # cat MCLib.vcproj | grep ".cpp" | perl -pe 's/.+\"(\w+\.cpp)\".+/\1/g' >> CMakeLists.txt
 

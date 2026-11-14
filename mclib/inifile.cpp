@@ -15,6 +15,10 @@
 #include"inifile.h"
 #endif
 
+#include"mc2xart.h"
+#include"paths.h"
+#include<string.h>
+
 #ifndef HEAP_H
 #include"heap.h"
 #endif
@@ -56,6 +60,7 @@ FitIniFile::FitIniFile (void) : File()
 	currentBlockId = NULL;
 	currentBlockOffset = 0;
 	currentBlockSize = 0;
+	openedMC2X = false;
 }
 
 //---------------------------------------------------------------------------
@@ -455,9 +460,48 @@ long FitIniFile::byteToTextHex (char *result, byte num, unsigned long bufLen)
 }	
 
 //---------------------------------------------------------------------------
+// A layout in the art folder, or a camera file, that is not there may be
+// under wolfman-MC2X's name for it (mc2xart.h); stock and Omnitech data
+// always have theirs.
+long FitIniFile::openMC2XLayout (const char* fName, FileMode _mode, long numChild, bool doNotLower)
+{
+	const size_t nameLength = fName ? strlen(fName) : 0;
+	if ((_mode != READ) || (nameLength <= 4) || (S_stricmp(fName + nameLength - 4, ".fit") != 0))
+		return(FILE_NOT_OPEN);
+	const char* folder = NULL;
+	const char* const folders[] = { artPath, cameraPath };
+	for (const char* candidate : folders) {
+		const size_t length = strlen(candidate);
+		if ((nameLength > length + 4) && (strncmp(fName, candidate, length) == 0))
+			folder = candidate;
+	}
+	if (!folder)
+		return(FILE_NOT_OPEN);
+	const size_t folderLength = strlen(folder);
+	char stockName[128];
+	const size_t baseLength = nameLength - folderLength - 4;
+	if (baseLength >= sizeof(stockName))
+		return(FILE_NOT_OPEN);
+	memcpy(stockName, fName + folderLength, baseLength);
+	stockName[baseLength] = 0;
+	for (size_t i = 0; i < baseLength; i++)
+		stockName[i] = (char)tolower((unsigned char)stockName[i]);
+	char mc2xName[128];
+	if (!mc2xArtName(stockName, mc2xName, sizeof(mc2xName)))
+		return(FILE_NOT_OPEN);
+	char path[512];
+	snprintf(path, sizeof(path), "%s%s.fit", folder, mc2xName);
+	return(File::open(path, _mode, numChild, doNotLower));
+}
+
 long FitIniFile::open (const char* fName, FileMode _mode, long numChild, bool doNotLower)
 {
+	openedMC2X = false;
 	long result = File::open(fName,_mode,numChild, doNotLower);
+	if ((result != NO_ERR) && (openMC2XLayout(fName, _mode, numChild, doNotLower) == NO_ERR)) {
+		openedMC2X = true;
+		result = NO_ERR;
+	}
 	if (result != NO_ERR)
 		return(result);
 		
