@@ -575,6 +575,61 @@ lowercased. Run: `scripts/smoke.sh --game-dir ~/gd-mco --missions innersphere1`.
      stock's dialog (only Accept with no change is walked).
    - Later missions of these campaigns are not played through: only that
      each loads and runs (above).
+   - **Re-check and the rest of ModDB (2026-11-14, PR #156).** All eight
+     packs above and Desert Fox still pass a 300-frame smoke on `pi-port`
+     `a2b8f160` (six packs + Desert Fox 101/101, Carver V original 24/24,
+     modified 24/24), and a 3000-frame sample (one or two missions of each)
+     passes. MD5s of the eight installers (`~/mco-packs/dl`): Carver5M
+     `87497280f6f909433cac07457dfc4f81`, Carver5O
+     `edca83006d6d524ea3aa46c4071ecc0d`, ClanEagle
+     `66cc66c2fb18f79a53675330a9b3f838`, DayOfHeroes
+     `9e54f865525befb77270672b0ee056b8`, LaskosLegion
+     `fe5eb10a4e3bcb1f11224e1cfec3afb4`, MercStar
+     `d72bc5733b2ae2b07403ad2fc780ccb4`, Volstand
+     `a313c2aa0847309d5ec5ccd3d04099ab`, WolfDragoons
+     `d635d57b7faf09fd2ae3e4f6d6988ff1`. What else ModDB has:
+     - *Exodus: The Liberation Movement* (2017) is a PDF of the story
+       script (`MC2ExodusCampaign-TheLiberationMovement.pdf`), not a
+       campaign; Omnitech's own Exodus missions (`e_*`) are item 11.
+     - GamePressure's "Mercenaries Star, updated 2021" and its Carver V are
+       the same sizes as the files above (its date is the page's, its text
+       is copied from Day of Heroes): nothing newer.
+     - *Wolf Dragoons "Re-Release"* (`WolfDragoonsForMCOsetup.1.exe`,
+       28,727,403 bytes, MD5 `f6212f24b18bbc18b24ed9add32c2d4a`) is the
+       older build: its files are dated July 2011, the pack above May 2012.
+       Same 450 files, 21 missions' `.fit` / `.pak` differ. 21/21 pass, in
+       its own folder (`~/gd-mco-wolf11`; same mission names).
+     - *Carver 5 Redux* (its own ModDB mod, `carver-5-redux`, v1.23,
+       `CarverVRedux.2.exe`, 130,633,798 bytes, MD5
+       `f8fbb46f64a33f51a6c26fa7898a235c`, 2019; campaign `carver5redux.fit`,
+       26 missions `acb_carver_01`..`26`). It replaces 183 of Omnitech's
+       `objects` files, 42 pilots, `gamesys.fit` and `buildings.csv`, so it
+       has its own folder (`~/gd-mco-c5r`). 10/26 passed at first; 26/26
+       after the engine changes of PR #156, which match MechCommander
+       Omnitech 6.28's limits (read from `MCORel.pdb` and its `initABL`):
+       ABL static variables per module 100 to 200 (Redux declares up to
+       164), with the runtime stack, code buffer and module count doubled
+       as Omnitech has them; `MAX_WARRIORS` 160 to 200 (up to 169 parts);
+       `MAX_SENSORS` 150 to 200 (a mission with more sensor units crashed in
+       `GroundVehicle::init` on a null sensor). Three 6.28 ABL commands:
+       `hirepilot` (kept through later purchase files and in the save,
+       `HiredPilots`), `addnewpilottoplayer` (30 calls; queued like
+       `setbrain`) and `setlargemsg` (shown like `settextmsg`; long lines
+       now carry on in the next line). Under ASan, mission 14's script
+       passed an `integer[1]` list to `getunitmates` for 3-mover units, and
+       the game wrote past it: `getunitmates` now fills only what the list
+       holds (`ABLi_lastPointerSize`) and logs it, and the script's list is
+       `integer[12]` in the local data (original in
+       `/root/mco-datafix-backup-c5r`). UBSan in mission 6: a move to a
+       turret cast it to `Building` (`Mover::calcGlobalPath`; turrets say
+       `isBuilding()`), now called through the virtual on `GameObject`;
+       other such casts in `warrior.cpp` were not hit and are unchanged.
+       All 26 run clean under ASan + UBSan. Not fixed: eight Redux missions put
+       up to 161 movers on one team; the roster holds 120
+       (`MAX_MOVERS_PER_TEAM`, in the in-mission save; Omnitech 150), so
+       the rest stay off it, logged. `hirepilot` (mission 11) is not
+       reached in a 3000-frame run, and mode 1 of the message commands
+       (a box that waits for Enter) is still shown as plain lines.
 
 14. **Front-end labels and the mech view (2026-11-02, branch
    `omnitech-frontend-labels-mech`).** From a Quest playtest of the menus.
