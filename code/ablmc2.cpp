@@ -1266,6 +1266,8 @@ void execSortWeapons (void) {
 	int* weaponList = ABLi_popIntegerPtr();
 	long listSize = ABLi_popInteger();
 	long sortType = ABLi_popInteger();
+	// registered with a result: leave one (it pushed none and unbalanced the stack)
+	ABLi_pushInteger(0);
 
 	long valueList[50];
 	if (CurObject && CurObject->isMover())
@@ -2650,6 +2652,8 @@ void execStopMusic(void) {
 	//
 	//		Returns: None
 
+	// registered with a result: leave one (it pushed none and unbalanced the stack)
+	ABLi_pushInteger(0);
 	if (soundSystem)
 		soundSystem->stopABLMusic();
 }
@@ -2709,6 +2713,8 @@ void execSetRadio (void) {
 
 	long warriorIndex = ABLi_popInteger();
 	bool radioSetting = ABLi_popBoolean();
+	// registered with a result: leave one (it pushed none and unbalanced the stack)
+	ABLi_pushInteger(0);
 
 	MechWarriorPtr pilot = getWarrior(warriorIndex);
 
@@ -3392,6 +3398,8 @@ void execSetObjectDamage (void) {
 
 	long objectNum = ABLi_popInteger();
 	long dmgPercentage = ABLi_popInteger();
+	// registered with a result: leave one (it pushed none and unbalanced the stack)
+	ABLi_pushInteger(0);
 	if (dmgPercentage > 100)
 		dmgPercentage = 100;
 
@@ -3604,7 +3612,9 @@ void execSetSalvage (void) {
 	ABLi_popInteger();
 	//long component = 
 	ABLi_popInteger();
-	//long itemCount = ABLi_peekInteger();
+	// the result is poked into the last argument's slot: peek it (the call
+	// had been commented out with the unused variable)
+	ABLi_peekInteger();
 
 	ABLi_pokeInteger(0);
 #ifdef USE_SALVAGE
@@ -3649,7 +3659,9 @@ void execSetSalvageStatus (void){
 
 	//long objectId = 
 	ABLi_popInteger();
-	//bool on = ABLi_peekBoolean();
+	// the result is poked into the last argument's slot: peek it (the call
+	// had been commented out with the unused variable)
+	ABLi_peekBoolean();
 
 	ABLi_pokeBoolean(false);
 #ifdef USE_SALVAGE
@@ -4197,7 +4209,9 @@ void execAddPrisoner (void) {
 
 	//long prisonId = 
 	ABLi_popInteger();
-	//long prisonerId = ABLi_peekInteger();
+	// the result is poked into the last argument's slot: peek it (the call
+	// had been commented out with the unused variable)
+	ABLi_peekInteger();
 
 	//GameObjectPtr prison = getObject(prisonId);
 	ABLi_pokeInteger(-1);
@@ -7447,7 +7461,8 @@ void initABL (void) {
 	ABLi_addFunction("setrealmemory", false, "ir", NULL, execSetRealMemory);
 	ABLi_addFunction("hasmovegoal", false, NULL, "b", execHasMoveGoal);
 	ABLi_addFunction("hasmovepath", false, NULL, "b", execHasMovePath);
-	ABLi_addFunction("sortweapons", false, "Ii", "i", execSortWeapons);
+	// three arguments, as execSortWeapons pops (no script calls it)
+	ABLi_addFunction("sortweapons", false, "Iii", "i", execSortWeapons);
 	ABLi_addFunction("getvisualrange", false, "i", "r", execGetVisualRange);
 	ABLi_addFunction("getunitmates", false, "iI", "i", execGetUnitMates);
 	ABLi_addFunction("gettacorder", false, "irI", "i", execGetTacOrder);
