@@ -1159,6 +1159,7 @@ void SensorSystemManager::operator delete (void* us) {
 
 long SensorSystemManager::init (bool debug) {
 
+	toldPoolEmpty = false;
 	if (MAX_SENSORS < 2)
 		Fatal(0, " Way too few sensors in Sensor System Manager! ");
 
@@ -1235,10 +1236,9 @@ SensorSystemPtr SensorSystemManager::newSensor (void) {
 	// because they only fire when a COMPONENT_FORM_SENSOR is present.
 	if (!freeSensors) {
 		// most callers do not check: say why the crash that follows happens
-		static bool told = false;
-		if (!told) {
+		if (!toldPoolEmpty) {
 			fprintf(stderr, "SensorSystemManager: all %d sensor systems in use (MAX_SENSORS)\n", MAX_SENSORS);
-			told = true;
+			toldPoolEmpty = true;
 		}
 		return nullptr;
 	}

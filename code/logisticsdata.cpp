@@ -1617,7 +1617,7 @@ long LogisticsData::updateAvailability()
 	{
 		EString error;
 		error.Format( "Couldn't open %s", (char*)(const char*)purchaseFileName );
-		PAUSE(((char*)(const char*)error ));
+		PAUSE(( "%s", (const char*)error ));	// a file name from the campaign: never a format
 		return NO_PURCHASE_FILE;
 	}
 	// read in available components

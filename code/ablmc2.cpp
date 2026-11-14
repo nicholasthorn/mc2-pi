@@ -1332,7 +1332,7 @@ void execGetUnitMates (void) {
 	int* mateList = ABLi_popIntegerPtr();
 	// the script's list may be shorter than the unit (Carver V Redux mission
 	// 14 passes an integer[1]): fill what it holds, and say so
-	const long listMax = ABLi_lastPointerSize() / (long)sizeof(int);
+	const long listSize = ABLi_lastPointerSize();
 
 	long numObjects = 0;
 	if ((objectId >= MIN_UNIT_PART_ID) && (objectId <= MAX_UNIT_PART_ID)) {
@@ -1349,6 +1349,7 @@ void execGetUnitMates (void) {
 		}
 	}
 	long numObjs = numObjects;
+	const long listMax = (listSize > 0) ? listSize / (long)sizeof(int) : numObjects;	// size unknown: as before
 	if (numObjs > listMax) {
 		fprintf(stderr, "getunitmates: unit %ld has %ld movers, the script's list holds %ld\n", objectId, numObjects, listMax);
 		numObjs = listMax;
