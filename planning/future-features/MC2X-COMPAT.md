@@ -197,8 +197,51 @@ per-mission detail textures are named `<mission>.detail.tga`; REAP3 ships
 no `detail textures` folder), and the one bad `tgl.fst` entry. No
 "requested packet" or missing-string noise.
 
-Not tried: ASan + UBSan on the MC2X missions, the GLES build, front-end
-walks (MC2X's front end is all renamed layouts), and play past 300 frames.
+12. **ASan + UBSan (2026-11-14, step 1 of the recommendation)**, all 32
+    missions with the same local stubs. Fixed on the branch, each a bug a
+    short or odd file could hit with stock data too:
+    - **WAV parse past a sound bite** (every mission, at start-up): MC2X's
+      `sound.pak` holds a 1-byte bite, and `wave_ParseWaveMemory` read a
+      12-byte header from it; it had no buffer size at all.
+      `wave_ParseWaveMemorySized` bounds every read by the packet size, cuts
+      a data chunk that runs past the end, and is used where the size is
+      known (sound bites, Betty); Betty and the support radio now also skip
+      a bite that does not parse instead of dividing by its channel count.
+      Unit tested.
+    - **In-memory `File` reads past the end** (`cityassault`): a MC2X model
+      in `tgl.fst` is 25 bytes shorter than `TG_TypeShape::LoadBinaryCopy`
+      reads. `File::read` and the fixed-size readers of an in-memory file
+      (every FST entry is one) now stop at its end and zero the rest. Unit
+      tested. Which model it is was not tracked down.
+    - **ABL string assignment read past its source** (`redrockoutpost`): a
+      warrior brain fills a `char[12]` to its last byte, and assigning it
+      used `strlen`. The length is now bounded by the source array's size.
+      Unit tested (ABL compiled and run in the test; the over-read shows
+      under ASan only).
+    - **Turret and gate control buildings that are not buildings**
+      (`cityassault`, `reap3m19`, UBSan): `findByCellPosition` returned the
+      first object of any kind in the linked cell, and the code cast it to
+      `Building` and wrote a list index into it. The lookup takes an object
+      class now, the seven link sites ask for `BUILDING`, and the turret,
+      gate and building `parent` lookups no longer dereference NULL when
+      there is none (the existing PAUSE logs it).
+    Result: **28 of 32 pass 300 frames under ASan + UBSan** (all but
+    `reap3m02` and the three missions that need `toggledeployer`), with 23
+    of the 300x300 maps among them. Stock `mc2_01`, `mc2_03` and Omnitech's
+    `innersphere1`, `innersphere5`, `a_0_2` still pass.
+13. **Part ids on 300x300 maps: MC2X keeps the stock multiplier.** The probe
+    logged what `settxtbuildingname(248029, "Drone Command Center")`
+    (`reap3m06`) finds: read as `4096 + row * 720 + col` it is cell
+    (338, 573), and the building there is the Drone Command Center; read
+    with 900 there is nothing. So MC2X kept `MAX_MAP_CELL_WIDTH` 720 for ids,
+    and so does this port: stock scripts' building ids stay valid. Columns
+    720 to 899 alias the next row's ids in MC2X as well. **The trigger map**
+    (`TriggerAreaManager::map`, tiles of 3 cells) was 240 tiles wide with
+    only release-off `gosASSERT`s on its bounds; it is now 300 tiles
+    (`TRIGGER_MAP_TILES`) and `add` / `remove` clamp to it.
+
+Not tried: the GLES build, front-end walks (MC2X's front end is all
+renamed layouts), and play past 300 frames.
 
 ## ABL
 
@@ -273,19 +316,13 @@ Two routes:
 
 ## Raised limits and sizes it implies
 
-- **Maps up to 300x300** (all 24 REAP3 missions; R70 has 160 and 240). Ours
-  is `MAX_MAP_CELL_WIDTH` 720 cells (240 vertices). They loaded and ran 300
-  frames, but nothing checks the limit, and:
-  - terrain object part ids are `4096 + row * 720 + col`, so on a 900-cell
-    map two cells share an id, and rows past 640 pass
-    `MAX_TERRAIN_PART_ID` (464895); MC2X's own multiplier is unknown (two
-    REAP3 scripts name buildings by id: 293660, 248029);
-  - `TriggerAreaManager::map` is `[240][240]` (cell / 3), so a trigger area
-    past tile 240 writes outside it (its bounds are a `gosASSERT`, off in
-    release builds).
-  Raising it to 900 means the id formula, its decoder (`gameobj.cpp`), the
-  trigger map and an ASan pass; the multiplayer chunk masks (20 bits) hold
-  900 x 900.
+- **Maps up to 300x300** (all 24 REAP3 missions; R70 has 160 and 240).
+  `MAX_MAP_CELL_WIDTH` is 720 cells (240 vertices), but it only sets the
+  part id multiplier, which MC2X keeps (step 13), and the trigger map, now
+  300 tiles. The terrain itself is sized from the map. All 24 REAP3 maps
+  run 300 frames under ASan + UBSan (but `reap3m02`, an ABL problem).
+  Rows past 640 give ids past `MAX_TERRAIN_PART_ID` (464895), which
+  nothing checks; the multiplayer chunk masks (20 bits) hold them.
 - **256 components** (ids 0 to 255; stock 255 entries, 0 to 254).
   `loadMasterList(..., 255)` drops MC2X's id 255; component ids are bytes in
   places, so raising it needs a check of their users.
@@ -313,7 +350,7 @@ stock or Omnitech units).
 | step | what | size |
 |---|---|---|
 | done | loader fallbacks and checks on this branch | |
-| 1 | ASan + UBSan on a 300x300 REAP3 mission; the 900-cell limit and part ids | 1-2 days |
+| done | ASan + UBSan on all 32 missions, its four fixes, part ids, trigger map | |
 | 2 | the 14 called ABL commands, `newpower`'s second form, campaign globals in the save | 2-3 days |
 | 3 | long strings: find and size the buffers (12 ids) | half a day |
 | 4 | move type 2 for Drone, JamFly, Kamikaze | 1 day, once its meaning is known |
@@ -339,8 +376,7 @@ The cost is in MC2X's interface (every layout renamed, a larger HUD) and its
 own features, which no data file explains. Order:
 
 1. Merge this branch (the fallbacks and checks are harmless to stock data).
-2. Step 1 (ASan on a 300x300 map), before anything else: a 300x300 map that
-   writes outside our arrays would make every later result suspect.
+2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
 3. Steps 2 to 5, measured by REAP3 missions passing 3000-frame smokes.
 4. Step 6 only if people ask for MC2X; step 8 not unless MC2X's author
    documents the features.
@@ -350,7 +386,6 @@ CVE-G (Carver V on MC2X) when its download can be fetched.
 
 ## Open questions
 
-- MC2X's terrain part-id multiplier on 300x300 maps.
 - What move type 2 is (low flyer, hover).
 - Whether MC2X's terms allow a converter that reads its install (no
   redistribution) the way the remaster's importer does.
