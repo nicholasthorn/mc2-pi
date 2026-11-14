@@ -1,7 +1,9 @@
 # wolfman-MC2X content on this port
 
-Status: study, 2026-11-14. Small loader fixes built (branch
-`claude/mc2x-compat-b44556`); everything else below is written up, not built.
+Status: in progress, 2026-11-14 (branch `claude/mc2x-compat-b44556`). Built:
+the loader fixes, the ABL commands MC2X's missions call, the fixes the
+sanitizer runs found; all 32 missions run 300 frames. Not built: the
+interface, move type 2, long strings and the rest of "Effort".
 Companion to `MOD-COMPAT.md` (MechCommander Omnitech), whose work this leans
 on.
 
@@ -240,6 +242,26 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     only release-off `gosASSERT`s on its bounds; it is now 300 tiles
     (`TRIGGER_MAP_TILES`) and `add` / `remove` clamp to it.
 
+14. **ABL commands and `reap3m02` (2026-11-14, steps 2 and 5).** The ten
+    commands the 32 missions load are built (table under "ABL"), and
+    `newpower` takes MC2X's (part id, boolean) form through a new ABL
+    feature, optional trailing parameters (`"?|b"`, `ABLi_moreParams()`).
+    `reap3m02`'s corruption was a stock bug: `setobjectdamage` is
+    registered with a result but pushed none, so each call as a statement
+    took one slot too many off the ABL stack and a later push landed in the
+    mission script's frame (a probe watched the slot of its local `aPoint`
+    change at `setobjectdamage(4820, 100)`). REAP3 calls it 408 times; stock
+    once. A scan of every registered command found the same in `stopmusic`
+    (475 REAP3 calls, 5 stock), `setradio` and `sortweapons`, and three that
+    poked a result without peeking their last argument (`setsalvage`,
+    `setsalvagestatus`, `addprisoner`). All fixed, and the executor now
+    evens the stack after every command and logs one that breaks the rule.
+    Both ABL changes are unit tested with ABL compiled and run.
+    **Result: all 32 missions pass 300 frames under ASan + UBSan** with no
+    script stubs; the only local workarounds left are move type 2 treated
+    as air, long strings logged instead of stopping, and stock's UI art in
+    the test folder.
+
 Not tried: the GLES build, front-end walks (MC2X's front end is all
 renamed layouts), and play past 300 frames.
 
@@ -256,23 +278,24 @@ here from the Omnitech work: `addmoney`, `addresourcepoints`,
 `needsrefit`, `scanareacapture`, `scanarearepair`, `autorepairwithinradius`,
 `setobjectivestatus`, `setobjectivetype`.
 
-Called by MC2X's shipped scripts and not registered here (scan of every
-`.abl`/`.abi`/`.abx` in R70 and REAP3, plus the compile errors):
+Called by the scripts the 32 missions load (their brains, mission
+scripts, includes, `mc2xplay` and `mc2xcore`), all built now
+(`code/ablmc2.cpp`, "wolfman-MC2X commands"):
 
-| command | form (from the manual and the calls) | used in |
+| command | form | built as |
 |---|---|---|
-| `teleporttopoint` | (part id, real[3]) | `mc2xplay` (every player unit), 15 brains |
-| `setpartid` | (unit, part id) | 29 brains (dropship deployers) |
-| `setunitforcegroup` | (part id, group 1-9) | 17 files |
-| `getcampaignglobalvar` / `setcampaignglobalvar` | (index 0-4) / (index, value) | 13 scripts; needs a campaign save field |
-| `togglerepairtruck`, `toggleartillerypiece` | no arguments, no brackets | 17 brains |
-| `toggledeployer`, `setdeployerenabled` | -, (boolean) | REAP3 11, 13, 14; 5 |
-| `setbismsg` | (mode, text, seconds): the "Battlefield Information System" box | 2 |
-| `getcurrenttonnage` | (unit) | 1 |
-| `automedicalwithinradius` | (part id, radius) | `mc2xplay` |
-| `setnewpilot` | (unit, pilot file, brain) | 1 |
-| `autoscan` | returns the AutoScan option | 2 brains |
-| `newpower` | (part id, boolean): stock is (boolean) | 11 REAP3 scripts |
+| `teleporttopoint` | (part id, real[3]) | the mover's own teleport, on the ground |
+| `setpartid` | (unit, part id) | movers only, within the mover id range |
+| `setunitforcegroup` | (part id, group) | the Ctrl + number selection groups |
+| `getcampaignglobalvar` / `setcampaignglobalvar` | (index 0-4) / (index, value) | held for the session only; no campaign save field yet (the scripts only read them) |
+| `togglerepairtruck`, `toggleartillerypiece` | no arguments | per-mission overrides like `togglesalvagecraft` |
+| `toggledeployer`, `setdeployerenabled` | -, (boolean) | accepted, no-ops: no VTOL deployer here |
+| `autoscan` | returns a boolean | false: no AutoScan option (MC2X's default) |
+| `automedicalwithinradius` | (part id, radius) | heals friendly pilots in range with no enemy near (only reached with AutoScan on) |
+| `newpower` | (part id, boolean) as well as stock's (boolean) | optional first parameter; with a part id it powers that unit's pilot |
+
+Not built, called only by brains no mission loads: `setnewpilot`,
+`setbismsg`, `getcurrenttonnage`.
 
 The manual's other commands (`toggle`/`set...enabled` for 18 support types,
 `setmissiontune`, `hirepilot`, `numfriendswithinradius`, `ablprint`,
@@ -320,7 +343,7 @@ Two routes:
   `MAX_MAP_CELL_WIDTH` is 720 cells (240 vertices), but it only sets the
   part id multiplier, which MC2X keeps (step 13), and the trigger map, now
   300 tiles. The terrain itself is sized from the map. All 24 REAP3 maps
-  run 300 frames under ASan + UBSan (but `reap3m02`, an ABL problem).
+  run 300 frames under ASan + UBSan.
   Rows past 640 give ids past `MAX_TERRAIN_PART_ID` (464895), which
   nothing checks; the multiplayer chunk masks (20 bits) hold them.
 - **256 components** (ids 0 to 255; stock 255 entries, 0 to 254).
@@ -351,24 +374,26 @@ stock or Omnitech units).
 |---|---|---|
 | done | loader fallbacks and checks on this branch | |
 | done | ASan + UBSan on all 32 missions, its four fixes, part ids, trigger map | |
-| 2 | the 14 called ABL commands, `newpower`'s second form, campaign globals in the save | 2-3 days |
+| done | the called ABL commands, `newpower`'s second form, the ABL stack fixes (`reap3m02`) | |
+| 2 | campaign globals in the campaign save | half a day |
 | 3 | long strings: find and size the buffers (12 ids) | half a day |
 | 4 | move type 2 for Drone, JamFly, Kamikaze | 1 day, once its meaning is known |
-| 5 | `reap3m02`'s ABL stack corruption | 1-2 days, unknown cause |
 | 6 | HUD and front end, route 1 (renamed layouts, stock behaviour) | 4-6 days |
 | 7 | component 255, mission keys (support switches, failure actions, tac map water colour) | 1-2 days |
 | 8 | HUD features, route 2 | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
-Steps 1 to 5 get REAP3 playing its missions with stock's HUD over MC2X data
-(about a week and a half); with step 6 it can be started from the menus.
+With steps 3 and 4 (about two days) REAP3's missions run with stock's HUD
+over MC2X data and no local workarounds but the UI art; with step 6 it can
+be started from the menus.
 
 ## Recommendation
 
 **Worth doing, in a narrower form than "MC2X support", and after the open
 Omnitech work.** The engine side is closer than MOD-COMPAT feared: with six
-small fixes and stubbed commands, 28 of 32 MC2X missions, including 300x300
-maps, run 300 frames on this port. MC2X is actively maintained (R70 in
+loader fixes, the commands its missions call and four ABL fixes, all 32
+MC2X missions (24 on 300x300 maps) run 300 frames on this port under ASan +
+UBSan. MC2X is actively maintained (R70 in
 October 2026, REAP3 in July 2026), and much of the scripting work is shared
 with Omnitech.
 
@@ -377,7 +402,7 @@ own features, which no data file explains. Order:
 
 1. Merge this branch (the fallbacks and checks are harmless to stock data).
 2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
-3. Steps 2 to 5, measured by REAP3 missions passing 3000-frame smokes.
+3. Steps 2 to 4, measured by REAP3 missions passing 3000-frame smokes.
 4. Step 6 only if people ask for MC2X; step 8 not unless MC2X's author
    documents the features.
 
