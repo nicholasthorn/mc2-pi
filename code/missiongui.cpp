@@ -183,6 +183,14 @@ extern bool useFaceLighting;
 extern bool useVertexLighting;
 extern bool renderTGLShapes;
 extern bool useLeftRightMouseProfile;
+
+// A touch screen's one finger is the left button, which in the left/right
+// profile only selects: missions take the 2001 one-button profile while the
+// cursor is the touch screen's (gos_TouchPointer). The preference stays.
+static bool leftRightProfile()
+{
+	return useLeftRightMouseProfile && !gos_TouchPointer();
+}
 bool drawGUIOn = true;				//Used to shut off GUI for Screen Shots and Movie Mode
 bool toggledGUI = true;				//Used to tell if I shut the GUI off or if its in movieMode
 long lightState = 0;
@@ -866,7 +874,7 @@ void MissionInterfaceManager::update (void)
 
 	}
 	
-	if( useLeftRightMouseProfile ) // using AOE control style
+	if( leftRightProfile() ) // using AOE control style
 	{
 		if ( WAYPOINT_KEY == -1 )
 			WAYPOINT_KEY = KEY_LCONTROL;
@@ -3130,6 +3138,23 @@ void MissionInterfaceManager::render (void)
 
 	controlGui.render( isPaused() && !isPausedWithoutMenu() );
 
+	// the touch screen's command bar (gos_touch): GameOS takes the fingers on
+	// it, the mission only draws it, over the map
+	gosTouchBarButton touchBar[8];
+	const int touchButtons = gos_GetTouchBar( touchBar, 8 );
+	for ( int i = 0; i < touchButtons; i++ )
+	{
+		GUI_RECT rect;
+		rect.left = (long)(touchBar[i].x * Environment.screenWidth);
+		rect.top = (long)(touchBar[i].y * Environment.screenHeight);
+		rect.right = (long)((touchBar[i].x + touchBar[i].w) * Environment.screenWidth);
+		rect.bottom = (long)((touchBar[i].y + touchBar[i].h) * Environment.screenHeight);
+		drawRect( rect, touchBar[i].lit ? 0xc0a06000 : 0x90000000 );
+		drawEmptyRect( rect, 0xffc0c0c0, 0xffc0c0c0 );
+		hotKeyFont.render( touchBar[i].label, rect.left, rect.top, rect.right - rect.left,
+			rect.bottom - rect.top, 0xffffffff, 0, 3 );
+	}
+
   /* 	if ( scenarioTime  < 7.0 )
    	{
    		long color = 0xff000000;
@@ -3491,8 +3516,8 @@ bool MissionInterfaceManager::moveCameraAround( bool lineOfSight, bool passable,
 	bool bRetVal = 0;
 	bool middleClicked = (!userInput->isLeftDrag() && !userInput->isRightDrag() && userInput->isMiddleClick());
 
-	if ( (useLeftRightMouseProfile && ((userInput->isLeftClick() && userInput->getKeyDown(KEY_T)) || userInput->isLeftDoubleClick()) && target) 
-		|| (!useLeftRightMouseProfile && userInput->isRightClick() && !userInput->isRightDrag() && target) && !bGui)
+	if ( (leftRightProfile() && ((userInput->isLeftClick() && userInput->getKeyDown(KEY_T)) || userInput->isLeftDoubleClick()) && target) 
+		|| (!leftRightProfile() && userInput->isRightClick() && !userInput->isRightDrag() && target) && !bGui)
 	{
 		if (eye)
 			((GameCamera *)eye)->setTarget(target);

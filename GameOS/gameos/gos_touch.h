@@ -23,6 +23,9 @@ void mouseUsed(const SDL_Event* event);
 void cancel();
 // every frame, after the events and before the input is sampled
 void poll();
+// a game step of a mission taking orders (gos_VRMissionTakesOrders): the
+// command bar shows, and two fingers scroll the camera, only then
+void missionTakesOrders();
 
 }
 

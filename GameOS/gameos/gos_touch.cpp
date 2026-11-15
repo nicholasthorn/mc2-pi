@@ -9,6 +9,7 @@
 #include "gos_input.h"
 #include "gos_xr.h"
 #include "utils/str_bounded.h"
+#include "utils/touch_bar.h"
 #include "utils/touch_gestures.h"
 
 namespace {
@@ -18,6 +19,27 @@ bool g_enabled = false;
 // finger landing until a real mouse moves
 bool g_owns = false;
 touch::Gestures g_gestures;
+
+// the command bar, while a mission takes orders: frames since it last did
+// (gos_VRMissionTakesOrders), and the finger on a button, which the gestures
+// never see
+const int kOrdersFrames = 3;
+int g_ordersAge = kOrdersFrames;
+touch::Bar g_bar;
+bool g_barFingerDown = false;
+SDL_FingerID g_barFinger = 0;
+// the left button as the gestures last set it, to see an order end
+bool g_pointerLeft = false;
+
+bool inMission()
+{
+    return g_ordersAge < kOrdersFrames;
+}
+
+bool barShown()
+{
+    return g_owns && inMission() && !gos_xr::active();
+}
 
 double now()
 {
@@ -44,13 +66,23 @@ touch::Settings settingsFor(int height)
     return s;
 }
 
-// the camera keys held for a scroll direction (-1, 0, 1 each way)
-void setScrollKeys(int x, int y)
+// the keys the touch screen holds this frame: the camera's for a scroll
+// direction (-1, 0, 1 each way) and the command bar's. A tap's key goes
+// down and up at once: the input latch keeps it down for one sample.
+void setKeys(int scrollX, int scrollY, const touch::BarKeys& bar)
 {
-    input::setVirtualKey(SDL_SCANCODE_LEFT, x < 0);
-    input::setVirtualKey(SDL_SCANCODE_RIGHT, x > 0);
-    input::setVirtualKey(SDL_SCANCODE_UP, y < 0);
-    input::setVirtualKey(SDL_SCANCODE_DOWN, y > 0);
+    input::setVirtualKey(SDL_SCANCODE_LEFT, scrollX < 0);
+    input::setVirtualKey(SDL_SCANCODE_RIGHT, scrollX > 0);
+    input::setVirtualKey(SDL_SCANCODE_UP, scrollY < 0);
+    input::setVirtualKey(SDL_SCANCODE_DOWN, scrollY > 0);
+    input::setVirtualKey(SDL_SCANCODE_LCTRL, bar.ctrl);    // the game's waypoint key
+    input::setVirtualKey(SDL_SCANCODE_LSHIFT, bar.shift);
+    input::setVirtualKey(SDL_SCANCODE_F, bar.force);       // force fire
+    if(bar.tap) {
+        const int key = bar.tapCommand == touch::BarCommand::SelectVisible ? SDL_SCANCODE_E : SDL_SCANCODE_GRAVE;
+        input::setVirtualKey(key, true);
+        input::setVirtualKey(key, false);
+    }
 }
 
 } // namespace
@@ -81,8 +113,24 @@ void handleEvent(const SDL_Event* event)
     float x = 0.0f, y = 0.0f;
     toDrawable(event, x, y);
     const double t = now();
+    // the finger on a bar button: nothing until it lifts
+    if(g_barFingerDown && event->tfinger.fingerId == g_barFinger) {
+        if(event->type == SDL_FINGERUP)
+            g_barFingerDown = false;
+        return;
+    }
     switch(event->type) {
     case SDL_FINGERDOWN:
+        if(barShown() && !g_barFingerDown) {
+            g_bar.layout((float)Environment.drawableWidth, (float)Environment.drawableHeight);
+            const int button = g_bar.hit(x, y);
+            if(button >= 0) {
+                g_bar.press(button);
+                g_barFingerDown = true;
+                g_barFinger = event->tfinger.fingerId;
+                return;
+            }
+        }
         if(!g_gestures.touching())   // the window may have changed size
             g_gestures.setSettings(settingsFor(Environment.drawableHeight));
         g_owns = true;
@@ -103,14 +151,24 @@ void mouseUsed(const SDL_Event* event)
     if(!g_owns || which == SDL_TOUCH_MOUSEID || g_gestures.touching())
         return;
     g_owns = false;
+    g_pointerLeft = false;
     input::clearVirtualPointer();
-    setScrollKeys(0, 0);
+    g_bar.clear();
+    setKeys(0, 0, touch::BarKeys());
 }
 
 void cancel()
 {
-    if(g_enabled)
-        g_gestures.cancel();
+    if(!g_enabled)
+        return;
+    g_gestures.cancel();
+    g_bar.clear();
+    g_barFingerDown = false;
+}
+
+void missionTakesOrders()
+{
+    g_ordersAge = 0;
 }
 
 void poll()
@@ -118,13 +176,27 @@ void poll()
     // in VR the controllers have the virtual mouse and keys
     if(!g_owns || gos_xr::active())
         return;
+    if(g_ordersAge < kOrdersFrames)
+        ++g_ordersAge;
+    if(!inMission())
+        g_bar.clear();
+
     g_gestures.update(now());
-    for(const touch::PointerEvent& e : g_gestures.takePointerEvents())
+    for(const touch::PointerEvent& e : g_gestures.takePointerEvents()) {
         input::setVirtualPointer(e.x, e.y, e.left ? 1u : 0u);
+        if(g_pointerLeft && !e.left)    // a click or a drag ended: an order
+            g_bar.ordered();
+        g_pointerLeft = e.left;
+    }
     const int step = g_gestures.takeWheelStep();
     if(step != 0)
         input::addVirtualWheel((float)step);
-    setScrollKeys(g_gestures.scrollX(), g_gestures.scrollY());
+    // the arrow keys only in a mission: elsewhere they move a list's
+    // selection or a text box's caret
+    if(inMission())
+        setKeys(g_gestures.scrollX(), g_gestures.scrollY(), g_bar.take());
+    else
+        setKeys(0, 0, touch::BarKeys());
 }
 
 } // namespace gos_touch
@@ -132,4 +204,31 @@ void poll()
 bool __stdcall gos_TouchPointer()
 {
     return g_owns;
+}
+
+void __stdcall gos_TouchMissionTakesOrders()
+{
+    gos_touch::missionTakesOrders();
+}
+
+int __stdcall gos_GetTouchBar(gosTouchBarButton* buttons, int maxButtons)
+{
+    if(!barShown() || !buttons)
+        return 0;
+    const float w = (float)Environment.drawableWidth;
+    const float h = (float)Environment.drawableHeight;
+    if(w <= 0.0f || h <= 0.0f)
+        return 0;
+    g_bar.layout(w, h);
+    int count = 0;
+    for(int i = 0; i < touch::Bar::kButtons && count < maxButtons; ++i, ++count) {
+        const touch::BarRect r = g_bar.rect(i);
+        buttons[count].x = r.x / w;
+        buttons[count].y = r.y / h;
+        buttons[count].w = r.w / w;
+        buttons[count].h = r.h / h;
+        buttons[count].label = touch::Bar::label(i);
+        buttons[count].lit = g_bar.lit(i);
+    }
+    return count;
 }

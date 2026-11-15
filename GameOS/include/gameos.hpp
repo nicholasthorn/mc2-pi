@@ -2037,6 +2037,17 @@ bool __stdcall gos_VRHeadset();
 // real mouse is used. It then rests where the last finger lifted, so mouse
 // only behaviour such as scrolling at the screen edge should not follow it.
 bool __stdcall gos_TouchPointer();
+// The touch screen's command bar in a mission (utils/touch_bar.h), for the
+// game to draw: buttons as shares of the screen (0 to 1), with a label and
+// whether each is on. GameOS takes the fingers on it; the game only draws.
+struct gosTouchBarButton {
+	float x, y, w, h;
+	const char* label;
+	bool lit;
+};
+// Fills up to maxButtons and returns how many; 0 while the bar is hidden (no
+// mission taking orders, or the cursor is not the touch screen's).
+int __stdcall gos_GetTouchBar( gosTouchBarButton* buttons, int maxButtons );
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.
@@ -2091,6 +2102,9 @@ bool __stdcall gos_VRPickLog();
 // then, as those keys would type in a text box or skip a movie elsewhere.
 //
 void __stdcall gos_VRMissionTakesOrders();
+// The same for the touch screen (gos_touch): its command bar shows, and two
+// fingers scroll the camera with the arrow keys, only then.
+void __stdcall gos_TouchMissionTakesOrders();
 
 
 

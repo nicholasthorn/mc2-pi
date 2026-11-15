@@ -391,6 +391,14 @@ push the data as in `android/README.md`, "Phones and tablets".
       zoom level per quarter of spacing; moving both fingers scrolls the map with them
       (not against them). Are the slop (2% of the screen height) and the scroll dead
       zone (6%) right on a phone and on a tablet?
+- [ ] **A mission by touch** (phase 2) in mc2_01: tap a mech to select it, tap ground
+      to move, tap an enemy to attack (the one-button profile while touching). The
+      command bar shows on the right edge only in the mission, not in menus or the
+      pause menu. Waypoints: tap it, tap several points, tap it off: the mech walks the
+      route. Add: tap it, tap two mechs: both selected. Force fire: tap it, tap ground:
+      they fire at it, and the button goes out. Visible, Group and New grp do as E,
+      grave and Ctrl + grave. Does the bar cover anything that matters (radar, the
+      top right messages)? Are the buttons big enough on a phone?
 - [ ] **No edge scroll from a tap:** in mc2_01, tap a control panel button at the bottom
       edge and lift; the map must not keep scrolling. Then use a mouse: edge scrolling
       works again.

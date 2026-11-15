@@ -118,12 +118,16 @@ adb shell am start -n com.nicholasthorn.mc2.phone/com.nicholasthorn.mc2.MC2Activ
 
 What to expect so far:
 
-- **Touch, first part** (`GameOS/gameos/gos_touch.cpp`, rules in
-  `utils/touch_gestures.h`): one finger is the mouse with its left button
-  (tap to click, hold or move to drag); two fingers move the camera (pinch to
-  zoom, move together to scroll). No right click, modifier keys or on-screen
-  keyboard yet. `MC2_TOUCH=0` in `mc2args.txt` goes back to SDL's own taps as
-  clicks. A Bluetooth or USB mouse and keyboard play as on a PC.
+- **Touch** (`GameOS/gameos/gos_touch.cpp`, rules in `utils/touch_gestures.h`
+  and `utils/touch_bar.h`): one finger is the mouse with its left button (tap
+  to click, hold or move to drag); two fingers move the camera in a mission
+  (pinch to zoom, move together to scroll). Missions use the one-button
+  controls while touching: tap a unit to select, ground to move, an enemy to
+  attack. A command bar on the right edge in a mission adds Waypoints, Add
+  to selection, Force fire, Select visible, Next group and New group. No long
+  press or on-screen keyboard yet. `MC2_TOUCH=0` in `mc2args.txt` goes back
+  to SDL's own taps as clicks. A Bluetooth or USB mouse and keyboard play as
+  on a PC.
 - **The picture is stretched** to the screen: the game draws at its own
   resolution (800x600 by default) and fills the whole display with it, so a
   20:9 phone widens everything.

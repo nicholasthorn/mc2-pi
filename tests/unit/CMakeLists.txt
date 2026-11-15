@@ -45,6 +45,7 @@ add_executable(mc2_tests
     test_vr_edge_fade.cpp
     test_vr_controls.cpp
     test_touch_gestures.cpp
+    test_touch_bar.cpp
     test_input_latch.cpp
     test_args_file.cpp
     test_log_file.cpp
@@ -123,6 +124,7 @@ add_executable(mc2_tests
     ${MC2_SRC}/GameOS/gameos/utils/vr_eye.cpp
     ${MC2_SRC}/GameOS/gameos/utils/vr_controls.cpp
     ${MC2_SRC}/GameOS/gameos/utils/touch_gestures.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/touch_bar.cpp
     ${MC2_SRC}/GameOS/gameos/utils/args_file.cpp
     ${MC2_SRC}/GameOS/gameos/utils/log_file.cpp
     ${MC2_SRC}/GameOS/gameos/gos_net.cpp
@@ -169,7 +171,7 @@ set_source_files_properties(
     test_fst_roundtrip.cpp test_lzdecomp.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp test_iconsheet.cpp test_vr_edge_fade.cpp
-    test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_typename.cpp test_missaim.cpp test_mechtypefit.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_touch_gestures.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_tga_readers.cpp test_move_save_bounds.cpp test_txmcachename.cpp test_forcegroupcycle.cpp test_msglines.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_typename.cpp test_missaim.cpp test_mechtypefit.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_touch_gestures.cpp test_touch_bar.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_tga_readers.cpp test_move_save_bounds.cpp test_txmcachename.cpp test_forcegroupcycle.cpp test_msglines.cpp
     test_fuzz_replay.cpp test_ablscan.cpp fuzz/fuzz_support.cpp fuzz/fuzz_fit.cpp fuzz/fuzz_csv.cpp fuzz/fuzz_tga.cpp fuzz/fuzz_abl.cpp
     fuzz/libfuzzer_main.cpp fuzz/fuzz_gos_stubs.cpp
     test_netwire.cpp test_netlan.cpp test_netlobby.cpp test_netsession.cpp test_netrules.cpp test_netforce.cpp test_gos_net.cpp test_gos_net_gns.cpp
@@ -181,6 +183,7 @@ set_source_files_properties(
     ${MC2_SRC}/GameOS/gameos/utils/vr_eye.cpp
     ${MC2_SRC}/GameOS/gameos/utils/vr_controls.cpp
     ${MC2_SRC}/GameOS/gameos/utils/touch_gestures.cpp
+    ${MC2_SRC}/GameOS/gameos/utils/touch_bar.cpp
     ${MC2_SRC}/GameOS/gameos/utils/args_file.cpp
     ${MC2_SRC}/GameOS/gameos/utils/log_file.cpp
     ${MC2_SRC}/code/benchscenario.cpp

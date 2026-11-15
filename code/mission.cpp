@@ -500,10 +500,14 @@ long Mission::update (void)
 		
 		BenchStage("interface",ProfileTime(MCTimeInterfaceUpdate,missionInterface->update()));
 
-		// VR: the controllers' command buttons are for here, not for typing in
-		// a menu's text box or skipping a movie
+		// VR and the touch screen: the controllers' command buttons and the
+		// touch command bar are for here, not for typing in a menu's text box
+		// or skipping a movie
 		if (!missionInterface->isPaused() || missionInterface->isPausedWithoutMenu())
+		{
 			gos_VRMissionTakesOrders();
+			gos_TouchMissionTakesOrders();
+		}
 
 		// -benchscenario: scripted battle and camera; after the interface
 		// (input) and before the camera update, so its camera wins
