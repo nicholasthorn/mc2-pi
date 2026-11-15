@@ -1,11 +1,17 @@
 # wolfman-MC2X content on this port
 
-Status: in progress, 2026-11-14 (branch `claude/mc2x-compat-b44556`). Built:
+Status: built, 2026-11-15, on `pi-port` (PRs #157, #164, #165, #166). Built:
 the loader fixes, the ABL commands MC2X's missions call, the fixes the
 sanitizer runs found, the in-mission interface and the front end on MC2X's
-own layouts; all 32 missions run 300 frames, and a REAP3 campaign plays
-from the main menu through logistics, a mission, salvage and pilot review.
-Not built: step 8 of "Effort" (undocumented features).
+own layouts, MC2X's own HUD features (formations, the 22 support units,
+C-Bills and the spy map, the buttons for selected units), operation maps of
+up to 32 missions, and the import script; all 32 missions run 300 frames,
+and a REAP3 campaign plays from the main menu through logistics, a mission,
+salvage and pilot review. Not built: `TacWaterColor`, the per-type deploy
+switches and `max<n>tons` (undocumented), the ABL commands no mission calls,
+and CVE-G (its download could not be fetched). The HUD features are checked
+by unit tests and smoke runs only; the hands-on checks are in
+`planning/HARDWARE-TESTS.md` ("MC2X").
 Companion to `MOD-COMPAT.md` (MechCommander Omnitech), whose work this leans
 on.
 
@@ -117,8 +123,8 @@ by name.
 | `missions/corebrain.abx` | `mc2xcore.abx` | fallback built |
 | `objects/compbas.csv` | `mc2xcomp.csv` (+ `mc2xcomplist.csv`, a readable list) | fallback built |
 | `mc2res.dll` (Omnitech's) | `mc2xres.dll` | fallback built |
-| `art/buttonlayout<w>.fit` | `mc2x_buttonlayout<w>.fit`, 19 widths 1024 to 3840 | not built |
-| `art/mcl_*.fit`, `mcui_keyref_*` | `mc2x_*` (main menu, mission selection, briefing, mech bay, pilot ready, loading screens, dialogs, Mechlopedia, options, key reference) | not built |
+| `art/buttonlayout<w>.fit` | `mc2x_buttonlayout<w>.fit`, 19 widths 1024 to 3840 | fallback built (`FitIniFile::open`, Progress 16) |
+| `art/mcl_*.fit`, `mcui_keyref_*` | `mc2x_*` (main menu, mission selection, briefing, mech bay, pilot ready, loading screens, dialogs, Mechlopedia, options, key reference) | fallback built (`FitIniFile::open`, Progress 17) |
 
 ## Progress: the test load
 
@@ -127,7 +133,8 @@ port's binary, shaders and stock `.cfg` files. Run:
 `scripts/smoke.sh --game-dir ~/gd-mc2x --missions metropolitan --frames 300 --ui ""`.
 Blockers in the order they appeared on R70's `metropolitan`, then across
 all 32 missions (R70's 7, REAP3's 24 and `reap3-x`), 300 frames each,
-desktop GL under llvmpipe:
+desktop GL under llvmpipe. Items 1 to 11 are as found at the test load:
+every one marked "not built" there is built since (see "Effort").
 
 1. **`mc2.fx` not found** (STOP at start-up). **Fixed on the branch:**
    `mechcmd2.cpp` and `txmmgr.cpp` fall back to `mc2x.fx`. MC2X's effect
@@ -615,10 +622,10 @@ with Omnitech.
 The cost is in MC2X's interface (every layout renamed, a larger HUD) and its
 own features, which no data file explains. Order:
 
-1. Merge this branch (the fallbacks and checks are harmless to stock data).
+1. Merge this branch: done (PR #157).
 2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
 3. 3000-frame runs of the REAP3 missions: done (Progress 18).
-4. Step 6: done. Step 8 not unless MC2X's author documents the features.
+4. Step 6: done. Step 8: built from the help text (Progress 20 to 23), as this port's reading; the three undocumented settings stay left.
 
 REAP3 is the MC2X test campaign; Dark Gray runs beside it (Progress 19).
 CVE-G (Carver V on MC2X) when its download can be fetched.

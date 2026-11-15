@@ -1,14 +1,20 @@
-# MechCommander 2, updated
+# MechCommander 2 in VR
 
 [![CI](https://github.com/nicholasthorn/mc2-pi/actions/workflows/ci.yml/badge.svg?branch=pi-port)](https://github.com/nicholasthorn/mc2-pi/actions/workflows/ci.yml)
 
-A maintained update of [alariq's open-source MechCommander 2 engine](https://github.com/alariq/mc2)
-for 64-bit Linux and Windows: current compilers, crash and undefined-behaviour
-fixes, mod support (MechCommander Omnitech), and a test, sanitizer and CI setup
-around the original code. On top of the usual desktop builds it also runs on
-the **Raspberry Pi 4/400**, through an OpenGL ES 3.1 renderer and an arm64
-build, and it is **playable in VR on a Meta Quest 2**, standalone, with the
-Touch controllers.
+**MechCommander 2, playable in VR on a Meta Quest 2**: standalone, no PC
+needed to play, with the game's own battlefield in stereo, the camera
+following your head, and the Touch controllers to select and order units,
+pan, turn and zoom. The 2D interface floats on a panel in front of you.
+
+It is built on a maintained update of
+[alariq's open-source MechCommander 2 engine](https://github.com/alariq/mc2):
+current compilers, crash and undefined-behaviour fixes, mod support
+(MechCommander Omnitech and wolfman-MC2X), network play, and a test,
+sanitizer and CI setup around the original code. The same engine also runs
+flat, on **Windows, Linux (x64 and arm64), the Raspberry Pi 4/400 and
+Android** (the Quest build is an Android app); those builds come along with
+the VR work rather than leading it.
 
 | | |
 |---|---|
@@ -24,9 +30,6 @@ Scripted battles (`bench/media_*.fit`) from the v0.5.0-rc1 Linux package at
 earlier build at 1920x1080. The game data, and Omnitech's, are not in this
 repository.
 
-The main branch is called `pi-port` and the repository `mc2-pi` for
-historical reasons: the Pi port is where this started.
-
 ## Relationship to upstream
 
 - All credit for the engine port goes to [alariq](https://github.com/alariq/mc2)
@@ -38,60 +41,71 @@ historical reasons: the Pi port is where this started.
 - Upstream `master` is merged in from time to time; changes here are kept small
   and local to make that easy.
 
-## What this fork adds
+## VR on the Meta Quest
 
-**For every platform**
+([planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md))
+
+| Area | Status |
+|---|---|
+| Standalone Quest build: Android APK with OpenXR, sideloaded | Playable on a Quest 2; built by the release workflow |
+| Head-tracked view, with the game camera covering the headset's field of view and following where you look | Done |
+| Touch controllers: point, click and order units, pan, turn and zoom, a button map for run, jump and the other modifier keys | Done |
+| Selection groups without number keys (stick clicks and X + stick) | Done |
+| The 2D interface on a floating panel, sharp at the headset's resolution, movable and resizable | Done |
+| Frame rate | About 70 fps at the headset's 72 Hz on the `mc2_19` battle bench |
+| Mods in the headset | MechCommander Omnitech, and MC2X as its own app beside the stock one |
+| Network play with a Quest | A Quest as host and as client against a PC over home Wi-Fi, played unworn; not yet with someone in the headset |
+| Still rough | Open checks are in [planning/HARDWARE-TESTS.md](planning/HARDWARE-TESTS.md); only a Quest 2 has been tried, so a Quest 3, 3S or Pro is untested |
+| Tabletop mode, battlefield at miniatures scale | Planned, as an option |
+
+## For every platform
 
 | Area | Status |
 |---|---|
 | Linux builds from Ubuntu 22.04 (GCC 11) to 26.04 (GCC 15), Clang and MSVC fixes | Done |
-| Crash and undefined-behaviour fixes, many back-ported from [mc2-opengl-remastered](https://github.com/ThranduilsRing/mc2-opengl-remastered), more found by sanitizers and cppcheck | Done, ongoing |
+| Crash and undefined-behaviour fixes, many back-ported from [mc2-opengl-remastered](https://github.com/ThranduilsRing/mc2-opengl-remastered), more found by sanitizers, cppcheck and fuzzing | Done, ongoing |
 | Fatal engine errors (`STOP`) end the game with a message instead of carrying on into a crash | Done |
-| Mod content: MechCommander Omnitech, with all 28 Clan Wars missions, its front end and mech lab | Done: all missions load and pass a headless smoke run; mission 1 checked in play |
+| Mod content: [MechCommander Omnitech](https://www.moddb.com/mods/mechcommander-omnitech), with all 28 Clan Wars missions, its front end and mech lab, and fan campaigns | Done: all missions load and pass a headless smoke run; mission 1 checked in play |
+| Mod content: wolfman-MC2X (R70, the REAP3 campaign, Dark Gray), on its own interface, with its formations, support units and unit buttons; `scripts/mc2x_import.py` builds a game folder from your own downloads | Done: all 32 missions pass a smoke run under ASan + UBSan and REAP3 plays from the menus; the new HUD features are not yet checked by hand ([MC2X-COMPAT.md](planning/future-features/MC2X-COMPAT.md)) |
+| Multiplayer on the local network, through the original screens: host, browse, lobby, mech selection, chat, results | Done between processes and machines, also with a Quest; the screens tested by a scripted walker, not yet by hand ([NETWORKING.md](planning/future-features/NETWORKING.md)) |
 | Stereo panning for positional sound | Done |
-| CI: four build configurations, unit tests (also under ASan + UBSan), shader validation, smoke missions, cppcheck | Done; the cppcheck baseline is empty (every finding fixed or suppressed with a reason) |
+| CI: four build configurations, unit tests (also under ASan + UBSan), shader validation, smoke missions, multiplayer battles, cppcheck, nightly fuzzing | Done; the cppcheck baseline is empty (every finding fixed or suppressed with a reason) |
 | Benchmarks: deterministic `-bench` runs, scripted battle scenarios with screenshots, `perf` profiles of gameplay frames | Done |
-| Downloadable builds (Pi, Linux, Windows, Quest) | Release candidates on the [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page ([planning/RELEASES.md](planning/RELEASES.md)); `-full` packages include the game data, the Quest still needs a PC to install ([plan](planning/future-features/EASY-INSTALL.md)) |
+| Downloadable builds (Quest, Windows, Linux, Pi) | Release candidates on the [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page ([planning/RELEASES.md](planning/RELEASES.md)); `-full` packages include the game data, the Quest still needs a PC to install ([plan](planning/future-features/EASY-INSTALL.md)) |
 
-**Raspberry Pi 4/400**
+## Cross-platform
 
-| Area | Status |
-|---|---|
-| OpenGL ES 3.1 renderer (`-DMC2_GLES=ON`) for the Pi's V3D GPU | Done |
-| Shaders valid as both GLSL ES 3.10 and GLSL 4.20, `#version` chosen at runtime | Done |
-| arm64 (aarch64) build: signed `char`, portable heap, GCC 12 fixes | Done |
-| Running on real hardware | Done on a Pi 400 at about 800x600: the GLES build runs mc2_01 at 179 fps and mc2_03 at 181 fps with vsync off (60 with it on); Mesa's software renderer manages 50 to 67 fps |
+The VR build shares its engine, renderer and data with the flat builds, so
+they all stay working. Nice to have, and kept green by CI:
 
-**Meta Quest 2 VR** ([planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md))
+| Platform | Renderer | Built in CI | Run on |
+|---|---|---|---|
+| Meta Quest 2 (standalone, Android arm64) | OpenGL ES 3.1 + OpenXR | Release workflow, nightly and on tags | A Quest 2, by hand |
+| Windows x64 (MSVC, VS 2022) | Desktop GL 4.x | Yes | Windows PCs |
+| Linux x64 (GCC, Clang) | Desktop GL 4.x | Yes | Ubuntu 22.04 to 26.04; smoke missions in CI |
+| Linux arm64 / Raspberry Pi OS 64-bit (GCC) | OpenGL ES 3.1 | Yes | A Pi 400 at about 800x600: mc2_01 at 179 fps and mc2_03 at 181 fps with vsync off (60 with it on); smoke missions in CI |
+| Android (other than the Quest) | OpenGL ES 3.1 | The same APK build | Untested: the app is made for a headset |
+| WSL2 / no GPU | Either, via Mesa llvmpipe (`LIBGL_ALWAYS_SOFTWARE=1`) | Smoke runs | |
 
-| Area | Status |
-|---|---|
-| Standalone Quest build: Android APK with OpenXR, sideloaded | Playable on a Quest 2, and now built by the release workflow |
-| Head-tracked view, with the game camera covering the headset's field of view | Done |
-| Touch controllers: aim, click and order units, pan, turn and zoom | Done |
-| Frame rate | About 70 fps at the headset's 72 Hz on the `mc2_19` battle bench |
-| Still rough | Open checks are in [planning/HARDWARE-TESTS.md](planning/HARDWARE-TESTS.md); only a Quest 2 has been tried, so a Quest 3 or Pro is untested |
-| Tabletop mode, battlefield at miniatures scale | Planned, as an option |
-
-## Platforms
-
-| Platform | Renderer | Built in CI |
-|---|---|---|
-| Linux x64 (GCC, Clang) | Desktop GL 4.x | Yes |
-| Linux arm64 / Raspberry Pi OS 64-bit (GCC) | OpenGL ES 3.1 | Yes |
-| Windows x64 (MSVC, VS 2022) | Desktop GL 4.x | Yes |
-| WSL2 / no GPU | Either, via Mesa llvmpipe (`LIBGL_ALWAYS_SOFTWARE=1`) | Smoke runs |
-| Meta Quest 2 (standalone, Android) | OpenGL ES 3.1 + OpenXR | Release workflow, nightly and on tags; run by hand on a headset |
+The Raspberry Pi is where this fork started, hence the branch name `pi-port`
+and the repository name `mc2-pi`: an OpenGL ES 3.1 renderer
+(`-DMC2_GLES=ON`) for the Pi's V3D GPU, shaders valid as both GLSL ES 3.10
+and GLSL 4.20 with `#version` chosen at runtime, and the arm64 fixes
+(signed `char`, a portable heap, GCC 12). The Quest build uses the same
+renderer.
 
 ## Quick start
 
-**Release packages** (on the
+**On a Quest:** sideload the release's `.apk` and push the game data and
+shaders with `adb` from a PC, once; after that the game runs on the headset
+alone. The steps are in [dist/INSTALL.md](dist/INSTALL.md), and building the
+APK yourself in [android/README.md](android/README.md).
+
+**On a PC or a Pi** (release packages on the
 [Releases](https://github.com/nicholasthorn/mc2-pi/releases) page): download
 the `-full` one for your platform, unpack and play. On Windows that is all; on
-Linux and the Pi install a few libraries first ([dist/INSTALL.md](dist/INSTALL.md)).
-Engine-only packages, without the game data, are there too. For the
-Quest, sideload the `.apk` and push the data and shaders with `adb`; the steps
-are in the same file.
+Linux and the Pi install a few libraries first (same file). Engine-only
+packages, without the game data, are there too.
 
 **From source:** full instructions in [BUILD-LINUX.md](BUILD-LINUX.md),
 [BUILD-PI.md](BUILD-PI.md), [BUILD-WIN.md](BUILD-WIN.md).
@@ -163,7 +177,11 @@ Conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md) and
 
 ## Known issues
 
-- No networking: the multiplayer screens are stubs (the menu button is disabled).
+- Multiplayer is local network only, and the screens are tested by a
+  scripted walker, not yet by hand; a Quest has played unworn, not with
+  someone in it.
+- MC2X's own HUD features (formations, its support units, the unit buttons)
+  are this port's reading of one line of help each, unchecked in play.
 - Sound: no doppler (stereo panning works).
 - The in-mission HUD is a fixed number of pixels, so it is centred but small on
   1440p and 4K screens.
@@ -174,27 +192,29 @@ The full list is in [planning/PROGRESS.md](planning/PROGRESS.md).
 
 ## Plans
 
-- **Tune on the Pi**: the render backlog in
-  [planning/future-features/PI-RENDER-PERF.md](planning/future-features/PI-RENDER-PERF.md),
-  starting with the frame spikes from files loaded during play.
-- **Mods** ([planning/future-features/MOD-COMPAT.md](planning/future-features/MOD-COMPAT.md)):
-  more Omnitech campaigns, and an MC2X campaign (Dark Gray: Borderworlds).
+- **VR** ([planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md)):
+  polish from playtesting the standalone build (the open checks in
+  [planning/HARDWARE-TESTS.md](planning/HARDWARE-TESTS.md)), a Quest 3, a
+  network game with people in headsets, and later, as an option, a tabletop
+  mode with the battlefield at miniatures scale.
+- **Easier install**: a one-file Quest install with no PC step, and an
+  Omnitech helper
+  ([planning/future-features/EASY-INSTALL.md](planning/future-features/EASY-INSTALL.md)).
 - **Downloadable builds** on GitHub Releases
   ([planning/RELEASES.md](planning/RELEASES.md)): the packaging and the
-  release workflow are built (a Pi 4/400 tarball, a Linux x64 tarball and a
-  Windows zip; engine only, the Linux and Pi packages with the tools to build
-  the game data; `-full` versions with the data in; and a Quest APK). Next:
-  release candidates checked by hand on Windows, Linux, a Pi 400 and a Quest 2
-  and published, then a one-file Quest install and an Omnitech helper
-  ([planning/future-features/EASY-INSTALL.md](planning/future-features/EASY-INSTALL.md))
-  and Linux AppImages.
+  release workflow are built (a Quest APK, a Windows zip, a Linux x64 tarball
+  and a Pi 4/400 tarball; `-full` versions with the data in). Next: release
+  candidates checked by hand on a Quest 2, Windows, Linux and a Pi 400 and
+  published, then Linux AppImages.
+- **Mods** ([planning/future-features/MOD-COMPAT.md](planning/future-features/MOD-COMPAT.md),
+  [MC2X-COMPAT.md](planning/future-features/MC2X-COMPAT.md)): more Omnitech
+  campaigns, and MC2X's CVE-G campaign when its download can be fetched.
 - **Quality** ([planning/QUALITY-ROADMAP.md](planning/QUALITY-ROADMAP.md)): more
   unit tests, sanitized smoke on arm64, smoke runs that reach the save/load
   screens, a reproducible data build, and a Pi as a self-hosted CI runner.
-- **VR on Meta Quest 2**
-  ([planning/future-features/VR-TABLETOP.md](planning/future-features/VR-TABLETOP.md)):
-  polish from playtesting the standalone build (see the table above); later,
-  as an option, a tabletop mode with the battlefield at miniatures scale.
+- **The Pi**, as a nice to have: the render backlog in
+  [planning/future-features/PI-RENDER-PERF.md](planning/future-features/PI-RENDER-PERF.md),
+  starting with the frame spikes from files loaded during play.
 
 ## Repository layout
 

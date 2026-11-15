@@ -403,6 +403,51 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
       Pi 400.
 - [ ] **Phase 6, `v0.2.0`**: Pi hardware results in the release notes.
 
+## MC2X (`future-features/MC2X-COMPAT.md`)
+
+Built from MC2X's one-line help texts and checked by unit tests and headless
+smoke runs (plus a few screenshots); nobody has used them in play. Needs a
+game folder from `scripts/mc2x_import.py` (the player's own downloads) and a
+window of at least 1280 wide: MC2X's layouts start at 1024 and put some
+buttons off the screen there. Run on **GL**; the same on **GLES** and in the
+Quest's MC2X app (`com.nicholasthorn.mc2.mc2x`) where noted.
+
+- [ ] **A REAP3 mission from the menus:** main menu, the operation map with
+      all 24 missions and their pictures, briefing, mech bay, launch; MC2X's
+      own art on every screen, no stock screen showing through.
+- [ ] **Formations:** select three or more units, open the Formation button's
+      palette, pick line, wedge, column and circle in turn and order a move
+      each time. The group ends in that shape round the point clicked, facing
+      the way it moved, and the indicator shows the formation chosen. "None"
+      moves as stock does.
+- [ ] **Support units, both tabs:** call in a drone, the kamikaze swarm (five
+      arrive), a humvee, the infantry carrier and one unit from the second
+      tab. Each is charged its listed price in resource points, comes in by
+      VTOL and takes orders. A mission that switches a unit off
+      (`<x>EnabledDefault`) shows its button greyed.
+- [ ] **C-Bills and the spy map:** Button22 turns 10,000 C-Bills into
+      resource points, Button23 all resource points back; the spy map
+      (1,000,000 C-Bills) shows every unit on the tac map for 60 seconds,
+      then goes back to what the sensors see. Each button greys out when it
+      cannot be afforded.
+- [ ] **Dropship fire:** select a spheroid dropship, press its fire button and
+      click the ground: it fires at that point.
+- [ ] **Hide ID:** hide a unit and walk it near an enemy: the enemy does not
+      react until the unit fires or is un-hidden.
+- [ ] **Pick-up and drop-off:** a Transport or Lander picks up a friendly mech
+      and puts it down elsewhere, on open ground even when the transport
+      hovers over water or a cliff. A transport destroyed with cargo puts the
+      cargo down where it fell. Save with cargo aboard, load: the cargo is on
+      the ground.
+- [ ] **Recharge and reload:** a supply carrier in recharge mode next to a
+      repair vehicle refills its refit points; in reload mode, the
+      ammunition of units within reach. Unit tested only so far.
+- [ ] **Exit unit:** the pilot ejects unhurt and the unit stands empty; the
+      salvage craft can give it a pilot again.
+- [ ] **The same mission on the Quest** (MC2X app, controllers only): the
+      formation palette, both support tabs and the unit buttons can be
+      reached and clicked on the panel.
+
 ## Done
 
 Move items here with the date, the machine and the result.
