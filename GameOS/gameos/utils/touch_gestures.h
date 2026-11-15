@@ -101,9 +101,9 @@ private:
 	int64_t pointerId_ = 0;
 	float startX_ = 0.0f, startY_ = 0.0f;
 	double startTime_ = 0.0;
-	// the camera pair: the ids, where their middle landed, how far apart they
-	// landed, and how many wheel steps from there they have made
-	int64_t cameraIds_[2] = {0, 0};
+	// the camera pair, fingers_[0] and [1] (later fingers go after them, and
+	// either of the pair lifting ends it): where their middle landed, how far
+	// apart they landed, and how many wheel steps from there they have made
 	float cameraX_ = 0.0f, cameraY_ = 0.0f;
 	float baseDistance_ = 1.0f;
 	int level_ = 0;

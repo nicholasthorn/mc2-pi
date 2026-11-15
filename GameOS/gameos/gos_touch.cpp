@@ -4,11 +4,11 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 
 #include "gameos.hpp"
 #include "gos_input.h"
 #include "gos_xr.h"
+#include "utils/str_bounded.h"
 #include "utils/touch_gestures.h"
 
 namespace {
@@ -44,14 +44,22 @@ touch::Settings settingsFor(int height)
     return s;
 }
 
+// the camera keys held for a scroll direction (-1, 0, 1 each way)
+void setScrollKeys(int x, int y)
+{
+    input::setVirtualKey(SDL_SCANCODE_LEFT, x < 0);
+    input::setVirtualKey(SDL_SCANCODE_RIGHT, x > 0);
+    input::setVirtualKey(SDL_SCANCODE_UP, y < 0);
+    input::setVirtualKey(SDL_SCANCODE_DOWN, y > 0);
+}
+
 } // namespace
 
 namespace gos_touch {
 
 void init()
 {
-    const char* env = getenv("MC2_TOUCH");
-    g_enabled = !(env && env[0] == '0');
+    g_enabled = envFlagOr(getenv("MC2_TOUCH"), true);
     if(!g_enabled) {
         printf("[TOUCH] off (MC2_TOUCH=0): SDL turns taps into clicks\n");
         return;
@@ -95,10 +103,7 @@ void mouseMoved(const SDL_Event* event)
         return;
     g_owns = false;
     input::clearVirtualPointer();
-    input::setVirtualKey(SDL_SCANCODE_LEFT, false);
-    input::setVirtualKey(SDL_SCANCODE_RIGHT, false);
-    input::setVirtualKey(SDL_SCANCODE_UP, false);
-    input::setVirtualKey(SDL_SCANCODE_DOWN, false);
+    setScrollKeys(0, 0);
 }
 
 void cancel()
@@ -109,7 +114,8 @@ void cancel()
 
 void poll()
 {
-    if(!g_owns)
+    // in VR the controllers have the virtual mouse and keys
+    if(!g_owns || gos_xr::active())
         return;
     g_gestures.update(now());
     for(const touch::PointerEvent& e : g_gestures.takePointerEvents())
@@ -117,10 +123,7 @@ void poll()
     const int steps = g_gestures.takeWheelSteps();
     if(steps != 0)
         input::addVirtualWheel((float)steps);
-    input::setVirtualKey(SDL_SCANCODE_LEFT, g_gestures.scrollX() < 0);
-    input::setVirtualKey(SDL_SCANCODE_RIGHT, g_gestures.scrollX() > 0);
-    input::setVirtualKey(SDL_SCANCODE_UP, g_gestures.scrollY() < 0);
-    input::setVirtualKey(SDL_SCANCODE_DOWN, g_gestures.scrollY() > 0);
+    setScrollKeys(g_gestures.scrollX(), g_gestures.scrollY());
 }
 
 } // namespace gos_touch

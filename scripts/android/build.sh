@@ -64,10 +64,8 @@ build_deps() {
 }
 
 build_game() {
-    local xr=(-DMC2_OPENXR=OFF)
-    [ "$FLAVOUR" != quest ] || xr=(-DMC2_OPENXR=ON "-DOPENXR_PREFAB=$DEPS/$OPENXR_DIR/prefab/modules")
     "$CMAKE" -S "$ROOT" -B "$GAME_BUILD" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF \
-        "-DMC2_VERSION=${MC2_VERSION:-}" "${xr[@]}"
+        "-DMC2_VERSION=${MC2_VERSION:-}" "${XR_CMAKE[@]}"
     "$CMAKE" --build "$GAME_BUILD"
 }
 
@@ -93,8 +91,7 @@ build_apk() {
         -I "$ANDROID_JAR" --min-sdk-version $MIN_SDK --target-sdk-version $TARGET_SDK "${version[@]}"
     cp "$A/dex/classes.dex" "$A/stage/"
     local lib libs=("$PREFIX/lib/libSDL2.so" "$PREFIX/lib/libSDL2_mixer.so"
-                    "$GAME_BUILD/libmain.so" "$GAME_BUILD/out/res/libmc2res_64.so")
-    [ "$FLAVOUR" != quest ] || libs+=("$DEPS/$OPENXR_DIR/jni/arm64-v8a/libopenxr_loader.so")
+                    "$GAME_BUILD/libmain.so" "$GAME_BUILD/out/res/libmc2res_64.so" "${XR_LIBS[@]}")
     for lib in "${libs[@]}"; do
         "$STRIP" --strip-unneeded -o "$A/stage/lib/arm64-v8a/$(basename "$lib")" "$lib"
     done

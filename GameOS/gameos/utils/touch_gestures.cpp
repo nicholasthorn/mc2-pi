@@ -106,7 +106,7 @@ void Gestures::up(int64_t finger, float x, float y, double /*time*/)
 		}
 		break;
 	case Mode::Camera:
-		if(finger == cameraIds_[0] || finger == cameraIds_[1]) {
+		if(finger == fingers_[0].id || finger == fingers_[1].id) {
 			stopCamera();
 			mode_ = Mode::Finished;
 		}
@@ -130,9 +130,9 @@ void Gestures::update(double time)
 
 void Gestures::cancel()
 {
-	if(mode_ == Mode::Pointer) {
+	if(mode_ == Mode::Pointer) {   // the pointer finger is still down
 		const Finger* f = find(pointerId_);
-		emit(f ? f->x : startX_, f ? f->y : startY_, false);
+		emit(f->x, f->y, false);
 	}
 	stopCamera();
 	fingers_.clear();
@@ -159,8 +159,6 @@ void Gestures::startCamera()
 	mode_ = Mode::Camera;
 	const Finger& a = fingers_[0];
 	const Finger& b = fingers_[1];
-	cameraIds_[0] = a.id;
-	cameraIds_[1] = b.id;
 	cameraX_ = 0.5f * (a.x + b.x);
 	cameraY_ = 0.5f * (a.y + b.y);
 	baseDistance_ = std::max(distance(a.x, a.y, b.x, b.y), 1.0f);
@@ -169,10 +167,8 @@ void Gestures::startCamera()
 
 void Gestures::updateCamera()
 {
-	const Finger* a = find(cameraIds_[0]);
-	const Finger* b = find(cameraIds_[1]);
-	if(!a || !b)
-		return;
+	const Finger* a = &fingers_[0];
+	const Finger* b = &fingers_[1];
 
 	// zoom: steps of the spacing as a ratio of where they landed. A step is
 	// taken once the spacing reaches the next one, and undone only at the one

@@ -52,7 +52,7 @@ done
 cp "$DEPS/$OPENXR_DIR/META-INF/LICENSE" "$STAGE/licenses/OpenXR-loader.txt"
 echo "$VERSION" > "$STAGE/VERSION"
 
-cp "$BUILD/game/libmain.so" "$BUILD/game/out/res/libmc2res_64.so" \
+cp "$GAME_BUILD/libmain.so" "$GAME_BUILD/out/res/libmc2res_64.so" \
    "$BUILD/prefix/lib/libSDL2.so" "$BUILD/prefix/lib/libSDL2_mixer.so" "$SYMS/"
 
 tar -C "$OUT" -czf "$STAGE.tar.gz" "$NAME-files"

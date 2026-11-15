@@ -7,7 +7,7 @@
 static input::MouseInfo g_mouse_info;
 static input::KeyboardInfo g_keyboard_info;
 
-// the VR controllers' pointer and keys (setVirtualPointer, setVirtualKey),
+// the VR controllers' or touch screen's pointer and keys (setVirtualPointer, setVirtualKey),
 // latched between samples
 static struct {
     bool active;
@@ -204,7 +204,7 @@ void updateKeyboardState() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// VR controllers
+// VR controllers and the touch screen
 //
 
 void setVirtualPointer(float x, float y, uint32_t buttons) {
