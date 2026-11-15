@@ -366,6 +366,26 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     campaign through two missions; REAP3 missions in the same folder still
     pass. Its purchase files are not missions.
 
+20. **Formations (2026-11-15, step 8, first part).** MC2X's HUD has a
+    Formation button (layout button 34, in the slot the minelayer, repair
+    and salvage buttons share), a palette of ten (24 to 33: none, line,
+    double line, column, double column, wedge, arrow, dispersion, small
+    and large circle) and an indicator of the current one (35 to 43, at
+    x 1024 of the 1024 layout, so on screen from 1280 wide, MC2X's
+    smallest). Its string table names them; nothing documents the shapes,
+    so they are this port's reading of the names (`code/formation.h`, unit
+    tested): three cells between units, centred on the point clicked,
+    facing from the group to it, each unit taking the nearest slot, and
+    each goal moved to the nearest free cell walkable from the stock goal
+    (a local flood fill, not the global path search, which the path worker
+    may be using). A unit with no such cell keeps its stock goal. "None"
+    is the stock spread, so with no formation chosen nothing changes,
+    including the kept-as-shipped packing. Checked: a three-unit move on
+    stock `mc2_01` ends in a line across the direction of travel, a wedge,
+    a column, a dispersion and a circle as chosen; a screenshot of
+    `reap3m01` shows the palette in MC2X's art. Layouts without these
+    buttons (stock, Omnitech) are unchanged.
+
 Not tried: the GLES build on desktop (it runs on the Quest), MC2X's
 operation maps (`mc2x_ops_*`) and per-campaign main menus, which stock
 screens never open.
@@ -492,7 +512,8 @@ stock or Omnitech units).
 | done | step 7: component 255 is an empty row (nothing to do); `DisplayInfoMessage`; failure actions are stock's; `mc2xgsys.fit` | |
 | - | `TacWaterColor`, the per-type deploy switches and `max<n>tons`: undocumented, left | |
 | done | the shop's unit-type buttons: MC2X lists its vehicles, infantry and dropships as mechs (inventory Type MECH, its Group ID the unit type), so they were for sale already; the buttons filter by group (`code/shopfilter.h`) | |
-| 8 | HUD features, route 2 (formations, the 22 support units) | weeks |
+| done | formations: the Formation button, its palette of ten and the indicator; a group move order takes the shape (`code/formation.h`, unit tested) | |
+| 8 | the rest of the HUD, route 2 (the 14 other support units, pick-up and drop-off, recharge and reload, C-Bills to resource points, hide ID, spy map, exit unit) | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.

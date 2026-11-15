@@ -6,6 +6,7 @@ controlGui.cpp			: Implementation of the controlGui component.
 \*************************************************************************************************/
 
 #include"controlgui.h"
+#include"formation.h"
 #include"team.h"
 #include"gamesound.h"
 #include"comndr.h"
@@ -166,6 +167,10 @@ ControlGui::ControlGui()
 	buttonData = 0;
 	vehicleButtons = 0;
 	vehicleData = 0;
+	formationButtons = 0;
+	formationData = 0;
+	formationMenuOpen = false;
+	formationKind = formation::kNone;
 
 	videoInfos = 0;
 	videoInfoCount = 0;
@@ -261,6 +266,11 @@ ControlGui::~ControlGui()
 		delete [] vehicleData;
 	vehicleData = 0;
 
+	delete [] formationButtons;
+	formationButtons = 0;
+	delete [] formationData;
+	formationData = 0;
+
 	if ( missionStatusInfos )
 		delete [] missionStatusInfos;
 
@@ -349,6 +359,12 @@ void ControlGui::render( bool bPaused )
 		
 		for (int i = 0; i < LAST_COMMAND; ++i )
 			buttons[i].render();
+
+		if ( formationButtons )
+		{
+			for ( int i = 0; i < formation::kButtonCount; ++i )
+				formationButtons[i].render();
+		}
 
 		// want to draw the tab on top last
 		for (int i = TACMAP_TAB; i < TACMAP_TAB + 3; i++ )
@@ -1171,6 +1187,9 @@ void ControlGui::update( bool bPaused, bool bLOS )
 		getButton( GUARDTOWER )->hide( 1 );
 		wasLayingMines = 0;
 	}
+
+	// MC2X's Formation button takes the same place, for any other units
+	updateFormationButtons( bMover && !bMineLayer && !bSalvage && !bRepair && !bGuardTower, mouseX, mouseY );
 	
 	if ( bMover && bJump )
 		getButton( JUMP_COMMAND )->disable( false );
@@ -1265,6 +1284,8 @@ bool ControlGui::isOverTacMap()
 
 bool ControlGui::inRegion( int mouseX, int mouseY, bool bPaused )
 {
+	if ( inFormationButton( mouseX, mouseY ) )
+		return true;
 
 	for ( int i = 0; i < LAST_COMMAND; i++ )
 	{
@@ -2816,6 +2837,8 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 			vehicleButtons[i].ID = LARGE_AIRSTRIKE + i;
 	}
 	
+	initFormationButtons( buttonFile, mc2xHud );
+
 	getButton( TACMAP_TAB )->press( true );
 
 	initStatics( buttonFile );
@@ -2827,6 +2850,114 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 
 	
 	pauseWnd->init( buttonFile );
+}
+
+// wolfman-MC2X's formation buttons (formation.h), from its layout's Button24
+// to Button43; other layouts have none
+void ControlGui::initFormationButtons( FitIniFile& buttonFile, bool mc2xHud )
+{
+	if ( formationData )
+	{
+		for ( int i = 0; i < formation::kButtonCount; i++ )
+		{
+			unsigned long gosID = mcTextureManager->get_gosTextureHandle( formationData[i].textureHandle );
+			mcTextureManager->removeTexture( gosID );
+		}
+	}
+
+	delete [] formationButtons;
+	formationButtons = 0;
+	delete [] formationData;
+	formationData = 0;
+	if ( !mc2xHud )
+	{
+		formationMenuOpen = false;
+		formationKind = formation::kNone;
+		return;
+	}
+
+	// value-initialised: zeroes, as the stock buttons' memset gives
+	formationButtons = new ControlButton[formation::kButtonCount]();
+	formationData = new ButtonData[formation::kButtonCount]();
+
+	int fileIndex[formation::kButtonCount] = {};
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+		fileIndex[i] = formation::kFirstPaletteButton + i;
+	ControlButton::initButtons( buttonFile, formation::kButtonCount, formationButtons, formationData, "Button", 0, fileIndex );
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+	{
+		formationButtons[i].ID = formation::kFirstPaletteButton + i;
+		formationButtons[i].hide( 1 );
+	}
+}
+
+// Shows the Formation button when bShow (units selected, none with a button of
+// their own), the palette while it is open and the indicator of the current
+// formation, and handles their clicks.
+void ControlGui::updateFormationButtons( bool bShow, float mouseX, float mouseY )
+{
+	if ( !formationButtons )
+		return;
+	if ( !bShow )
+		formationMenuOpen = false;
+
+	const int indicator = formation::indicatorButton( (formation::Kind)formationKind );
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+	{
+		ControlButton& button = formationButtons[i];
+		const formation::Kind kind = formation::kindForButton( button.ID );
+		bool visible;
+		if ( button.ID == formation::kFormationButton )
+			visible = bShow;
+		else if ( kind != formation::kNotAFormation )
+			visible = bShow && formationMenuOpen;
+		else
+			visible = bShow && ( button.ID == indicator );
+		button.hide( !visible );
+		if ( !visible )
+			continue;
+
+		if ( button.ID == formation::kFormationButton )
+			button.press( formationMenuOpen );
+		else if ( kind != formation::kNotAFormation )
+			button.press( kind == formationKind );
+
+		if ( button.location[0].x <= mouseX && mouseX <= button.location[2].x
+			&& button.location[0].y <= mouseY && mouseY <= button.location[1].y )
+		{
+			helpTextHeaderID = button.data->helpTextHeader;
+			helpTextID = button.data->helpTextID;
+			if ( userInput->leftMouseReleased() && !userInput->isLeftDrag() && !userInput->wasLeftDrag() )
+			{
+				if ( button.ID == formation::kFormationButton )
+				{
+					formationMenuOpen = !formationMenuOpen;
+					soundSystem->playDigitalSample( LOG_SELECT );
+				}
+				else if ( kind != formation::kNotAFormation )
+				{
+					formationKind = kind;
+					formationMenuOpen = false;
+					soundSystem->playDigitalSample( LOG_SELECT );
+				}
+			}
+		}
+	}
+}
+
+bool ControlGui::inFormationButton( int mouseX, int mouseY )
+{
+	if ( !formationButtons )
+		return false;
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+	{
+		const ControlButton& button = formationButtons[i];
+		if ( button.state != ControlButton::HIDDEN
+			&& button.location[0].x <= mouseX && mouseX <= button.location[2].x
+			&& button.location[0].y <= mouseY && mouseY <= button.location[1].y )
+			return true;
+	}
+	return false;
 }
 
 void ControlGui::beginPause()

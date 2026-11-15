@@ -252,6 +252,9 @@ class ControlGui
 		int		getCurrentRange();
 		void	pressInfoButton( ){ handleClick( INFO_COMMAND ); }
 		bool	infoButtonPressed() { return getButton( INFO_COMMAND )->state & ControlButton::PRESSED; }
+		// wolfman-MC2X's move formation (formation.h): kNone (0) unless its
+		// HUD's palette chose one
+		int		getFormation() const { return formationKind; }
 
 		void	showServerMissing();
 
@@ -336,6 +339,16 @@ class ControlGui
 
 
 		static long			vehicleCosts[LAST_VEHICLE];
+
+		// wolfman-MC2X's formation buttons, its layout's 24 to 43 (the palette,
+		// the Formation button, the indicators); NULL with other layouts
+		ControlButton*		formationButtons;
+		ButtonData*			formationData;
+		bool				formationMenuOpen;
+		int					formationKind;
+		void				initFormationButtons( FitIniFile& buttonFile, bool mc2xHud );
+		void				updateFormationButtons( bool bShow, float mouseX, float mouseY );
+		bool				inFormationButton( int mouseX, int mouseY );
 
 		InfoWindow*			infoWnd;
 		PauseWindow*		pauseWnd;

@@ -2537,12 +2537,15 @@ int MissionInterfaceManager::handleOrders( TacticalOrder& order)
 		isMoveOrder = true;
 		}
 	else if (order.code == TACTICAL_ORDER_MOVETO_POINT) {
+		MoverPtr movers[MAX_MOVERS];
 		for (long i = 0; i < pTeam->getRosterSize(); i++) {
 			Mover* pMover = pTeam->getMover(i);
 			if (pMover->isSelected() && pMover->getCommander()->getId() == Commander::home->getId())
-				numMovers++;
+				movers[numMovers++] = pMover;
 		}
 		MoverGroup::calcMoveGoals(order.getWayPoint(0), numMovers, moveGoals);
+		// wolfman-MC2X's formation, when its HUD's palette chose one
+		MoverGroup::calcFormationGoals(controlGui.getFormation(), order.getWayPoint(0), numMovers, movers, moveGoals);
 		isMoveOrder = true;
 	}
 

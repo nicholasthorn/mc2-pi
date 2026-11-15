@@ -44,6 +44,7 @@
 #include"move.h"
 #endif
 #include"groupgoals.h"
+#include"formation.h"
 #include<utils/str_bounded.h>
 
 //---------------------------------------------------------------------------
@@ -399,6 +400,87 @@ void MoverGroup::sortMovers (long numMoversInGroup, MoverPtr* moverList, Stuff::
 //---------------------------------------------------------------------------
 
 #define	GOALMAP_DIM	61
+
+//---------------------------------------------------------------------------
+// wolfman-MC2X's move formations (formation.h). goalList holds the stock
+// goals (calcMoveGoals) for movers[0..numMovers); each mover gets the slot of
+// the shape nearest it instead, on a free cell walkable from the stock goals,
+// or keeps its stock goal when there is none near its slot. Returns how many
+// movers got a slot.
+
+long MoverGroup::calcFormationGoals (long kind, Stuff::Vector3D goal, long numMovers, MoverPtr* movers, Stuff::Vector3D* goalList) {
+
+	if ((numMovers < 2) || (numMovers > MAX_MOVERS) || (kind <= formation::kNone) || (kind >= formation::kCount))
+		return(0);
+
+	formation::Point moverPos[MAX_MOVERS];
+	formation::Point slotPos[MAX_MOVERS];
+	int slotOf[MAX_MOVERS];
+	formation::Point centre = {0.0f, 0.0f};
+	for (long i = 0; i < numMovers; i++) {
+		Stuff::Vector3D pos = movers[i]->getPosition();
+		moverPos[i].x = pos.x;
+		moverPos[i].y = pos.y;
+		centre.x += pos.x;
+		centre.y += pos.y;
+	}
+	centre.x /= (float)numMovers;
+	centre.y /= (float)numMovers;
+
+	// three cells apart, facing from the group to the goal
+	const float spacing = 3.0f * Terrain::worldUnitsPerCell;
+	const formation::Point target = {goal.x, goal.y};
+	const formation::Point heading = {goal.x - centre.x, goal.y - centre.y};
+	formation::place((formation::Kind)kind, numMovers, target, heading, spacing, slotPos);
+	formation::assign(moverPos, slotPos, numMovers, slotOf);
+
+	// walkable from the first stock goal (a passable cell the goal reaches),
+	// within the shape's size plus a few cells
+	float extent = 0.0f;
+	for (long i = 0; i < numMovers; i++) {
+		float d = (float)sqrt((slotPos[i].x - goal.x) * (slotPos[i].x - goal.x) + (slotPos[i].y - goal.y) * (slotPos[i].y - goal.y));
+		if (d > extent)
+			extent = d;
+	}
+	long radius = (long)(extent / Terrain::worldUnitsPerCell) + 6;
+	if (radius > 80)
+		radius = 80;
+	int refRow, refCol;
+	land->worldToCell(goalList[0], refRow, refCol);
+	auto passable = [](int row, int col) {
+		return inMapBounds(row, col, GameMap->height, GameMap->width) && GameMap->getPassable(row, col);
+	};
+	const formation::Reach reach(refRow, refCol, (int)radius, passable);
+
+	int takenRow[MAX_MOVERS];
+	int takenCol[MAX_MOVERS];
+	long numTaken = 0;
+	auto isFree = [&](int row, int col) {
+		if (!reach.contains(row, col))
+			return false;
+		for (long t = 0; t < numTaken; t++)
+			if ((takenRow[t] == row) && (takenCol[t] == col))
+				return false;
+		return true;
+	};
+
+	long placed = 0;
+	for (long i = 0; i < numMovers; i++) {
+		Stuff::Vector3D slot(slotPos[slotOf[i]].x, slotPos[slotOf[i]].y, 0.0f);
+		int row, col;
+		land->worldToCell(slot, row, col);
+		if (formation::nearestFreeCell(row, col, 3, isFree)) {
+			takenRow[numTaken] = row;
+			takenCol[numTaken] = col;
+			numTaken++;
+			land->cellToWorld(row, col, goalList[i]);
+			placed++;
+		}
+	}
+	return(placed);
+}
+
+//---------------------------------------------------------------------------
 
 long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vector3D* goalList) {
 
