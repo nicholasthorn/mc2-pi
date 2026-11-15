@@ -50,4 +50,28 @@ TEST_CASE("index: -1 means none")
 	CHECK_FALSE(savedIndexValid(-2, 50));
 }
 
+// The game's routes hold 120 doors, a save 50: saving drops what loading
+// would refuse, so a save never holds a route its load throws away.
+TEST_CASE("global path: what fits a save is kept")
+{
+	CHECK(savedGlobalPathValid(0, 0, -1, -1, 50));		// no route
+	CHECK(savedGlobalPathValid(50, 49, 48, 49, 50));	// a full save
+	CHECK(savedGlobalPathValid(50, 50, 49, -1, 50));	// a full save, finished
+}
+
+TEST_CASE("global path: a route longer than a save is dropped")
+{
+	CHECK_FALSE(savedGlobalPathValid(51, 0, 0, 1, 50));
+	CHECK_FALSE(savedGlobalPathValid(120, 60, 60, 61, 50));
+}
+
+TEST_CASE("global path: counters left from a longer route are dropped")
+{
+	// a new order cleared the count of a 70-door route at step 60
+	CHECK_FALSE(savedGlobalPathValid(0, 60, -1, -1, 50));
+	// or left a move path's global step there
+	CHECK_FALSE(savedGlobalPathValid(0, 0, 60, -1, 50));
+	CHECK_FALSE(savedGlobalPathValid(0, 0, -1, 60, 50));
+}
+
 } // TEST_SUITE("MoveSaveBounds")

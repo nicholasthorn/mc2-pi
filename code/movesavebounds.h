@@ -29,4 +29,15 @@ inline bool savedIndexValid(long index, long capacity)
 	return index >= -1 && index < capacity;
 }
 
+// The global route of saved move orders: its step counters and the global
+// step of both move paths. A game route may be longer than a save holds, and
+// counters reset with the route (calcMovePath clears only the count) may
+// still point past it, so saving checks this as loading does.
+inline bool savedGlobalPathValid(long numSteps, long curStep, long pathStep0,
+	long pathStep1, long capacity)
+{
+	return savedStepsValid(numSteps, curStep, capacity) &&
+		savedIndexValid(pathStep0, capacity) && savedIndexValid(pathStep1, capacity);
+}
+
 #endif
