@@ -112,6 +112,7 @@
 #endif
 
 #include "../resource.h"
+#include"tonnagetable.h"
 #include<utils/str_bounded.h>
 
 extern unsigned long		NextIdNumber;
@@ -1530,7 +1531,7 @@ bool GroundVehicle::pivotTo (void) {
 								turnRate = -relFacingToWayPt;
 						}
 					}
-					float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+					float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 					if (fabs(turnRate) > maxRate) 
 					{
 						if (turnRate > 0.0)
@@ -1592,7 +1593,7 @@ bool GroundVehicle::pivotTo (void) {
 						else
 							turnRate = 180.0 - relFacingToWayPt;
 					}
-					float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+					float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 					if (fabs(turnRate) > maxRate) 
 					{
 						if (turnRate > 0.0)
@@ -1646,7 +1647,7 @@ bool GroundVehicle::pivotTo (void) {
 			if ((relFacingToTarget < -fireArc) || (relFacingToTarget > fireArc)) 
 			{
 				float turnRate = -relFacingToTarget;
-				float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+				float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 				if (fabs(turnRate) > maxRate) 
 				{
 					if (turnRate > 0.0)
@@ -1932,7 +1933,7 @@ bool GroundVehicle::updateMovePath (float& newRotate, char& newThrottleSetting, 
 							//-----------------------------------------------
 							// We can and will shift facing to destination...
 							newRotate = -relFacingToWayPt;
-							float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+							float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 							if (fabs(newRotate) > maxRate)
 							{
 								if (fabs(newRotate) < 50.0f)
@@ -1993,7 +1994,7 @@ bool GroundVehicle::updateMovePath (float& newRotate, char& newThrottleSetting, 
 						else
 							newRotate = -(relFacingToWayPt - 180.0);
 							
-						float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+						float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 						if (fabs(newRotate) > maxRate) 
 						{
 							newThrottleSetting = -50.0f;

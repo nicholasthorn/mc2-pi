@@ -43,6 +43,7 @@
 #ifndef MOVE_H
 #include"move.h"
 #endif
+#include"groupgoals.h"
 #include<utils/str_bounded.h>
 
 //---------------------------------------------------------------------------
@@ -416,9 +417,14 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 	int topLeftCol = goalCol - GOALMAP_DIM / 2;
 	for (int r = 0; r < GOALMAP_DIM; r++)
 		for (int c = 0; c < GOALMAP_DIM; c++) {
-			if (!inMapBounds(topLeftRow + r, topLeftCol + c, GameMap->height, GameMap->width))
-				continue;
 			int index = r * GOALMAP_DIM + c;
+			if (!inMapBounds(topLeftRow + r, topLeftCol + c, GameMap->height, GameMap->width)) {
+				// off the map: blocked, not whatever the last order left here
+				goalMap[index].cost = COST_BLOCKED;
+				goalMap[index].flags = 0;
+				goalMap[index].g = 0;
+				continue;
+			}
 			goalMap[index].cost = GameMap->getPassable(topLeftRow + r, topLeftCol + c) ? 100 : COST_BLOCKED;
 			goalMap[index].flags = GOALFLAG_AVAILABLE + GOALFLAG_NO_NEIGHBORS;
 			goalMap[index].g = 0;
@@ -481,6 +487,8 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			static long cellShift[8][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}};
 			for (long i = 0; i < 8; i++) {
 				long nRow = curRow + cellShift[i][0];
+				// Kept as shipped (planning/PROGRESS.md): curRow, not curCol, so the
+				// wrong cells lose GOALFLAG_NO_NEIGHBORS and goals end up side by side.
 				long nCol = curRow + cellShift[i][1];
 				if (inMapBounds(nRow, nCol, GOALMAP_DIM, GOALMAP_DIM))
 					goalMap[nRow * GOALMAP_DIM + nCol].clearFlag(GOALFLAG_NO_NEIGHBORS);
@@ -522,6 +530,11 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			}
 		}
 	}		
+
+	// Too few open cells near the goal for the group (a crowded or walled-in
+	// spot): the rest head for the goal itself, rather than for whatever the
+	// caller's list held, which gave them "no path".
+	fillMissingGroupGoals(goalList, numGoalsFound, numMovers, goal);
 
 	return(numGoalsFound);
 }

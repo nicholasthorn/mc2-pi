@@ -458,6 +458,12 @@ Two routes:
 - System heap 1 GB in `mc2x_system.cfg` (stock about 3 MB of the old GameOS
   heap; ours is malloc-backed).
 - Mission sizes are within ours: at most 108 parts, 44 objectives.
+- **Global routes up to 120 doors** (`MAX_GLOBAL_PATH`, stock 50). On six
+  REAP3 maps, routes between random areas reach 55 to 63 doors, and 2 to 97
+  per 6000 pairs were longer than 50, which the game treats as no route:
+  units far from their goal answered "no path". Stock routes reach 26.
+  Saves still hold 50 (`MAX_SAVED_GLOBAL_PATH`, `MechWarriorData` keeps its
+  size); a unit saved on a longer route works out a new one after loading.
 
 ## Overlap with the Omnitech work
 

@@ -127,6 +127,7 @@
 #endif
 
 #include "../resource.h"
+#include"tonnagetable.h"
 
 //--------
 // DEFINES
@@ -3895,7 +3896,7 @@ bool BattleMech::updateJump (void) {
 			//-----------------------------------------------
 			// We can and will shift facing to destination...
 			turnRate = -relFacing * frameLength;
-			float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+			float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 			if (turnRate < 0.0f)
 				maxRate = -maxRate;
 
@@ -3993,7 +3994,7 @@ bool BattleMech::pivotTo (void) {
 				float relFacingToWayPt = relFacingTo(wayPt);
 				if ((relFacingToWayPt < -5.0) || (relFacingToWayPt > 5.0)) {
 					float turnRate = -relFacingToWayPt;
-					float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+					float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 					if (turnRate < 0.0f)
 						maxRate = -maxRate;
 					if (fabs(turnRate) > maxRate) {
@@ -4056,7 +4057,7 @@ bool BattleMech::pivotTo (void) {
 					}
 					
 					//------------------------------------------------------------------------
-					float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+					float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 					if (fabs(turnRate) > maxRate) {
 						if (turnRate > 0)
 							turnRate = maxRate;
@@ -4104,7 +4105,7 @@ bool BattleMech::pivotTo (void) {
 			float fireArc = getFireArc();
 			if ((relFacingToTarget < -fireArc) || (relFacingToTarget > fireArc)) {
 				float turnRate = -relFacingToTarget;
-				float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+				float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 				if (fabs(turnRate) > maxRate) {
 					if (turnRate > 0)
 						turnRate = maxRate;
@@ -4435,7 +4436,7 @@ bool BattleMech::updateMovePath (float& newRotate, char& newThrottleSetting, lon
 								// -fs
 								
 								newRotate = -relFacingToWayPt; 								
-								float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+								float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 								if (fabs(newRotate) > maxRate) 
 								{
 									if (fabs(newRotate) < 50.0f)
@@ -4513,7 +4514,7 @@ bool BattleMech::updateMovePath (float& newRotate, char& newThrottleSetting, lon
 							// Don't know that we need to force walk to turn!!
 							// -fs
 								
-							float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+							float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 							if (fabs(newRotate) > maxRate) 
 							{
 								if (fabs(newRotate) < 50.0f)
@@ -5033,7 +5034,7 @@ bool BattleMech::netUpdateMovePath (float& newRotate, char& newThrottleSetting, 
 								// Don't know that we need to force walk to turn!!
 								// -fs
 								newRotate = -relFacingToWayPt;
-								float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+								float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 								if (fabs(newRotate) > maxRate) {
 									if (newRotate > 0.0)
 										newRotate = maxRate;
@@ -5127,7 +5128,7 @@ bool BattleMech::netUpdateMovePath (float& newRotate, char& newThrottleSetting, 
 								newRotate = -(relFacingToWayPt + 180.0);
 							else
 								newRotate = -(relFacingToWayPt - 180.0);
-							float maxRate = tonnageTurnRate[long(tonnage)] * frameLength;
+							float maxRate = tonnageTableValue(tonnageTurnRate, tonnage) * frameLength;
 							if (fabs(newRotate) > maxRate) {
 								if (newRotate > 0.0)
 									newRotate = maxRate;
@@ -5576,10 +5577,10 @@ void BattleMech::updatePlayerControl (void) {
 	//-----------------------------------------------------------------
 	// Poll the joystick and keyboards here so player can control mech.
 	if (userInput->getKeyDown(KEY_T))
-		control.settings.mech.rotate = tonnageTurnRate[long(tonnage)] / 4.0 * frameLength;
+		control.settings.mech.rotate = tonnageTableValue(tonnageTurnRate, tonnage) / 4.0 * frameLength;
 
 	if (userInput->getKeyDown(KEY_Y))
-		control.settings.mech.rotate = -tonnageTurnRate[long(tonnage)] / 4.0 * frameLength;
+		control.settings.mech.rotate = -tonnageTableValue(tonnageTurnRate, tonnage) / 4.0 * frameLength;
 
 	if (userInput->getKeyDown(KEY_DIVIDE))
 		control.settings.mech.rotateTorso = dynamics.max.mech.torsoYawRate / 4.0 * frameLength;
@@ -5603,16 +5604,16 @@ void BattleMech::updatePlayerControl (void) {
 	}
 
 	if (userInput->getKeyDown(KEY_U))
-		control.settings.mech.rotateLeftArm = tonnageTurnRate[long(tonnage)] / 4.0 * frameLength;
+		control.settings.mech.rotateLeftArm = tonnageTableValue(tonnageTurnRate, tonnage) / 4.0 * frameLength;
 
 	if (userInput->getKeyDown(KEY_I))
-		control.settings.mech.rotateLeftArm = -tonnageTurnRate[long(tonnage)] / 4.0 * frameLength;
+		control.settings.mech.rotateLeftArm = -tonnageTableValue(tonnageTurnRate, tonnage) / 4.0 * frameLength;
 
 	if (userInput->getKeyDown(KEY_O))
-		control.settings.mech.rotateRightArm = tonnageTurnRate[long(tonnage)] / 4.0 * frameLength;
+		control.settings.mech.rotateRightArm = tonnageTableValue(tonnageTurnRate, tonnage) / 4.0 * frameLength;
 
 	if (userInput->getKeyDown(KEY_P))
-		control.settings.mech.rotateRightArm = -tonnageTurnRate[long(tonnage)] / 4.0 * frameLength;
+		control.settings.mech.rotateRightArm = -tonnageTableValue(tonnageTurnRate, tonnage) / 4.0 * frameLength;
 
 	if (userInput->getKeyDown(KEY_1))
 		appearance->setGestureGoal(0);
@@ -5732,23 +5733,23 @@ void BattleMech::updateDynamics (void) {
 	if ((rightArmYawRate != 0.0) && !topNotAllowedToYaw) {
 		float newRightArmRotation = rightArmRotation;
 
-		if (newRightArmRotation > tonnageTurnRate[long(tonnage)]) {
-			newRightArmRotation = tonnageTurnRate[long(tonnage)];
+		if (newRightArmRotation > tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newRightArmRotation = tonnageTableValue(tonnageTurnRate, tonnage);
 			rightArmYawRate = 0.0;
 		}
 	
-		if (newRightArmRotation < -tonnageTurnRate[long(tonnage)]) {
-			newRightArmRotation = -tonnageTurnRate[long(tonnage)];
+		if (newRightArmRotation < -tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newRightArmRotation = -tonnageTableValue(tonnageTurnRate, tonnage);
 			rightArmYawRate = 0.0;
 		}
 	
-		if ((newRightArmRotation + rightArmYawRate) > tonnageTurnRate[long(tonnage)]) {
-			newRightArmRotation = tonnageTurnRate[long(tonnage)];
+		if ((newRightArmRotation + rightArmYawRate) > tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newRightArmRotation = tonnageTableValue(tonnageTurnRate, tonnage);
 			rightArmYawRate = 0.0;
 		}
 	
-		if ((newRightArmRotation + rightArmYawRate) < -tonnageTurnRate[long(tonnage)]) {
-			newRightArmRotation = -tonnageTurnRate[long(tonnage)];
+		if ((newRightArmRotation + rightArmYawRate) < -tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newRightArmRotation = -tonnageTableValue(tonnageTurnRate, tonnage);
 			rightArmYawRate = 0.0;
 		}
 	
@@ -5761,23 +5762,23 @@ void BattleMech::updateDynamics (void) {
 	if ((leftArmYawRate != 0.0)  && !topNotAllowedToYaw) {
 		float newLeftArmRotation = leftArmRotation;
 
-		if (newLeftArmRotation < -tonnageTurnRate[long(tonnage)]) {
-			newLeftArmRotation = -tonnageTurnRate[long(tonnage)];
+		if (newLeftArmRotation < -tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newLeftArmRotation = -tonnageTableValue(tonnageTurnRate, tonnage);
 			leftArmYawRate = 0.0;
 		}
 	
-		if (newLeftArmRotation > tonnageTurnRate[long(tonnage)]) {
-			newLeftArmRotation = tonnageTurnRate[long(tonnage)];
+		if (newLeftArmRotation > tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newLeftArmRotation = tonnageTableValue(tonnageTurnRate, tonnage);
 			leftArmYawRate = 0.0;
 		}
 	
-		if ((newLeftArmRotation + leftArmYawRate) < -tonnageTurnRate[long(tonnage)]) {
-			newLeftArmRotation = -tonnageTurnRate[long(tonnage)];
+		if ((newLeftArmRotation + leftArmYawRate) < -tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newLeftArmRotation = -tonnageTableValue(tonnageTurnRate, tonnage);
 			leftArmYawRate = 0.0;
 		}
 	
-		if ((newLeftArmRotation + leftArmYawRate) > tonnageTurnRate[long(tonnage)]) {
-			newLeftArmRotation = tonnageTurnRate[long(tonnage)];
+		if ((newLeftArmRotation + leftArmYawRate) > tonnageTableValue(tonnageTurnRate, tonnage)) {
+			newLeftArmRotation = tonnageTableValue(tonnageTurnRate, tonnage);
 			leftArmYawRate = 0.0;
 		}
 	
