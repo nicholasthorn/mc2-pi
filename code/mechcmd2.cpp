@@ -10,8 +10,9 @@
 // Include Files
 #ifndef MCLIB_H
 #include"mclib.h"
-#include"mc2xart.h"
 #endif
+
+#include"mc2xart.h"
 
 #ifndef MISSION_H
 #include"mission.h"

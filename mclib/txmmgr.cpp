@@ -14,8 +14,9 @@
 
 #ifndef TXMMGR_H
 #include"txmmgr.h"
-#include"mc2xart.h"
 #endif
+
+#include"mc2xart.h"
 
 #ifndef TGAINFO_H
 #include"tgainfo.h"
