@@ -39,6 +39,9 @@ public:
 	int				getEncyclopediaID() const { return encyclopediaID; }
 	const EString& getFileName() const { return fileName; }
 	int				getHouseID() const{ return houseID; }
+	// the inventory's Group ID (wolfman-MC2X's unit type: shopfilter.h)
+	int				getGroupID() const { return groupID; }
+	void			setGroupID( int id ) { groupID = id; }
 	float			getMaxWeight() const{ return maxWeight; }
 	const EString&	getMechClass() const  { return mechClass; }
 	long			getArmor() const { return baseArmor; }
@@ -58,6 +61,7 @@ protected:
 	
 	float				maxWeight;
 	long				chassisNameID;	// resource ID
+	int					groupID;
 	EString				chassisNameText;	// its string, or the data file's name where that is a placeholder
 	long				baseCost;
 	long				maxHeat;
@@ -130,6 +134,7 @@ protected:
 		unsigned long	getID() const { return ID; }
 		float			getMaxWeight() const { return chassis->maxWeight; }
 		long			getChassisName() const { return chassis->chassisNameID; }
+		int				getGroupID() const { return chassis->getGroupID(); }
 		const EString&		getChassisNameText() const { return chassis->chassisNameText; }
 		const EString&		getName() const { return variantName; }
 		long			getEncyclopediaID() const { return chassis->encyclopediaID; }

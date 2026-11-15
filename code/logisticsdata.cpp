@@ -338,6 +338,9 @@ void LogisticsData::initVariants()
 		chassis->init( &mechFile, chassisID++ );
 		chassis->setFitID(fitID);
 		chassis->setScale( scale );
+		long groupID = 0;
+		if ( NO_ERR == variantFile.readLong( i, 2, groupID ) )
+			chassis->setGroupID( groupID );
 
 		int row = 23;
 		char buffer[256];

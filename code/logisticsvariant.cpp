@@ -27,6 +27,7 @@ LogisticsChassis::LogisticsChassis()
 {
 	appearance = 0;
 	chassisNameID = 0;
+	groupID = 0;
 	baseCost = 0;
 	maxWeight = 0;
 	refCount = 0;
