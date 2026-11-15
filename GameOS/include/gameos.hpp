@@ -2046,6 +2046,13 @@ bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
 // A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.
 bool __stdcall gos_VRHeadset();
+// Phones and tablets: the game resolution of the screen's shape, which a
+// mission should run at; false elsewhere (and before the window exists).
+bool __stdcall gos_PhoneResolution( int* width, int* height );
+// Where the game's screen is drawn in the window, as a GL viewport (x, y from
+// the bottom left, width, height): the whole window, or on a phone the game's
+// shape fitted into it with bars. Mouse and touch positions go through it.
+void __stdcall gos_GetWindowViewport( int vp[4] );
 // The cursor is the touch screen's (gos_touch): from a finger landing until a
 // real mouse is used. It then rests where the last finger lifted, so mouse
 // only behaviour such as scrolling at the screen edge should not follow it.

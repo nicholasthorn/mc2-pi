@@ -3,6 +3,7 @@ package com.nicholasthorn.mc2;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import org.libsdl.app.SDLActivity;
 
@@ -21,6 +22,12 @@ public class MC2Activity extends SDLActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Draw under a phone's camera cutout too: otherwise Android keeps the
+        // window out of that edge in landscape and the game is drawn with a
+        // black band down one side. Nothing to do on a headset.
+        WindowManager.LayoutParams attrs = getWindow().getAttributes();
+        attrs.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        getWindow().setAttributes(attrs);
         // Without this a headset's Wi-Fi drops broadcasts, and a game on the
         // local network (code/netlan.h) is never asked for, or never heard.
         // Not worth stopping the game over: without it, a game is joined by its address.

@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h> // can avoid inluding this here if move MouseInfo struct to separate file
 #include "gos_input.h"
 #include "utils/vec.h"
+#include "utils/screen_fit.h"
 
 #include<string.h>
 
@@ -37,10 +38,17 @@ void __stdcall gos_GetMouseInfo( float* pXPosition, float* pYPosition, int* pXDe
 
     const input::MouseInfo* mi = input::getMouseInfo();
 
+    // across the game's screen in the window (on a phone it can have bars
+    // beside it: gos_GetWindowViewport); y runs down, the viewport's up. The
+    // whole window keeps the plain divide, unclamped, as the VR pointer had it.
+    int vp[4];
+    gos_GetWindowViewport(vp);
+    const bool whole = vp[2] == (int)w && vp[3] == (int)h;
+    const int top = (int)h - vp[1] - vp[3];
     if(pXPosition)
-        *pXPosition = mi->x_ / w;
+        *pXPosition = whole ? mi->x_ / w : screen_fit::acrossViewport(mi->x_, vp[0], vp[2]);
     if(pYPosition)
-        *pYPosition = mi->y_ / h;
+        *pYPosition = whole ? mi->y_ / h : screen_fit::acrossViewport(mi->y_, top, vp[3]);
 
 	// as percentage of screen size
     
@@ -78,11 +86,12 @@ extern SDL_Window* g_sdl_window;
 void __stdcall gos_SetMousePosition( float XPosition, float YPosition )
 {
     if(g_sdl_window) {
-        // the position is 0..1: undo gos_GetMouseInfo's divide by the drawable
-        // size, so the next gos_GetMouseInfo returns what was set
-        const float w = (float)Environment.drawableWidth;
-        const float h = (float)Environment.drawableHeight;
-        SDL_WarpMouseInWindow(g_sdl_window, (int)(XPosition * w), (int)(YPosition * h));
+        // the position is 0..1 across the game's screen: undo gos_GetMouseInfo's
+        // mapping, so the next gos_GetMouseInfo returns what was set
+        int vp[4];
+        gos_GetWindowViewport(vp);
+        const int top = Environment.drawableHeight - vp[1] - vp[3];
+        SDL_WarpMouseInWindow(g_sdl_window, vp[0] + (int)(XPosition * vp[2]), top + (int)(YPosition * vp[3]));
     }
 }
 

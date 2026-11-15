@@ -25,6 +25,7 @@
 #include "gos_render.h"
 #include "gos_xr.h"
 #include "utils/vr_eye.h"
+#include "utils/screen_fit.h"
 
 graphics::RenderWindowHandle g_win_h;
 
@@ -2518,6 +2519,13 @@ HGOSWINDOW gos_CreateWindow(int w, int h, int bpp, int display) {
     if(!g_win_h)
         return nullptr;
 
+#if defined(__ANDROID__) && !defined(MC2_OPENXR)
+    // a phone or tablet: the whole screen, with the status and navigation
+    // bars hidden (SDL's immersive mode). The game's own fullscreen setting
+    // is never applied here, as the window keeps Android's surface.
+    graphics::set_window_fullscreen(g_win_h, true);
+#endif
+
     Environment.displayIndex = display;
     graphics::get_window_size(g_win_h, &Environment.screenWidth, &Environment.screenHeight);
 
@@ -3113,6 +3121,37 @@ bool __stdcall gos_IsVR()
     // the flat paths on a desktop; not for playing
     static const bool forced = getenv("MC2_VR_PATHS") && getenv("MC2_VR_PATHS")[0] == '1';
     return forced || gos_xr::active();
+}
+
+// Phones and tablets (MOBILE.md, aspect ratio): the window is the whole
+// screen, whatever its shape. A mission runs at the screen's shape
+// (gos_PhoneResolution) and fills it; the menus' 4:3 screens are fitted into
+// it with black bars (gos_GetWindowViewport), not stretched.
+#if defined(__ANDROID__) && !defined(MC2_OPENXR)
+static const bool kFitScreenShape = true;
+#else
+static const bool kFitScreenShape = false;
+#endif
+
+bool __stdcall gos_PhoneResolution(int* width, int* height)
+{
+    if(!kFitScreenShape || Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
+        return false;
+    screen_fit::phoneResolution(Environment.drawableWidth, Environment.drawableHeight, *width, *height);
+    return true;
+}
+
+void __stdcall gos_GetWindowViewport(int vp[4])
+{
+    if(kFitScreenShape) {
+        screen_fit::fitViewport(Environment.drawableWidth, Environment.drawableHeight,
+                Environment.screenWidth, Environment.screenHeight, vp);
+        return;
+    }
+    vp[0] = 0;
+    vp[1] = 0;
+    vp[2] = Environment.drawableWidth;
+    vp[3] = Environment.drawableHeight;
 }
 
 bool __stdcall gos_VRHeadset()

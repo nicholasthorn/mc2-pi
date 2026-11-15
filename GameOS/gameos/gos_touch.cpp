@@ -120,6 +120,13 @@ void handleEvent(const SDL_Event* event)
     float x = 0.0f, y = 0.0f;
     toDrawable(event, x, y);
     const double t = now();
+    // once a run: says the touch screen reaches the game, and where
+    static bool logged = false;
+    if(!logged && event->type == SDL_FINGERDOWN) {
+        logged = true;
+        printf("[TOUCH] first finger at %.0f, %.0f of %d x %d\n", x, y,
+                Environment.drawableWidth, Environment.drawableHeight);
+    }
     // the finger on a bar button: nothing until it lifts
     if(g_barFingerDown && event->tfinger.fingerId == g_barFinger) {
         if(event->type == SDL_FINGERUP)

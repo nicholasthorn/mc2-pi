@@ -116,6 +116,25 @@ static bool fitResolutionToVR (CPrefs& loaded)
 	return true;
 }
 
+// A phone or tablet: a 4:3 resolution would be stretched across its wide
+// screen, so missions run at the screen's shape (gos_PhoneResolution: 768
+// high, the least the wide HUD layouts need). False until the window exists;
+// applyPrefs checks again once it has made it. Later loads (the options
+// screen) are caught here, as for VR.
+static bool fitResolutionToScreen (CPrefs& loaded)
+{
+	int width = 0, height = 0;
+	if (!gos_PhoneResolution(&width, &height))
+		return false;
+	if (loaded.resolutionX == width && loaded.resolutionY == height)
+		return false;
+	printf("[SCREEN] saved resolution %dx%d: missions run at %dx%d, the screen's shape\n",
+		(int)loaded.resolutionX, (int)loaded.resolutionY, width, height);
+	loaded.resolutionX = width;
+	loaded.resolutionY = height;
+	return true;
+}
+
 int CPrefs::load( const char* pFileName ) {
 	long result = 0;
 
@@ -312,7 +331,8 @@ int CPrefs::load( const char* pFileName ) {
 	delete prefsFile;
 	prefsFile = NULL;
 
-	fitResolutionToVR(*this);
+	if (!fitResolutionToVR(*this))
+		fitResolutionToScreen(*this);
 
 	return 0;
 }
@@ -491,8 +511,9 @@ int CPrefs::applyPrefs(bool applyRes) {
             }
         }
 
-        // the VR session has just started: the first load could not know
-        if (fitResolutionToVR(*this))
+        // the VR session has just started, or the phone's window has just
+        // been made: the first load could not know
+        if (fitResolutionToVR(*this) || fitResolutionToScreen(*this))
         {
             ::resolutionX = this->resolutionX;
             ::resolutionY = this->resolutionY;

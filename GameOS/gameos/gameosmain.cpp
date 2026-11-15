@@ -49,6 +49,9 @@ extern void gos_DestroyAudio();
 
 static bool g_exit = false;
 static bool g_focus_lost = false;
+// between SDL_APP_WILLENTERBACKGROUND and SDL_APP_DIDENTERFOREGROUND: Android
+// may have taken the window's surface, so nothing is drawn
+static bool g_in_background = false;
 static bool g_gameplay_started = false;
 
 // -bench <csv>: fixed game step, fixed seed, no player input, per-frame
@@ -340,9 +343,11 @@ static void process_events( bool sample, bool reset ) {
             gos_touch::cancel();
             if(!gos_IsAutomatedRun() && Environment.AppSuspending)
                 Environment.AppSuspending();
+            g_in_background = true;
             break;
         case SDL_APP_DIDENTERFOREGROUND:
             printf("[APP] back in the foreground\n");
+            g_in_background = false;
             if(!gos_IsAutomatedRun() && Environment.AppResumed)
                 Environment.AppResumed();
             break;
@@ -373,11 +378,17 @@ static void process_events( bool sample, bool reset ) {
                     break;
                 }
                 case SDL_WINDOWEVENT_FOCUS_LOST:
+#ifdef __ANDROID__
+                    printf("[APP] focus lost\n");
+#endif
                     g_focus_lost = true;
                     gos_touch::cancel();
                     set_mouse_capture(false);
                     break;
                 case SDL_WINDOWEVENT_FOCUS_GAINED:
+#ifdef __ANDROID__
+                    printf("[APP] focus gained\n");
+#endif
                     g_focus_lost = false;
                     set_mouse_capture(true);
                     break;
@@ -434,9 +445,11 @@ static void draw_screen( void )
     glCullFace(GL_FRONT);
     //CHECK_GL_ERROR;
     
-	const int viewport_w = Environment.drawableWidth;
-	const int viewport_h = Environment.drawableHeight;
-    glViewport(0, 0, viewport_w, viewport_h);
+    // the whole window, or on a phone the game's shape fitted into it (the
+    // glClears above take the bars to black)
+    int viewport[4];
+    gos_GetWindowViewport(viewport);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
     CHECK_GL_ERROR;
 
@@ -661,6 +674,13 @@ int main(int argc, char** argv)
         // dead one
         if(g_exit)
             break;
+        // a frame drawn now would go to a surface Android has taken away
+        // (GL_OUT_OF_MEMORY on a Pixel 9); the next event poll blocks until
+        // the app is back
+        if(g_in_background) {
+            input_used = false;
+            continue;
+        }
 
 		uint64_t logic_tick = timing::gettickcount();
         if(run_logic) {
