@@ -114,6 +114,52 @@ TEST_CASE("FitIniFile::open falls back to MC2X's name in the art folder")
 	strcpy(artPath, savedArtPath.c_str());
 }
 
+TEST_CASE("mc2xDataFileName: the data files MC2X renamed")
+{
+	char out[64];
+	auto data = [&](const char* stock) -> std::string {
+		return mc2xDataFileName(stock, out, sizeof(out)) ? std::string(out) : std::string("-");
+	};
+	CHECK(data("compbas.csv") == "mc2xcomp.csv");
+	CHECK(data("buildings.csv") == "mc2x_inv.csv");
+	CHECK(data("pilots.csv") == "mc2xpilots.csv");
+	CHECK(data("gamesys.fit") == "mc2xgsys.fit");
+	CHECK(data("mc2.fx") == "mc2x.fx");
+	CHECK(data("corebrain.abx") == "mc2xcore.abx");
+	CHECK(data("orders.abx") == "-");
+	CHECK(data("") == "-");
+	CHECK_FALSE(mc2xDataFileName("compbas.csv", out, 4));
+}
+
+// stockOrMC2XFileName: stock's file when it is there, MC2X's only when it
+// alone is, and the stock name when neither is (the caller reports it).
+TEST_CASE("stockOrMC2XFileName prefers the stock file")
+{
+	mc2x_mkdir("mc2xdata_scratch");
+	auto write = [](const char* path) {
+		FILE* fp = fopen(path, "wb");
+		REQUIRE(fp != nullptr);
+		fputs("x", fp);
+		fclose(fp);
+	};
+	char name[64];
+
+	write("mc2xdata_scratch/mc2xpilots.csv");
+	stockOrMC2XFileName("mc2xdata_scratch/", "pilots.csv", name, sizeof(name));
+	CHECK(std::string(name) == "mc2xpilots.csv");
+
+	write("mc2xdata_scratch/pilots.csv");
+	stockOrMC2XFileName("mc2xdata_scratch/", "pilots.csv", name, sizeof(name));
+	CHECK(std::string(name) == "pilots.csv");
+
+	stockOrMC2XFileName("mc2xdata_scratch/", "compbas.csv", name, sizeof(name));
+	CHECK(std::string(name) == "compbas.csv");
+
+	remove("mc2xdata_scratch/mc2xpilots.csv");
+	remove("mc2xdata_scratch/pilots.csv");
+	mc2x_rmdir("mc2xdata_scratch");
+}
+
 TEST_CASE("mc2xArtName: other names have no MC2X form")
 {
 	CHECK(mapped("mcui_mr_layout") == "-");

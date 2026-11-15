@@ -14,6 +14,8 @@
 #include"mclib.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef MISSION_H
 #include"mission.h"
 #endif
@@ -2456,15 +2458,9 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	gosASSERT(library != NULL);
 
 	FullPathFileName libraryFileName2;
-	libraryFileName2.init(missionPath, "corebrain", ".abx");
-	// wolfman-MC2X ships its core brain library as mc2xcore.abx instead
-	if (!fileExists(libraryFileName2))
-	{
-		FullPathFileName mc2xCore;
-		mc2xCore.init(missionPath, "mc2xcore", ".abx");
-		if (fileExists(mc2xCore))
-			libraryFileName2.init(missionPath, "mc2xcore", ".abx");
-	}
+	char coreBrainFile[128];	// or wolfman-MC2X's mc2xcore.abx
+	stockOrMC2XFileName(missionPath, "corebrain.abx", coreBrainFile, sizeof(coreBrainFile));
+	libraryFileName2.init(missionPath, coreBrainFile, "");
 	library = ABLi_loadLibrary(libraryFileName2, &numErrors, &numLinesProcessed);
 	gosASSERT(library != NULL);
 	

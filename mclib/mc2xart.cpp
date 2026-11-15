@@ -2,6 +2,8 @@
 
 #include "mc2xart.h"
 
+#include "file.h"
+
 #include <cstdio>
 #include <cstring>
 
@@ -50,6 +52,42 @@ bool copyName(const char* name, char* out, size_t outSize)
 }
 
 } // namespace
+
+// Data files MC2X renamed (contents in stock's formats, checked against R70
+// and REAP3).
+const Whole kDataFiles[] = {
+	{ "compbas.csv", "mc2xcomp.csv" },
+	{ "buildings.csv", "mc2x_inv.csv" },
+	{ "pilots.csv", "mc2xpilots.csv" },
+	{ "gamesys.fit", "mc2xgsys.fit" },
+	{ "mc2.fx", "mc2x.fx" },
+	{ "corebrain.abx", "mc2xcore.abx" },
+};
+
+bool mc2xDataFileName(const char* stockFile, char* out, size_t outSize)
+{
+	if (!stockFile || !out || (outSize == 0))
+		return false;
+	for (const Whole& file : kDataFiles)
+		if (strcmp(stockFile, file.stockName) == 0)
+			return copyName(file.mc2xName, out, outSize);
+	return false;
+}
+
+void stockOrMC2XFileName(const char* folder, const char* stockFile, char* name, size_t nameSize)
+{
+	snprintf(name, nameSize, "%s", stockFile);
+	char path[1024];
+	snprintf(path, sizeof(path), "%s%s", folder, stockFile);
+	if (fileExists(path))
+		return;
+	char mc2x[128];
+	if (!mc2xDataFileName(stockFile, mc2x, sizeof(mc2x)))
+		return;
+	snprintf(path, sizeof(path), "%s%s", folder, mc2x);
+	if (fileExists(path))
+		snprintf(name, nameSize, "%s", mc2x);
+}
 
 bool mc2xArtName(const char* stockName, char* out, size_t outSize)
 {

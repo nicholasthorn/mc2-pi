@@ -14,6 +14,8 @@
 #include"mclib.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef MISSION_H
 #include"mission.h"
 #endif
@@ -1020,7 +1022,9 @@ void Mission::load (const char *loadFileName)
 	libraryFileName.init(missionPath, "miscfunc", ".abx");
 	err = ABLi_loadLibrary(libraryFileName, &numErrors, &numLinesProcessed);
 
-	libraryFileName.init(missionPath, "corebrain", ".abx");
+	char coreBrainFile[128];	// or wolfman-MC2X's mc2xcore.abx (a loaded game did not find it)
+	stockOrMC2XFileName(missionPath, "corebrain.abx", coreBrainFile, sizeof(coreBrainFile));
+	libraryFileName.init(missionPath, coreBrainFile, "");
 	err = ABLi_loadLibrary(libraryFileName, &numErrors, &numLinesProcessed);
 
 	FullPathFileName brainFileName;

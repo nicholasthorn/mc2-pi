@@ -18,4 +18,16 @@
 // out; false if MC2X has no rename for it or it does not fit.
 bool mc2xArtName(const char* stockName, char* out, size_t outSize);
 
+// MC2X's name for a stock data file the game opens by name (name and
+// extension, lower case, no folder): compbas.csv is mc2xcomp.csv,
+// buildings.csv mc2x_inv.csv, pilots.csv mc2xpilots.csv, gamesys.fit
+// mc2xgsys.fit, mc2.fx mc2x.fx, corebrain.abx mc2xcore.abx. False if it has
+// none or it does not fit.
+bool mc2xDataFileName(const char* stockFile, char* out, size_t outSize);
+
+// The file name (no folder) to open in folder: stockFile, or MC2X's name for
+// it when only that is there (on disk or in a fast file). Stock and Omnitech
+// always have theirs.
+void stockOrMC2XFileName(const char* folder, const char* stockFile, char* name, size_t nameSize);
+
 #endif

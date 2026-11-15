@@ -21,6 +21,7 @@
 
 #include"utilities.h"
 #include "paths.h"
+#include "mc2xart.h"
 //******************************************************************************************
 
 const char* ComponentFormString [] = {
@@ -632,13 +633,9 @@ bool MasterComponent::isDefensiveWeapon (void) {
 // is there (wolfman-MC2X renamed it; same columns).
 void MasterComponent::tableFileName (char* path, size_t pathSize) {
 
-	snprintf(path, pathSize, "%scompbas.csv", objectPath);
-	if (fileExists(path))
-		return;
-	char mc2x[1024];
-	snprintf(mc2x, sizeof(mc2x), "%smc2xcomp.csv", objectPath);
-	if (fileExists(mc2x))
-		snprintf(path, pathSize, "%s", mc2x);
+	char name[128];
+	stockOrMC2XFileName(objectPath, "compbas.csv", name, sizeof(name));
+	snprintf(path, pathSize, "%s%s", objectPath, name);
 }
 
 //---------------------------------------------------------------------------

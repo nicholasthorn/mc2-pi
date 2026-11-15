@@ -199,13 +199,18 @@ set_source_files_properties(
     ${MC2_SRC}/code/missaim.cpp
     ${MC2_SRC}/code/mechtypefit.cpp
     ${MC2_SRC}/code/campaignglobals.cpp
-    ${MC2_SRC}/mclib/mc2xart.cpp
     ${MC2_SRC}/code/forcegroupcycle.cpp
     ${MC2_SRC}/code/msglines.cpp
     ${MC2_SRC}/GameOS/gameos/utils/jpeg_decode.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pe_strings.cpp
     ${MC2_SRC}/GameOS/gameos/utils/str_bounded.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+# mc2xart.cpp includes file.h from its own folder, so not as a SYSTEM header:
+# dstd.h's MSVC "#pragma warning" lines are allowed, as in mclib/CMakeLists.txt
+if(MC2_STRICT_WARNINGS)
+    set_source_files_properties(${MC2_SRC}/mclib/mc2xart.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
+endif()
 
 # Fixtures are copied next to the tests and opened by RELATIVE path:
 # File::open lowercases the whole name, so an absolute path with upper-case

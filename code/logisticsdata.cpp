@@ -26,6 +26,7 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #include"comndr.h"
 #include"missionresults.h"
 #include<zlib.h>
+#include"mc2xart.h"
 
 #ifndef VIEWER
 #include"multplyr.h"
@@ -227,28 +228,22 @@ void LogisticsData::initPilots()
 	}
 }
 
-// folder + stockName, or folder + mc2xName when only wolfman-MC2X's renamed
-// copy is there.
-static void stockOrMC2XFileName( char* path, size_t pathSize, const char* folder,
-	const char* stockName, const char* mc2xName )
+// folder + stockFile, or MC2X's name for it (mc2xart.h)
+static void dataFilePath( char* path, size_t pathSize, const char* folder, const char* stockFile )
 {
-	snprintf( path, pathSize, "%s%s", folder, stockName );
-	if ( fileExists( path ) )
-		return;
-	char mc2x[512];
-	snprintf( mc2x, sizeof( mc2x ), "%s%s", folder, mc2xName );
-	if ( fileExists( mc2x ) )
-		snprintf( path, pathSize, "%s", mc2x );
+	char name[128];
+	stockOrMC2XFileName( folder, stockFile, name, sizeof( name ) );
+	snprintf( path, pathSize, "%s%s", folder, name );
 }
 
 void LogisticsData::inventoryFileName( char* path, size_t pathSize )
 {
-	stockOrMC2XFileName( path, pathSize, artPath, "buildings.csv", "mc2x_inv.csv" );
+	dataFilePath( path, pathSize, artPath, "buildings.csv" );
 }
 
 void LogisticsData::pilotListFileName( char* path, size_t pathSize )
 {
-	stockOrMC2XFileName( path, pathSize, objectPath, "pilots.csv", "mc2xpilots.csv" );
+	dataFilePath( path, pathSize, objectPath, "pilots.csv" );
 }
 
 void LogisticsData::initVariants()
