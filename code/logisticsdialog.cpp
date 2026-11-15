@@ -726,7 +726,7 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 				aLocalizedListItem* pEntry = new aLocalizedListItem();
 				*pEntry = s_instance->templateItem;
 				char campaignName[1024];
-				readCampaignNameFromFile( (char*)name.c_str(), campaignName, 1023 );
+				readCampaignNameFromFile( name.c_str(), campaignName, 1023 );
 				pEntry->setText( campaignName );
 				pEntry->setHiddenText( name.c_str() );
 				pEntry->setColor( edits[0].getColor() );

@@ -276,7 +276,7 @@ void SoundSystem::preloadSoundBite (long soundId)
 		// bounded by the packet: wolfman-MC2X's sound.pak holds a 1-byte bite
 		wave_ParseWaveMemorySized(thisSoundBite->biteData,packetSize,&waveFormat,&dataOffset,&length);
 	   
-		if (waveFormat && dataOffset)
+		if (waveFormat && dataOffset && waveFormat->nChannels)	// 0 channels: not a sound
 		{
 			bitsPerSec = waveFormat->nBlockAlign / waveFormat->nChannels * 8;
 
