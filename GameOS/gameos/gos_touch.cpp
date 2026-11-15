@@ -173,11 +173,13 @@ void missionTakesOrders()
 
 void poll()
 {
+    // every frame, so a mission left with the mouse is not still current when
+    // a finger comes back
+    if(g_ordersAge < kOrdersFrames)
+        ++g_ordersAge;
     // in VR the controllers have the virtual mouse and keys
     if(!g_owns || gos_xr::active())
         return;
-    if(g_ordersAge < kOrdersFrames)
-        ++g_ordersAge;
     if(!inMission())
         g_bar.clear();
 

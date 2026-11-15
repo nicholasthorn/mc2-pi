@@ -191,6 +191,22 @@ static bool leftRightProfile()
 {
 	return useLeftRightMouseProfile && !gos_TouchPointer();
 }
+
+// the cursor is over the touch screen's command bar (gos_GetTouchBar), which
+// is interface, not map: a drag ending there gives no order underneath
+static bool overTouchBar( long x, long y )
+{
+	gosTouchBarButton bar[8];
+	const int count = gos_GetTouchBar( bar, 8 );
+	const float fx = (float)x / Environment.screenWidth;
+	const float fy = (float)y / Environment.screenHeight;
+	for ( int i = 0; i < count; i++ )
+	{
+		if ( fx >= bar[i].x && fx < bar[i].x + bar[i].w && fy >= bar[i].y && fy < bar[i].y + bar[i].h )
+			return true;
+	}
+	return false;
+}
 bool drawGUIOn = true;				//Used to shut off GUI for Screen Shots and Movie Mode
 bool toggledGUI = true;				//Used to tell if I shut the GUI off or if its in movieMode
 long lightState = 0;
@@ -758,6 +774,8 @@ void MissionInterfaceManager::update (void)
 			dragStart.y = 0.f;
 		}
 	}
+	else if ( overTouchBar( mouseX, mouseY ) )
+		bGui = true;
 	else
 	{
 		helpTextHeaderID = helpTextID = 0;

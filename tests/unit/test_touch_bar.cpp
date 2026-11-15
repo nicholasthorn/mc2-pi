@@ -10,6 +10,8 @@
 
 #include "utils/touch_bar.h"
 
+#include <cstring>
+
 using touch::Bar;
 using touch::BarCommand;
 using touch::BarKeys;
@@ -30,12 +32,16 @@ const float kTabletW = 2048.0f, kTabletH = 1536.0f;
 
 TEST_SUITE("TouchBar") {
 
-TEST_CASE("the buttons are a column of equal squares on the right edge")
+TEST_CASE("the buttons are a column of equal buttons on the right edge")
 {
 	Bar bar;
 	bar.layout(kPhoneW, kPhoneH);
 	const BarRect first = bar.rect(0);
-	CHECK(first.w == doctest::Approx(first.h));
+	// wider than tall: the mission draws the labels in its own 800x600, which
+	// a 20:9 screen squeezes to under half the width per pixel
+	CHECK(first.w == doctest::Approx(1.5f * first.h));
+	const float gameWidth = first.w / kPhoneW * 800.0f;
+	CHECK(gameWidth > 45.0f);                     // room for five characters
 	CHECK(first.h > 0.06f * kPhoneH);            // big enough for a finger
 	for(int i = 0; i < Bar::kButtons; ++i) {
 		const BarRect r = bar.rect(i);
@@ -101,8 +107,11 @@ TEST_CASE("force fire is held until the next order")
 	bar.press(index(BarCommand::ForceFire));
 	CHECK(bar.take().force);
 	CHECK(bar.take().force);         // held, frame after frame
+	// the order's own frame: still down, as the mission gives the order on
+	// the button's release and checks F is held then
 	bar.ordered();
-	CHECK_FALSE(bar.take().force);
+	CHECK(bar.take().force);
+	CHECK_FALSE(bar.take().force);   // the frame after
 	CHECK_FALSE(bar.lit(index(BarCommand::ForceFire)));
 
 	// tapped twice before an order: off again
@@ -114,7 +123,6 @@ TEST_CASE("force fire is held until the next order")
 TEST_CASE("a tap goes out once, with only its own modifiers, then the held ones return")
 {
 	Bar bar;
-	bar.press(index(BarCommand::Waypoints));       // Ctrl held
 	bar.press(index(BarCommand::AddToSelection));  // Shift held
 	bar.press(index(BarCommand::ForceFire));
 	bar.press(index(BarCommand::SelectVisible));
@@ -123,16 +131,31 @@ TEST_CASE("a tap goes out once, with only its own modifiers, then the held ones 
 	BarKeys k = bar.take();
 	CHECK(k.tap);
 	CHECK(k.tapCommand == BarCommand::SelectVisible);
-	CHECK_FALSE(k.ctrl);       // E alone, not Ctrl + Shift + E
+	CHECK_FALSE(k.ctrl);       // E alone, not Shift + E
 	CHECK_FALSE(k.shift);
 	CHECK_FALSE(k.force);
 	CHECK_FALSE(bar.lit(index(BarCommand::SelectVisible)));
 
 	k = bar.take();
 	CHECK_FALSE(k.tap);
-	CHECK(k.ctrl);
 	CHECK(k.shift);
 	CHECK(k.force);
+}
+
+TEST_CASE("a tap ends a route: Waypoints goes out rather than coming back")
+{
+	// Ctrl up sends the route (the mission runs its queued waypoints on
+	// Ctrl's release), so a tap that needs Ctrl up ends it for good, rather
+	// than sending half of it and starting another with the rest
+	Bar bar;
+	bar.press(index(BarCommand::Waypoints));
+	CHECK(bar.take().ctrl);
+	bar.press(index(BarCommand::NextGroup));
+	CHECK_FALSE(bar.lit(index(BarCommand::Waypoints)));
+	BarKeys k = bar.take();
+	CHECK(k.tap);
+	CHECK_FALSE(k.ctrl);
+	CHECK_FALSE(bar.take().ctrl);   // and stays up
 }
 
 TEST_CASE("new group is Ctrl + grave, next group grave alone")
@@ -184,6 +207,7 @@ TEST_CASE("every button has a short label")
 		const char* l = Bar::label(i);
 		REQUIRE(l != nullptr);
 		CHECK(l[0] != '\0');
+		CHECK(std::strlen(l) <= 5);   // fits a button at 800x600 on a 20:9 screen
 	}
 	CHECK(Bar::label(-1) != nullptr);
 	CHECK(Bar::label(Bar::kButtons) != nullptr);

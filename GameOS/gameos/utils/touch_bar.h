@@ -9,12 +9,14 @@
 //
 // - Waypoints (Ctrl) and Add to selection (Shift) are held from a tap until
 //   the next tap on them: a route takes several taps on the map, and so
-//   does picking several units.
-// - Force fire (F) is held from a tap until the next order on the map: the
-//   game fires on what is clicked while F is down.
+//   does picking several units. The mission sends a route when Ctrl goes up.
+// - Force fire (F) is held from a tap until the next order on the map, and
+//   through that order's frame: the game fires on what is clicked while F is
+//   down, checking it on the button's release.
 // - Select visible (E), Next group (grave) and New group (Ctrl + grave) are
 //   taps: the key is pressed once, with only the modifiers it needs, for one
-//   frame; the held ones come back the frame after.
+//   frame; the held ones come back the frame after, except Waypoints, which
+//   the tap ends (its Ctrl going up has sent the route).
 //
 // Positions are in drawable pixels.
 
@@ -52,8 +54,8 @@ public:
 	static const int kButtons = (int)BarCommand::Count;
 
 	// a column on the right edge, clear of the 2001 interface (control panel
-	// and map along the bottom, messages at the top), square buttons sized
-	// from the screen's height
+	// and map along the bottom, messages at the top), buttons sized from the
+	// screen's height
 	void layout(float width, float height);
 	BarRect rect(int button) const { return rects_[button]; }
 	static const char* label(int button);
@@ -74,6 +76,7 @@ private:
 	BarRect rects_[kButtons] = {};
 	bool held_[kButtons] = {};
 	int tap_ = -1;  // a tap waiting to go
+	bool forceEnding_ = false;  // an order was given: force fire goes up after this frame
 };
 
 } // namespace touch
