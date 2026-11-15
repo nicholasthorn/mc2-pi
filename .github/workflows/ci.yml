@@ -66,6 +66,8 @@ jobs:
       - uses: actions/checkout@v7
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq glslang-tools
       - run: python3 scripts/validate_shaders.py
+      # the Python scripts' own tests (made-up files only, no game data)
+      - run: python3 -m unittest discover -s scripts/tests
 
   cppcheck:
     name: cppcheck (changed files)
