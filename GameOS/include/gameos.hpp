@@ -2048,6 +2048,10 @@ struct gosTouchBarButton {
 // Fills up to maxButtons and returns how many; 0 while the bar is hidden (no
 // mission taking orders, or the cursor is not the touch screen's).
 int __stdcall gos_GetTouchBar( gosTouchBarButton* buttons, int maxButtons );
+// A text field took (true) or lost (false) the focus: while the cursor is the
+// touch screen's, its keyboard shows (Android's on-screen keyboard), and what
+// is typed arrives as key presses, as from a real keyboard.
+void __stdcall gos_TouchTextInput( bool focused );
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.

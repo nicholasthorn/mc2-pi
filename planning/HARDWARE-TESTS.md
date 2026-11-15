@@ -399,6 +399,14 @@ push the data as in `android/README.md`, "Phones and tablets".
       they fire at it, and the button goes out. Visible, Group and New grp do as E,
       grave and Ctrl + grave. Does the bar cover anything that matters (radar, the
       top right messages)? Are the buttons big enough on a phone?
+- [ ] **Long press** in mc2_01: hold a finger still on one of your mechs for half a
+      second: the camera follows it. Hold on empty ground, then drag: the camera turns
+      and tilts. Is half a second right? In a menu, holding a list's scroll arrow still
+      scrolls.
+- [ ] **On-screen keyboard:** tap the pilot name field (prefs) and a save game name:
+      Android's keyboard comes up, letters, digits, backspace and Enter type into the
+      field, and it goes away when the field loses focus. Is the field hidden under
+      the keyboard on a phone?
 - [ ] **No edge scroll from a tap:** in mc2_01, tap a control panel button at the bottom
       edge and lift; the map must not keep scrolling. Then use a mouse: edge scrolling
       works again.

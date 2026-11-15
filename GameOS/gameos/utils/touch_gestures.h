@@ -12,7 +12,9 @@
 //   press delay, so a second finger landing just after the first still makes
 //   a two finger gesture rather than a click. A finger lifted before then is a
 //   tap: press and release at once. Fingers added while the button is down
-//   are ignored until every finger is up.
+//   are ignored until every finger is up. With Settings::longPress (in a
+//   mission) a still finger becomes the right button after a longer delay
+//   instead.
 // - Two fingers move the camera: spreading or pinching them turns the mouse
 //   wheel a step at a time (up to zoom in, as the game reads the wheel), and
 //   moving them together past the dead zone holds a camera scroll direction
@@ -31,13 +33,20 @@ struct Settings {
 	double pressDelay = 0.08;       // seconds before a still finger presses
 	float pinchStep = 1.25f;        // finger distance ratio per wheel step
 	float panDeadZone = 40.0f;      // pixels the pair moves before scrolling
+	// a still finger is the right button after longPressDelay, instead of the
+	// left after pressDelay (a mission: right click follows a unit with the
+	// camera, right drag turns it); a quick lift is still a tap, and a move
+	// before the delay still a left drag
+	bool longPress = false;
+	double longPressDelay = 0.5;
 };
 
 // the mouse as the touch screen moves it, in order: replay each one
 struct PointerEvent {
 	float x;
 	float y;
-	bool left;  // left button down
+	bool left;    // left button down
+	bool right;   // right button down (a long press)
 };
 
 class Gestures {
@@ -93,8 +102,8 @@ private:
 
 	Finger* find(int64_t finger);
 	void remove(int64_t finger);
-	void emit(float x, float y, bool left);
-	void press();
+	void emit(float x, float y, bool left, bool right = false);
+	void press(bool right = false);
 	void startCamera();
 	void updateCamera();
 	void stopCamera();
@@ -103,7 +112,10 @@ private:
 	Mode mode_ = Mode::Idle;
 	std::vector<Finger> fingers_;
 	std::vector<PointerEvent> events_;
-	bool handedLeft_ = false;   // the button in the last event handed out
+	// the buttons in the last event handed out
+	bool handedLeft_ = false;
+	bool handedRight_ = false;
+	bool right_ = false;        // the pointer's button is the right one (a long press)
 	// the first finger: where and when it landed, and the cursor
 	int64_t pointerId_ = 0;
 	float startX_ = 0.0f, startY_ = 0.0f;

@@ -447,6 +447,10 @@ void aEdit::setFocus(bool bHasFocus)
 	bFocus = bHasFocus;
 	gos_KeyboardFlush();
 
+	// a touch screen's keyboard (gos_touch), for any field, IME or not
+	if ( bHasFocus || bFocusSave )
+		gos_TouchTextInput( bHasFocus );
+
 
 	if ( bAllowIME && bHasFocus )
 	{

@@ -124,8 +124,10 @@ What to expect so far:
   (pinch to zoom, move together to scroll). Missions use the one-button
   controls while touching: tap a unit to select, ground to move, an enemy to
   attack. A command bar on the right edge in a mission adds Waypoints, Add
-  to selection, Force fire, Select visible, Next group and New group. No long
-  press or on-screen keyboard yet. `MC2_TOUCH=0` in `mc2args.txt` goes back
+  to selection, Force fire, Select visible, Next group and New group. In a
+  mission, a finger held still for half a second is the right button (follow
+  a unit with the camera, or drag to turn it). A text field brings up the
+  on-screen keyboard. `MC2_TOUCH=0` in `mc2args.txt` goes back
   to SDL's own taps as clicks. A Bluetooth or USB mouse and keyboard play as
   on a PC.
 - **The picture is stretched** to the screen: the game draws at its own

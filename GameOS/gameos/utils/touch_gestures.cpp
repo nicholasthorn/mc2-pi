@@ -30,16 +30,17 @@ void Gestures::remove(int64_t finger)
 		[finger](const Finger& f) { return f.id == finger; }), fingers_.end());
 }
 
-void Gestures::emit(float x, float y, bool left)
+void Gestures::emit(float x, float y, bool left, bool right)
 {
-	events_.push_back(PointerEvent{x, y, left});
+	events_.push_back(PointerEvent{x, y, left, right});
 }
 
 // the button goes down where the finger landed: a drag starts there
-void Gestures::press()
+void Gestures::press(bool right)
 {
 	mode_ = Mode::Pointer;
-	emit(startX_, startY_, true);
+	right_ = right;
+	emit(startX_, startY_, !right, right);
 }
 
 void Gestures::down(int64_t finger, float x, float y, double time)
@@ -83,7 +84,7 @@ void Gestures::move(int64_t finger, float x, float y, double /*time*/)
 			emit(x, y, false);
 		}
 	} else if(mode_ == Mode::Pointer) {
-		emit(x, y, true);
+		emit(x, y, !right_, right_);
 	}
 	// the camera pair is looked at once a frame, in update
 }
@@ -122,9 +123,15 @@ void Gestures::up(int64_t finger, float x, float y, double /*time*/)
 
 void Gestures::update(double time)
 {
-	if(mode_ == Mode::Pending && time - startTime_ >= settings_.pressDelay)
-		press();
-	else if(mode_ == Mode::Camera)
+	if(mode_ == Mode::Pending) {
+		const double held = time - startTime_;
+		if(settings_.longPress) {
+			if(held >= settings_.longPressDelay)
+				press(true);
+		} else if(held >= settings_.pressDelay) {
+			press();
+		}
+	} else if(mode_ == Mode::Camera)
 		updateCamera();
 }
 
@@ -143,18 +150,21 @@ void Gestures::cancel()
 std::vector<PointerEvent> Gestures::takePointerEvents()
 {
 	size_t count = events_.size();
-	bool left = handedLeft_;
+	bool left = handedLeft_, right = handedRight_;
 	for(size_t i = 0; i < events_.size(); ++i) {
-		if(events_[i].left && !left) {   // a press: it ends this batch
+		if((events_[i].left && !left) || (events_[i].right && !right)) {   // a press: it ends this batch
 			count = i + 1;
 			break;
 		}
 		left = events_[i].left;
+		right = events_[i].right;
 	}
 	std::vector<PointerEvent> events(events_.begin(), events_.begin() + count);
 	events_.erase(events_.begin(), events_.begin() + count);
-	if(!events.empty())
+	if(!events.empty()) {
 		handedLeft_ = events.back().left;
+		handedRight_ = events.back().right;
+	}
 	return events;
 }
 

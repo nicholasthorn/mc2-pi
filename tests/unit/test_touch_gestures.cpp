@@ -33,6 +33,11 @@ bool same(const PointerEvent& e, float x, float y, bool left)
 	return std::fabs(e.x - x) < 0.01f && std::fabs(e.y - y) < 0.01f && e.left == left;
 }
 
+bool sameButtons(const PointerEvent& e, float x, float y, bool left, bool right)
+{
+	return same(e, x, y, left) && e.right == right;
+}
+
 } // namespace
 
 TEST_SUITE("TouchGestures") {
@@ -295,6 +300,88 @@ TEST_CASE("cancel lifts the button and stops the camera without a click")
 	CHECK(g.scrollX() == 0);
 	CHECK(g.scrollY() == 0);
 	CHECK_FALSE(g.touching());
+}
+
+
+TEST_CASE("long press: a still finger is the right button, where it landed")
+{
+	touch::Settings s = settings();
+	s.longPress = true;
+	Gestures g(s);
+	g.down(1, 100.0f, 200.0f, 0.0);
+	g.takePointerEvents();
+
+	g.update(0.1);
+	g.update(0.4);
+	CHECK(g.takePointerEvents().empty());   // no left press while waiting
+
+	g.update(0.5);
+	auto events = g.takePointerEvents();
+	REQUIRE(events.size() == 1);
+	CHECK(sameButtons(events[0], 100.0f, 200.0f, false, true));
+
+	// then a right drag (the camera turns), and the release
+	g.move(1, 160.0f, 230.0f, 0.6);
+	g.up(1, 160.0f, 230.0f, 0.7);
+	events = g.takePointerEvents();
+	REQUIRE(events.size() == 2);
+	CHECK(sameButtons(events[0], 160.0f, 230.0f, false, true));
+	CHECK(sameButtons(events[1], 160.0f, 230.0f, false, false));
+}
+
+TEST_CASE("long press on: a quick lift is still a left tap, a quick move a left drag")
+{
+	touch::Settings s = settings();
+	s.longPress = true;
+	Gestures g(s);
+	g.down(1, 100.0f, 200.0f, 0.0);
+	g.update(0.2);
+	g.up(1, 100.0f, 200.0f, 0.3);
+	auto events = g.takePointerEvents();
+	REQUIRE(events.size() == 2);
+	CHECK(sameButtons(events[1], 100.0f, 200.0f, true, false));
+	CHECK(sameButtons(g.takePointerEvents().at(0), 100.0f, 200.0f, false, false));
+
+	g.down(2, 100.0f, 200.0f, 1.0);
+	g.takePointerEvents();
+	g.move(2, 140.0f, 200.0f, 1.2);    // past the slop before the long press
+	events = g.takePointerEvents();
+	REQUIRE(events.size() == 1);
+	CHECK(sameButtons(events[0], 100.0f, 200.0f, true, false));
+	g.update(2.0);                      // held on: still the left drag
+	g.up(2, 140.0f, 200.0f, 2.1);
+	for(const PointerEvent& e : g.takePointerEvents())
+		CHECK_FALSE(e.right);
+}
+
+TEST_CASE("long press on: a second finger while waiting is still a camera gesture")
+{
+	touch::Settings s = settings();
+	s.longPress = true;
+	Gestures g(s);
+	g.down(1, 100.0f, 200.0f, 0.0);
+	g.down(2, 200.0f, 200.0f, 0.3);
+	g.update(1.0);
+	g.up(1, 100.0f, 200.0f, 1.1);
+	g.up(2, 200.0f, 200.0f, 1.1);
+	for(const PointerEvent& e : g.takePointerEvents()) {
+		CHECK_FALSE(e.left);
+		CHECK_FALSE(e.right);
+	}
+}
+
+TEST_CASE("cancel during a long press lets the right button go")
+{
+	touch::Settings s = settings();
+	s.longPress = true;
+	Gestures g(s);
+	g.down(1, 100.0f, 200.0f, 0.0);
+	g.update(0.6);
+	g.takePointerEvents();
+	g.cancel();
+	const auto events = g.takePointerEvents();
+	REQUIRE(events.size() == 1);
+	CHECK(sameButtons(events[0], 100.0f, 200.0f, false, false));
 }
 
 }

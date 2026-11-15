@@ -30,6 +30,8 @@ bool g_barFingerDown = false;
 SDL_FingerID g_barFinger = 0;
 // the left button as the gestures last set it, to see an order end
 bool g_pointerLeft = false;
+// the on-screen keyboard is up for a text field (gos_TouchTextInput)
+bool g_textInput = false;
 
 bool inMission()
 {
@@ -57,9 +59,13 @@ void toDrawable(const SDL_Event* event, float& x, float& y)
 // distances in pixels, from the screen's height: a phone and a desktop
 // monitor are both about 1000 pixels high, and a finger's wobble is a
 // similar share of either. Tune on devices (MOBILE.md, phase 1).
-touch::Settings settingsFor(int height)
+// A mission adds the long press (the right button: follow a unit with the
+// camera, or turn it by dragging); elsewhere a held finger is the left button
+// soon, which a menu's held scroll arrow needs.
+touch::Settings settingsFor(int height, bool mission)
 {
     touch::Settings s;
+    s.longPress = mission;
     const float h = (float)std::max(height, 480);
     s.slop = 0.02f * h;
     s.panDeadZone = 0.06f * h;
@@ -132,7 +138,7 @@ void handleEvent(const SDL_Event* event)
             }
         }
         if(!g_gestures.touching())   // the window may have changed size
-            g_gestures.setSettings(settingsFor(Environment.drawableHeight));
+            g_gestures.setSettings(settingsFor(Environment.drawableHeight, inMission()));
         g_owns = true;
         g_gestures.down(event->tfinger.fingerId, x, y, t);
         break;
@@ -185,7 +191,8 @@ void poll()
 
     g_gestures.update(now());
     for(const touch::PointerEvent& e : g_gestures.takePointerEvents()) {
-        input::setVirtualPointer(e.x, e.y, e.left ? 1u : 0u);
+        // bit 0 left, bit 2 right, as gos_GetMouseInfo reports them
+        input::setVirtualPointer(e.x, e.y, (e.left ? 1u : 0u) | (e.right ? 4u : 0u));
         if(g_pointerLeft && !e.left)    // a click or a drag ended: an order
             g_bar.ordered();
         g_pointerLeft = e.left;
@@ -211,6 +218,19 @@ bool __stdcall gos_TouchPointer()
 void __stdcall gos_TouchMissionTakesOrders()
 {
     gos_touch::missionTakesOrders();
+}
+
+void __stdcall gos_TouchTextInput(bool focused)
+{
+    // started only for the touch screen, so a desktop's IME is left alone;
+    // stopped whichever way it started, as a mouse may have taken over since
+    if(focused && g_owns) {
+        SDL_StartTextInput();
+        g_textInput = true;
+    } else if(!focused && g_textInput) {
+        SDL_StopTextInput();
+        g_textInput = false;
+    }
 }
 
 int __stdcall gos_GetTouchBar(gosTouchBarButton* buttons, int maxButtons)
