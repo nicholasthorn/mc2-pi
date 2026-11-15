@@ -34,6 +34,9 @@ bool parse(const std::string& text, Manifest& out, std::string& error);
 // "." or ".." part, no backslash
 bool safePath(const std::string& path);
 
+// the files in before that after does not have: what an update removes
+std::vector<std::string> removed(const Manifest& before, const Manifest& after);
+
 // a file the player's runs make or change (settings, saves, logs, the
 // command line, the install marker), which data must never overwrite
 bool playerFile(const std::string& path);

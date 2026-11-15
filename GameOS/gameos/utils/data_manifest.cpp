@@ -1,6 +1,7 @@
 #include "data_manifest.h"
 
 #include <cstring>
+#include <set>
 
 namespace data_manifest {
 
@@ -73,6 +74,18 @@ bool playerFile(const std::string& path)
     // HOME is the files folder: the user data directory (settings, saves) is
     // a hidden folder in it; savegame/ is the old place for saves
     return !path.empty() && (path[0] == '.' || path.compare(0, 9, "savegame/") == 0);
+}
+
+std::vector<std::string> removed(const Manifest& before, const Manifest& after)
+{
+    std::set<std::string> kept;
+    for(const Entry& e : after.files)
+        kept.insert(e.path);
+    std::vector<std::string> out;
+    for(const Entry& e : before.files)
+        if(!kept.count(e.path))
+            out.push_back(e.path);
+    return out;
 }
 
 bool parse(const std::string& text, Manifest& out, std::string& error)

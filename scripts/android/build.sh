@@ -82,7 +82,7 @@ build_game() {
 # (the APK has its own).
 stage_data() {
     local out="$1/assets/mc2data" src="$MC2_ANDROID_DATA"
-    [ -d "$src" ] || { echo "android: MC2_ANDROID_DATA=$src is not a folder" >&2; exit 2; }
+    [ -f "$src/minprefs.cfg" ] || { echo "android: MC2_ANDROID_DATA=$src is not a game data folder (no minprefs.cfg; see scripts/build_gamedata.sh)" >&2; exit 2; }
     mkdir -p "$out"
     (cd "$src" && find . -type f \
         ! -name options.cfg ! -name orgprefs.cfg ! -name mc2args.txt ! -name 'mc2*.log' \

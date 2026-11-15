@@ -87,4 +87,15 @@ TEST_CASE("the files the player owns are never in a manifest") {
     CHECK_FALSE(data_manifest::playerFile("data/savegame.txt"));
 }
 
+TEST_CASE("an update lists the files the new data no longer has") {
+    data_manifest::Manifest before, after;
+    std::string error;
+    REQUIRE(data_manifest::parse("mc2data a\n1 art.fst\n2 data/old.fit\n3 data/kept.fit\n", before, error));
+    REQUIRE(data_manifest::parse("mc2data b\n1 art.fst\n3 data/kept.fit\n4 data/new.fit\n", after, error));
+    const std::vector<std::string> gone = data_manifest::removed(before, after);
+    REQUIRE(gone.size() == 1);
+    CHECK(gone[0] == "data/old.fit");
+    CHECK(data_manifest::removed(after, after).empty());
+}
+
 }

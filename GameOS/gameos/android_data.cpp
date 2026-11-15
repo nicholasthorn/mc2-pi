@@ -20,7 +20,7 @@ namespace {
 // internal storage folder does not have it
 const char kAssets[] = "mc2data/";
 const char kManifest[] = "mc2data/files.txt";
-// in the files folder: the stamp of the data installed there
+// in the files folder: the manifest of the data installed there
 const char kMarker[] = "mc2data.installed";
 
 void fail(const std::string& why)
@@ -49,6 +49,12 @@ bool fileExists(const char* path)
 {
     struct stat st;
     return stat(path, &st) == 0;
+}
+
+uint64_t fileSize(const std::string& path)
+{
+    struct stat st;
+    return stat(path.c_str(), &st) == 0 ? (uint64_t)st.st_size : 0;
 }
 
 // the folders above a file
@@ -121,33 +127,41 @@ bool install()
         printf("[DATA] no game data in the APK\n");
         return true;
     }
+    const std::string manifestText(text, len);
+    SDL_free(text);
     data_manifest::Manifest manifest;
     std::string error;
-    const bool parsed = data_manifest::parse(std::string(text, len), manifest, error);
-    SDL_free(text);
-    if(!parsed) {
+    if(!data_manifest::parse(manifestText, manifest, error)) {
         fail(std::string(kManifest) + ": " + error);
         return false;
     }
-    std::string installed;
-    if(readFile(kMarker, installed) && installed == manifest.stamp) {
+    // the marker is written last, so a copy cut off half way still names the
+    // old data and is done again on the next start
+    std::string installedText, ignored;
+    data_manifest::Manifest installed;
+    const bool haveInstalled = readFile(kMarker, installedText) && data_manifest::parse(installedText, installed, ignored);
+    if(haveInstalled && installed.stamp == manifest.stamp) {
         printf("[DATA] game data %s already installed\n", manifest.stamp.c_str());
         return true;
     }
 
+    // what the copy adds: files already there (pushed with adb, or older
+    // data) are overwritten one at a time
     const uint64_t mb = 1024 * 1024;
+    uint64_t needed = 64 * mb;
+    for(const data_manifest::Entry& e : manifest.files) {
+        const uint64_t have = fileSize(e.path);
+        needed += e.size > have ? e.size - have : 0;
+    }
     struct statvfs fs;
     if(statvfs(".", &fs) == 0) {
         const uint64_t avail = (uint64_t)fs.f_bavail * fs.f_frsize;
-        if(avail < manifest.totalBytes + 64 * mb) {
-            fail("it needs " + std::to_string(manifest.totalBytes / mb + 64) + " MB free, and the device has "
+        if(avail < needed) {
+            fail("it needs " + std::to_string(needed / mb) + " MB free, and the device has "
                     + std::to_string(avail / mb) + " MB");
             return false;
         }
     }
-    // a changed stamp means new data: the old marker goes first, so a copy
-    // cut off half way is redone on the next start
-    remove(kMarker);
     printf("[DATA] installing game data %s: %zu files, %llu MB\n", manifest.stamp.c_str(), manifest.files.size(),
             (unsigned long long)(manifest.totalBytes / mb));
     fflush(stdout);
@@ -172,8 +186,15 @@ bool install()
         }
     }
 
+    // files the older data had and this has not, so the game never reads a
+    // stale one
+    if(haveInstalled)
+        for(const std::string& path : data_manifest::removed(installed, manifest))
+            if(remove(path.c_str()) == 0)
+                printf("[DATA] removed %s\n", path.c_str());
+
     FILE* marker = fopen(kMarker, "wb");
-    if(!marker || fwrite(manifest.stamp.data(), 1, manifest.stamp.size(), marker) != manifest.stamp.size()) {
+    if(!marker || fwrite(manifestText.data(), 1, manifestText.size(), marker) != manifestText.size()) {
         if(marker)
             fclose(marker);
         fail(std::string(kMarker) + ": " + strerror(errno));

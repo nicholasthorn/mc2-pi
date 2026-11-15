@@ -425,6 +425,16 @@ push the data as in `android/README.md`, "Phones and tablets".
       in `mc2.log` instead. Note the GPU (Adreno, Mali, PowerVR); try two vendors.
 - [ ] **A phone call or the screen turning off** mid-mission: the same as switching
       away. In a menu nothing pauses, and the menu is as it was.
+- [ ] **Switching away at a mission's end:** go to Home while the mission-won
+      sequence or an in-mission movie plays. Does the pause menu come up over it on
+      return, and does closing it carry the end of the mission on as normal?
+- [ ] **The Quest now pauses too:** on a Quest, take the headset off mid-mission until
+      it sleeps, then put it back on: the mission is paused with its pause menu
+      (new with phase 3), which the controllers close. Is that wanted in VR?
+- [ ] **A data update over adb-pushed data:** with the data pushed by `adb` and little
+      space left, install a full APK: it installs (only new or bigger files count
+      against the space), and files the new data no longer has are removed
+      (`[DATA] removed` lines in `mc2.log`).
 - [ ] **The full APK on a fresh device** (phase 3's exit): build with
       `MC2_ANDROID_DATA`, install it on a device that has never had the game data
       pushed, start it: toasts count the install up (how long does it take?), then
