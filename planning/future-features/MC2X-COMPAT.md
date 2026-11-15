@@ -26,12 +26,12 @@ Releases (ModDB, `moddb.com/mods/wolfman-mc2x/downloads`):
 | `MC2X-REAP3-G.4.exe` | REAP3-G R05 (Jul 2026): game core R68, the 7 missions, 24-mission REAP3 campaign | 1,077,278,503 | `ae9d81407f875699207d1b1e5083e6b9` | yes, MD5 matches ModDB |
 | `MC2X-CVE-G.7.exe` | CVE-G (Sep 2021): Carver V on MC2X | 1,035,539,884 | `948a681ad6ba78a2b728bab91f6d8fbf` | no: ModDB's download did not start in the browser; GamePressure has an older 755 MB build (2017) |
 
-**Dark Gray: Borderworlds cannot be tried: there is no copy to get.** Its
-ModDB page lists no file; its 2013 release posts point to
-`borderworlds.maginot.eu`, which is gone, and the web archive holds only the
-site's images. MC2X R70 carries its four terrain detail textures
-(`darkgray_m0*.detail.tga`) and nothing else of it. REAP3 (24 missions, built
-by wolfman on core R68) replaces it as the MC2X test campaign.
+**Dark Gray: Border Worlds** had no copy to get when this study started (its
+ModDB page listed no file and its 2013 site is gone). The user later found
+v1.4, `mc2_DarkGray_Borderworlds_v1.4.zip` (441,880,474 bytes, MD5
+`6019fe37e48b9ff8d660ef01ab9d1458`): a whole MC2X R20 install with the
+campaign (5 missions, 6 purchase files). See Progress 19. REAP3 (24
+missions, built by wolfman on core R68) stays the main MC2X test campaign.
 
 The installers are **Clickteam Install Creator**, not Inno Setup, so
 `innoextract` and 7z do not read them. They were unpacked without running
@@ -317,9 +317,55 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     ready, launch, the mission's options, win, salvage, pilot review and
     a second launch. MC2X's extra front-end buttons do nothing.
 
-Not tried: the GLES build, play past 300 frames, MC2X's operation maps
-(`mc2x_ops_*`) and per-campaign main menus, which stock screens never
-open.
+18. **Played on the Quest (2026-11-14).** An MC2X copy of the Quest app
+    (package `com.nicholasthorn.mc2.mc2x`, its own data folder, as the
+    Omnitech one) was played through REAP3's first missions and
+    `metropolitan`. What the play found, all fixed:
+    - **Long texts as mech names, MC2X's wording missing:** `mc2xres.dll`
+      is MC2X's whole string table and reuses stock ids; its text now
+      wins over the game's table (Omnitech's `mc2res.dll` still only
+      fills gaps).
+    - **Wrong mech icons:** `mc2x_mechicons.tga` is 512 wide, 20 a row.
+    - **No pilot portraits:** they are `mc2x_<pilot>.tga`.
+    - **White square on pilot ready:** MC2X's layout has a mission map
+      static (78), filled as Omnitech's (38) is.
+    - **White box before the logo:** MC2X's intro is `mc2x_screenintro.fit`;
+      it also ships a stale `mcl_splashscreenintro.fit` whose art it lacks.
+    - **Half-drawn mechs in the menus** (Fafnir, five times an Atlas, also
+      some of Omnitech's): the logistics TGL pools were 2000 vertices,
+      now sixteen times that.
+    - **Minimap off the world:** MC2X's mission maps are 256x256 (stock
+      128); the minimap, briefing and pilot ready drew a quarter.
+    - **No firing, no enemies seen, force bar near empty:** MC2X renames
+      `gamesys.fit` to `mc2xgsys.fit` and `[General]` to `[mc2xGeneral]`;
+      unread, weapon, visual and sensor ranges were 0. Three of its tables
+      are longer than stock's (indirect fire 30, sensors 10, rank scale
+      6), and a longer table failed and ended `Mover::loadGameSystem`.
+    - Objective actions `DisplayInfoMessage` (20 in REAP3) were dropped:
+      shown now as a text message.
+    Engine fixes found on the way, for any data: a leak when a file opens
+    under a second name after a failed open, and `RandomNumber(0)`.
+    **3000-frame runs under ASan + UBSan:** 28 of 32 MC2X missions reach
+    3000 frames; `reap3m02`, `m06`, `m07` and `m21` end before then with no
+    error (the mission ending).
+
+19. **Dark Gray: Border Worlds (2026-11-14).** Compared with R70 + REAP3 as
+    the game sees both (FSTs and loose files): 9,429 of its 12,825 files
+    are the same, 973 only in Dark Gray (missions, campaign, art, models),
+    2,423 differ. R70's `object2.pak` keeps all of R20's 1,293 packets at
+    their numbers; of the 92 its missions place, 71 are the same object
+    with keys added or rebalanced, and three are other objects now (548
+    artillery piece is a fixed artillery, 641 a twin cannon, 808 `rphover`
+    a supply hover). So it runs in the MC2X folder with R70's shared files
+    and only its own 973 added, on R70's balance. There its five missions
+    pass 3000 frames under ASan + UBSan (after the `RandomNumber(0)` fix: a
+    script's `random(0)` was a division by zero), and a walk plays its
+    campaign through two missions; REAP3 missions in the same folder still
+    pass. Its purchase files are not missions.
+
+Not tried: the GLES build on desktop (it runs on the Quest), MC2X's
+operation maps (`mc2x_ops_*`) and per-campaign main menus, which stock
+screens never open.
 
 ## ABL
 
@@ -434,8 +480,9 @@ stock or Omnitech units).
 | done | long `DescIndex` names, move type 2 (drones) | |
 | done | in-mission HUD, key reference, dialogs, route 1 | |
 | done | front end, route 1 (main menu, campaign and logistics screens, loading screens) | |
-| 7 | component 255, mission keys (support switches, failure actions, tac map water colour) | 1-2 days |
-| 8 | HUD features, route 2 | weeks |
+| done | step 7: component 255 is an empty row (nothing to do); `DisplayInfoMessage`; failure actions are stock's; `mc2xgsys.fit` | |
+| - | `TacWaterColor`, the per-type deploy switches and `max<n>tons`: undocumented, left | |
+| 8 | HUD features, route 2; the shop's eight unit types (filters 1-2 days, fielding vehicles, hover and infantry 1-2 weeks, aircraft and dropships weeks) | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.
@@ -455,11 +502,10 @@ own features, which no data file explains. Order:
 
 1. Merge this branch (the fallbacks and checks are harmless to stock data).
 2. Step 1 (ASan on the 300x300 maps): done, see Progress 12 and 13.
-3. 3000-frame runs of the REAP3 missions, to find what 300 frames do not
-   reach.
+3. 3000-frame runs of the REAP3 missions: done (Progress 18).
 4. Step 6: done. Step 8 not unless MC2X's author documents the features.
 
-Dark Gray: Borderworlds is gone; use REAP3 as the MC2X test campaign, and
+REAP3 is the MC2X test campaign; Dark Gray runs beside it (Progress 19).
 CVE-G (Carver V on MC2X) when its download can be fetched.
 
 ## Open questions
