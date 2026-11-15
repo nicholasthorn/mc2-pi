@@ -16,6 +16,12 @@ flat, on **Windows, Linux (x64 and arm64), the Raspberry Pi 4/400 and
 Android** (the Quest build is an Android app); those builds come along with
 the VR work rather than leading it.
 
+![The night battle of mission 19 seen from a Quest 2: mechs fighting among pine trees under a cloudy night sky, a laser beam across the group, the selection ring and compass on the ground](media/quest.jpg)
+
+*Mission 19 in a Quest 2: the left eye's view, captured on the headset (the
+interface panel and controller beams are separate layers, not in this
+image). The flat screenshots below are from the Linux build.*
+
 | | |
 |---|---|
 | ![Artillery strikes landing on a battle between mechs and vehicles in mission 17](media/battle.webp) | ![A night battle lit by searchlights, with laser and missile fire, in mission 19](media/night.webp) |
