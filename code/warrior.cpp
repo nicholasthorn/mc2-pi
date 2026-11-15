@@ -8212,8 +8212,9 @@ void MechWarrior::copyToData (MechWarriorData &data)
 	data.mainGoalObjectWID = mainGoalObjectWID;
 	data.mainGoalLocation = mainGoalLocation;
 	data.mainGoalControlRadius = mainGoalControlRadius;
-	data.lastGoalPathSize = lastGoalPathSize;
-	MemCpy(data.lastGoalPath,lastGoalPath);
+	// a goal path longer than a save holds is saved as none (no restriction)
+	data.lastGoalPathSize = savedCountValid(lastGoalPathSize,MAX_SAVED_GLOBAL_PATH) ? lastGoalPathSize : 0;
+	memcpy(data.lastGoalPath,lastGoalPath,sizeof(data.lastGoalPath));
 	
 	MemCpy(data.newTacOrderReceived,newTacOrderReceived);
 	MemCpy(data.tacOrder,tacOrder);
@@ -8348,12 +8349,12 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 	mainGoalLocation = data.mainGoalLocation;
 	mainGoalControlRadius = data.mainGoalControlRadius;
 	lastGoalPathSize = data.lastGoalPathSize;
-	if (!savedCountValid(lastGoalPathSize,MAX_GLOBAL_PATH))
+	if (!savedCountValid(lastGoalPathSize,MAX_SAVED_GLOBAL_PATH))
 	{
 		PAUSE(("Saved goal path of %d areas is out of range. Dropped",(int)lastGoalPathSize));
 		lastGoalPathSize = 0;
 	}
-	MemCpy(lastGoalPath,data.lastGoalPath);
+	memcpy(lastGoalPath,data.lastGoalPath,sizeof(data.lastGoalPath));
 	
 	MemCpy(newTacOrderReceived, data.newTacOrderReceived);
 	MemCpy(tacOrder, data.tacOrder);
@@ -8397,14 +8398,14 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 
 	// a bad save must not index past these arrays: drop the path, and the
 	// unit works out a new one, as pathType undefined always does
-	bool movePathsValid = savedStepsValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,MAX_GLOBAL_PATH);
+	bool movePathsValid = savedStepsValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,MAX_SAVED_GLOBAL_PATH);
 	for (long i = 0; i < 2; i++)
 	{
 		const MovePath* movePath = moveOrders.path[i];
 		movePathsValid = movePathsValid &&
 			savedCountValid(movePath->numSteps,MAX_STEPS_PER_MOVEPATH) &&
 			savedStepsValid(movePath->numStepsWhenNotPaused,movePath->curStep,MAX_STEPS_PER_MOVEPATH) &&
-			savedIndexValid(movePath->globalStep,MAX_GLOBAL_PATH);
+			savedIndexValid(movePath->globalStep,MAX_SAVED_GLOBAL_PATH);
 	}
 	if (!movePathsValid)
 	{
