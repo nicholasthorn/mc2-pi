@@ -262,6 +262,7 @@ set(SOURCES
     "code/msglines.cpp"
     "code/formation.cpp"
     "code/mc2xsupport.cpp"
+    "code/mc2xunits.cpp"
     "code/missiongui.cpp"
     "code/mpconnectiontype.cpp"
     "code/mpgamebrowser.cpp"
@@ -353,7 +354,7 @@ if(MC2_STRICT_WARNINGS)
     foreach(_dir GameOS/include GameOS/gameos mclib gui code netlib thirdparty)
         list(APPEND _mc2_legacy_isystem "-isystem" "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}")
     endforeach()
-    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp code/mechtypefit.cpp
+    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp code/mechtypefit.cpp code/mc2xunits.cpp
         PROPERTIES COMPILE_OPTIONS
         "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas;${_mc2_legacy_isystem}")
 endif()

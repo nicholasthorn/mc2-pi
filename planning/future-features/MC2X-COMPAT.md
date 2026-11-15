@@ -425,6 +425,36 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     cannot be used. Not in multiplayer. A picture at 1280x1024 shows the
     tac map full of enemies with the spy map on.
 
+23. **The buttons for selected units (2026-11-15, step 8, the last of the
+    HUD).** MC2X documents each with one line of help, so all of these
+    are this port's reading (`code/mc2xhud.h` for which selection shows
+    which button, unit tested; `code/mc2xunits.cpp` for what they do,
+    runtime state by watch ID, not saved):
+    - **Dropship fire** (Button44, spheroid dropships: inventory group 4):
+      the next click fires at that point, through stock's suppression-fire
+      order (`doGuardTower`). Replaces the hold-position button.
+    - **Hide ID / un-hide** (51, 52): enemies' sensors and eyes do not
+      count the unit (`SensorSystem::calcContactStatus`) until it fires or
+      is un-hidden. On stock `mc2_01` with an enemy moved alongside: seen
+      at contact 5 without it, not seen with it, seen again once ordered
+      to attack.
+    - **Pick-up / drop-off** (47, 48): a transport (its profile's
+      `TransportCapacity`, which reads as tons: Transport 140, Lander 80,
+      Deployer 650, the infantry carrier 4 with `TransportItemLimit` 1)
+      flies to a friendly unit and takes it off the map; drop-off puts its
+      cargo down round it. A transport lost puts its cargo down where it
+      was, and a save puts everything down first. On `reap3m01` a
+      Transport collected the 55-ton MenShen from 300 units away and put
+      it down again.
+    - **Recharge / reload** (45, 46, supply carriers: SupplyCopter and the
+      supply vehicles): repair vehicles within 250 units regain refit
+      points, or every unit within 250 units its ammunition, 10 points a
+      second; Button20 lights for a repair vehicle when a recharging
+      carrier is in reach. Unit tested only, not tried in a mission.
+    - **Exit unit** (50): the pilot ejects without a wound and the unit
+      stands empty and whole; the salvage craft can man another. On
+      `reap3m01`: the mech disabled, the pilot ejected.
+
 Not tried: the GLES build on desktop (it runs on the Quest), MC2X's
 operation maps (`mc2x_ops_*`) and per-campaign main menus, which stock
 screens never open.
@@ -554,7 +584,7 @@ stock or Omnitech units).
 | done | formations: the Formation button, its palette of ten and the indicator; a group move order takes the shape (`code/formation.h`, unit tested) | |
 | done | the 14 other support units and the second support tab (`code/mc2xsupport.h`, unit tested) | |
 | done | C-Bills to resource points and back, the spy map (`code/mc2xhud.h`, unit tested) | |
-| 8 | the rest of the HUD, route 2 (pick-up and drop-off, recharge and reload, hide ID, exit unit, the dropship's fire button) | weeks |
+| done | the buttons for selected units: dropship fire, hide ID, pick-up and drop-off, recharge and reload, exit unit (`code/mc2xhud.h`, `code/mc2xunits.cpp`; each a reading of one line of help) | |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.

@@ -866,6 +866,13 @@ void MissionInterfaceManager::update (void)
 
 	}
 	
+	// wolfman-MC2X's pick-up button armed: this click names the unit to carry
+	if ( controlGui.isPickingUp() && !bGui && userInput->leftMouseReleased() && !userInput->wasLeftDrag() )
+	{
+		controlGui.endPickUp( ( target && target->isMover() ) ? (Mover*)target : NULL );
+		return;
+	}
+
 	if( useLeftRightMouseProfile ) // using AOE control style
 	{
 		if ( WAYPOINT_KEY == -1 )

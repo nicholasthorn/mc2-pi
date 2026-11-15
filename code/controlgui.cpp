@@ -9,12 +9,7 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"formation.h"
 #include"mc2xsupport.h"
 #include"mc2xhud.h"
-
-static bool shownButtonAt( const ControlButton* buttons, int count, float mouseX, float mouseY );
-
-// wolfman-MC2X's exchange and spy map buttons, in mc2xCommandButtons' order
-static const int kMC2XCommands[] = { mc2xhud::kToResourcePoints, mc2xhud::kToCBills, mc2xhud::kSpyMap };
-static const int kMC2XCommandCount = sizeof( kMC2XCommands ) / sizeof( kMC2XCommands[0] );
+#include"mc2xunits.h"
 #include"team.h"
 #include"gamesound.h"
 #include"comndr.h"
@@ -47,6 +42,39 @@ static const int kMC2XCommandCount = sizeof( kMC2XCommands ) / sizeof( kMC2XComm
 #include"malloc.h"
 
 #include"chatwindow.h"
+
+static bool shownButtonAt( const ControlButton* buttons, int count, float mouseX, float mouseY );
+
+// wolfman-MC2X's exchange and spy map buttons, in mc2xCommandButtons' order
+static const int kMC2XCommands[] = { mc2xhud::kToResourcePoints, mc2xhud::kToCBills, mc2xhud::kSpyMap,
+	mc2xhud::kRechargeIndicator, mc2xhud::kDropshipFire, mc2xhud::kRechargeMode, mc2xhud::kReloadMode,
+	mc2xhud::kPickUp, mc2xhud::kDropOff, mc2xhud::kExitUnit, mc2xhud::kHideId, mc2xhud::kUnhideId };
+static const int kMC2XCommandCount = sizeof( kMC2XCommands ) / sizeof( kMC2XCommands[0] );
+
+// the player's selected units, by what MC2X's buttons need to know
+static mc2xhud::Selection mc2xSelection( Mover** first )
+{
+	mc2xhud::Selection s;
+	*first = 0;
+	for ( long i = 0; i < Team::home->getRosterSize(); i++ )
+	{
+		Mover* pMover = (Mover*)Team::home->getMover( i );
+		if ( !pMover->isSelected() || pMover->getCommander()->getId() != Commander::home->getId() )
+			continue;
+		if ( !*first )
+			*first = pMover;
+		const long type = pMover->getTypeHandle();
+		const bool supply = mc2xsupport::isSupplyCarrier( type );
+		s.units++;
+		s.dropships += mc2xsupport::isSpheroidDropship( type ) ? 1 : 0;
+		s.transports += ( mc2xunits::capacity( pMover ) > 0.f ) ? 1 : 0;
+		s.carrying += ( mc2xunits::carried( pMover ) > 0 ) ? 1 : 0;
+		s.supply += supply ? 1 : 0;
+		s.repair += ( pMover->isRefit() && !supply ) ? 1 : 0;
+		s.hidden += mc2xunits::idHidden( pMover ) ? 1 : 0;
+	}
+	return s;
+}
 
 
 
@@ -188,6 +216,8 @@ ControlGui::ControlGui()
 	mc2xCommandButtons = 0;
 	mc2xCommandData = 0;
 	spyMapTime = 0.f;
+	dropshipFireArmed = false;
+	pickUpArmed = false;
 
 	videoInfos = 0;
 	videoInfoCount = 0;
@@ -2254,6 +2284,8 @@ bool ControlGui::getGuardTower()
 {
 	if ( getButton( GUARDTOWER )->state & ControlButton::PRESSED )
 		return 1;
+	if ( dropshipFireArmed )	// MC2X's dropships: the same fire at a point
+		return 1;
 
 	return 0;
 }
@@ -3228,30 +3260,77 @@ void ControlGui::updateMC2XCommands( bool bPaused, float mouseX, float mouseY )
 	const long cBills = shown ? LogisticsData::instance->getCBills() : 0;
 	const long resourcePoints = shown ? LogisticsData::instance->getResourcePoints() : 0;
 	const bool released = userInput->leftMouseReleased() && !userInput->isLeftDrag() && !userInput->wasLeftDrag();
+	Mover* first = 0;
+	const mc2xhud::Selection selection = mc2xSelection( &first );
+	if ( !shown || !mc2xhud::shows( mc2xhud::kDropshipFire, selection ) )
+		dropshipFireArmed = false;
+	if ( !shown || !mc2xhud::shows( mc2xhud::kPickUp, selection ) )
+		pickUpArmed = false;
+	// stock's buttons in the places these take
+	getButton( CUR_RANGE )->hide( shown && mc2xhud::shows( mc2xhud::kDropshipFire, selection ) );
+	getButton( FIRE_FROM_CURRENT_POS )->hide( shown && mc2xhud::shows( mc2xhud::kReloadMode, selection ) );
+	if ( shown && mc2xhud::shows( mc2xhud::kRechargeMode, selection ) )
+		getButton( REPAIR )->hide( 1 );
+	// and MC2X's own Formation button and indicator, which share them
+	if ( shown && formationButtons && ( mc2xhud::shows( mc2xhud::kRechargeMode, selection )
+		|| mc2xhud::shows( mc2xhud::kRechargeIndicator, selection ) ) )
+	{
+		formationMenuOpen = false;
+		for ( int f = 0; f < formation::kButtonCount; f++ )
+			formationButtons[f].hide( 1 );
+	}
+
 	for ( int i = 0; i < kMC2XCommandCount; i++ )
 	{
 		ControlButton& button = mc2xCommandButtons[i];
-		button.hide( !shown );
-		if ( !shown )
+		const bool forSelection = mc2xhud::isSelectionButton( button.ID );
+		const bool buttonShown = shown && ( !forSelection || mc2xhud::shows( button.ID, selection ) );
+		button.hide( !buttonShown );
+		if ( !buttonShown )
 			continue;
 
-		const bool spyRunning = ( button.ID == mc2xhud::kSpyMap ) && ( spyMapTime > 0.f );
-		if ( spyRunning )
+		if ( forSelection )
 		{
+			bool pressed = false;
+			if ( button.ID == mc2xhud::kDropshipFire )
+				pressed = dropshipFireArmed;
+			else if ( button.ID == mc2xhud::kPickUp )
+				pressed = pickUpArmed;
+			else if ( button.ID == mc2xhud::kRechargeMode )
+				pressed = mc2xunits::supplyMode( first ) == mc2xunits::kRecharge;
+			else if ( button.ID == mc2xhud::kReloadMode )
+				pressed = mc2xunits::supplyMode( first ) == mc2xunits::kReload;
+			else if ( button.ID == mc2xhud::kRechargeIndicator )
+				pressed = mc2xunits::rechargeInReach( first );
 			button.disable( 0 );
-			button.press( 1 );
+			button.press( pressed );
 		}
 		else
 		{
-			if ( button.state == ControlButton::PRESSED )
-				button.press( 0 );
-			button.disable( !mc2xhud::canUse( button.ID, cBills, resourcePoints, false ) );
+			const bool spyRunning = ( button.ID == mc2xhud::kSpyMap ) && ( spyMapTime > 0.f );
+			if ( spyRunning )
+			{
+				button.disable( 0 );
+				button.press( 1 );
+			}
+			else
+			{
+				if ( button.state == ControlButton::PRESSED )
+					button.press( 0 );
+				button.disable( !mc2xhud::canUse( button.ID, cBills, resourcePoints, false ) );
+			}
 		}
 
 		if ( !shownButtonAt( &button, 1, mouseX, mouseY ) )
 			continue;
 		helpTextHeaderID = mc2xCommandData[i].helpTextHeader;
 		helpTextID = mc2xCommandData[i].helpTextID;
+		if ( released && forSelection && ( button.ID != mc2xhud::kRechargeIndicator ) )
+		{
+			handleMC2XUnitCommand( button.ID );
+			soundSystem->playDigitalSample( LOG_SELECT );
+			continue;
+		}
 		if ( !released || ( button.state != ControlButton::ENABLED ) )
 			continue;
 
@@ -3274,6 +3353,70 @@ void ControlGui::updateMC2XCommands( bool bPaused, float mouseX, float mouseY )
 		}
 		soundSystem->playDigitalSample( LOG_SELECT );
 	}
+}
+
+// MC2X's buttons for the selected units (mc2xhud.h, mc2xunits.h)
+void ControlGui::handleMC2XUnitCommand( int button )
+{
+	if ( button == mc2xhud::kDropshipFire )
+	{
+		dropshipFireArmed = !dropshipFireArmed;
+		return;
+	}
+	if ( button == mc2xhud::kPickUp )
+	{
+		pickUpArmed = !pickUpArmed;
+		return;
+	}
+
+	Mover* first = 0;
+	const mc2xhud::Selection selection = mc2xSelection( &first );
+	// the supply modes toggle: on for all, or off when all have it
+	int mode = mc2xunits::kSupplyOff;
+	if ( button == mc2xhud::kRechargeMode )
+		mode = ( mc2xunits::supplyMode( first ) == mc2xunits::kRecharge ) ? mc2xunits::kSupplyOff : mc2xunits::kRecharge;
+	else if ( button == mc2xhud::kReloadMode )
+		mode = ( mc2xunits::supplyMode( first ) == mc2xunits::kReload ) ? mc2xunits::kSupplyOff : mc2xunits::kReload;
+
+	for ( long i = 0; i < Team::home->getRosterSize(); i++ )
+	{
+		Mover* pMover = (Mover*)Team::home->getMover( i );
+		if ( !pMover->isSelected() || pMover->getCommander()->getId() != Commander::home->getId() )
+			continue;
+		switch ( button )
+		{
+			case mc2xhud::kRechargeMode:
+			case mc2xhud::kReloadMode:
+				mc2xunits::setSupplyMode( pMover, mode );
+				break;
+			case mc2xhud::kHideId:
+				mc2xunits::setIdHidden( pMover, true );
+				break;
+			case mc2xhud::kUnhideId:
+				mc2xunits::setIdHidden( pMover, false );
+				break;
+			case mc2xhud::kDropOff:
+				mc2xunits::dropOff( pMover );
+				break;
+			case mc2xhud::kExitUnit:
+				if ( selection.units == 1 )
+					mc2xunits::exitUnit( pMover );
+				break;
+		}
+	}
+}
+
+void ControlGui::endPickUp( Mover* target )
+{
+	pickUpArmed = false;
+	Mover* first = 0;
+	const mc2xhud::Selection selection = mc2xSelection( &first );
+	if ( !first || !mc2xhud::shows( mc2xhud::kPickUp, selection ) || !mc2xunits::pickUp( first, target ) )
+	{
+		soundSystem->playDigitalSample( INVALID_GUI );
+		return;
+	}
+	soundSystem->playDigitalSample( LOG_SELECT );
 }
 
 // as renderVehicleTab draws stock's: the one chosen framed, prices below

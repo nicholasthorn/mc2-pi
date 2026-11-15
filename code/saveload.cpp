@@ -114,6 +114,7 @@
 
 #include "../resource.h"
 #include<gameos.hpp>
+#include"mc2xunits.h"
 #ifndef LINUX_BUILD
 #include<ddraw.h>
 #else
@@ -259,6 +260,9 @@ void Mission::save (const char *saveFileName)
 		soundSystem->playDigitalSample(INVALID_GUI);
 		return;
 	}
+
+	// wolfman-MC2X's airlift is not saved: its cargo goes down first
+	mc2xunits::putDownAll();
 
 	userInput->mouseOff();
 

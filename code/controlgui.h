@@ -258,6 +258,10 @@ class ControlGui
 		// how many units the support delivery under way brings (MC2X's
 		// kamikaze swarm: 5; every other: 1)
 		int		getVehicleCount();
+		// wolfman-MC2X's pick-up button: armed, the next click on one of our
+		// units has the selected transport go and load it
+		bool	isPickingUp() const { return pickUpArmed; }
+		void	endPickUp( Mover* target );
 
 		void	showServerMissing();
 
@@ -370,6 +374,9 @@ class ControlGui
 		ControlButton*		mc2xCommandButtons;
 		ButtonData*			mc2xCommandData;
 		float				spyMapTime;			// seconds of the spy map left
+		bool				dropshipFireArmed;	// Button44: the next click fires the dropships
+		bool				pickUpArmed;		// Button47: the next click picks a unit up
+		void				handleMC2XUnitCommand( int button );
 		void				initMC2XCommands( FitIniFile& buttonFile, bool mc2xHud );
 		void				updateMC2XCommands( bool bPaused, float mouseX, float mouseY );
 

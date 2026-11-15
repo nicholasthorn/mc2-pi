@@ -41,6 +41,7 @@
 #endif
 
 #include<gameos.hpp>
+#include"mc2xunits.h"
 
 //***************************************************************************
 
@@ -257,6 +258,10 @@ float SensorSystem::getEffectiveRange (void) {
 long SensorSystem::calcContactStatus (MoverPtr mover) {
 
 	if (!owner->getTeam())
+		return(CONTACT_NONE);
+
+	// wolfman-MC2X's hidden ID: an enemy cannot tell what the unit is
+	if (mc2xunits::idHidden(mover) && mover->getTeam() && owner->getTeam()->isEnemy(mover->getTeam()))
 		return(CONTACT_NONE);
 
 	if (mover->getFlag(OBJECT_FLAG_REMOVED)) {

@@ -68,6 +68,17 @@ long costForBlock(int block);
 // The mission file key of a switch, "<name>EnabledDefault".
 const char* switchKey(Switch s);
 
+// A spheroid dropship: MC2X's inventory group 4 (Lion, Union, Overlord and
+// their "c" versions, the Gray Death dropship, Fortress, Deployer), which
+// its HUD's Button44 orders to fire at an area.
+bool isSpheroidDropship(long objectNumber);
+
+// A supply carrier, which Button45 and Button46 set to recharge repair
+// vehicles or reload units: the SupplyCopter and the supply vehicles
+// (supplier, supply truck, supply hover). This port's reading: MC2X's help
+// names a "Supply Carrier Unit" and nothing lists which units are one.
+bool isSupplyCarrier(long objectNumber);
+
 }
 
 #endif

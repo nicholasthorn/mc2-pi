@@ -82,6 +82,16 @@ TEST_CASE("costForBlock: stock's seven at MC2X's prices, Cancel free")
 	CHECK(mc2xsupport::costForBlock(99) == 0);
 }
 
+TEST_CASE("dropships and supply carriers: by the inventory's object numbers")
+{
+	CHECK(mc2xsupport::isSpheroidDropship(1473));	// Deployer
+	CHECK(mc2xsupport::isSpheroidDropship(80));	// Overlord
+	CHECK_FALSE(mc2xsupport::isSpheroidDropship(842));	// CargoDropship: aerodyne, group 5
+	CHECK(mc2xsupport::isSupplyCarrier(1400));	// SupplyCopter
+	CHECK(mc2xsupport::isSupplyCarrier(1259));	// supplier
+	CHECK_FALSE(mc2xsupport::isSupplyCarrier(182));	// repair truck
+}
+
 TEST_CASE("switchKey: one distinct mission key per switch")
 {
 	std::set<std::string> keys;

@@ -45,6 +45,7 @@
 #endif
 #include"groupgoals.h"
 #include"formation.h"
+#include"mc2xunits.h"
 #include<utils/str_bounded.h>
 
 //---------------------------------------------------------------------------
@@ -1168,6 +1169,8 @@ long MoverGroup::handleMateEjected (unsigned long mateWID) {
 
 void MoverGroup::handleMateFiredWeapon (unsigned long mateWID) {
 
+	// a unit that fires gives its hidden ID away (wolfman-MC2X)
+	mc2xunits::firedWeapon(mateWID);
 	triggerAlarm(PILOT_ALARM_MATE_FIRED_WEAPON, mateWID);
 }
 

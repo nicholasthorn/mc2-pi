@@ -91,4 +91,31 @@ const char* switchKey(Switch s)
 	return kSwitchKeys[s];
 }
 
+namespace
+{
+
+bool listed(const long* list, int count, long objectNumber)
+{
+	for (int i = 0; i < count; i++)
+		if (list[i] == objectNumber)
+			return true;
+	return false;
+}
+
+// mc2x_inv.csv's FitIDs
+const long kDropships[] = { 25, 44, 80, 81, 82, 748, 1429, 1473 };
+const long kSupplyCarriers[] = { 1400, 1259, 151, 807 };
+
+}
+
+bool isSpheroidDropship(long objectNumber)
+{
+	return listed(kDropships, (int)(sizeof(kDropships) / sizeof(kDropships[0])), objectNumber);
+}
+
+bool isSupplyCarrier(long objectNumber)
+{
+	return listed(kSupplyCarriers, (int)(sizeof(kSupplyCarriers) / sizeof(kSupplyCarriers[0])), objectNumber);
+}
+
 }

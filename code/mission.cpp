@@ -122,6 +122,7 @@
 #include "benchdirector.h"
 #include "utils/vr_controls.h"
 #include<utils/str_bounded.h>
+#include"mc2xunits.h"
 
 //----------------------------------------------------------------------------------
 // Macro Definitions
@@ -442,6 +443,9 @@ long Mission::update (void)
 		// Update length of time scenario has been running.
 		if (!missionInterface->isPaused() || MPlayer )
 		{
+			// wolfman-MC2X's airlift and supply carriers
+			mc2xunits::update(frameLength);
+
 			//First Frame we just set LastTimeGetTime.
 			// After that, it increments based on System Time.
 			// NOT the crazy GameOS frameRate.
@@ -1869,6 +1873,7 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 		LogisticsData::instance->artilleryPieceOverride = -1;
 		LogisticsData::instance->deployerOverride = -1;
 	}
+	mc2xunits::reset();
 
 	#ifdef LAB_ONLY
 	x=GetCycles();
