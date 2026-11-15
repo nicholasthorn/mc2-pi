@@ -4,7 +4,9 @@
      package name so both can be on one device. Built with
      MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh; see android/README.md
      and planning/future-features/MOBILE.md. The activity class is the Quest
-     package's, so it is named in full. -->
+     package's, so it is named in full. The on-screen keyboard goes over the
+     game (adjustNothing): resizing the window for it would squeeze the whole
+     interface into what is left. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.nicholasthorn.mc2.phone"
     android:versionCode="1"
@@ -36,6 +38,7 @@
             android:exported="true"
             android:launchMode="singleInstance"
             android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustNothing"
             android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -30,7 +30,8 @@ bool g_barFingerDown = false;
 SDL_FingerID g_barFinger = 0;
 // the left button as the gestures last set it, to see an order end
 bool g_pointerLeft = false;
-// the on-screen keyboard is up for a text field (gos_TouchTextInput)
+// the touch screen started text input for a text field (gos_TouchTextInput),
+// which was off before, so it stops it when the field lets go
 bool g_textInput = false;
 
 bool inMission()
@@ -222,11 +223,13 @@ void __stdcall gos_TouchMissionTakesOrders()
 
 void __stdcall gos_TouchTextInput(bool focused)
 {
-    // started only for the touch screen, so a desktop's IME is left alone;
-    // stopped whichever way it started, as a mouse may have taken over since
+    // started only for the touch screen, and stopped only if it was off
+    // before: desktop SDL has text input on from the start (the IME), and
+    // stopping it there would leave it off for good
     if(focused && g_owns) {
-        SDL_StartTextInput();
-        g_textInput = true;
+        if(!g_textInput && !SDL_IsTextInputActive())
+            g_textInput = true;
+        SDL_StartTextInput();   // again too: it brings back a dismissed keyboard
     } else if(!focused && g_textInput) {
         SDL_StopTextInput();
         g_textInput = false;
