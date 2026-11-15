@@ -61,4 +61,53 @@ TEST_CASE("no movers: nothing is written")
 	CHECK(goals[0].x == 3);
 }
 
+// groupGoalAreaUsable: a goal cell is given out only where a unit can get to.
+TEST_CASE("goal area: a cell in no area is never a goal")
+{
+	GroupGoalAreas asked;
+	long calls = 0;
+	auto reach = [&calls](long) { calls++; return true; };
+	CHECK_FALSE(groupGoalAreaUsable(-1, 5, asked, reach));
+	CHECK_FALSE(groupGoalAreaUsable(-1, -1, asked, reach));
+	CHECK(calls == 0);
+}
+
+TEST_CASE("goal area: the clicked area needs no route")
+{
+	GroupGoalAreas asked;
+	long calls = 0;
+	auto reach = [&calls](long) { calls++; return false; };
+	CHECK(groupGoalAreaUsable(5, 5, asked, reach));
+	// a click on a cell in no area has nothing to measure from: any area will do
+	CHECK(groupGoalAreaUsable(7, -1, asked, reach));
+	CHECK(calls == 0);
+}
+
+TEST_CASE("goal area: another area must be reachable, asked once")
+{
+	GroupGoalAreas asked;
+	long calls = 0;
+	auto reach = [&calls](long area) { calls++; return area != 9; };	// 9: behind a closed gate
+	CHECK(groupGoalAreaUsable(6, 5, asked, reach));
+	CHECK_FALSE(groupGoalAreaUsable(9, 5, asked, reach));
+	CHECK(groupGoalAreaUsable(6, 5, asked, reach));
+	CHECK_FALSE(groupGoalAreaUsable(9, 5, asked, reach));
+	CHECK(calls == 2);
+}
+
+TEST_CASE("goal area: past the cache's size an area is asked again, with the same answer")
+{
+	GroupGoalAreas asked;
+	long calls = 0;
+	auto reach = [&calls](long area) { calls++; return (area % 2) == 0; };
+	for (long a = 100; a < 100 + GroupGoalAreas::SIZE; a++)
+		groupGoalAreaUsable(a, 1, asked, reach);
+	CHECK(asked.count == GroupGoalAreas::SIZE);
+	CHECK(groupGoalAreaUsable(1000, 1, asked, reach));
+	CHECK(groupGoalAreaUsable(1000, 1, asked, reach));
+	CHECK_FALSE(groupGoalAreaUsable(1001, 1, asked, reach));
+	CHECK(asked.count == GroupGoalAreas::SIZE);
+	CHECK(calls == GroupGoalAreas::SIZE + 3);
+}
+
 }
