@@ -171,9 +171,7 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
     const bool tableHasText = (NULL != str) && !isPlaceholderString(str);
     bool replacesTable = false;
     const char* extra = getExtraString(id, tableHasText, &replacesTable);
-    if(extra && (replacesTable || !tableHasText)
-        && (NULL == str || !isPlaceholderString(extra)))
-        str = extra;
+    str = chooseResourceString(str, extra, replacesTable);	// pe_strings.h
 
     if(NULL == str) {
         fprintf(stderr, "Requested string id: %u not found, return dummy string\n", id);
