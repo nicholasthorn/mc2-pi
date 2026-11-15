@@ -14,6 +14,7 @@
 #include "ablsymt.h"
 #include "ablenv.h"
 #include "fuzz/fuzz_targets.h"
+#include "fuzz/fuzz_support.h"
 
 #include <cstdint>
 #include <cstring>
@@ -175,6 +176,36 @@ TEST_CASE("ABL commands that break the stack contract cannot corrupt the frame")
 	CHECK(m.getStaticInteger((char*)"before") == 110);
 	CHECK(m.getStaticInteger((char*)"after") == 110);
 	CHECK(m.getStaticInteger((char*)"result") == 0);
+	m.destroy();
+}
+
+// The runtime stack was allocated as ABL_RUNTIME_STACK_SIZE bytes, but every
+// push was checked against a fixed 10240 slots: right for the 2001 build's
+// 4-byte StackItem, twice what a 64-bit one has room for, so deep recursion
+// wrote past the block. It now has the 2001 build's slot count, checked
+// against what was allocated: this recursion goes about 2040 calls deep, as
+// in 2001 (a 64-bit build ran off the end after about 1020), then stops with
+// a stack overflow error.
+TEST_CASE("ABL recursion stops with a stack overflow, inside the stack")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer depth;\n"
+		"function dive (integer n) : integer;\n"
+		"\tcode\n"
+		"\t\tdepth = n;\n"
+		"\t\treturn(dive(n + 1));\n"
+		"endfunction;\n"
+		"\tcode\n"
+		"\t\treturn(dive(1));\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	CHECK_FALSE(fuzzGuarded([&m] { m.execute(); }));
+	CHECK(m.getStaticInteger((char*)"depth") > 2000);
 	m.destroy();
 }
 

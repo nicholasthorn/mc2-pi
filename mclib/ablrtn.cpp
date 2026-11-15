@@ -427,6 +427,7 @@ profile = true;
 	statementStartPtr = NULL;
 	execStatementCount = 0;
 	stack = NULL;
+	stackLimit = NULL;
 	tos = NULL;
 	stackFrameBasePtr = NULL;
 	StaticDataPtr = NULL;
@@ -512,9 +513,14 @@ profile = true;
 
 	//------------------------------
 	// Allocate the runtime stack...
-	stack = (StackItemPtr)ABLStackMallocCallback(sizeof(StackItem) * (runtimeStackSize / sizeof(StackItem)));
+	// runtimeStackSize counts the 2001 build's 4-byte slots; StackItem holds a
+	// pointer, so it is 8 bytes on 64-bit, and the same byte count gave half
+	// the slots while the pushes were checked against a fixed 10240
+	size_t stackSlots = runtimeStackSize / 4;
+	stack = (StackItemPtr)ABLStackMallocCallback(sizeof(StackItem) * stackSlots);
 	if (!stack)
 		ABL_Fatal(0, " ABL: Unable to AblStackHeap->malloc stack ");
+	stackLimit = stack + stackSlots;
 
 	//-----------------------------------
 	// Allocate Eternal Vars Size List...

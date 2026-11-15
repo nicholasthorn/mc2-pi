@@ -676,7 +676,7 @@ void varOrFieldDeclarations (SymTableNodePtr routineIdPtr, long offset) {
 					case VAR_TYPE_ETERNAL: {
 						// EternalVariablesSizes holds MaxEternalVariables, and the
 						// eternals sit at the bottom of the runtime stack
-						if (eternalOffset >= MaxEternalVariables)
+						if ((eternalOffset >= MaxEternalVariables) || (stack + eternalOffset >= stackLimit))
 							syntaxError(ABL_ERR_SYNTAX_TOO_MANY_ETERNAL_VARS);
 						idPtr->defn.info.data.offset = eternalOffset;
 						//-----------------------------------

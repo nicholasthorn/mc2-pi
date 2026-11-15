@@ -39,6 +39,7 @@ extern int              execLineNumber;
 extern char*			codeSegmentPtr;
 extern TokenCodeType	codeToken;
 extern StackItem*		stack;
+extern StackItemPtr		stackLimit;
 extern StackItemPtr		tos;
 extern StackItemPtr		stackFrameBasePtr;
 extern SymTableNodePtr	CurRoutineIdPtr;
@@ -290,7 +291,7 @@ void ABLi_pushBoolean (bool value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->integer = value ? 1 : 0;
 }
@@ -301,7 +302,7 @@ void ABLi_pushInteger (int value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->integer = value;
 }
@@ -312,7 +313,7 @@ void ABLi_pushReal (float value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->real = value;
 }
@@ -323,7 +324,7 @@ void ABLi_pushChar (char value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->integer = value;
 }
