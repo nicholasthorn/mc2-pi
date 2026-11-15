@@ -54,6 +54,9 @@ void updateKeyboardState();
 // updateMouseState and updateKeyboardState put them over SDL's own state.
 // A press that starts and ends between two samples still counts once.
 void setVirtualPointer(float x, float y, uint32_t buttons);
+// moves an active pointer (the game placing the cursor), buttons as they are;
+// false when there is none, and SDL's mouse is the cursor
+bool moveVirtualPointer(float x, float y);
 // the pointer is off the interface: the cursor stays, the buttons go up
 void clearVirtualPointer();
 void setVirtualKey(int scancode, bool down);

@@ -18,6 +18,9 @@ bool g_enabled = false;
 // the touch screen has the virtual pointer and the camera keys: from a
 // finger landing until a real mouse moves
 bool g_owns = false;
+// the cursor goes to the middle of the screen once its size is known, before
+// any finger (phones and tablets: init)
+bool g_centreCursor = false;
 touch::Gestures g_gestures;
 
 // the command bar, while a mission takes orders: frames since it last did
@@ -107,6 +110,14 @@ void init()
     // well (every tap would click twice), nor fingers from the mouse
     SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
+#if defined(__ANDROID__) && !defined(MC2_OPENXR)
+    // a phone or tablet: the touch screen has the cursor from the start, in
+    // the middle of the screen (poll). SDL's mouse sits at 0, 0 until a real
+    // one moves, where a mission would draw the cursor through its opening
+    // fly-in and scroll the map up and left at the screen's edge.
+    g_owns = true;
+    g_centreCursor = true;
+#endif
 }
 
 void handleEvent(const SDL_Event* event)
@@ -164,6 +175,10 @@ void mouseUsed(const SDL_Event* event)
     const Uint32 which = event->type == SDL_MOUSEMOTION ? event->motion.which : event->button.which;
     if(!g_owns || which == SDL_TOUCH_MOUSEID || g_gestures.touching())
         return;
+    // a motion that does not move is SDL's own (it sends one at 0, 0 when the
+    // window gains focus, with no mouse on the device) or a warp's: not a mouse
+    if(event->type == SDL_MOUSEMOTION && event->motion.xrel == 0 && event->motion.yrel == 0)
+        return;
     g_owns = false;
     g_pointerLeft = false;
     input::clearVirtualPointer();
@@ -196,6 +211,9 @@ void poll()
         return;
     if(!inMission())
         g_bar.clear();
+    if(g_centreCursor && Environment.drawableWidth > 0 && Environment.drawableHeight > 0) {
+        g_centreCursor = false;
+        input::setVirtualPointer(0.5f * (float)Environment.drawableWidth, 0.5f * (float)Environment.drawableHeight, 0u);    }
 
     g_gestures.update(now());
     for(const touch::PointerEvent& e : g_gestures.takePointerEvents()) {

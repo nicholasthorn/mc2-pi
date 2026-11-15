@@ -91,7 +91,15 @@ void __stdcall gos_SetMousePosition( float XPosition, float YPosition )
         int vp[4];
         gos_GetWindowViewport(vp);
         const int top = Environment.drawableHeight - vp[1] - vp[3];
-        SDL_WarpMouseInWindow(g_sdl_window, vp[0] + (int)(XPosition * vp[2]), top + (int)(YPosition * vp[3]));
+        const float x = (float)vp[0] + XPosition * (float)vp[2];
+        const float y = (float)top + YPosition * (float)vp[3];
+        // the touch screen's (or a VR controller's) pointer is the cursor:
+        // move it. A warp would also send a mouse motion, which hands the
+        // cursor to the mouse (gos_touch::mouseUsed): a tutorial that centres
+        // the cursor every frame left it with SDL's mouse at 0, 0 on a phone.
+        if(input::moveVirtualPointer(x, y))
+            return;
+        SDL_WarpMouseInWindow(g_sdl_window, (int)x, (int)y);
     }
 }
 

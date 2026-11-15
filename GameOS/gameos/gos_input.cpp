@@ -214,6 +214,14 @@ void setVirtualPointer(float x, float y, uint32_t buttons) {
     g_virtual_mouse.buttons.set(buttons);
 }
 
+bool moveVirtualPointer(float x, float y) {
+    if(!g_virtual_mouse.active)
+        return false;
+    g_virtual_mouse.x = x;
+    g_virtual_mouse.y = y;
+    return true;
+}
+
 void clearVirtualPointer() {
     g_virtual_mouse.active = false;
     g_virtual_mouse.buttons.set(0);
