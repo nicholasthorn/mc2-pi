@@ -548,7 +548,7 @@ TypePtr enumerationType (void) {
 //***************************************************************************
 
 // bytes in one ABL array; the largest in stock, MC2X and Omnitech scripts is
-// about 1K, and a script's eternal arrays must not add up to gigabytes
+// about 1K, and 5000 eternal arrays at the cap stay within a few hundred MB
 const long long MAX_ABL_ARRAY_SIZE = 1 << 16;
 
 long arraySize (TypePtr typePtr) {
@@ -567,10 +567,9 @@ long arraySize (TypePtr typePtr) {
 		// to 32 bits, so a negative or huge one must not reach the
 		// allocator.
 		long long size = (long long)typePtr->info.array.elementCount * typePtr->info.array.elementTypePtr->size;
-		if ((typePtr->info.array.elementCount < 0) || (size > MAX_ABL_ARRAY_SIZE)) {
+		// syntaxError does not return
+		if ((typePtr->info.array.elementCount < 0) || (size > MAX_ABL_ARRAY_SIZE))
 			syntaxError(ABL_ERR_SYNTAX_INTEGER_OUT_OF_RANGE);
-			size = 0;
-		}
 		typePtr->size = (long)size;
 	}
 	return(typePtr->size);
