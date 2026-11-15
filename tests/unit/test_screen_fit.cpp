@@ -27,6 +27,33 @@ TEST_CASE("never narrower than the wide HUD needs") {
     CHECK(w == 1024);
 }
 
+TEST_CASE("the screen's shape: the display's while the window covers it") {
+    int w = 0, h = 0;
+    // a Pixel 9 before the status bar has gone: the display, landscape
+    screen_fit::screenShape(2188, 1080, 2424, 1080, w, h);
+    CHECK(w == 2424);
+    CHECK(h == 1080);
+    // the display reported portrait: the longer side is the width
+    screen_fit::screenShape(2424, 1080, 1080, 2424, w, h);
+    CHECK(w == 2424);
+    CHECK(h == 1080);
+    // no display size: the window
+    screen_fit::screenShape(2424, 1080, 0, 0, w, h);
+    CHECK(w == 2424);
+    CHECK(h == 1080);
+}
+
+TEST_CASE("the screen's shape: the window's in split screen") {
+    int w = 0, h = 0;
+    // a 2560 x 1600 tablet split side by side, and top and bottom
+    screen_fit::screenShape(1280, 1600, 2560, 1600, w, h);
+    CHECK(w == 1280);
+    CHECK(h == 1600);
+    screen_fit::screenShape(2560, 800, 2560, 1600, w, h);
+    CHECK(w == 2560);
+    CHECK(h == 800);
+}
+
 TEST_CASE("a game the screen's shape fills the screen") {
     int vp[4];
     screen_fit::fitViewport(2424, 1080, 1724, 768, vp);

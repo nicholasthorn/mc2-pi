@@ -18,6 +18,23 @@ void phoneResolution(int screenWidth, int screenHeight, int& width, int& height)
         width = (int)wide;
 }
 
+void screenShape(int windowWidth, int windowHeight, int displayWidth, int displayHeight,
+        int& width, int& height)
+{
+    width = windowWidth;
+    height = windowHeight;
+    if(displayWidth <= 0 || displayHeight <= 0)
+        return;
+    const int displayLong = displayWidth > displayHeight ? displayWidth : displayHeight;
+    const int displayShort = displayWidth > displayHeight ? displayHeight : displayWidth;
+    const int windowShort = windowWidth < windowHeight ? windowWidth : windowHeight;
+    // the status bar takes a few percent of the longer side only
+    if((long long)windowShort * 100 >= (long long)displayShort * 95) {
+        width = displayLong;
+        height = displayShort;
+    }
+}
+
 void fitViewport(int drawableWidth, int drawableHeight, int gameWidth, int gameHeight, int vp[4])
 {
     vp[0] = 0;

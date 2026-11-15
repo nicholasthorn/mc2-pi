@@ -3137,17 +3137,15 @@ bool __stdcall gos_PhoneResolution(int* width, int* height)
 {
     if(!kFitScreenShape || Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
         return false;
-    // the display's size rather than the window's: when this is first asked
-    // the window may not have grown to the whole screen yet (the status bar
-    // still shown), and a Pixel 9 got 1812x768 instead of 1724x768. The app is
-    // landscape only, so the longer side is the width.
-    int screenWidth = Environment.drawableWidth;
-    int screenHeight = Environment.drawableHeight;
+    // the display's size while the window covers it: when this is first
+    // asked the window may not have grown to the whole screen yet (the status
+    // bar still shown), and a Pixel 9 got 1812x768 instead of 1724x768. In
+    // split screen, the window's own (screenShape).
     int displayWidth = 0, displayHeight = 0;
-    if(graphics::get_display_size(Environment.displayIndex, &displayWidth, &displayHeight)) {
-        screenWidth = displayWidth > displayHeight ? displayWidth : displayHeight;
-        screenHeight = displayWidth > displayHeight ? displayHeight : displayWidth;
-    }
+    graphics::get_display_size(Environment.displayIndex, &displayWidth, &displayHeight);
+    int screenWidth = 0, screenHeight = 0;
+    screen_fit::screenShape(Environment.drawableWidth, Environment.drawableHeight,
+            displayWidth, displayHeight, screenWidth, screenHeight);
     screen_fit::phoneResolution(screenWidth, screenHeight, *width, *height);
     return true;
 }

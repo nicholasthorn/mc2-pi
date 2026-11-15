@@ -533,11 +533,27 @@ static bool android_prepare(int& argc, char**& argv)
 #endif
 
 #ifndef DISABLE_GAMEOS_MAIN
+// Every return from main. On Android, SDL's activity starts main again in
+// this process if the window comes back before the activity has finished
+// (SDLActivity.handleNativeState), over this run's globals: the game's sound
+// system outlives the audio engine, a crash at the first volume set. The
+// process ends instead.
+static int end_main(int code)
+{
+#ifdef __ANDROID__
+    printf("[APP] main ended: closing the process\n");
+    fflush(stdout);
+    fflush(stderr);
+    _exit(code);
+#endif
+    return code;
+}
+
 int main(int argc, char** argv)
 {
 #ifdef __ANDROID__
     if(!android_prepare(argc, argv))
-        return 1;
+        return end_main(1);
 #endif
     gos_touch::init();
     //signal(SIGTRAP, SIG_IGN);
@@ -615,7 +631,7 @@ int main(int argc, char** argv)
     if(bench_fov < 0.0f || bench_fov >= 170.0f) {
         // tan(fov / 2) in the projection breaks down towards 180
         fprintf(stderr, "-benchfov %g: must be between 0 (off) and 170 degrees\n", bench_fov);
-        return 2;
+        return end_main(2);
     }
     if(g_bench) {
         gos_EnableBenchStages();
@@ -808,16 +824,6 @@ int main(int argc, char** argv)
 
     Environment.TerminateGameEngine();
 
-#ifdef __ANDROID__
-    // SDL's activity starts main again in this process if the window comes
-    // back before the activity has finished (SDLActivity.handleNativeState),
-    // over this run's globals: the game's sound system outlives the audio
-    // engine, a crash at the first volume set. End the process instead.
-    printf("[APP] main ended: closing the process\n");
-    fflush(stdout);
-    fflush(stderr);
-    _exit(g_exit_code);
-#endif
-    return g_exit_code;
+    return end_main(g_exit_code);
 }
 #endif // DISABLE_GAMEOS_MAIN

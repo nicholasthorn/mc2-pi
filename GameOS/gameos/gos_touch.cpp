@@ -213,7 +213,8 @@ void poll()
         g_bar.clear();
     if(g_centreCursor && Environment.drawableWidth > 0 && Environment.drawableHeight > 0) {
         g_centreCursor = false;
-        input::setVirtualPointer(0.5f * (float)Environment.drawableWidth, 0.5f * (float)Environment.drawableHeight, 0u);    }
+        input::setVirtualPointer(0.5f * (float)Environment.drawableWidth, 0.5f * (float)Environment.drawableHeight, 0u);
+    }
 
     g_gestures.update(now());
     for(const touch::PointerEvent& e : g_gestures.takePointerEvents()) {
