@@ -55,6 +55,7 @@ extern TokenCodeType		statementStartList[];
 extern long					eternalOffset;
 extern long					NumStaticVariables;
 extern long					MaxStaticVariables;
+extern long					MaxEternalVariables;
 extern long*				StaticVariablesSizes;
 extern long*				EternalVariablesSizes;
 extern ABLModulePtr			CurLibrary;
@@ -546,9 +547,9 @@ TypePtr enumerationType (void) {
 
 //***************************************************************************
 
-// bytes in one ABL array; stock, MC2X and Omnitech arrays have at most a
-// few hundred elements
-const long long MAX_ABL_ARRAY_SIZE = 1 << 20;
+// bytes in one ABL array; the largest in stock, MC2X and Omnitech scripts is
+// about 1K, and a script's eternal arrays must not add up to gigabytes
+const long long MAX_ABL_ARRAY_SIZE = 1 << 16;
 
 long arraySize (TypePtr typePtr) {
 
@@ -674,6 +675,10 @@ void varOrFieldDeclarations (SymTableNodePtr routineIdPtr, long offset) {
 						idPtr->defn.info.data.offset = offset++;
 						break;
 					case VAR_TYPE_ETERNAL: {
+						// EternalVariablesSizes holds MaxEternalVariables, and the
+						// eternals sit at the bottom of the runtime stack
+						if (eternalOffset >= MaxEternalVariables)
+							syntaxError(ABL_ERR_SYNTAX_TOO_MANY_ETERNAL_VARS);
 						idPtr->defn.info.data.offset = eternalOffset;
 						//-----------------------------------
 						// Initialize the variable to zero...
