@@ -6165,7 +6165,10 @@ long BattleMech::update (void)
 			}
 		}
 		
-		if (getMoveType() == MOVETYPE_AIR)
+		// A disabled flier is shot down; one the mission starts disabled (a part
+		// with Damage 1, as wolfman-MC2X's landed deployer dropship is) stays
+		// as it was placed. Stock has no flying mechs.
+		if ((getMoveType() == MOVETYPE_AIR) && !startDisabled)
 		{
 			setStatus(OBJECT_STATUS_DESTROYED);
 			timeLeft = 0.0f;		
