@@ -16,8 +16,9 @@ namespace gos_touch {
 void init();
 // SDL_FINGERDOWN, SDL_FINGERMOTION, SDL_FINGERUP
 void handleEvent(const SDL_Event* event);
-// a real mouse moved: the cursor is the mouse's again
-void mouseMoved(const SDL_Event* event);
+// a real mouse moved or its button was pressed or released
+// (SDL_MOUSEMOTION, SDL_MOUSEBUTTONDOWN/UP): the cursor is the mouse's again
+void mouseUsed(const SDL_Event* event);
 // the window lost focus: let go of everything, with no click
 void cancel();
 // every frame, after the events and before the input is sampled

@@ -53,11 +53,14 @@ TEST_CASE("a tap is a press and a release where the finger was")
 	Gestures g(settings());
 	g.down(1, 100.0f, 200.0f, 0.0);
 	g.up(1, 103.0f, 198.0f, 0.05);   // within the slop and the delay
-	const auto events = g.takePointerEvents();
-	REQUIRE(events.size() == 3);
+	// the press ends a batch: the game samples it before the release
+	auto events = g.takePointerEvents();
+	REQUIRE(events.size() == 2);
 	CHECK(same(events[0], 100.0f, 200.0f, false));
 	CHECK(same(events[1], 100.0f, 200.0f, true));
-	CHECK(same(events[2], 100.0f, 200.0f, false));
+	events = g.takePointerEvents();
+	REQUIRE(events.size() == 1);
+	CHECK(same(events[0], 100.0f, 200.0f, false));
 	CHECK_FALSE(g.touching());
 }
 
@@ -94,11 +97,19 @@ TEST_CASE("moving past the slop presses where the finger landed, then drags")
 	REQUIRE(events.size() == 1);
 	CHECK(same(events[0], 105.0f, 200.0f, false));
 
-	g.move(1, 130.0f, 200.0f, 0.02);   // past it
+	// past it, and on within the same frame: the press is handed out alone,
+	// where the finger landed, so the game samples it there (a drag or a box
+	// select starts at the landing point); the moves follow next time
+	g.move(1, 130.0f, 200.0f, 0.02);
+	g.move(1, 160.0f, 200.0f, 0.02);
+	events = g.takePointerEvents();
+	REQUIRE(events.size() == 1);
+	CHECK(same(events[0], 100.0f, 200.0f, true));
 	events = g.takePointerEvents();
 	REQUIRE(events.size() == 2);
-	CHECK(same(events[0], 100.0f, 200.0f, true));
-	CHECK(same(events[1], 130.0f, 200.0f, true));
+	CHECK(same(events[0], 130.0f, 200.0f, true));
+	CHECK(same(events[1], 160.0f, 200.0f, true));
+	CHECK(g.takePointerEvents().empty());
 }
 
 TEST_CASE("a second finger before the press makes a camera gesture, with no click")
@@ -111,7 +122,7 @@ TEST_CASE("a second finger before the press makes a camera gesture, with no clic
 	g.up(2, 200.0f, 200.0f, 0.6);
 	for(const PointerEvent& e : g.takePointerEvents())
 		CHECK_FALSE(e.left);
-	CHECK(g.takeWheelSteps() == 0);
+	CHECK(g.takeWheelStep() == 0);
 	CHECK_FALSE(g.touching());
 }
 
@@ -125,14 +136,21 @@ TEST_CASE("spreading two fingers zooms in a step per ratio, pinching zooms out")
 	g.move(1, 50.0f, 200.0f, 0.1);
 	g.move(2, 250.0f, 200.0f, 0.1);
 	g.update(0.1);
-	CHECK(g.takeWheelSteps() == 3);
-	CHECK(g.takeWheelSteps() == 0);   // taken once
+	// handed out one a frame: the game zooms one level for any turn of the
+	// wheel in a frame, so three at once would zoom only one
+	CHECK(g.takeWheelStep() == 1);
+	CHECK(g.takeWheelStep() == 1);
+	CHECK(g.takeWheelStep() == 1);
+	CHECK(g.takeWheelStep() == 0);   // taken once
 
 	// back to 100 apart: three steps out, back where they landed
 	g.move(1, 100.0f, 200.0f, 0.2);
 	g.move(2, 200.0f, 200.0f, 0.2);
 	g.update(0.2);
-	CHECK(g.takeWheelSteps() == -3);
+	CHECK(g.takeWheelStep() == -1);
+	CHECK(g.takeWheelStep() == -1);
+	CHECK(g.takeWheelStep() == -1);
+	CHECK(g.takeWheelStep() == 0);
 
 	// spreading does not scroll the camera: the middle has not moved
 	CHECK(g.scrollX() == 0);
@@ -158,12 +176,12 @@ TEST_CASE("moving two fingers together scrolls the camera against them")
 	g.update(0.2);
 	CHECK(g.scrollX() == -1);         // the map follows the fingers
 	CHECK(g.scrollY() == -1);
-	CHECK(g.takeWheelSteps() == 0);   // still 100 apart
+	CHECK(g.takeWheelStep() == 0);   // still 100 apart
 
 	g.move(1, 40.0f, 140.0f, 0.3);
 	g.move(2, 140.0f, 140.0f, 0.3);   // middle 60 left, 60 up
 	g.update(0.3);
-	CHECK(g.takeWheelSteps() == 0);   // the pair never changed its spacing in a frame
+	CHECK(g.takeWheelStep() == 0);   // the pair never changed its spacing in a frame
 	CHECK(g.scrollX() == 1);
 	CHECK(g.scrollY() == 1);
 
@@ -192,8 +210,9 @@ TEST_CASE("after a camera gesture the last finger does nothing until a new touch
 	g.down(3, 50.0f, 60.0f, 2.0);
 	g.up(3, 50.0f, 60.0f, 2.02);
 	const auto events = g.takePointerEvents();
-	REQUIRE(events.size() == 3);
+	REQUIRE(events.size() == 2);
 	CHECK(same(events[1], 50.0f, 60.0f, true));
+	CHECK(g.takePointerEvents().size() == 1);   // the release
 }
 
 TEST_CASE("a finger added while the button is down is ignored")
@@ -207,7 +226,7 @@ TEST_CASE("a finger added while the button is down is ignored")
 	g.move(2, 350.0f, 300.0f, 0.25);
 	g.up(2, 350.0f, 300.0f, 0.3);
 	CHECK(g.takePointerEvents().empty());
-	CHECK(g.takeWheelSteps() == 0);
+	CHECK(g.takeWheelStep() == 0);
 
 	g.move(1, 120.0f, 200.0f, 0.4);
 	g.up(1, 120.0f, 200.0f, 0.5);
@@ -229,7 +248,7 @@ TEST_CASE("moves and lifts of unknown fingers are ignored")
 	g.down(1, 100.0f, 200.0f, 0.1);    // a repeated down is not a second finger
 	g.up(1, 100.0f, 200.0f, 0.12);
 	const auto events = g.takePointerEvents();
-	REQUIRE(events.size() == 3);
+	REQUIRE(events.size() == 2);
 	CHECK(same(events[1], 100.0f, 200.0f, true));
 }
 
@@ -241,7 +260,7 @@ TEST_CASE("a third finger does not change a camera gesture")
 	g.down(3, 500.0f, 500.0f, 0.02);
 	g.move(3, 900.0f, 900.0f, 0.1);
 	g.update(0.1);
-	CHECK(g.takeWheelSteps() == 0);
+	CHECK(g.takeWheelStep() == 0);
 	CHECK(g.scrollX() == 0);
 	g.up(3, 900.0f, 900.0f, 0.2);
 	CHECK(g.touching());

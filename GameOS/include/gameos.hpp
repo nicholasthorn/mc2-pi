@@ -2033,6 +2033,10 @@ bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
 // A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.
 bool __stdcall gos_VRHeadset();
+// The cursor is the touch screen's (gos_touch): from a finger landing until a
+// real mouse is used. It then rests where the last finger lifted, so mouse
+// only behaviour such as scrolling at the screen edge should not follow it.
+bool __stdcall gos_TouchPointer();
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.

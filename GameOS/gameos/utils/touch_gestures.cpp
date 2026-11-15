@@ -135,22 +135,34 @@ void Gestures::cancel()
 		emit(f->x, f->y, false);
 	}
 	stopCamera();
+	wheelSteps_ = 0;
 	fingers_.clear();
 	mode_ = Mode::Idle;
 }
 
 std::vector<PointerEvent> Gestures::takePointerEvents()
 {
-	std::vector<PointerEvent> events;
-	events.swap(events_);
+	size_t count = events_.size();
+	bool left = handedLeft_;
+	for(size_t i = 0; i < events_.size(); ++i) {
+		if(events_[i].left && !left) {   // a press: it ends this batch
+			count = i + 1;
+			break;
+		}
+		left = events_[i].left;
+	}
+	std::vector<PointerEvent> events(events_.begin(), events_.begin() + count);
+	events_.erase(events_.begin(), events_.begin() + count);
+	if(!events.empty())
+		handedLeft_ = events.back().left;
 	return events;
 }
 
-int Gestures::takeWheelSteps()
+int Gestures::takeWheelStep()
 {
-	const int steps = wheelSteps_;
-	wheelSteps_ = 0;
-	return steps;
+	const int step = (wheelSteps_ > 0) - (wheelSteps_ < 0);
+	wheelSteps_ -= step;
+	return step;
 }
 
 // the first two fingers are the pair

@@ -332,6 +332,14 @@ static void process_events( bool sample, bool reset ) {
                     float w = (float)event.window.data1;(void)w;
                     float h = (float)event.window.data2;(void)h;
                     SPEW(("INPUT", "resize event: w: %f h:%f\n", w, h));
+#ifdef __ANDROID__
+                    // the game keeps Android's surface at whatever size it is
+                    // (keepSurface, gameos_graphics.cpp): follow it when Android
+                    // changes it (split screen, a foldable), or the picture and
+                    // the touch and mouse positions are scaled to the old size
+                    if(gos_GetWindow())
+                        graphics::get_drawable_size(gos_GetWindow(), &Environment.drawableWidth, &Environment.drawableHeight);
+#endif
                     break;
                 }
                 case SDL_WINDOWEVENT_FOCUS_LOST:
@@ -346,8 +354,8 @@ static void process_events( bool sample, bool reset ) {
             }
             break;
         case SDL_MOUSEMOTION:
-            input::handleMouseMotion(&event); 
-            gos_touch::mouseMoved(&event);
+            input::handleMouseMotion(&event);
+            gos_touch::mouseUsed(&event);
             break;
         case SDL_FINGERDOWN:
         case SDL_FINGERUP:
@@ -357,6 +365,7 @@ static void process_events( bool sample, bool reset ) {
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
             //input::handleMouseButton(&event);
+            gos_touch::mouseUsed(&event);
             break;
         case SDL_MOUSEWHEEL:
             input::handleMouseWheel(&event);

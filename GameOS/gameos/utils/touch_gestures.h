@@ -58,10 +58,16 @@ public:
 	// the camera stops, with no click
 	void cancel();
 
-	// the pointer moves since the last call, oldest first
+	// the pointer moves since the last call, oldest first, up to and
+	// including the first press: the rest wait for the next call. The game
+	// samples the mouse once a frame and sees only its last position, so a
+	// press and the moves after it in one frame would put the press at the
+	// end of the moves (a drag or box select starting in the wrong place).
 	std::vector<PointerEvent> takePointerEvents();
-	// wheel steps since the last call: positive spread the fingers (zoom in)
-	int takeWheelSteps();
+	// one wheel step a call, the rest kept for later calls: 1 the fingers
+	// spread (zoom in), -1 they closed, 0 none. The game zooms one level a
+	// frame however far the wheel turned in it.
+	int takeWheelStep();
 	// the way the camera should scroll while two fingers are held away from
 	// where they landed: -1, 0 or 1. The map follows the fingers, so fingers
 	// moved right scroll the camera left (-1), fingers moved down scroll it up
@@ -97,6 +103,7 @@ private:
 	Mode mode_ = Mode::Idle;
 	std::vector<Finger> fingers_;
 	std::vector<PointerEvent> events_;
+	bool handedLeft_ = false;   // the button in the last event handed out
 	// the first finger: where and when it landed, and the cursor
 	int64_t pointerId_ = 0;
 	float startX_ = 0.0f, startY_ = 0.0f;

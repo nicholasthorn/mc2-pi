@@ -97,9 +97,10 @@ void handleEvent(const SDL_Event* event)
     }
 }
 
-void mouseMoved(const SDL_Event* event)
+void mouseUsed(const SDL_Event* event)
 {
-    if(!g_owns || event->motion.which == SDL_TOUCH_MOUSEID || g_gestures.touching())
+    const Uint32 which = event->type == SDL_MOUSEMOTION ? event->motion.which : event->button.which;
+    if(!g_owns || which == SDL_TOUCH_MOUSEID || g_gestures.touching())
         return;
     g_owns = false;
     input::clearVirtualPointer();
@@ -120,10 +121,15 @@ void poll()
     g_gestures.update(now());
     for(const touch::PointerEvent& e : g_gestures.takePointerEvents())
         input::setVirtualPointer(e.x, e.y, e.left ? 1u : 0u);
-    const int steps = g_gestures.takeWheelSteps();
-    if(steps != 0)
-        input::addVirtualWheel((float)steps);
+    const int step = g_gestures.takeWheelStep();
+    if(step != 0)
+        input::addVirtualWheel((float)step);
     setScrollKeys(g_gestures.scrollX(), g_gestures.scrollY());
 }
 
 } // namespace gos_touch
+
+bool __stdcall gos_TouchPointer()
+{
+    return g_owns;
+}

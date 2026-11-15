@@ -391,8 +391,15 @@ push the data as in `android/README.md`, "Phones and tablets".
       zoom level per quarter of spacing; moving both fingers scrolls the map with them
       (not against them). Are the slop (2% of the screen height) and the scroll dead
       zone (6%) right on a phone and on a tablet?
+- [ ] **No edge scroll from a tap:** in mc2_01, tap a control panel button at the bottom
+      edge and lift; the map must not keep scrolling. Then use a mouse: edge scrolling
+      works again.
+- [ ] **Split screen or a foldable** (Android): change the app's size while it runs; the
+      picture fills the new size and taps still land under the finger.
 - [ ] **A touch screen laptop** (Windows or Linux, GL): taps and the two finger
-      camera work, and touching the mouse afterwards gives the cursor back to it.
+      camera work, and moving or clicking the mouse afterwards gives the cursor back
+      to it. On Linux under X11, check that a tap clicks once, not twice (X's own
+      touch-to-pointer emulation).
 - [ ] **Switching away and back** mid-mission: does the picture come back, with its
       textures, or is the GL context lost? Note the GPU (Adreno, Mali, PowerVR).
 - [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one

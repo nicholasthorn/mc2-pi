@@ -3498,7 +3498,9 @@ bool MissionInterfaceManager::moveCameraAround( bool lineOfSight, bool passable,
 			((GameCamera *)eye)->setTarget(target);
 	}
 
-	if (!cameraClicked && !isPaused()) // sebi: only scoll if not paused
+	// sebi: only scoll if not paused; and not where a finger last lifted, as a
+	// touch screen's cursor stays there (two fingers scroll instead)
+	if (!cameraClicked && !isPaused() && !gos_TouchPointer())
 	{
 		if ( mouseX <= (screenScrollLeft))
 			scrollLeft();
