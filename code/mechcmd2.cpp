@@ -1769,6 +1769,10 @@ void __stdcall InitializeGameEngine()
 				LogisticsData::instance->init();
 				mission->load(resumeLoad);
 				remove(resumeLoad);
+				// one step before the pause: a paused mission does not update
+				// the texture manager, so the loaded objects' textures would
+				// never be cached and the objects never drawn
+				mission->update();
 				if (mission->missionInterface && !mission->missionInterface->isPaused())
 					mission->missionInterface->togglePause();
 			}
