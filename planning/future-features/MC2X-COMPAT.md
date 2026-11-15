@@ -491,7 +491,8 @@ stock or Omnitech units).
 | done | front end, route 1 (main menu, campaign and logistics screens, loading screens) | |
 | done | step 7: component 255 is an empty row (nothing to do); `DisplayInfoMessage`; failure actions are stock's; `mc2xgsys.fit` | |
 | - | `TacWaterColor`, the per-type deploy switches and `max<n>tons`: undocumented, left | |
-| 8 | HUD features, route 2; the shop's eight unit types (filters 1-2 days, fielding vehicles, hover and infantry 1-2 weeks, aircraft and dropships weeks) | weeks |
+| done | the shop's unit-type buttons: MC2X lists its vehicles, infantry and dropships as mechs (inventory Type MECH, its Group ID the unit type), so they were for sale already; the buttons filter by group (`code/shopfilter.h`) | |
+| 8 | HUD features, route 2 (formations, the 22 support units) | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.
