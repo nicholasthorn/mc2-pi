@@ -1886,6 +1886,18 @@ void __stdcall InitializeGameEngine()
 }
 
 //---------------------------------------------------------------------------
+// The app is going into the background (Android: another app, the home
+// screen, a call), and the system may close it there. Pause a mission as
+// the pause key does, so it has not run on without the player when they
+// come back. A multiplayer game cannot pause.
+void __stdcall AppSuspending()
+{
+	if (mission && mission->isActive() && mission->missionInterface && !MPlayer
+		&& !mission->missionInterface->isPaused())
+		mission->missionInterface->togglePause();
+}
+
+//---------------------------------------------------------------------------
 
 void __stdcall TerminateGameEngine()
 {
@@ -2832,6 +2844,7 @@ void __stdcall GetGameOSEnvironment(const char* CommandLine )
 	Environment.InitializeGameEngine	= InitializeGameEngine;
 	Environment.DoGameLogic				= DoGameLogic;
 	Environment.TerminateGameEngine		= TerminateGameEngine;
+	Environment.AppSuspending			= AppSuspending;
 
 	Environment.Renderer				= 0;
 

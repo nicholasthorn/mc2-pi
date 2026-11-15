@@ -294,7 +294,11 @@ static void process_events( bool sample, bool reset ) {
     SDL_Event event;
     while( SDL_PollEvent( &event ) ) {
 
-        if(g_focus_lost) {
+        // the app's own events come whether or not the window has focus
+        // (Android takes it away before the app goes into the background)
+        const bool appEvent = event.type == SDL_APP_WILLENTERBACKGROUND || event.type == SDL_APP_DIDENTERFOREGROUND
+            || event.type == SDL_RENDER_DEVICE_RESET || event.type == SDL_QUIT;
+        if(g_focus_lost && !appEvent) {
             if(event.type != SDL_WINDOWEVENT || event.window.event != SDL_WINDOWEVENT_FOCUS_GAINED) {
                 continue;
             } else {
@@ -322,6 +326,29 @@ static void process_events( bool sample, bool reset ) {
             input::handleKeyEvent(&event);
             break;
         case SDL_QUIT:
+            g_exit = true;
+            break;
+        // Android: the app is going into the background. These two events
+        // arrive together; SDL then blocks this thread in a later event poll
+        // until the app comes back (SDL_HINT_ANDROID_BLOCK_ON_PAUSE), and
+        // pauses the sound itself. The game pauses its mission now: the
+        // system may close the app without another frame.
+        case SDL_APP_WILLENTERBACKGROUND:
+            printf("[APP] going into the background\n");
+            fflush(stdout);
+            gos_touch::cancel();
+            if(!gos_IsAutomatedRun() && Environment.AppSuspending)
+                Environment.AppSuspending();
+            break;
+        case SDL_APP_DIDENTERFOREGROUND:
+            printf("[APP] back in the foreground\n");
+            break;
+        // SDL found the GL context gone when the app came back and made a
+        // new one. Every texture and buffer went with the old one, and the
+        // engine cannot reload them (MOBILE.md, app lifecycle): quit rather
+        // than draw garbage or crash.
+        case SDL_RENDER_DEVICE_RESET:
+            printf("[APP] FATAL: the GL context was lost in the background; the game cannot reload its textures, quitting\n");
             g_exit = true;
             break;
         case SDL_WINDOWEVENT:
@@ -614,6 +641,10 @@ int main(int argc, char** argv)
 
         process_events(run_logic, input_used);
         input_used = run_logic;
+        // not another frame: after a lost GL context it would draw with a
+        // dead one
+        if(g_exit)
+            break;
 
 		uint64_t logic_tick = timing::gettickcount();
         if(run_logic) {

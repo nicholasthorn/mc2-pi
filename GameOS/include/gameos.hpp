@@ -387,6 +387,14 @@ typedef struct
 
 	bool (__stdcall *HookDoesFileExist)( const char* FileName);
 
+//
+// GameOS calls this, if present, when the app is about to go into the
+// background (Android: another app, the home screen, a call). The game is
+// between frames; it is stopped until the app comes back, and the system may
+// close it meanwhile. Not called in -autoexit / -bench runs.
+//
+	void (__stdcall *AppSuspending)();
+
 } gosEnvironment;
 
 
