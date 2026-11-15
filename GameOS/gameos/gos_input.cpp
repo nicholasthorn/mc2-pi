@@ -18,6 +18,7 @@ static struct {
 static const int NUM_VIRTUAL_KEYS = 512;
 static InputLatch g_virtual_keys[NUM_VIRTUAL_KEYS];
 static uint32_t g_keyboard_samples = 0;
+static float g_virtual_wheel = 0.0f;
 
 namespace input {
 
@@ -125,6 +126,8 @@ void updateMouseState() {
         mi->y_ = g_virtual_mouse.y;
     }
     g_virtual_mouse.was_active = g_virtual_mouse.active;
+    mi->wheel_vert_ += g_virtual_wheel;
+    g_virtual_wheel = 0.0f;
     int buttons[] = {SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2 };
 
     for(unsigned int b=0; b < sizeof(buttons)/sizeof(buttons[0]); ++b) {
@@ -218,6 +221,10 @@ void clearVirtualPointer() {
 
 uint32_t keyboardSamples() {
     return g_keyboard_samples;
+}
+
+void addVirtualWheel(float steps) {
+    g_virtual_wheel += steps;
 }
 
 void setVirtualKey(int scancode, bool down) {

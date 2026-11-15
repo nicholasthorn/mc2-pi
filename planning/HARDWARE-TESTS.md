@@ -383,8 +383,16 @@ push the data as in `android/README.md`, "Phones and tablets".
 - [ ] **A mouse plays mc2_01** (phase 0's exit): a Bluetooth or USB mouse and keyboard
       through the campaign start, logistics and the mission to its end. Clicks land
       where the cursor is drawn, across the whole screen.
-- [ ] **Taps in the menus:** SDL turns a tap into a left click; can the main menu and
-      logistics be worked by finger at all? (No mission controls are expected.)
+- [ ] **Menus and logistics by finger** (phase 1): taps click where the finger is, a
+      double tap selects all of a type, a held or moved finger drags (mech bay, pilot
+      screens). No click should come from landing two fingers. Is the 80 ms wait before
+      a held finger presses noticeable?
+- [ ] **Camera by two fingers** in mc2_01: pinch out zooms in, pinch in zooms out, one
+      zoom level per quarter of spacing; moving both fingers scrolls the map with them
+      (not against them). Are the slop (2% of the screen height) and the scroll dead
+      zone (6%) right on a phone and on a tablet?
+- [ ] **A touch screen laptop** (Windows or Linux, GL): taps and the two finger
+      camera work, and touching the mouse afterwards gives the cursor back to it.
 - [ ] **Switching away and back** mid-mission: does the picture come back, with its
       textures, or is the GL context lost? Note the GPU (Adreno, Mali, PowerVR).
 - [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one

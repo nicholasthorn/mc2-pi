@@ -8,6 +8,7 @@
 
 #include <SDL2/SDL.h>
 #include "gos_input.h"
+#include "gos_touch.h"
 #include "gos_logfile.h"
 
 #include "utils/camera.h"
@@ -308,6 +309,7 @@ static void process_events( bool sample, bool reset ) {
             switch( event.type ) {
             case SDL_KEYDOWN: case SDL_KEYUP: case SDL_MOUSEMOTION:
             case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: case SDL_MOUSEWHEEL:
+            case SDL_FINGERDOWN: case SDL_FINGERUP: case SDL_FINGERMOTION:
                 continue;
             }
         }
@@ -334,6 +336,7 @@ static void process_events( bool sample, bool reset ) {
                 }
                 case SDL_WINDOWEVENT_FOCUS_LOST:
                     g_focus_lost = true;
+                    gos_touch::cancel();
                     set_mouse_capture(false);
                     break;
                 case SDL_WINDOWEVENT_FOCUS_GAINED:
@@ -344,6 +347,12 @@ static void process_events( bool sample, bool reset ) {
             break;
         case SDL_MOUSEMOTION:
             input::handleMouseMotion(&event); 
+            gos_touch::mouseMoved(&event);
+            break;
+        case SDL_FINGERDOWN:
+        case SDL_FINGERUP:
+        case SDL_FINGERMOTION:
+            gos_touch::handleEvent(&event);
             break;
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
@@ -366,6 +375,8 @@ static void process_events( bool sample, bool reset ) {
 
     // VR controllers: every frame, so a quick press is held until sampled
     gos_xr::pollInput();
+    // the touch screen, the same way
+    gos_touch::poll();
 
     if(sample) {
         input::updateMouseState();
@@ -469,6 +480,7 @@ int main(int argc, char** argv)
 #ifdef __ANDROID__
     android_prepare(argc, argv);
 #endif
+    gos_touch::init();
     //signal(SIGTRAP, SIG_IGN);
 
     // gather command line
