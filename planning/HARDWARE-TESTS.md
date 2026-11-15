@@ -378,8 +378,10 @@ GLES. Build with `MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh`, install a
 push the data as in `android/README.md`, "Phones and tablets".
 
 - [ ] **It starts and fills the screen** on an Android tablet or phone (Android 10 or
-      later): the main menu covers the whole display, stretched to its shape, not
-      drawn into a corner. Note the device, its GPU and the screen size.
+      later): no status or navigation bar, nothing left black by a camera cutout.
+      The menus are 4:3 in the middle with black bars; a mission fills the screen
+      unstretched (round things round). Note the device, its GPU and the screen size.
+      Done on a Pixel 9 (Mali-G715, 2424x1080), 2026-11-15.
 - [ ] **A mouse plays mc2_01** (phase 0's exit): a Bluetooth or USB mouse and keyboard
       through the campaign start, logistics and the mission to its end. Clicks land
       where the cursor is drawn, across the whole screen.

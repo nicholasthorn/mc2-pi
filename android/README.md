@@ -130,9 +130,12 @@ What to expect so far:
   on-screen keyboard. `MC2_TOUCH=0` in `mc2args.txt` goes back
   to SDL's own taps as clicks. A Bluetooth or USB mouse and keyboard play as
   on a PC.
-- **The picture is stretched** to the screen: the game draws at its own
-  resolution (800x600 by default) and fills the whole display with it, so a
-  20:9 phone widens everything.
+- **The whole screen, at its shape:** the status and navigation bars are
+  hidden and the game draws under a camera cutout. Missions run at the
+  screen's shape, 768 high (1724x768 on a 20:9 phone), so nothing is
+  stretched and the wide HUD layout is used; the menus' 4:3 screens sit in
+  the middle with black bars at the sides. The resolution in the options is
+  overridden on a phone (`[SCREEN]` in `mc2.log`).
 - **Switching away** from the app (Home, another app, a call) pauses a mission
   with its pause menu up, as the pause key does, and stops the sound; coming
   back carries on. A campaign mission is also saved then (`resume.ims` in the
