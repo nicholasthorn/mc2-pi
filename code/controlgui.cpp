@@ -42,6 +42,7 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"malloc.h"
 
 #include"chatwindow.h"
+#include<vector>
 
 static bool shownButtonAt( const ControlButton* buttons, int count, float mouseX, float mouseY );
 static void releaseButtonSet( ControlButton*& buttons, ButtonData*& data, int count, bool freeTextures );
@@ -2993,10 +2994,10 @@ static void releaseButtonSet( ControlButton*& buttons, ButtonData*& data, int co
 	data = 0;
 }
 
-// count buttons from the layout's <block><fileIndex[i]> blocks, hidden; with
-// idFromIndex each button's ID is its block number, else the block's own ID
+// count buttons from the layout's <block><fileIndex[i]> blocks, hidden, each
+// with its block number for an ID
 static void loadButtonSet( FitIniFile& buttonFile, int count, ControlButton*& buttons, ButtonData*& data,
-	const char* block, const int* fileIndex, bool idFromIndex )
+	const char* block, const int* fileIndex )
 {
 	// value-initialised: zeroes, as the stock buttons' memset gives
 	buttons = new ControlButton[count]();
@@ -3004,10 +3005,19 @@ static void loadButtonSet( FitIniFile& buttonFile, int count, ControlButton*& bu
 	ControlButton::initButtons( buttonFile, count, buttons, data, block, 0, fileIndex );
 	for ( int i = 0; i < count; i++ )
 	{
-		if ( idFromIndex )
-			buttons[i].ID = fileIndex[i];
+		buttons[i].ID = fileIndex[i];
 		buttons[i].hide( 1 );
 	}
+}
+
+// the same, from blocks firstIndex to firstIndex + count - 1
+static void loadButtonSet( FitIniFile& buttonFile, int count, ControlButton*& buttons, ButtonData*& data,
+	const char* block, int firstIndex )
+{
+	std::vector<int> fileIndex( count );
+	for ( int i = 0; i < count; i++ )
+		fileIndex[i] = firstIndex + i;
+	loadButtonSet( buttonFile, count, buttons, data, block, fileIndex.data() );
 }
 
 // wolfman-MC2X's formation buttons (formation.h), from its layout's Button24
@@ -3022,10 +3032,7 @@ void ControlGui::initFormationButtons( FitIniFile& buttonFile, bool mc2xHud )
 		return;
 	}
 
-	int fileIndex[formation::kButtonCount] = {};
-	for ( int i = 0; i < formation::kButtonCount; i++ )
-		fileIndex[i] = formation::kFirstPaletteButton + i;
-	loadButtonSet( buttonFile, formation::kButtonCount, formationButtons, formationData, "Button", fileIndex, true );
+	loadButtonSet( buttonFile, formation::kButtonCount, formationButtons, formationData, "Button", formation::kFirstPaletteButton );
 }
 
 // Shows the Formation button when bShow (units selected, none with a button of
@@ -3118,12 +3125,8 @@ void ControlGui::initMC2XSupport( FitIniFile& buttonFile, bool mc2xHud )
 		return;
 	}
 
-	int fileIndex[mc2xsupport::kUnitCount] = {};
-	for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
-		fileIndex[i] = mc2xsupport::kFirstUnit + i;
-	loadButtonSet( buttonFile, mc2xsupport::kUnitCount, mc2xSupportButtons, mc2xSupportData, "Vehicle", fileIndex, false );
-	const int tabIndex[1] = { 49 };
-	loadButtonSet( buttonFile, 1, support2Tab, support2TabData, "Button", tabIndex, false );
+	loadButtonSet( buttonFile, mc2xsupport::kUnitCount, mc2xSupportButtons, mc2xSupportData, "Vehicle", mc2xsupport::kFirstUnit );
+	loadButtonSet( buttonFile, 1, support2Tab, support2TabData, "Button", 49 );
 }
 
 // The second support tab, and MC2X's units on the support tab shown: which
@@ -3214,7 +3217,7 @@ void ControlGui::initMC2XCommands( FitIniFile& buttonFile, bool mc2xHud )
 {
 	releaseButtonSet( mc2xCommandButtons, mc2xCommandData, kMC2XCommandCount, true );
 	if ( mc2xHud )
-		loadButtonSet( buttonFile, kMC2XCommandCount, mc2xCommandButtons, mc2xCommandData, "Button", kMC2XCommands, true );
+		loadButtonSet( buttonFile, kMC2XCommandCount, mc2xCommandButtons, mc2xCommandData, "Button", kMC2XCommands );
 }
 
 // The exchanges between the mission's C-Bills and resource points, and the
@@ -3235,11 +3238,13 @@ void ControlGui::updateMC2XCommands( bool bPaused, float mouseX, float mouseY )
 	const bool released = leftClicked();
 	Mover* first = 0;
 	const mc2xhud::Selection selection = shown ? mc2xSelection( &first ) : mc2xhud::Selection();
-	const bool dropshipFire = shown && mc2xhud::shows( mc2xhud::kDropshipFire, selection );
-	const bool supplyModes = shown && mc2xhud::shows( mc2xhud::kRechargeMode, selection );
+	// an empty selection while hidden, which shows none of these
+	const bool dropshipFire = mc2xhud::shows( mc2xhud::kDropshipFire, selection );
+	const bool supplyModes = mc2xhud::shows( mc2xhud::kRechargeMode, selection );
+	const bool rechargeIndicator = mc2xhud::shows( mc2xhud::kRechargeIndicator, selection );
 	if ( !dropshipFire )
 		dropshipFireArmed = false;
-	if ( !shown || !mc2xhud::shows( mc2xhud::kPickUp, selection ) )
+	if ( !mc2xhud::shows( mc2xhud::kPickUp, selection ) )
 		pickUpArmed = false;
 	// stock's buttons in the places these take (Reload shows with Recharge)
 	getButton( CUR_RANGE )->hide( dropshipFire );
@@ -3247,7 +3252,7 @@ void ControlGui::updateMC2XCommands( bool bPaused, float mouseX, float mouseY )
 	if ( supplyModes )
 		getButton( REPAIR )->hide( 1 );
 	// and MC2X's own Formation button and indicator, which share them
-	if ( formationButtons && ( supplyModes || ( shown && mc2xhud::shows( mc2xhud::kRechargeIndicator, selection ) ) ) )
+	if ( formationButtons && ( supplyModes || rechargeIndicator ) )
 	{
 		formationMenuOpen = false;
 		for ( int f = 0; f < formation::kButtonCount; f++ )
@@ -3343,9 +3348,14 @@ void ControlGui::handleMC2XUnitCommand( int button )
 		return;
 	}
 
-	Mover* first = 0;
-	mc2xSelection( &first );
 	// the supply modes toggle: on for all, or off when all have it
+	Mover* first = 0;
+	for ( long i = 0; !first && ( i < Team::home->getRosterSize() ); i++ )
+	{
+		Mover* pMover = (Mover*)Team::home->getMover( i );
+		if ( mc2xSelected( pMover ) )
+			first = pMover;
+	}
 	int mode = mc2xunits::kSupplyOff;
 	if ( button == mc2xhud::kRechargeMode )
 		mode = ( mc2xunits::supplyMode( first ) == mc2xunits::kRecharge ) ? mc2xunits::kSupplyOff : mc2xunits::kRecharge;

@@ -92,11 +92,14 @@ const TransportProfile& profileOf(Mover* transport)
 }
 
 // a and b no further apart than reach, across the ground
+bool within2D(const Stuff::Vector3D& a, const Stuff::Vector3D& b, float reach)
+{
+	return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) <= reach * reach;
+}
+
 bool within2D(GameObject* a, GameObject* b, float reach)
 {
-	const Stuff::Vector3D pa = a->getPosition();
-	const Stuff::Vector3D pb = b->getPosition();
-	return (pa.x - pb.x) * (pa.x - pb.x) + (pa.y - pb.y) * (pa.y - pb.y) <= reach * reach;
+	return within2D(a->getPosition(), b->getPosition(), reach);
 }
 
 bool alive(Mover* m)
@@ -213,9 +216,7 @@ void updateUnit(Mover* unit, UnitState& state, float seconds)
 		{
 			// the unit moved on: follow it
 			const Stuff::Vector3D at = target->getPosition();
-			const float dx = at.x - state.pickUpGoal.x;
-			const float dy = at.y - state.pickUpGoal.y;
-			if (dx * dx + dy * dy > mc2xhud::kAirliftReach * mc2xhud::kAirliftReach)
+			if (!within2D(at, state.pickUpGoal, mc2xhud::kAirliftReach))
 			{
 				state.pickUpGoal = at;
 				moveTo(unit, at);
@@ -287,7 +288,6 @@ void update(float seconds)
 			++it;
 	}
 }
-
 
 bool idHidden(GameObject* unit)
 {

@@ -578,7 +578,7 @@ long FitIniFile::seekBlock (const char *blockId)
 	if (blockNum == totalBlocks)
 	{
 		// a file opened under wolfman-MC2X's name may have renamed the block too
-		const char* mc2xBlock = openedMC2X ? mc2xBlockName(blockId) : NULL;
+		const char* mc2xBlock = openedMC2X ? mc2xBlockName(fileName, blockId) : NULL;
 		if (mc2xBlock)
 			return(seekBlock(mc2xBlock));
 		return(BLOCK_NOT_FOUND);
