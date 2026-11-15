@@ -433,7 +433,12 @@ push the data as in `android/README.md`, "Phones and tablets".
       campaign carries on after it (results, then logistics with the same mechs and
       pilots). Then switch away and back without closing: the next start is the
       main menu, not the old mission. How long does the save take when switching
-      away (`[RESUME] saved` in `mc2.log`)?
+      away (`[RESUME] saved` in `mc2.log`)? The pause menu slides in at the right
+      edge with its buttons (it once came up as a black panel: fixed, checked on a
+      Pixel 9 with `-suspendexit`).
+- [ ] **Exit and start again:** Exit Game from the main menu, then open the app at
+      once from the launcher. It starts normally; `mc2.log`'s previous run ends with
+      `[APP] main ended: closing the process` and no `CRASH` lines.
 - [ ] **Switching away at a mission's end:** go to Home while the mission-won
       sequence or an in-mission movie plays. Does the pause menu come up over it on
       return, and does closing it carry the end of the mission on as normal?

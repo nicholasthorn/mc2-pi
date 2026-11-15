@@ -808,6 +808,16 @@ int main(int argc, char** argv)
 
     Environment.TerminateGameEngine();
 
+#ifdef __ANDROID__
+    // SDL's activity starts main again in this process if the window comes
+    // back before the activity has finished (SDLActivity.handleNativeState),
+    // over this run's globals: the game's sound system outlives the audio
+    // engine, a crash at the first volume set. End the process instead.
+    printf("[APP] main ended: closing the process\n");
+    fflush(stdout);
+    fflush(stderr);
+    _exit(g_exit_code);
+#endif
     return g_exit_code;
 }
 #endif // DISABLE_GAMEOS_MAIN
