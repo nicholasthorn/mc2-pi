@@ -1948,7 +1948,13 @@ void gosRenderer::handleEvents()
         // (headset off and on). Keep the surface's size: the projection above still
         // maps the game's screen onto all of it, and the panel keeps the game's
         // shape (gos_xr quadHeight).
+        // Android without VR (phones and tablets) is the same: the surface is the
+        // whole screen, so the game's screen is scaled onto all of it.
+#ifdef __ANDROID__
+        const bool keepSurface = true;
+#else
         const bool keepSurface = gos_VRHeadset();
+#endif
         if(keepSurface || graphics::resize_window(win_h_, width_, height_))
 		{
             if(!keepSurface)

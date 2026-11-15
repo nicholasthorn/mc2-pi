@@ -372,6 +372,24 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
       leaves the diagram before the drag counts picks up nothing, and a component
       that cannot be removed sounds its refusal once.
 
+## Phones and tablets (`future-features/MOBILE.md`, branch `android-flat`)
+
+GLES. Build with `MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh`, install and
+push the data as in `android/README.md`, "Phones and tablets".
+
+- [ ] **It starts and fills the screen** on an Android tablet or phone (Android 10 or
+      later): the main menu covers the whole display, stretched to its shape, not
+      drawn into a corner. Note the device, its GPU and the screen size.
+- [ ] **A mouse plays mc2_01** (phase 0's exit): a Bluetooth or USB mouse and keyboard
+      through the campaign start, logistics and the mission to its end. Clicks land
+      where the cursor is drawn, across the whole screen.
+- [ ] **Taps in the menus:** SDL turns a tap into a left click; can the main menu and
+      logistics be worked by finger at all? (No mission controls are expected.)
+- [ ] **Switching away and back** mid-mission: does the picture come back, with its
+      textures, or is the GL context lost? Note the GPU (Adreno, Mali, PowerVR).
+- [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one
+      and runs as a flat window in the headset's home.
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing

@@ -1,6 +1,6 @@
-# Meta Quest test build
+# Android test builds: Meta Quest, phones and tablets
 
-An Android app that runs MechCommander 2 in VR through OpenXR on a Quest 2,
+The Quest build is an Android app that runs MechCommander 2 in VR through OpenXR on a Quest 2,
 with the GLES 3.1 renderer. It began as a measurement tool: run the `-bench`
 scenario on the headset's own CPU and GPU driver, mono and `-stereo`, and pull
 the numbers back (the VR plan's Phase 0 go/no-go,
@@ -86,7 +86,50 @@ segment and for the whole run, including the `<stage>_ms` stage times
 (`bench/README.md`). If the app dies without a log, `adb logcat -d` has the
 crash.
 
+## Phones and tablets
+
+The same app without VR, for phones and tablets
+(`planning/future-features/MOBILE.md`, phase 0):
+
+```bash
+MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh
+```
+
+It differs from the Quest build only in its build: no OpenXR (`MC2_OPENXR=OFF`,
+no loader in the APK), its own manifest (`android/phone/AndroidManifest.xml`:
+no headset features, a normal launcher entry, either landscape way up) and its
+own package, `com.nicholasthorn.mc2.phone`, so the two can be installed side
+by side. The game builds in `android/build/game-phone`; the result is
+`android/mc2-phone-test.apk`. Every script here takes the same variable, for
+example `MC2_ANDROID_FLAVOUR=phone scripts/android/run_bench.sh --data ...`.
+`package.sh` packages the Quest flavour only, for now.
+
+The game data and `shaders/` go in
+`/sdcard/Android/data/com.nicholasthorn.mc2.phone/files`, as on the headset:
+
+```bash
+D=/sdcard/Android/data/com.nicholasthorn.mc2.phone/files
+adb install -r android/mc2-phone-test.apk
+adb shell mkdir -p $D
+adb push <game data folder>/. $D/
+adb push shaders $D/
+adb shell am start -n com.nicholasthorn.mc2.phone/com.nicholasthorn.mc2.MC2Activity
+```
+
+What to expect so far:
+
+- **No touch controls yet.** SDL turns a touch into a left click, which is
+  enough for menus but not for a mission. A Bluetooth or USB mouse and
+  keyboard play as on a PC.
+- **The picture is stretched** to the screen: the game draws at its own
+  resolution (800x600 by default) and fills the whole display with it, so a
+  20:9 phone widens everything.
+- **Switching away** from the app pauses it, and nothing is saved; Android may
+  close it while it is in the background.
+
 ## Status
 
-Played on a Quest 2, with the bench results in
+Quest: played on a Quest 2, with the bench results in
 `planning/future-features/VR-TABLETOP.md`. Not yet tried on a Quest 3 or Pro.
+
+Phones and tablets: builds; not yet run on a device.

@@ -24,6 +24,10 @@ done
 [ -n "$VERSION" ] || { echo "package: --version is required" >&2; exit 2; }
 [ -f "$APK" ] || { echo "package: no $APK; run scripts/android/build.sh first" >&2; exit 2; }
 
+# the files beside it and INSTALL.md are the Quest's; a phone package comes
+# with the data inside the APK (planning/future-features/MOBILE.md, phase 3)
+[ "$FLAVOUR" = quest ] || { echo "package: only the quest flavour is packaged so far" >&2; exit 2; }
+
 BUILD="$ROOT/android/build"
 DEPS="$ROOT/android/deps"
 NAME="mc2-$VERSION-quest-arm64"

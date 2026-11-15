@@ -62,7 +62,7 @@ run() {   # label, extra game arguments...
     "$ADB" push "$args" "$D/mc2args.txt" > /dev/null
     "$ADB" shell rm -f "$D/mc2.log" "$D/$label.csv"
     "$ADB" shell am force-stop $PKG
-    "$ADB" shell am start -n $PKG/.MC2Activity > /dev/null
+    "$ADB" shell am start -n $ACTIVITY > /dev/null
     echo "run_bench: $label running (put the headset on, or keep it awake)"
     local waited=0
     while true; do

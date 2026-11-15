@@ -1,14 +1,17 @@
 #!/bin/bash
-# Build the Meta Quest test APK (a flat Android app with the GLES renderer):
-# SDL2 and SDL2_mixer from android/deps (scripts/android/fetch_deps.sh), the
-# game as libmain.so, then the APK, with the SDK's own tools instead of
-# Gradle. Runs in Git Bash on Windows or bash on Linux. See android/README.md.
+# Build an Android test APK with the GLES renderer, for the Meta Quest or,
+# with MC2_ANDROID_FLAVOUR=phone, for phones and tablets: SDL2 and SDL2_mixer
+# from android/deps (scripts/android/fetch_deps.sh), the game as libmain.so,
+# then the APK, with the SDK's own tools instead of Gradle. Runs in Git Bash
+# on Windows or bash on Linux. See android/README.md.
 #
 # usage: scripts/android/build.sh [deps|game|apk|all]   (default: all)
 #
 # Environment:
 #   ANDROID_HOME  SDK (default: %LOCALAPPDATA%\Android\Sdk, or ~/Android/Sdk)
 #   JAVA_HOME     a JDK 17 or newer (Android Studio's jbr is one)
+#   MC2_ANDROID_FLAVOUR  quest (the default: VR through OpenXR) or phone
+#                 (flat, for phones and tablets); see env.sh
 #   MC2_VERSION   version for mc2.log and the APK's versionName (default:
 #                 git describe, and the manifest's versionName)
 #   NDK_VERSION, CMAKE_VERSION, BUILD_TOOLS, PLATFORM  override the defaults below
@@ -61,10 +64,11 @@ build_deps() {
 }
 
 build_game() {
-    "$CMAKE" -S "$ROOT" -B "$BUILD/game" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF \
-        "-DMC2_VERSION=${MC2_VERSION:-}" \
-        "-DOPENXR_PREFAB=$DEPS/$OPENXR_DIR/prefab/modules"
-    "$CMAKE" --build "$BUILD/game"
+    local xr=(-DMC2_OPENXR=OFF)
+    [ "$FLAVOUR" != quest ] || xr=(-DMC2_OPENXR=ON "-DOPENXR_PREFAB=$DEPS/$OPENXR_DIR/prefab/modules")
+    "$CMAKE" -S "$ROOT" -B "$GAME_BUILD" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF \
+        "-DMC2_VERSION=${MC2_VERSION:-}" "${xr[@]}"
+    "$CMAKE" --build "$GAME_BUILD"
 }
 
 build_apk() {
@@ -85,13 +89,13 @@ build_apk() {
     # and page-aligned so they load straight from the APK (extractNativeLibs false)
     local version=()
     [ -z "$MC2_VERSION" ] || version=(--version-name "$MC2_VERSION" --replace-version)
-    "$BT/aapt2" link -o "$A/base.apk" --manifest "$ROOT/android/AndroidManifest.xml" \
+    "$BT/aapt2" link -o "$A/base.apk" --manifest "$MANIFEST" \
         -I "$ANDROID_JAR" --min-sdk-version $MIN_SDK --target-sdk-version $TARGET_SDK "${version[@]}"
     cp "$A/dex/classes.dex" "$A/stage/"
-    local lib
-    for lib in "$PREFIX/lib/libSDL2.so" "$PREFIX/lib/libSDL2_mixer.so" \
-               "$DEPS/$OPENXR_DIR/jni/arm64-v8a/libopenxr_loader.so" \
-               "$BUILD/game/libmain.so" "$BUILD/game/out/res/libmc2res_64.so"; do
+    local lib libs=("$PREFIX/lib/libSDL2.so" "$PREFIX/lib/libSDL2_mixer.so"
+                    "$GAME_BUILD/libmain.so" "$GAME_BUILD/out/res/libmc2res_64.so")
+    [ "$FLAVOUR" != quest ] || libs+=("$DEPS/$OPENXR_DIR/jni/arm64-v8a/libopenxr_loader.so")
+    for lib in "${libs[@]}"; do
         "$STRIP" --strip-unneeded -o "$A/stage/lib/arm64-v8a/$(basename "$lib")" "$lib"
     done
     (cd "$A/stage" && "$J/jar" -u -M -0 -f ../base.apk classes.dex lib)
