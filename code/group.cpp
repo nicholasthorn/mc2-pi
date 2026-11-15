@@ -502,19 +502,19 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 
 	//-----------------------------------------------------------------
 	// A goal cell must have a route to it from the clicked cell's area,
-	// as the home team moves (its gates open, others' closed). Asked here,
-	// before the search: calcPath uses the same openList.
-	extern GlobalMapPtr GlobalMoveMap[3];
+	// as the home team moves (its gates open, others' closed). Asked only of
+	// a cell about to be given out, once per area: the search stops at
+	// numMovers goals, so most of the window is never asked about. Cached
+	// per order, not in GlobalMap's pathExistsTable, which does not know the
+	// team.
 	GlobalMapPtr globalMap = GlobalMoveMap[0];
 	long clickArea = inMapBounds(goalRow, goalCol, GameMap->height, GameMap->width) ? globalMap->calcArea(goalRow, goalCol) : -1;
 	GroupGoalAreas askedAreas;
+	char oldTeamID = globalMap->moverTeamID;
+	globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
 	auto canReach = [globalMap, clickArea] (long area) {
 		GlobalPathStep path[MAX_GLOBAL_PATH];
-		char oldTeamID = globalMap->moverTeamID;
-		globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
-		long numSteps = globalMap->calcPath(clickArea, area, path);
-		globalMap->moverTeamID = oldTeamID;
-		return (numSteps > 0);
+		return (globalMap->calcPath(clickArea, area, path) > 0);
 	};
 	for (int r = 0; r < GOALMAP_DIM; r++)
 		for (int c = 0; c < GOALMAP_DIM; c++) {
@@ -528,19 +528,17 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			}
 			goalMap[index].cost = GameMap->getPassable(topLeftRow + r, topLeftCol + c) ? 100 : COST_BLOCKED;
 			goalMap[index].flags = GOALFLAG_AVAILABLE + GOALFLAG_NO_NEIGHBORS;
-			// a cell no route reaches is searched through but never a goal
-			if ((goalMap[index].cost < COST_BLOCKED) &&
-				!groupGoalAreaUsable(globalMap->calcArea(topLeftRow + r, topLeftCol + c), clickArea, askedAreas, canReach))
-				goalMap[index].flags = GOALFLAG_NO_NEIGHBORS;
 			goalMap[index].g = 0;
 		}
 
-	//-----------------------------------------------
-	// If we haven't already, create the OPEN list...
-	if (!openList) {
-		openList = new PriorityQueue;
-		gosASSERT(openList != NULL);
-		openList->init(5000);
+	//-----------------------------------------------------------------
+	// If we haven't already, create the OPEN list. The goal search has its
+	// own: calcPath, asked during the search, clears and fills the shared one.
+	static PriorityQueuePtr goalOpenList = NULL;
+	if (!goalOpenList) {
+		goalOpenList = new PriorityQueue;
+		gosASSERT(goalOpenList != NULL);
+		goalOpenList->init(5000);
 	}
 
 	int curRow = GOALMAP_DIM / 2;
@@ -555,17 +553,17 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 	initialVertex.id = curRow * GOALMAP_DIM + curCol;
 	initialVertex.row = curRow;
 	initialVertex.col = curCol;
-	openList->clear();
-	openList->insert(initialVertex);
+	goalOpenList->clear();
+	goalOpenList->insert(initialVertex);
 	curMapNode->setFlag(GOALFLAG_OPEN);
 
 	long numGoalsFound = 0;
-	while (!openList->isEmpty()) {
+	while (!goalOpenList->isEmpty()) {
 
 		//----------------------
 		// Grab the best node...
 		PQNode bestPQNode;
-		openList->remove(bestPQNode);
+		goalOpenList->remove(bestPQNode);
 		curRow = bestPQNode.row;
 		curCol = bestPQNode.col;
 		GoalMapNode* bestMapNode = &goalMap[curRow * GOALMAP_DIM + curCol];
@@ -582,8 +580,11 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			if (bestMapNode->flags & GOALFLAG_NO_NEIGHBORS)
 				if (bestMapNode->flags & GOALFLAG_AVAILABLE) {
 					bestMapNode->clearFlag(GOALFLAG_AVAILABLE);
-					land->cellToWorld(topLeftRow + curRow, topLeftCol + curCol, goalList[numGoalsFound++]);
-					markNeighbors = true;
+					// a cell no route reaches is searched through but never a goal
+					if (groupGoalAreaUsable(globalMap->calcArea(topLeftRow + curRow, topLeftCol + curCol), clickArea, askedAreas, canReach)) {
+						land->cellToWorld(topLeftRow + curRow, topLeftCol + curCol, goalList[numGoalsFound++]);
+						markNeighbors = true;
+					}
 				}
 		if (numGoalsFound == numMovers)
 			break;
@@ -628,13 +629,14 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 						succPQNode.id = succRow * GOALMAP_DIM + succCol;
 						succPQNode.row = succRow;
 						succPQNode.col = succCol;
-						openList->insert(succPQNode);
+						goalOpenList->insert(succPQNode);
 						succMapNode->setFlag(MOVEFLAG_OPEN);
 					}
 				}
 			}
 		}
 	}		
+	globalMap->moverTeamID = oldTeamID;
 
 	// Too few open cells near the goal for the group (a crowded or walled-in
 	// spot): the rest head for the goal itself, rather than for whatever the
