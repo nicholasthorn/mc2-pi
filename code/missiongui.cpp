@@ -102,6 +102,7 @@
 
 #include"gvehicl.h" // remove
 #include "forcegroupcycle.h"
+#include"mc2xunits.h"
 
 	static const char* terrainStr[NUM_TERRAIN_TYPES] = {
 			"Blue Water",	//MC_BLUEWATER_TYPE
@@ -2562,6 +2563,8 @@ int MissionInterfaceManager::handleOrders( TacticalOrder& order)
 		Mover* pMover = (Mover*)pTeam->getMover( i );
 		if ( pMover->isSelected() && pMover->getCommander()->getId() == Commander::home->getId() )
 		{
+			mc2xunits::orderGiven( pMover );	// wolfman-MC2X's airlift: a pick-up is off
+
 			//---------------------------------------------------------------------
 			// Helper function--perhaps this should just be a part of the mover and
 			// group handleTacticalOrder() functions?

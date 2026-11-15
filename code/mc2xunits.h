@@ -46,6 +46,8 @@ bool canCarry(Mover* transport, Mover* unit);
 // loads the unit when the transport is in reach, else sends it there first;
 // false when the unit cannot be carried
 bool pickUp(Mover* transport, Mover* unit);
+// the player gave the unit another order: a pick-up under way is off
+void orderGiven(Mover* unit);
 void dropOff(Mover* transport);
 
 // A supply carrier's mode, and whether one recharging is in reach of a repair

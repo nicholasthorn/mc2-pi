@@ -12,6 +12,8 @@
 #include <team.h>
 #include <tacordr.h>
 #include <warrior.h>
+#include <move.h>
+#include "formation.h"
 #include "mc2xhud.h"
 #include "mc2xsupport.h"
 #include "mc2xunits.h"
@@ -32,6 +34,7 @@ struct UnitState
 	int supplyMode = kSupplyOff;
 	std::vector<unsigned long> carried;	// watch IDs, off the map
 	unsigned long pickUpTarget = 0;		// a unit the transport is going for
+	Stuff::Vector3D pickUpGoal;			// where it was sent to meet it
 };
 
 struct TransportProfile
@@ -118,9 +121,25 @@ float loadedTons(UnitState& state, int& items)
 void load(Mover* transport, Mover* unit)
 {
 	unit->setSelected(false);
-	unit->getPilot()->clearCurTacOrder();
+	if (MechWarriorPtr pilot = unit->getPilot())
+		pilot->clearCurTacOrder();
 	unit->setExists(false);
 	at(transport).carried.push_back(unit->getWatchID());
+}
+
+// a cell a unit can stand on near spot: the transport may hover over water
+// or a cliff it cannot be put down on
+void standable(Stuff::Vector3D& spot)
+{
+	if (!land || !GameMap)
+		return;
+	int row = 0, col = 0;
+	land->worldToCell(spot, row, col);
+	auto passable = [](int r, int c) {
+		return (r >= 0) && (c >= 0) && (r < GameMap->height) && (c < GameMap->width) && GameMap->getPassable(r, c);
+	};
+	if (formation::nearestFreeCell(row, col, 12, passable))
+		land->cellToWorld(row, col, spot);
 }
 
 // the carried units back on the ground round where the transport is
@@ -139,6 +158,7 @@ void putDown(UnitState& state, Stuff::Vector3D where)
 			spot.x += 80.f * std::cos(angle);
 			spot.y += 80.f * std::sin(angle);
 		}
+		standable(spot);
 		if (land)
 			spot.z = land->getTerrainElevation(spot);
 		m->setPosition(spot);
@@ -214,6 +234,18 @@ void update(float seconds)
 			{
 				state.pickUpTarget = 0;
 				load(unit, target);
+			}
+			else
+			{
+				// the unit moved on: follow it
+				const Stuff::Vector3D at = target->getPosition();
+				const float dx = at.x - state.pickUpGoal.x;
+				const float dy = at.y - state.pickUpGoal.y;
+				if (dx * dx + dy * dy > mc2xhud::kAirliftReach * mc2xhud::kAirliftReach)
+				{
+					state.pickUpGoal = at;
+					moveTo(unit, at);
+				}
 			}
 		}
 
@@ -294,10 +326,18 @@ bool pickUp(Mover* transport, Mover* unit)
 		load(transport, unit);
 	else
 	{
-		at(transport).pickUpTarget = unit->getWatchID();
-		moveTo(transport, unit->getPosition());
+		UnitState& state = at(transport);
+		state.pickUpTarget = unit->getWatchID();
+		state.pickUpGoal = unit->getPosition();
+		moveTo(transport, state.pickUpGoal);
 	}
 	return true;
+}
+
+void orderGiven(Mover* unit)
+{
+	if (UnitState* state = find(unit))
+		state->pickUpTarget = 0;
 }
 
 void dropOff(Mover* transport)
