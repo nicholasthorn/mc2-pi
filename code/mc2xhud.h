@@ -124,7 +124,7 @@ inline float topUp(float cur, float max, float seconds)
 }
 
 // Whether a press of the button can do anything with these balances.
-inline bool canUse(int button, long cBills, long resourcePoints, bool spyMapActive)
+inline bool canUse(int button, long cBills, long resourcePoints)
 {
 	switch (button)
 	{
@@ -133,7 +133,7 @@ inline bool canUse(int button, long cBills, long resourcePoints, bool spyMapActi
 		case kToCBills:
 			return resourcePoints > 0;
 		case kSpyMap:
-			return !spyMapActive && (cBills >= kSpyMapCost);
+			return cBills >= kSpyMapCost;
 	}
 	return false;
 }
@@ -142,7 +142,7 @@ inline bool canUse(int button, long cBills, long resourcePoints, bool spyMapActi
 // (negative: the other way). 0 when it cannot be used; the spy map moves none.
 inline long exchange(int button, long cBills, long resourcePoints)
 {
-	if (!canUse(button, cBills, resourcePoints, false))
+	if (!canUse(button, cBills, resourcePoints))
 		return 0;
 	if (button == kToResourcePoints)
 		return kExchangeStep;

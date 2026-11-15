@@ -715,8 +715,7 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 				if ( baseLength <= 4 || baseLength >= 128 || strchr( base, '/' ) || S_stricmp( base + baseLength - 4, ".fit" ) != 0 )
 					continue;
 				std::string name( base, baseLength - 4 );
-				for ( size_t c = 0; c < name.size(); c++ )
-					name[c] = (char)tolower( (unsigned char)name[c] );
+				S_strlwr( &name[0] );
 				if ( name == "campaign" || name == "tutorial" || !listed.insert( name ).second )
 					continue;
 				path.init( campaignPath, name.c_str(), ".fit" );
