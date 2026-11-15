@@ -34,7 +34,6 @@
 
 #define	MAXSIZE_CODE_BUFFER			20480
 
-#define	MAXSIZE_STACK				10240
 #define	STACK_FRAME_HEADER_SIZE		4
 
 #define	SYSTEM_HEAP_SIZE			1024 * 1024		// General system memory...

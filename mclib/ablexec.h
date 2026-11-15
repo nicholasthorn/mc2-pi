@@ -125,6 +125,7 @@ extern int              execStatementCount;
 
 extern StackItem*		stack;
 extern StackItemPtr		tos;
+extern StackItemPtr		stackLimit;
 extern StackItemPtr		stackFrameBasePtr;
 
 //***************************************************************************

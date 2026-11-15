@@ -113,7 +113,8 @@ const char* syntaxErrorMessages[] = {
 	"Order must have Integer Return Type",
 	"Too many orders",
 	"Missing state for transition",
-	"Missing endfsm"
+	"Missing endfsm",
+	"Too many eternal variables"
 };
 
 //---------------------------------------------------------------------------

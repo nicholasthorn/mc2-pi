@@ -14,6 +14,7 @@
 #include "ablsymt.h"
 #include "ablenv.h"
 #include "fuzz/fuzz_targets.h"
+#include "fuzz/fuzz_support.h"
 
 #include <cstdint>
 #include <cstring>
@@ -175,6 +176,69 @@ TEST_CASE("ABL commands that break the stack contract cannot corrupt the frame")
 	CHECK(m.getStaticInteger((char*)"before") == 110);
 	CHECK(m.getStaticInteger((char*)"after") == 110);
 	CHECK(m.getStaticInteger((char*)"result") == 0);
+	m.destroy();
+}
+
+// ABL calls recurse in C++ (about 2.3K of native stack each on Linux), so a
+// script recursing without end overran the thread's stack (1MB on Windows)
+// before the ABL stack filled. Calls nested past 128 now stop with a stack
+// overflow error; missions call at most 4 deep.
+TEST_CASE("ABL recursion stops with a stack overflow at 128 calls")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer depth;\n"
+		"function dive (integer n) : integer;\n"
+		"\tcode\n"
+		"\t\tdepth = n;\n"
+		"\t\treturn(dive(n + 1));\n"
+		"endfunction;\n"
+		"\tcode\n"
+		"\t\treturn(dive(1));\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	CHECK_FALSE(fuzzGuarded([&m] { m.execute(); }));
+	CHECK(m.getStaticInteger((char*)"depth") == 128);
+	m.destroy();
+}
+
+// The runtime stack was allocated as ABL_RUNTIME_STACK_SIZE bytes, but every
+// push was checked against a fixed 10240 slots: right for the 2001 build's
+// 4-byte StackItem, twice what a 64-bit one has room for, so a script with
+// many locals wrote past the block. It now has the 2001 build's 10239 slots,
+// checked against what was allocated: this one, 100 locals a call, gets 97
+// calls deep, as in 2001 (a 64-bit build ran off the end after about 48),
+// then stops with a stack overflow error.
+TEST_CASE("ABL locals that fill the stack stop with a stack overflow, inside it")
+{
+	std::string source =
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer depth;\n"
+		"function dive (integer n) : integer;\n"
+		"\tvar\n";
+	for (int i = 0; i < 100; i++)
+		source += "\t\tinteger l" + std::to_string(i) + ";\n";
+	source +=
+		"\tcode\n"
+		"\t\tdepth = n;\n"
+		"\t\treturn(dive(n + 1));\n"
+		"endfunction;\n"
+		"\tcode\n"
+		"\t\treturn(dive(1));\n"
+		"endmodule.\n";
+	AblCompiled c(source.c_str());
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	CHECK_FALSE(fuzzGuarded([&m] { m.execute(); }));
+	CHECK(m.getStaticInteger((char*)"depth") > 90);
+	CHECK(m.getStaticInteger((char*)"depth") < 128);
 	m.destroy();
 }
 
