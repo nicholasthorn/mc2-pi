@@ -46,6 +46,7 @@
 #include"groupgoals.h"
 #include"formation.h"
 #include"mc2xunits.h"
+#include"team.h"
 #include<utils/str_bounded.h>
 
 //---------------------------------------------------------------------------
@@ -498,6 +499,23 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 	land->worldToCell(goal, goalRow, goalCol);
 	int topLeftRow = goalRow - GOALMAP_DIM / 2;
 	int topLeftCol = goalCol - GOALMAP_DIM / 2;
+
+	//-----------------------------------------------------------------
+	// A goal cell must have a route to it from the clicked cell's area,
+	// as the home team moves (its gates open, others' closed). Asked here,
+	// before the search: calcPath uses the same openList.
+	extern GlobalMapPtr GlobalMoveMap[3];
+	GlobalMapPtr globalMap = GlobalMoveMap[0];
+	long clickArea = inMapBounds(goalRow, goalCol, GameMap->height, GameMap->width) ? globalMap->calcArea(goalRow, goalCol) : -1;
+	GroupGoalAreas askedAreas;
+	auto canReach = [globalMap, clickArea] (long area) {
+		GlobalPathStep path[MAX_GLOBAL_PATH];
+		char oldTeamID = globalMap->moverTeamID;
+		globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
+		long numSteps = globalMap->calcPath(clickArea, area, path);
+		globalMap->moverTeamID = oldTeamID;
+		return (numSteps > 0);
+	};
 	for (int r = 0; r < GOALMAP_DIM; r++)
 		for (int c = 0; c < GOALMAP_DIM; c++) {
 			int index = r * GOALMAP_DIM + c;
@@ -510,6 +528,10 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			}
 			goalMap[index].cost = GameMap->getPassable(topLeftRow + r, topLeftCol + c) ? 100 : COST_BLOCKED;
 			goalMap[index].flags = GOALFLAG_AVAILABLE + GOALFLAG_NO_NEIGHBORS;
+			// a cell no route reaches is searched through but never a goal
+			if ((goalMap[index].cost < COST_BLOCKED) &&
+				!groupGoalAreaUsable(globalMap->calcArea(topLeftRow + r, topLeftCol + c), clickArea, askedAreas, canReach))
+				goalMap[index].flags = GOALFLAG_NO_NEIGHBORS;
 			goalMap[index].g = 0;
 		}
 
@@ -570,9 +592,9 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			static long cellShift[8][2] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}};
 			for (long i = 0; i < 8; i++) {
 				long nRow = curRow + cellShift[i][0];
-				// Kept as shipped (planning/PROGRESS.md): curRow, not curCol, so the
-				// wrong cells lose GOALFLAG_NO_NEIGHBORS and goals end up side by side.
-				long nCol = curRow + cellShift[i][1];
+				// curCol: the shipped game used curRow here, so goals ended up
+				// side by side (planning/PROGRESS.md)
+				long nCol = curCol + cellShift[i][1];
 				if (inMapBounds(nRow, nCol, GOALMAP_DIM, GOALMAP_DIM))
 					goalMap[nRow * GOALMAP_DIM + nCol].clearFlag(GOALFLAG_NO_NEIGHBORS);
 			}
