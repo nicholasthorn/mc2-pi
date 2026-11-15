@@ -1,0 +1,9 @@
+//----------y.----
+fsm FuzzGuard;
+
+	var
+		static integer		scanRaneg;
+	
+		static boolean		alert;
+		static integer[40]	wcaponList;
+eternal  char[4099999999999]	ertfsm.

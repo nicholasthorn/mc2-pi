@@ -546,6 +546,10 @@ TypePtr enumerationType (void) {
 
 //***************************************************************************
 
+// bytes in one ABL array; stock, MC2X and Omnitech arrays have at most a
+// few hundred elements
+const long long MAX_ABL_ARRAY_SIZE = 1 << 20;
+
 long arraySize (TypePtr typePtr) {
 
 	if (typePtr->info.array.elementTypePtr->size == 0)
@@ -556,8 +560,18 @@ long arraySize (TypePtr typePtr) {
 		// open arrays must be open at the end...
 		typePtr->size = typePtr->info.array.elementTypePtr->size;
 		}
-	else
-		typePtr->size = typePtr->info.array.elementCount * typePtr->info.array.elementTypePtr->size;
+	else {
+		//--------------------------------------------------------------
+		// The count comes from the script, and an integer literal wraps
+		// to 32 bits, so a negative or huge one must not reach the
+		// allocator.
+		long long size = (long long)typePtr->info.array.elementCount * typePtr->info.array.elementTypePtr->size;
+		if ((typePtr->info.array.elementCount < 0) || (size > MAX_ABL_ARRAY_SIZE)) {
+			syntaxError(ABL_ERR_SYNTAX_INTEGER_OUT_OF_RANGE);
+			size = 0;
+		}
+		typePtr->size = (long)size;
+	}
 	return(typePtr->size);
 }
 
