@@ -7,41 +7,41 @@
 
 #include "tonnagetable.h"
 
-#include <cmath>
-
 TEST_SUITE("TonnageTable")
 {
 
+static TonnageTable<110> countingTable()
+{
+	TonnageTable<110> table;
+	for (int i = 0; i < 110; i++)
+		table.values[i] = (float)i;
+	return table;
+}
+
 TEST_CASE("stock tonnages read their own entry")
 {
-	float table[110];
-	for (int i = 0; i < 110; i++)
-		table[i] = (float)i;
-	CHECK(tonnageTableValue(table, 0.0f) == 0.0f);
-	CHECK(tonnageTableValue(table, 35.0f) == 35.0f);
-	CHECK(tonnageTableValue(table, 35.9f) == 35.0f);	// truncated, as long(tonnage)
-	CHECK(tonnageTableValue(table, 100.0f) == 100.0f);
-	CHECK(tonnageTableValue(table, 109.0f) == 109.0f);
+	const TonnageTable<110> table = countingTable();
+	CHECK(table[0] == 0.0f);
+	CHECK(table[35] == 35.0f);
+	CHECK(table[long(35.9f)] == 35.0f);	// the call sites truncate, long(tonnage)
+	CHECK(table[100] == 100.0f);
+	CHECK(table[109] == 109.0f);
 }
 
 TEST_CASE("heavier units read the last entry")
 {
-	float table[110];
-	for (int i = 0; i < 110; i++)
-		table[i] = (float)i;
-	CHECK(tonnageTableValue(table, 109.5f) == 109.0f);
-	CHECK(tonnageTableValue(table, 110.0f) == 109.0f);
-	CHECK(tonnageTableValue(table, 150.0f) == 109.0f);	// MC2X Omega
-	CHECK(tonnageTableValue(table, 600.0f) == 109.0f);	// MC2X Fortress
-	CHECK(tonnageTableValue(table, 1000.0f) == 109.0f);	// Omnitech Broadsword
-	CHECK(tonnageTableValue(table, 1.0e30f) == 109.0f);
+	const TonnageTable<110> table = countingTable();
+	CHECK(table[110] == 109.0f);
+	CHECK(table[150] == 109.0f);	// MC2X Omega
+	CHECK(table[600] == 109.0f);	// MC2X Fortress
+	CHECK(table[1000] == 109.0f);	// Omnitech Broadsword
 }
 
-TEST_CASE("bad tonnages read the first entry")
+TEST_CASE("negative tonnages read the first entry")
 {
-	float table[3] = {7.0f, 8.0f, 9.0f};
-	CHECK(tonnageTableValue(table, -1.0f) == 7.0f);
-	CHECK(tonnageTableValue(table, std::nanf("")) == 7.0f);
+	const TonnageTable<3> table = {{7.0f, 8.0f, 9.0f}};
+	CHECK(table[-1] == 7.0f);
+	CHECK(table[-100000] == 7.0f);
 }
 
 }
