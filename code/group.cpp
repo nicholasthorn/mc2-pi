@@ -76,8 +76,8 @@ float GroupMoveOffsets[10][2] = {
 };
 */
 extern char OverlayIsBridge[NUM_OVERLAY_TYPES];
-extern PriorityQueuePtr	openList;
 GoalMapNode* MoverGroup::goalMap = NULL;
+PriorityQueuePtr MoverGroup::goalOpenList = NULL;
 
 //***************************************************************************
 // MOVERGROUP class
@@ -510,11 +510,13 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 	GlobalMapPtr globalMap = GlobalMoveMap[0];
 	long clickArea = inMapBounds(goalRow, goalCol, GameMap->height, GameMap->width) ? globalMap->calcArea(goalRow, goalCol) : -1;
 	GroupGoalAreas askedAreas;
-	char oldTeamID = globalMap->moverTeamID;
-	globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
 	auto canReach = [globalMap, clickArea] (long area) {
 		GlobalPathStep path[MAX_GLOBAL_PATH];
-		return (globalMap->calcPath(clickArea, area, path) > 0);
+		char oldTeamID = globalMap->moverTeamID;
+		globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
+		long numSteps = globalMap->calcPath(clickArea, area, path);
+		globalMap->moverTeamID = oldTeamID;
+		return (numSteps > 0);
 	};
 	for (int r = 0; r < GOALMAP_DIM; r++)
 		for (int c = 0; c < GOALMAP_DIM; c++) {
@@ -534,11 +536,10 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 	//-----------------------------------------------------------------
 	// If we haven't already, create the OPEN list. The goal search has its
 	// own: calcPath, asked during the search, clears and fills the shared one.
-	static PriorityQueuePtr goalOpenList = NULL;
 	if (!goalOpenList) {
 		goalOpenList = new PriorityQueue;
 		gosASSERT(goalOpenList != NULL);
-		goalOpenList->init(5000);
+		goalOpenList->init(GOALMAP_DIM * GOALMAP_DIM);
 	}
 
 	int curRow = GOALMAP_DIM / 2;
@@ -636,7 +637,6 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 			}
 		}
 	}		
-	globalMap->moverTeamID = oldTeamID;
 
 	// Too few open cells near the goal for the group (a crowded or walled-in
 	// spot): the rest head for the goal itself, rather than for whatever the

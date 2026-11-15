@@ -85,6 +85,7 @@ class MoverGroup {
 
 		static SortList			sortList;
 		static GoalMapNode*		goalMap;
+		static PriorityQueuePtr	goalOpenList;
 
 	public:
 
