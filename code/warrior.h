@@ -421,8 +421,6 @@ typedef struct _AttackerRec {
 
 typedef AttackerRec* AttackerRecPtr;
 
-#define MAX_GLOBAL_PATH			120		// as mclib/move.h
-#define MAX_SAVED_GLOBAL_PATH	50
 
 typedef enum {
 	MOVEPATH_UNDEFINED,
@@ -534,7 +532,7 @@ typedef struct _SaveableMoveOrders {
 		curGlobalStep = orders.curGlobalStep;
 		path[0] = *(orders.path[0]);
 		path[1] = *(orders.path[1]);
-		if (!savedCountValid(numGlobalSteps,MAX_SAVED_GLOBAL_PATH)) {
+		if (!savedGlobalPathValid(numGlobalSteps,curGlobalStep,path[0].globalStep,path[1].globalStep,MAX_SAVED_GLOBAL_PATH)) {
 			// a route longer than a save holds: the loaded unit works out a new
 			// one, as for a saved path dropped on load
 			numGlobalSteps = 0;

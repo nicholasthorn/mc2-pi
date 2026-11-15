@@ -549,7 +549,14 @@ change, not as a bug fix.
   `curRow + shift` for the column too, so it rules out the wrong cells. On
   a 12-unit order nearly every goal touches another (stock and MC2X alike).
   Using `curCol` would spread every group order out. Marked at the line in
-  `code/group.cpp`.
+  `code/group.cpp`. Probed both ways (12-unit orders every 9 cells on 3
+  stock and 4 MC2X maps): adjacent goals go to 0, the goals spread 4.1
+  cells from the click instead of 3.1, but more land outside any pathing
+  area (mc2_19 173 to 239, metropolitan 310 to 400) or with no route
+  (mc2_24 7 to 16), which is "no path" again. Fixing it wants a check of
+  each goal's area too. Missions' own player forces (1 to 6 units) barely
+  show it: the first goal sits at the window's centre, where row equals
+  column. Needs a 12-unit force to judge in play.
 - **Fog byte semantics differ between actors and terrain** (original
   behaviour, kept): actors (and crater/gvactor/mech3d) turn "no fog"
   (fogFactor 256) into 0, terrain (`quad.cpp`) uses 0xff. Worth checking
