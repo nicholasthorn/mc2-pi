@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include "gos_input.h"
 #include "gos_touch.h"
+#include "android_data.h"
 #include "gos_logfile.h"
 
 #include "utils/camera.h"
@@ -458,7 +459,7 @@ extern float frameRate;
 // Android has no shell, no working directory of ours and no HOME: run in the
 // app's files folder (where adb pushes the data), take the command line from
 // mc2args.txt there (format: utils/args_file.h) and log to mc2.log beside it.
-static void android_prepare(int& argc, char**& argv)
+static bool android_prepare(int& argc, char**& argv)
 {
     static std::vector<std::string> args;   // argv points into these
     static std::vector<char*> argvs;
@@ -478,8 +479,13 @@ static void android_prepare(int& argc, char**& argv)
     // cannot be set up: one that fails later, opening the device, gets no second try.
     setenv("SDL_AUDIODRIVER", "aaudio,openslES,android", 0);
 
+    // a full APK carries the game data: copied here on the first start
+    if(!android_data::install())
+        return false;
+    android_data::firstStartSettings();
+
     if(argc > 1)
-        return;
+        return true;
     // by full path: SDL resolves a relative one against the internal storage
     // folder and the APK assets, not the current directory
     const std::string argsPath = std::string(dir ? dir : ".") + "/mc2args.txt";
@@ -487,7 +493,7 @@ static void android_prepare(int& argc, char**& argv)
     char* text = (char*)SDL_LoadFile(argsPath.c_str(), &len);
     if(!text) {
         printf("[ANDROID] no %s, starting normally\n", argsPath.c_str());
-        return;
+        return true;
     }
     args = args_file::parse(std::string(text, len));
     SDL_free(text);
@@ -507,6 +513,7 @@ static void android_prepare(int& argc, char**& argv)
     for(int i = 1; i < argc; ++i)
         printf(" %s", argv[i]);
     printf("\n");
+    return true;
 }
 #endif
 
@@ -514,7 +521,8 @@ static void android_prepare(int& argc, char**& argv)
 int main(int argc, char** argv)
 {
 #ifdef __ANDROID__
-    android_prepare(argc, argv);
+    if(!android_prepare(argc, argv))
+        return 1;
 #endif
     gos_touch::init();
     //signal(SIGTRAP, SIG_IGN);

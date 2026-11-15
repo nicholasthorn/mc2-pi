@@ -43,11 +43,12 @@ if(MC2_OPENXR)
     set_source_files_properties(gos_xr.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 endif()
 
-# frame_stats, tga_writer, log_file and the touch screen (gos_touch,
-# touch_gestures) are only used by the main loop. The link line lists gameos
+# frame_stats, tga_writer, log_file, the touch screen (gos_touch,
+# touch_gestures) and the Android data install (android_data) are only used
+# by the main loop. The link line lists gameos
 # before gameos_main, so in gameos they would never be pulled in.
 set(MAIN_SRC gameosmain.cpp gos_logfile.cpp utils/log_file.cpp utils/frame_stats.cpp utils/tga_writer.cpp
-    gos_touch.cpp utils/touch_gestures.cpp utils/touch_bar.cpp)
+    gos_touch.cpp utils/touch_gestures.cpp utils/touch_bar.cpp android_data.cpp utils/data_manifest.cpp)
 
 #find_package(SDL2 REQUIRED PATHS "/opt" NO_DEFAULT_PATH)
 #include_directories("${SDL2_PREFIX}/include")
@@ -74,8 +75,8 @@ add_library(gameos_main ${MAIN_SRC})
 
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
-    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/touch_gestures.cpp utils/touch_bar.cpp utils/args_file.cpp
-    utils/log_file.cpp gos_logfile.cpp gos_net.cpp gos_net_lan.cpp gos_touch.cpp
+    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/touch_gestures.cpp utils/touch_bar.cpp utils/args_file.cpp utils/data_manifest.cpp
+    utils/log_file.cpp android_data.cpp gos_logfile.cpp gos_net.cpp gos_net_lan.cpp gos_touch.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 if(MC2_NET)
     set_source_files_properties(gos_net_gns.cpp PROPERTIES COMPILE_OPTIONS "${MC2_GNS_CALLER_OPTIONS}")

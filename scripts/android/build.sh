@@ -12,6 +12,11 @@
 #   JAVA_HOME     a JDK 17 or newer (Android Studio's jbr is one)
 #   MC2_ANDROID_FLAVOUR  quest (the default: VR through OpenXR) or phone
 #                 (flat, for phones and tablets); see env.sh
+#   MC2_ANDROID_DATA  a game data folder (scripts/build_gamedata.sh; use
+#                 --no-movies for phones) to put in the APK with this
+#                 checkout's shaders: the first start copies it to the app's
+#                 files folder (GameOS/gameos/android_data.cpp). Without it
+#                 the data is pushed with adb, as before.
 #   MC2_VERSION   version for mc2.log and the APK's versionName (default:
 #                 git describe, and the manifest's versionName)
 #   NDK_VERSION, CMAKE_VERSION, BUILD_TOOLS, PLATFORM  override the defaults below
@@ -69,6 +74,28 @@ build_game() {
     "$CMAKE" --build "$GAME_BUILD"
 }
 
+# MC2_ANDROID_DATA and shaders/ into $1/assets/mc2data, with the list the
+# game copies from (mc2data/files.txt, format: utils/data_manifest.h). The
+# stamp is a hash of every file, so changed data is copied again. Files the
+# player's runs make (settings, saves, logs) are left out, as the game's
+# manifest check requires, and so are a desktop build's game and libraries
+# (the APK has its own).
+stage_data() {
+    local out="$1/assets/mc2data" src="$MC2_ANDROID_DATA"
+    [ -d "$src" ] || { echo "android: MC2_ANDROID_DATA=$src is not a folder" >&2; exit 2; }
+    mkdir -p "$out"
+    (cd "$src" && find . -type f \
+        ! -name options.cfg ! -name orgprefs.cfg ! -name mc2args.txt ! -name 'mc2*.log' \
+        ! -name mc2data.installed ! -path './.*' ! -path './savegame/*' ! -path './shaders/*'         ! -path ./mc2 ! -path ./mc2.exe ! -path './*.so' ! -path './*.dll' ! -path './*.pdb' -print0) \
+        | (cd "$src" && xargs -0 cp --parents -t "$out")
+    mkdir -p "$out/shaders" && cp -r "$ROOT/shaders/." "$out/shaders/"
+    local list stamp
+    list=$(cd "$out" && find . -type f -printf '%s %P\n' | LC_ALL=C sort -k2)
+    stamp=$(cd "$out" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+    printf 'mc2data %s\n%s\n' "$stamp" "$list" > "$out/files.txt"
+    echo "android: game data $stamp, $(echo "$list" | wc -l) files, $(du -sm "$out" | cut -f1) MB"
+}
+
 build_apk() {
     [ -n "$JAVA_HOME" ] || { echo "android: set JAVA_HOME to a JDK 17+ (e.g. Android Studio's jbr)" >&2; exit 2; }
     local J; J="$(native "$JAVA_HOME")/bin"
@@ -95,7 +122,9 @@ build_apk() {
     for lib in "${libs[@]}"; do
         "$STRIP" --strip-unneeded -o "$A/stage/lib/arm64-v8a/$(basename "$lib")" "$lib"
     done
-    (cd "$A/stage" && "$J/jar" -u -M -0 -f ../base.apk classes.dex lib)
+    local data=()
+    if [ -n "$MC2_ANDROID_DATA" ]; then stage_data "$A/stage"; data=(assets); fi
+    (cd "$A/stage" && "$J/jar" -u -M -0 -f ../base.apk classes.dex lib "${data[@]}")
     "$BT/zipalign" -p -f 4 "$A/base.apk" "$A/aligned.apk"
 
     local KS="$ROOT/android/debug.keystore"
