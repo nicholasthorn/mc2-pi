@@ -196,4 +196,55 @@ TEST_CASE("no data chunk fails")
 	CHECK(r.samples == nullptr);
 }
 
+// The sized entry point reads nothing past `size` bytes. wolfman-MC2X's
+// sound.pak holds a 1-byte sound bite, whose 12-byte header read ran off
+// the heap buffer (ASan, every MC2X mission at start-up).
+Parsed parseSized(const std::vector<uint8_t>& image, size_t size)
+{
+	Parsed r;
+	r.ok = wave_ParseWaveMemorySized((MemoryPtr)image.data(), size, &r.header, &r.samples, &r.size);
+	return r;
+}
+
+TEST_CASE("sized: a whole image parses as before")
+{
+	std::vector<uint8_t> chunks;
+	putChunk(chunks, "fmt ", fmtBody(true));
+	putChunk(chunks, "data", kSamples);
+	const std::vector<uint8_t> image = riffWave(chunks);
+	checkPcm(parseSized(image, image.size()));
+}
+
+TEST_CASE("sized: buffers shorter than a header are refused")
+{
+	std::vector<uint8_t> chunks;
+	putChunk(chunks, "fmt ", fmtBody(false));
+	putChunk(chunks, "data", kSamples);
+	const std::vector<uint8_t> image = riffWave(chunks);
+	for (size_t n : {0, 1, 4, 11, 12, 19, 12 + 8 + 15})
+		CHECK_FALSE(parseSized(image, n).ok);
+}
+
+TEST_CASE("sized: a data chunk running past the buffer is cut to it")
+{
+	std::vector<uint8_t> chunks;
+	putChunk(chunks, "fmt ", fmtBody(false));
+	putChunk(chunks, "data", kSamples);
+	const std::vector<uint8_t> image = riffWave(chunks);
+	const Parsed r = parseSized(image, image.size() - 2);
+	REQUIRE(r.ok);
+	CHECK(r.size == kSamples.size() - 2);
+}
+
+TEST_CASE("sized: a RIFF length past the buffer stops at the buffer")
+{
+	std::vector<uint8_t> chunks;
+	putChunk(chunks, "fmt ", fmtBody(false));
+	std::vector<uint8_t> image = riffWave(chunks);
+	image[4] = 0xFF; image[5] = 0xFF;	// claims 65535 bytes
+	const Parsed r = parseSized(image, image.size());
+	CHECK_FALSE(r.ok);
+	CHECK(r.header != nullptr);
+}
+
 }

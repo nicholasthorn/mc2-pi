@@ -20,7 +20,8 @@ KeyboardRef.cpp			: Implementation of the KeyboardRef component.
 
 KeyboardRef::KeyboardRef(  )
 :	listItemTemplate( IDS_KEYBOARD_REF_FONT ),
-	listItemTemplate2( IDS_KEYBOARD_REF_FONT )
+	listItemTemplate2( IDS_KEYBOARD_REF_FONT ),
+	loaded( false )
 {
 }
 
@@ -72,21 +73,39 @@ int KeyboardRef::init()
     path.init( artPath, fileName, ".fit" );
 
 	FitIniFile file;
-	file.open( path );
+	// a mod can lack the layout: the key list is left empty rather than
+	// built from rects that are not there
+	if ( file.open( path ) != NO_ERR )
+	{
+		PAUSE(( "KeyboardRef: cannot open %s, no key reference", (const char*)path ));
+		return false;
+	}
 
 	LogisticsScreen::init( file, "Static", "Text", "Rect", "Button" );
+
+	if ( rectCount < 3 || buttonCount < 1 )
+	{
+		PAUSE(( "KeyboardRef: %s has %ld rects and %ld buttons, needs 3 and 1", (const char*)path, rectCount, buttonCount ));
+		file.close();
+		return false;
+	}
 
 	listBox.init( rects[2].left(), rects[2].top(), rects[2].width(), rects[2].height() );
 
 	file.close();
 
 	path.init( artPath, "mcui_keyref_entry", ".fit" );
-	file.open( path );
+	if ( file.open( path ) != NO_ERR )
+	{
+		PAUSE(( "KeyboardRef: cannot open %s, no key reference", (const char*)path ));
+		return false;
+	}
 
 	listItemTemplate.init( file, "Text0" );
 	listItemTemplate2.init( file, "Text1" );
 
 	buttons[0].setMessageOnRelease( );
+	loaded = true;
 
 
 	return true;

@@ -112,6 +112,7 @@
 #endif
 
 #include "../resource.h"
+#include"tonnagetable.h"
 #include<utils/str_bounded.h>
 
 extern unsigned long		NextIdNumber;
@@ -321,6 +322,7 @@ long GroundVehicleType::init (FilePtr objFile, unsigned long fileSize) {
 	result = vehicleFile.readIdLong("MoveType", moveType);
 	if (result != NO_ERR)
 		moveType = MOVETYPE_GROUND;
+	moveType = moveTypeFromData(moveType);
 
 	result = vehicleFile.readIdFloat("LOSFactor",LOSFactor);
 	if (result != NO_ERR)
@@ -1014,6 +1016,10 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 		return(result);
 
 	name[0] = '\0';
+	// the type's own name, for a DescIndex too long to be one (wolfman-MC2X)
+	char typeName[MAXLEN_MOVER_NAME];
+	if (vehicleFile->readIdString("Name", typeName, MAXLEN_MOVER_NAME - 1) != NO_ERR)
+		typeName[0] = '\0';
 
 	result = vehicleFile->seekBlock("General");
 	if (result != NO_ERR)
@@ -1033,7 +1039,8 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 		descID = -1;
 	else
 	{
-		cLoadString( descID, name, MAXLEN_MOVER_NAME );
+		if (!cLoadStringIfFits( descID, name, MAXLEN_MOVER_NAME ))
+			copyBounded( name, sizeof(name), typeName );
 		char buffer[256];
 
 		cLoadString( IDS_MFDVEHICLE_PRINTSTRING, buffer, 256 );
@@ -1524,7 +1531,7 @@ bool GroundVehicle::pivotTo (void) {
 								turnRate = -relFacingToWayPt;
 						}
 					}
-					float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+					float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 					if (fabs(turnRate) > maxRate) 
 					{
 						if (turnRate > 0.0)
@@ -1586,7 +1593,7 @@ bool GroundVehicle::pivotTo (void) {
 						else
 							turnRate = 180.0 - relFacingToWayPt;
 					}
-					float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+					float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 					if (fabs(turnRate) > maxRate) 
 					{
 						if (turnRate > 0.0)
@@ -1640,7 +1647,7 @@ bool GroundVehicle::pivotTo (void) {
 			if ((relFacingToTarget < -fireArc) || (relFacingToTarget > fireArc)) 
 			{
 				float turnRate = -relFacingToTarget;
-				float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+				float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 				if (fabs(turnRate) > maxRate) 
 				{
 					if (turnRate > 0.0)
@@ -1926,7 +1933,7 @@ bool GroundVehicle::updateMovePath (float& newRotate, char& newThrottleSetting, 
 							//-----------------------------------------------
 							// We can and will shift facing to destination...
 							newRotate = -relFacingToWayPt;
-							float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+							float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 							if (fabs(newRotate) > maxRate)
 							{
 								if (fabs(newRotate) < 50.0f)
@@ -1987,7 +1994,7 @@ bool GroundVehicle::updateMovePath (float& newRotate, char& newThrottleSetting, 
 						else
 							newRotate = -(relFacingToWayPt - 180.0);
 							
-						float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
+						float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
 						if (fabs(newRotate) > maxRate) 
 						{
 							newThrottleSetting = -50.0f;

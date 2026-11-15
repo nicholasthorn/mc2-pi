@@ -20,20 +20,15 @@ static DWORD readDword(const BYTE* p)
 
 //////////////////////////////////////////////////////////////////
 //
-// wave_ParseWaveMemory
+// wave_ParseWaveMemorySized
 //   Parses a chunk of memory into the header and samples.
 //   This is done by looking for the "fmt " and "data"
-//   fields in the memory.
+//   fields in the memory. Nothing past memSize bytes is read:
+//   wolfman-MC2X's sound.pak holds a 1-byte sound bite.
 //
 //////////////////////////////////////////////////////////////////
-bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWaveHeader, MemoryPtr* lplpWaveSamples,DWORD *lpcbWaveSize)
+bool wave_ParseWaveMemorySized(MemoryPtr lpChunkOfMemory, size_t memSize, MC2_WAVEFORMATEX** lplpWaveHeader, MemoryPtr* lplpWaveSamples,DWORD *lpcbWaveSize)
 {
-	BYTE	*p;
-	BYTE	*pEnd;
-	DWORD	dwRiff;
-	DWORD	dwType;
-	DWORD	dwLength;
-
 	// Set defaults to NULL or zero
 	if (*lplpWaveHeader)
 		*lplpWaveHeader = NULL;
@@ -44,13 +39,14 @@ bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWave
 	if (lpcbWaveSize)
 		*lpcbWaveSize = 0;
 
-	p = lpChunkOfMemory;
+	const BYTE* mem = lpChunkOfMemory;
+	if (memSize < 12)
+		return false;
 
 	// Get the type and length of the chunk of memory
-	dwRiff   = readDword(p);
-	dwLength = readDword(p + 4);
-	dwType   = readDword(p + 8);
-	p += 12;
+	DWORD dwRiff   = readDword(mem);
+	DWORD dwLength = readDword(mem + 4);
+	DWORD dwType   = readDword(mem + 8);
 
 	// Ensure that this is a RIFF WAVE chunk of memory
 	if (dwRiff != 0x46464952)
@@ -59,15 +55,18 @@ bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWave
 	if (dwType != 0x45564157)
 		return false;	// not a WAV
 
-	// The RIFF length counts from the "WAVE" tag, which is already behind us
-	pEnd = p + dwLength - 4;
+	// The RIFF length counts from the "WAVE" tag, at offset 8
+	size_t end = 8 + (size_t)dwLength;
+	if (end > memSize)
+		end = memSize;
+	size_t pos = 12;
 
 	// Run through the bytes looking for the tags
-	while (p < pEnd)
+	while (pos < end && end - pos >= 8)
 	{
-		dwType   = readDword(p);
-		dwLength = readDword(p + 4);
-		p += 8;
+		dwType   = readDword(mem + pos);
+		dwLength = readDword(mem + pos + 4);
+		pos += 8;
 
 		switch (dwType)
 		{
@@ -76,11 +75,11 @@ bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWave
 
 			if (*lplpWaveHeader == NULL)
 			{
-				if (dwLength < sizeof(MC2_WAVEFORMATEX))
+				if (dwLength < sizeof(MC2_WAVEFORMATEX) || memSize - pos < sizeof(MC2_WAVEFORMATEX))
 					return false; // something's wrong! Not a WAV
 
 				// Point the header at this part of the memory chunk
-				*lplpWaveHeader = (MC2_WAVEFORMATEX*)p;
+				*lplpWaveHeader = (MC2_WAVEFORMATEX*)(lpChunkOfMemory + pos);
 
 				// If the samples and their size are already filled out,
 				// this chunk of memory has been parsed and we can exit
@@ -101,11 +100,11 @@ bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWave
 				// Point the samples pointer to this part of the
 				// chunk of memory.
 				if (*lplpWaveSamples == NULL)
-					*lplpWaveSamples = p;
+					*lplpWaveSamples = lpChunkOfMemory + pos;
 
-				// Set the size of the wave
+				// Set the size of the wave, cut to what the buffer holds
 				if (lpcbWaveSize)
-					*lpcbWaveSize = dwLength;
+					*lpcbWaveSize = ((size_t)dwLength > memSize - pos) ? (DWORD)(memSize - pos) : dwLength;
 
 				// Make sure we have our header pointer set up.
 				// If we do, we can exit
@@ -117,10 +116,24 @@ bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWave
 		} // End case
 
 		// Move to the next chunk, skipping the pad byte of an odd-sized one
-		p += (dwLength + 1) & ~1;
+		const size_t step = ((size_t)dwLength + 1) & ~(size_t)1;
+		if (step > end - pos)
+			break;
+		pos += step;
 	}
 
 	// Failed! If we made it here, we did not get all the pieces
 	// of the wave
 	return false;
+}
+
+//////////////////////////////////////////////////////////////////
+//
+// wave_ParseWaveMemory
+//   The same with no known size: bounded only by the RIFF length.
+//
+//////////////////////////////////////////////////////////////////
+bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWaveHeader, MemoryPtr* lplpWaveSamples,DWORD *lpcbWaveSize)
+{
+	return wave_ParseWaveMemorySized(lpChunkOfMemory, (size_t)-1, lplpWaveHeader, lplpWaveSamples, lpcbWaveSize);
 }

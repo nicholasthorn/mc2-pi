@@ -39,6 +39,7 @@ class KeyboardRef: public LogisticsScreen
 		virtual void render();
 
 		void reseed(MissionInterfaceManager::Command* );
+		bool isLoaded() const { return loaded; }
 
 		virtual int			handleMessage( unsigned long, unsigned long );
 
@@ -51,6 +52,7 @@ class KeyboardRef: public LogisticsScreen
 		aListBox		listBox;
 		aTextListItem	listItemTemplate;
 		aTextListItem	listItemTemplate2;
+		bool			loaded;		// init found its layouts
 
 };
 

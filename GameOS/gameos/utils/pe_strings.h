@@ -21,6 +21,14 @@ bool readPeStringTable(const uint8_t* data, size_t size,
 // in any case, alone or as "undefined_<something>".
 bool isPlaceholderString(const char* text);
 
+// The text an id shows, from the game's table (tableText) and a resource
+// DLL's (extraText; either may be NULL). A DLL that fills gaps (Omnitech's
+// mc2res.dll) gives text only where the table has none or a placeholder;
+// one that is a whole table (wolfman-MC2X's mc2xres.dll, extraReplacesTable)
+// wins outright. A placeholder never replaces real text.
+const char* chooseResourceString(const char* tableText, const char* extraText,
+                                 bool extraReplacesTable);
+
 // Text the data names a thing by where it gives no string id (Omnitech's
 // building, turret and gate types with a name id of 0 carry only their
 // [ObjectType] Name), given an id that gos_GetResourceString finds. Ids start

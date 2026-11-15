@@ -561,9 +561,14 @@ long Turret::update (void)
 		// if not, find parent in ObjMgr and get its pointer.
 		if ((parentId != 0xffffffff) && (parentId != 0))
 		{
-			parent = ObjectManager->findByCellPosition((parentId>>16),(parentId & 0x0000ffff))->getWatchID();
-			ObjectManager->getByWatchID(parent)->setFlag(OBJECT_FLAG_CAPTURABLE, true);
-			gosASSERT(parent != 0);
+			// a building only: in wolfman-MC2X maps another object can come first
+			// in that cell; none leaves parent 0 (GameObjectManager logs it)
+			GameObjectPtr parentObj = ObjectManager->findByCellPosition((parentId>>16),(parentId & 0x0000ffff), BUILDING);
+			if (parentObj)
+			{
+				parent = parentObj->getWatchID();
+				parentObj->setFlag(OBJECT_FLAG_CAPTURABLE, true);
+			}
 		}
 		threatRating = (short)((TurretType*)getObjectType())->punch;
 		calcFireRanges();
@@ -1384,7 +1389,7 @@ void Turret::fireWeapon (GameObjectPtr target, long weaponId) {
 		bool indirectFireWeapon = false;
 		
 		//--------------------------------------------------------------------
-		for (long i=0;i<20;i++)
+		for (long i=0;i<Mover::MAX_INDIRECT_FIRE_WEAPONS;i++)
 		{
 			if (Mover::IndirectFireWeapons[i] == ((TurretTypePtr)getObjectType())->weaponMasterId[weaponId])
 			{

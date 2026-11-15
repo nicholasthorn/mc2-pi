@@ -26,7 +26,26 @@
 //---------------------------------------------------------------------------
 GameSoundSystem *soundSystem = NULL;
 
-extern bool wave_ParseWaveMemory(MemoryPtr lpChunkOfMemory, MC2_WAVEFORMATEX** lplpWaveHeader, MemoryPtr* lplpWaveSamples,DWORD *lpcbWaveSize);
+#include"waveparse.h"
+
+// A radio fragment's header and samples. One that is not a usable WAV (a
+// short or broken packet) becomes a 2-byte silent clip, so the message steps
+// on as usual instead of dividing by a channel count read through NULL.
+// size < 0: not known (the noise fragments).
+static void parseRadioWave (MemoryPtr data, long size, MC2_WAVEFORMATEX** waveFormat, MemoryPtr* samples, DWORD* length)
+{
+	static MC2_WAVEFORMATEX silentFormat = { 1, 1, 11025, 22050, 2 };
+	static BYTE silence[2] = { 0, 0 };
+	const bool ok = (size < 0)
+		? wave_ParseWaveMemory(data, waveFormat, samples, length)
+		: wave_ParseWaveMemorySized(data, (size_t)size, waveFormat, samples, length);
+	if (!ok || !*waveFormat || !*samples || !(*waveFormat)->nChannels)
+	{
+		*waveFormat = &silentFormat;
+		*samples = silence;
+		*length = sizeof(silence);
+	}
+}
 
 bool friendlyDestroyed = false;
 bool enemyDestroyed = false;
@@ -336,7 +355,7 @@ void GameSoundSystem::update (void)
 					MemoryPtr dataOffset = NULL;
 					DWORD length = 0;
 					DWORD bitsPerSec = 0;
-					wave_ParseWaveMemory(currentMessage->data[currentFragment],&waveFormat,&dataOffset,&length);
+					parseRadioWave(currentMessage->data[currentFragment],currentMessage->dataSize[currentFragment],&waveFormat,&dataOffset,&length);
 					
 					bitsPerSec = waveFormat->nBlockAlign / waveFormat->nChannels * 8;
 			
@@ -382,7 +401,7 @@ void GameSoundSystem::update (void)
 					MemoryPtr dataOffset = NULL;
 					DWORD length = 0;
 					DWORD bitsPerSec = 0;
-					wave_ParseWaveMemory(currentMessage->noise[currentFragment],&waveFormat,&dataOffset,&length);
+					parseRadioWave(currentMessage->noise[currentFragment],-1,&waveFormat,&dataOffset,&length);
 					
 					bitsPerSec = waveFormat->nBlockAlign / waveFormat->nChannels * 8;
 			
@@ -422,7 +441,7 @@ void GameSoundSystem::update (void)
 						MemoryPtr dataOffset = NULL;
 						DWORD length = 0;
 						DWORD bitsPerSec = 0;
-						wave_ParseWaveMemory(currentMessage->data[currentFragment],&waveFormat,&dataOffset,&length);
+						parseRadioWave(currentMessage->data[currentFragment],currentMessage->dataSize[currentFragment],&waveFormat,&dataOffset,&length);
 						
 						bitsPerSec = waveFormat->nBlockAlign / waveFormat->nChannels * 8;
 				
@@ -511,7 +530,7 @@ void GameSoundSystem::update (void)
 			MemoryPtr dataOffset = NULL;
 			DWORD length = 0;
 			DWORD bitsPerSec = 0;
-			wave_ParseWaveMemory(currentMessage->noise[currentFragment],&waveFormat,&dataOffset,&length);
+			parseRadioWave(currentMessage->noise[currentFragment],-1,&waveFormat,&dataOffset,&length);
 			
 			bitsPerSec = waveFormat->nBlockAlign / waveFormat->nChannels * 8;
 	
@@ -552,7 +571,7 @@ void GameSoundSystem::update (void)
 				MemoryPtr dataOffset = NULL;
 				DWORD length = 0;
 				DWORD bitsPerSec = 0;
-				wave_ParseWaveMemory(currentMessage->data[currentFragment],&waveFormat,&dataOffset,&length);
+				parseRadioWave(currentMessage->data[currentFragment],currentMessage->dataSize[currentFragment],&waveFormat,&dataOffset,&length);
 				
 				bitsPerSec = waveFormat->nBlockAlign / waveFormat->nChannels * 8;
 		

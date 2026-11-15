@@ -209,6 +209,9 @@ class MoverGroup {
 
 		static long calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vector3D* goalList);
 
+		// wolfman-MC2X's formations: goalList holds calcMoveGoals' goals on entry
+		static long calcFormationGoals (long kind, Stuff::Vector3D goal, long numMovers, MoverPtr* movers, Stuff::Vector3D* goalList);
+
 		static long calcJumpGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vector3D* goalList, GameObjectPtr DFATarget);
 
 		//----------------

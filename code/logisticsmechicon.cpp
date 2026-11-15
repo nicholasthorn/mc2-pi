@@ -150,14 +150,17 @@ static void fillEmptyLargeSheetCells( const aObject& icon )
 void LogisticsMechIcon::setIconUVs( aObject& icon, long index )
 {
 	// stock's sheet is 256 wide with 10 icons a row, each the size it is drawn;
-	// Omnitech's is 1024 with 25 of 40x48, whatever size a layout draws them at
+	// Omnitech's is 1024 with 25 of 40x48, whatever size a layout draws them at;
+	// wolfman-MC2X's (mc2x_mechicons.tga) is 512 with 20 a row, drawn at their
+	// size (25x30) as stock's are
 	const bool largeSheet = icon.getFileWidth() == 1024.f;
-	const long iconsPerRow = largeSheet ? 25 : 10;
+	const bool mc2xSheet = icon.getFileWidth() == 512.f;
+	const long iconsPerRow = largeSheet ? 25 : ( mc2xSheet ? 20 : 10 );
 	const float width = largeSheet ? HIGH_MECH_ICON_X : icon.width();
 	const float height = largeSheet ? HIGH_MECH_ICON_Y : icon.height();
 	if ( largeSheet )
 		fillEmptyLargeSheetCells( icon );
-	else
+	else if ( !mc2xSheet )
 		icon.setFileWidth(256.f);
 
 	const float fX = index % iconsPerRow;

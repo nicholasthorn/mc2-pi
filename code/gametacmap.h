@@ -45,6 +45,9 @@ class GameTacMap: public TacMap
 	
 	void initBuildings( unsigned char* data, int size );
 	void setPos( const GUI_RECT& newPos );
+
+	// wolfman-MC2X's spy map: every unit drawn, seen or not
+	void setSpyView( bool on ){ spyView = on; }
 	
 	protected:
 
@@ -56,6 +59,7 @@ class GameTacMap: public TacMap
 	int		bmpHeight;
 	int		buildingCount;
 	gos_VERTEX* buildingPoints;
+	bool	spyView;
 
 	unsigned long textureHandle;
 	unsigned long viewRectHandle;

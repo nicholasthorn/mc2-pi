@@ -6,6 +6,10 @@ controlGui.cpp			: Implementation of the controlGui component.
 \*************************************************************************************************/
 
 #include"controlgui.h"
+#include"formation.h"
+#include"mc2xsupport.h"
+#include"mc2xhud.h"
+#include"mc2xunits.h"
 #include"team.h"
 #include"gamesound.h"
 #include"comndr.h"
@@ -38,6 +42,39 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"malloc.h"
 
 #include"chatwindow.h"
+
+static bool shownButtonAt( const ControlButton* buttons, int count, float mouseX, float mouseY );
+
+// wolfman-MC2X's exchange and spy map buttons, in mc2xCommandButtons' order
+static const int kMC2XCommands[] = { mc2xhud::kToResourcePoints, mc2xhud::kToCBills, mc2xhud::kSpyMap,
+	mc2xhud::kRechargeIndicator, mc2xhud::kDropshipFire, mc2xhud::kRechargeMode, mc2xhud::kReloadMode,
+	mc2xhud::kPickUp, mc2xhud::kDropOff, mc2xhud::kExitUnit, mc2xhud::kHideId, mc2xhud::kUnhideId };
+static const int kMC2XCommandCount = sizeof( kMC2XCommands ) / sizeof( kMC2XCommands[0] );
+
+// the player's selected units, by what MC2X's buttons need to know
+static mc2xhud::Selection mc2xSelection( Mover** first )
+{
+	mc2xhud::Selection s;
+	*first = 0;
+	for ( long i = 0; i < Team::home->getRosterSize(); i++ )
+	{
+		Mover* pMover = (Mover*)Team::home->getMover( i );
+		if ( !pMover->isSelected() || pMover->getCommander()->getId() != Commander::home->getId() )
+			continue;
+		if ( !*first )
+			*first = pMover;
+		const long type = pMover->getTypeHandle();
+		const bool supply = mc2xsupport::isSupplyCarrier( type );
+		s.units++;
+		s.dropships += mc2xsupport::isSpheroidDropship( type ) ? 1 : 0;
+		s.transports += ( mc2xunits::capacity( pMover ) > 0.f ) ? 1 : 0;
+		s.carrying += ( mc2xunits::carried( pMover ) > 0 ) ? 1 : 0;
+		s.supply += supply ? 1 : 0;
+		s.repair += ( pMover->isRefit() && !supply ) ? 1 : 0;
+		s.hidden += mc2xunits::idHidden( pMover ) ? 1 : 0;
+	}
+	return s;
+}
 
 
 
@@ -166,6 +203,21 @@ ControlGui::ControlGui()
 	buttonData = 0;
 	vehicleButtons = 0;
 	vehicleData = 0;
+	formationButtons = 0;
+	formationData = 0;
+	formationMenuOpen = false;
+	formationKind = formation::kNone;
+	mc2xSupportButtons = 0;
+	mc2xSupportData = 0;
+	support2Tab = 0;
+	support2TabData = 0;
+	supportPage = 1;
+	mc2xPendingBlock = -1;
+	mc2xCommandButtons = 0;
+	mc2xCommandData = 0;
+	spyMapTime = 0.f;
+	dropshipFireArmed = false;
+	pickUpArmed = false;
 
 	videoInfos = 0;
 	videoInfoCount = 0;
@@ -261,6 +313,23 @@ ControlGui::~ControlGui()
 		delete [] vehicleData;
 	vehicleData = 0;
 
+	delete [] formationButtons;
+	formationButtons = 0;
+	delete [] formationData;
+	formationData = 0;
+	delete [] mc2xSupportButtons;
+	mc2xSupportButtons = 0;
+	delete [] mc2xSupportData;
+	mc2xSupportData = 0;
+	delete [] support2Tab;
+	support2Tab = 0;
+	delete [] support2TabData;
+	support2TabData = 0;
+	delete [] mc2xCommandButtons;
+	mc2xCommandButtons = 0;
+	delete [] mc2xCommandData;
+	mc2xCommandData = 0;
+
 	if ( missionStatusInfos )
 		delete [] missionStatusInfos;
 
@@ -350,6 +419,17 @@ void ControlGui::render( bool bPaused )
 		for (int i = 0; i < LAST_COMMAND; ++i )
 			buttons[i].render();
 
+		if ( formationButtons )
+		{
+			for ( int i = 0; i < formation::kButtonCount; ++i )
+				formationButtons[i].render();
+		}
+		if ( mc2xCommandButtons )
+		{
+			for ( int i = 0; i < kMC2XCommandCount; ++i )
+				mc2xCommandButtons[i].render();
+		}
+
 		// want to draw the tab on top last
 		for (int i = TACMAP_TAB; i < TACMAP_TAB + 3; i++ )
 		{
@@ -357,6 +437,19 @@ void ControlGui::render( bool bPaused )
 			{
 				buttons[i].render();
 			}
+		}
+
+		// MC2X's second support tab; the first looks raised while it is shown
+		if ( support2Tab && support2Tab->state != ControlButton::HIDDEN )
+		{
+			if ( support2Tab->state == ControlButton::PRESSED )
+			{
+				ControlButton* tab = getButton( VEHICLE_TAB );
+				ControlButton::makeUVs( tab->location, ControlButton::ENABLED, *tab->data );
+				tab->render();
+				ControlButton::makeUVs( tab->location, tab->state, *tab->data );
+			}
+			support2Tab->render();
 		}
 
 		getButton( LAYMINES )->render();
@@ -1171,6 +1264,10 @@ void ControlGui::update( bool bPaused, bool bLOS )
 		getButton( GUARDTOWER )->hide( 1 );
 		wasLayingMines = 0;
 	}
+
+	// MC2X's Formation button takes the same place, for any other units
+	updateFormationButtons( bMover && !bMineLayer && !bSalvage && !bRepair && !bGuardTower, mouseX, mouseY );
+	updateMC2XCommands( bPaused, mouseX, mouseY );
 	
 	if ( bMover && bJump )
 		getButton( JUMP_COMMAND )->disable( false );
@@ -1265,6 +1362,11 @@ bool ControlGui::isOverTacMap()
 
 bool ControlGui::inRegion( int mouseX, int mouseY, bool bPaused )
 {
+	if ( shownButtonAt( formationButtons, formation::kButtonCount, mouseX, mouseY )
+		|| shownButtonAt( mc2xSupportButtons, mc2xsupport::kUnitCount, mouseX, mouseY )
+		|| shownButtonAt( support2Tab, 1, mouseX, mouseY )
+		|| shownButtonAt( mc2xCommandButtons, kMC2XCommandCount, mouseX, mouseY ) )
+		return true;
 
 	for ( int i = 0; i < LAST_COMMAND; i++ )
 	{
@@ -1614,6 +1716,7 @@ void ControlGui::handleClick( int ID )
 		
 		if ( ID == VEHICLE_TAB )
 			LogisticsData::instance->rpJustAdded = 0;
+		supportPage = 1;	// MC2X's second support tab sets 2 after this
 		break;
 	case OBJECTIVES_COMMAND:
 		if ( !renderObjectives )
@@ -1767,6 +1870,8 @@ void ControlGui::updateVehicleTab(int mouseX, int mouseY, bool bLOS )
 {
 	for ( int i = LAST_VEHICLE - 1; i > -1 ; i-- )
 	{
+		if ( !stockVehicleShown( i ) )
+			continue;
 		if ( getButton( VEHICLE_TAB )->state & ControlButton::PRESSED )
 		{
 			if ( vehicleButtons[i].state & ControlButton::PRESSED )
@@ -1879,6 +1984,8 @@ void ControlGui::updateVehicleTab(int mouseX, int mouseY, bool bLOS )
 				getButton( 	RECOVERY_TEAM )->disable( true );  
 		}
 	}
+
+	updateMC2XSupport( (float)mouseX, (float)mouseY );
 }
 void ControlGui::renderVehicleTab()
 {
@@ -1889,6 +1996,8 @@ void ControlGui::renderVehicleTab()
 
 	for ( int i = 0; i < LAST_VEHICLE; i++ )
 	{
+		if ( !stockVehicleShown( i ) )
+			continue;
 		vehicleButtons[i].render();
 
 		long color = vehicleButtons[i].isEnabled() ?  0xff005392 : 0xff7f7f7f;
@@ -1916,6 +2025,8 @@ void ControlGui::renderVehicleTab()
 			vehicleFont.render( buffer, left, top, right - left, bottom - top, color, 0, 2 );
 		}
 	}
+
+	renderMC2XSupport();
 
 	long left = RPLEFT;
 	long top = RPTOP;
@@ -2019,6 +2130,12 @@ void ControlGui::handleVehicleClick( int ID )
 			break;
 		case STOP_VEHICLE:
 			addingArtillery = addingVehicle = addingSalvage = false;
+			// an MC2X unit not yet on its way: its points back
+			if ( mc2xPendingBlock >= 0 )
+			{
+				LogisticsData::instance->addResourcePoints( mc2xsupport::costForBlock( mc2xPendingBlock ) );
+				mc2xPendingBlock = -1;
+			}
 			for (int i = 0; i < LAST_VEHICLE - 1; i++ )
 			{
 				if ( vehicleCosts[i] <= LogisticsData::instance->getResourcePoints() )
@@ -2065,6 +2182,7 @@ void ControlGui::unPressAllVehicleButtons()
 	addingArtillery = 0;
 	addingVehicle = 0;
 	addingSalvage = 0;
+	mc2xPendingBlock = -1;
 }
 
 void ControlGui::disableAllVehicleButtons()
@@ -2081,6 +2199,12 @@ void ControlGui::disableAllVehicleButtons()
 
 const char* ControlGui::getVehicleName( long& ID)
 {
+	if ( const mc2xsupport::Unit* unit = mc2xsupport::unitForBlock( mc2xPendingBlock ) )
+	{
+		ID = unit->objectNumber;
+		return unit->pilot;
+	}
+
 	for ( int i = GUARD_TOWER; i <= RECOVERY_TEAM; i++ )
 	{
 		if ( getButton( i )->state & ControlButton::PRESSED )
@@ -2128,6 +2252,8 @@ const char* ControlGui::getVehicleNameFromID (long ID) {
 	for (long i = 0; i < 5; i++)
 		if (vehicleIDs[i] == ID)
 			return(vehiclePilots[i]);
+	if ( const mc2xsupport::Unit* unit = mc2xsupport::unitForObject( ID ) )
+		return unit->pilot;
 	return(NULL);
 }
 
@@ -2157,6 +2283,8 @@ bool ControlGui::getRepair()
 bool ControlGui::getGuardTower()
 {
 	if ( getButton( GUARDTOWER )->state & ControlButton::PRESSED )
+		return 1;
+	if ( dropshipFireArmed )	// MC2X's dropships: the same fire at a point
 		return 1;
 
 	return 0;
@@ -2272,12 +2400,12 @@ bool ControlGui::getVehicleCommand( )
 	return false;
 }
 
-void ControlButton::initButtons( FitIniFile& buttonFile, long buttonCount, ControlButton* Buttons, ButtonData* Data, const char* str, aFont* font )
+void ControlButton::initButtons( FitIniFile& buttonFile, long buttonCount, ControlButton* Buttons, ButtonData* Data, const char* str, aFont* font, const int* fileIndex )
 {
 	char path[256];
 	for ( int i = 0; i < buttonCount; ++i )
 	{
-		sprintf( path, "%s%d", str, i );
+		sprintf( path, "%s%d", str, fileIndex ? fileIndex[i] : i );
 		Data[i].textureHandle = 0;
 
 		long result = buttonFile.seekBlock( path );
@@ -2672,13 +2800,19 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 	FitIniFile buttonFile;
 	char path[256];
 
-	// a mod need not have every layout: Omnitech has no 1920
+	// a mod need not have every layout: Omnitech has no 1920. wolfman-MC2X
+	// names them mc2x_buttonlayout<w> (1024 and up): its 54 command and 22
+	// support buttons are read as stock's 20 and 8 (mc2xHud below)
 	int layoutWidth = hudLayoutWidth( resolutionX );
+	bool mc2xHud = false;
 	for ( ;; )
 	{
 		snprintf( path, sizeof( path ), "%sbuttonlayout%d.fit", artPath, layoutWidth );
 		if ( NO_ERR == buttonFile.open( path ) )
+		{
+			mc2xHud = buttonFile.openedMC2XName();
 			break;
+		}
 		const int smaller = hudLayoutWidth( layoutWidth - 1 );
 		if ( smaller == layoutWidth )
 		{
@@ -2743,6 +2877,9 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 
 	long buttonCount;
 	buttonFile.readIdLong( "ButtonCount", buttonCount );
+	// MC2X's first 20 are stock's, same numbers; the rest are its own
+	if ( mc2xHud && buttonCount > LAST_COMMAND )
+		buttonCount = LAST_COMMAND;
 	Assert( buttonCount == 20, buttonCount, "wrong number of control buttons" );
 
 	// clean up old texture memeory
@@ -2783,6 +2920,14 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 	 }
 
 	 buttonFile.readIdLong( "ButtonCount", buttonCount );
+	 // MC2X has 22 in its own order: read stock's 8 from where they are
+	 int mc2xVehicles[LAST_VEHICLE];
+	 if ( mc2xHud )
+	 {
+		 buttonCount = LAST_VEHICLE;
+		 for ( int i = 0; i < LAST_VEHICLE; i++ )
+			 mc2xVehicles[i] = mc2xVehicleButton( i );
+	 }
 	 Assert( buttonCount == 8, buttonCount, "wrong number of vehicle buttons" );
 
 	 if ( !vehicleButtons )
@@ -2791,8 +2936,18 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 		vehicleData = new ButtonData[buttonCount];
 	 memset( vehicleData, 0, buttonCount * sizeof( ButtonData ) );
 
-	ControlButton::initButtons( buttonFile, buttonCount, vehicleButtons, vehicleData, "Vehicle" );
+	ControlButton::initButtons( buttonFile, buttonCount, vehicleButtons, vehicleData, "Vehicle", 0, mc2xHud ? mc2xVehicles : 0 );
+	if ( mc2xHud )
+	{
+		// MC2X numbers its 22 from 100 in its own order: give them stock's ids
+		for ( int i = 0; i < LAST_VEHICLE; i++ )
+			vehicleButtons[i].ID = LARGE_AIRSTRIKE + i;
+	}
 	
+	initFormationButtons( buttonFile, mc2xHud );
+	initMC2XSupport( buttonFile, mc2xHud );
+	initMC2XCommands( buttonFile, mc2xHud );
+
 	getButton( TACMAP_TAB )->press( true );
 
 	initStatics( buttonFile );
@@ -2804,6 +2959,500 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 
 	
 	pauseWnd->init( buttonFile );
+}
+
+// a shown button of buttons[0..count) under the mouse
+static bool shownButtonAt( const ControlButton* buttons, int count, float mouseX, float mouseY )
+{
+	if ( !buttons )
+		return false;
+	for ( int i = 0; i < count; i++ )
+	{
+		const ControlButton& button = buttons[i];
+		if ( button.state != ControlButton::HIDDEN
+			&& button.location[0].x <= mouseX && mouseX <= button.location[2].x
+			&& button.location[0].y <= mouseY && mouseY <= button.location[1].y )
+			return true;
+	}
+	return false;
+}
+
+// wolfman-MC2X's formation buttons (formation.h), from its layout's Button24
+// to Button43; other layouts have none
+void ControlGui::initFormationButtons( FitIniFile& buttonFile, bool mc2xHud )
+{
+	if ( formationData )
+	{
+		for ( int i = 0; i < formation::kButtonCount; i++ )
+		{
+			unsigned long gosID = mcTextureManager->get_gosTextureHandle( formationData[i].textureHandle );
+			mcTextureManager->removeTexture( gosID );
+		}
+	}
+
+	delete [] formationButtons;
+	formationButtons = 0;
+	delete [] formationData;
+	formationData = 0;
+	if ( !mc2xHud )
+	{
+		formationMenuOpen = false;
+		formationKind = formation::kNone;
+		return;
+	}
+
+	// value-initialised: zeroes, as the stock buttons' memset gives
+	formationButtons = new ControlButton[formation::kButtonCount]();
+	formationData = new ButtonData[formation::kButtonCount]();
+
+	int fileIndex[formation::kButtonCount] = {};
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+		fileIndex[i] = formation::kFirstPaletteButton + i;
+	ControlButton::initButtons( buttonFile, formation::kButtonCount, formationButtons, formationData, "Button", 0, fileIndex );
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+	{
+		formationButtons[i].ID = formation::kFirstPaletteButton + i;
+		formationButtons[i].hide( 1 );
+	}
+}
+
+// Shows the Formation button when bShow (units selected, none with a button of
+// their own), the palette while it is open and the indicator of the current
+// formation, and handles their clicks.
+void ControlGui::updateFormationButtons( bool bShow, float mouseX, float mouseY )
+{
+	if ( !formationButtons )
+		return;
+	if ( !bShow )
+		formationMenuOpen = false;
+
+	const int indicator = formation::indicatorButton( (formation::Kind)formationKind );
+	for ( int i = 0; i < formation::kButtonCount; i++ )
+	{
+		ControlButton& button = formationButtons[i];
+		const formation::Kind kind = formation::kindForButton( button.ID );
+		bool visible;
+		if ( button.ID == formation::kFormationButton )
+			visible = bShow;
+		else if ( kind != formation::kNotAFormation )
+			visible = bShow && formationMenuOpen;
+		else
+			visible = bShow && ( button.ID == indicator );
+		button.hide( !visible );
+		if ( !visible )
+			continue;
+
+		if ( button.ID == formation::kFormationButton )
+			button.press( formationMenuOpen );
+		else if ( kind != formation::kNotAFormation )
+			button.press( kind == formationKind );
+
+		if ( button.location[0].x <= mouseX && mouseX <= button.location[2].x
+			&& button.location[0].y <= mouseY && mouseY <= button.location[1].y )
+		{
+			helpTextHeaderID = button.data->helpTextHeader;
+			helpTextID = button.data->helpTextID;
+			if ( userInput->leftMouseReleased() && !userInput->isLeftDrag() && !userInput->wasLeftDrag() )
+			{
+				if ( button.ID == formation::kFormationButton )
+				{
+					formationMenuOpen = !formationMenuOpen;
+					soundSystem->playDigitalSample( LOG_SELECT );
+				}
+				else if ( kind != formation::kNotAFormation )
+				{
+					formationKind = kind;
+					formationMenuOpen = false;
+					soundSystem->playDigitalSample( LOG_SELECT );
+				}
+			}
+		}
+	}
+}
+
+int ControlGui::getVehicleCount()
+{
+	const mc2xsupport::Unit* unit = mc2xsupport::unitForBlock( mc2xPendingBlock );
+	return unit ? unit->count : 1;
+}
+
+// stock's support buttons stay off MC2X's second support tab, but for Cancel
+bool ControlGui::stockVehicleShown( int i )
+{
+	return !mc2xSupportButtons || ( supportPage == 1 ) || ( vehicleButtons[i].ID == STOP_VEHICLE );
+}
+
+// wolfman-MC2X's own support units (mc2xsupport.h), from its layout's
+// [Vehicle7] to [Vehicle20], and its second support tab (Button49); other
+// layouts have none. Stock's seven take MC2X's prices with its layout.
+void ControlGui::initMC2XSupport( FitIniFile& buttonFile, bool mc2xHud )
+{
+	static long stockCosts[LAST_VEHICLE];
+	static bool stockCostsSaved = false;
+	if ( !stockCostsSaved )
+	{
+		for ( int i = 0; i < LAST_VEHICLE; i++ )
+			stockCosts[i] = vehicleCosts[i];
+		stockCostsSaved = true;
+	}
+	for ( int i = 0; i < LAST_VEHICLE; i++ )
+		vehicleCosts[i] = mc2xHud ? mc2xsupport::costForBlock( mc2xVehicleButton( i ) ) : stockCosts[i];
+
+	if ( mc2xSupportData )
+	{
+		for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
+			mcTextureManager->removeTexture( mcTextureManager->get_gosTextureHandle( mc2xSupportData[i].textureHandle ) );
+	}
+	if ( support2TabData )
+		mcTextureManager->removeTexture( mcTextureManager->get_gosTextureHandle( support2TabData->textureHandle ) );
+	delete [] mc2xSupportButtons;
+	mc2xSupportButtons = 0;
+	delete [] mc2xSupportData;
+	mc2xSupportData = 0;
+	delete [] support2Tab;
+	support2Tab = 0;
+	delete [] support2TabData;
+	support2TabData = 0;
+	supportPage = 1;
+	if ( !mc2xHud )
+	{
+		mc2xPendingBlock = -1;
+		return;
+	}
+
+	mc2xSupportButtons = new ControlButton[mc2xsupport::kUnitCount]();
+	mc2xSupportData = new ButtonData[mc2xsupport::kUnitCount]();
+	int fileIndex[mc2xsupport::kUnitCount] = {};
+	for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
+		fileIndex[i] = mc2xsupport::kFirstUnit + i;
+	ControlButton::initButtons( buttonFile, mc2xsupport::kUnitCount, mc2xSupportButtons, mc2xSupportData, "Vehicle", 0, fileIndex );
+	for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
+		mc2xSupportButtons[i].hide( 1 );
+
+	support2Tab = new ControlButton[1]();
+	support2TabData = new ButtonData[1]();
+	const int tabIndex[1] = { 49 };
+	ControlButton::initButtons( buttonFile, 1, support2Tab, support2TabData, "Button", 0, tabIndex );
+	support2Tab->hide( 1 );
+}
+
+// The second support tab, and MC2X's units on the support tab shown: which
+// can be bought, and a click on one, which is then delivered as stock's
+// support vehicles are (getVehicleName).
+void ControlGui::updateMC2XSupport( float mouseX, float mouseY )
+{
+	if ( !mc2xSupportButtons )
+		return;
+
+	// MC2X has no multiplayer, and these units no network messages
+	if ( MPlayer )
+	{
+		supportPage = 1;
+		support2Tab->hide( 1 );
+		for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
+			mc2xSupportButtons[i].hide( 1 );
+		return;
+	}
+
+	const bool vehicleTab = ( getButton( VEHICLE_TAB )->state & ControlButton::PRESSED ) != 0;
+	support2Tab->hide( 0 );
+	support2Tab->press( vehicleTab && ( supportPage == 2 ) );
+	const bool released = userInput->leftMouseReleased() && !userInput->isLeftDrag() && !userInput->wasLeftDrag();
+	if ( shownButtonAt( support2Tab, 1, mouseX, mouseY ) )
+	{
+		helpTextHeaderID = support2TabData->helpTextHeader;
+		helpTextID = support2TabData->helpTextID;
+		if ( released )
+		{
+			handleClick( VEHICLE_TAB );
+			supportPage = 2;
+		}
+	}
+
+	const long resourcePoints = LogisticsData::instance->getResourcePoints();
+	const bool busy = addingArtillery || addingVehicle || addingSalvage;
+	for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
+	{
+		ControlButton& button = mc2xSupportButtons[i];
+		const int block = mc2xsupport::kFirstUnit + i;
+		const mc2xsupport::Unit* unit = mc2xsupport::unitForBlock( block );
+		const bool shown = vehicleTab && ( mc2xsupport::pageForBlock( block ) == supportPage );
+		button.hide( !shown );
+		if ( !shown )
+			continue;
+
+		if ( block == mc2xPendingBlock )
+		{
+			button.disable( 0 );
+			button.press( 1 );
+		}
+		else
+		{
+			if ( button.state == ControlButton::PRESSED )
+				button.press( 0 );
+			const bool off = busy || ( unit->cost > resourcePoints )
+				|| !LogisticsData::instance->canHaveMC2XSupport( unit->missionSwitch )
+				|| ( forceGroupBar.getIconCount() + unit->count > MAX_ICONS );
+			button.disable( off );
+		}
+
+		if ( shownButtonAt( &button, 1, mouseX, mouseY ) )
+		{
+			helpTextHeaderID = mc2xSupportData[i].helpTextHeader;
+			helpTextID = mc2xSupportData[i].helpTextID;
+			if ( released && ( button.state == ControlButton::ENABLED ) )
+			{
+				LogisticsData::instance->decrementResourcePoints( unit->cost );
+				mc2xPendingBlock = block;
+				addingVehicle = true;
+				getButton( INFO_COMMAND )->press( 0 );
+				for ( int v = 0; v < LAST_VEHICLE; v++ )
+				{
+					if ( vehicleButtons[v].ID != STOP_VEHICLE )
+						vehicleButtons[v].disable( 1 );
+				}
+				button.press( 1 );
+				soundSystem->playDigitalSample( LOG_SELECT );
+			}
+		}
+	}
+}
+
+// wolfman-MC2X's exchange and spy map buttons (mc2xhud.h), from its layout;
+// other layouts have none
+void ControlGui::initMC2XCommands( FitIniFile& buttonFile, bool mc2xHud )
+{
+	if ( mc2xCommandData )
+	{
+		for ( int i = 0; i < kMC2XCommandCount; i++ )
+			mcTextureManager->removeTexture( mcTextureManager->get_gosTextureHandle( mc2xCommandData[i].textureHandle ) );
+	}
+	delete [] mc2xCommandButtons;
+	mc2xCommandButtons = 0;
+	delete [] mc2xCommandData;
+	mc2xCommandData = 0;
+	if ( !mc2xHud )
+		return;
+
+	mc2xCommandButtons = new ControlButton[kMC2XCommandCount]();
+	mc2xCommandData = new ButtonData[kMC2XCommandCount]();
+	ControlButton::initButtons( buttonFile, kMC2XCommandCount, mc2xCommandButtons, mc2xCommandData, "Button", 0, kMC2XCommands );
+	for ( int i = 0; i < kMC2XCommandCount; i++ )
+	{
+		mc2xCommandButtons[i].ID = kMC2XCommands[i];
+		mc2xCommandButtons[i].hide( 1 );
+	}
+}
+
+// The exchanges between the mission's C-Bills and resource points, and the
+// spy map: every unit on the tac map for a minute of game time.
+void ControlGui::updateMC2XCommands( bool bPaused, float mouseX, float mouseY )
+{
+	if ( spyMapTime > 0.f && !bPaused )
+		spyMapTime -= frameLength;
+	tacMap.setSpyView( spyMapTime > 0.f );
+
+	if ( !mc2xCommandButtons )
+		return;
+
+	// MC2X has no multiplayer
+	const bool shown = !MPlayer && LogisticsData::instance;
+	const long cBills = shown ? LogisticsData::instance->getCBills() : 0;
+	const long resourcePoints = shown ? LogisticsData::instance->getResourcePoints() : 0;
+	const bool released = userInput->leftMouseReleased() && !userInput->isLeftDrag() && !userInput->wasLeftDrag();
+	Mover* first = 0;
+	const mc2xhud::Selection selection = mc2xSelection( &first );
+	if ( !shown || !mc2xhud::shows( mc2xhud::kDropshipFire, selection ) )
+		dropshipFireArmed = false;
+	if ( !shown || !mc2xhud::shows( mc2xhud::kPickUp, selection ) )
+		pickUpArmed = false;
+	// stock's buttons in the places these take
+	getButton( CUR_RANGE )->hide( shown && mc2xhud::shows( mc2xhud::kDropshipFire, selection ) );
+	getButton( FIRE_FROM_CURRENT_POS )->hide( shown && mc2xhud::shows( mc2xhud::kReloadMode, selection ) );
+	if ( shown && mc2xhud::shows( mc2xhud::kRechargeMode, selection ) )
+		getButton( REPAIR )->hide( 1 );
+	// and MC2X's own Formation button and indicator, which share them
+	if ( shown && formationButtons && ( mc2xhud::shows( mc2xhud::kRechargeMode, selection )
+		|| mc2xhud::shows( mc2xhud::kRechargeIndicator, selection ) ) )
+	{
+		formationMenuOpen = false;
+		for ( int f = 0; f < formation::kButtonCount; f++ )
+			formationButtons[f].hide( 1 );
+	}
+
+	for ( int i = 0; i < kMC2XCommandCount; i++ )
+	{
+		ControlButton& button = mc2xCommandButtons[i];
+		const bool forSelection = mc2xhud::isSelectionButton( button.ID );
+		const bool buttonShown = shown && ( !forSelection || mc2xhud::shows( button.ID, selection ) );
+		button.hide( !buttonShown );
+		if ( !buttonShown )
+			continue;
+
+		if ( forSelection )
+		{
+			bool pressed = false;
+			if ( button.ID == mc2xhud::kDropshipFire )
+				pressed = dropshipFireArmed;
+			else if ( button.ID == mc2xhud::kPickUp )
+				pressed = pickUpArmed;
+			else if ( button.ID == mc2xhud::kRechargeMode )
+				pressed = mc2xunits::supplyMode( first ) == mc2xunits::kRecharge;
+			else if ( button.ID == mc2xhud::kReloadMode )
+				pressed = mc2xunits::supplyMode( first ) == mc2xunits::kReload;
+			else if ( button.ID == mc2xhud::kRechargeIndicator )
+				pressed = mc2xunits::rechargeInReach( first );
+			button.disable( 0 );
+			button.press( pressed );
+		}
+		else
+		{
+			const bool spyRunning = ( button.ID == mc2xhud::kSpyMap ) && ( spyMapTime > 0.f );
+			if ( spyRunning )
+			{
+				button.disable( 0 );
+				button.press( 1 );
+			}
+			else
+			{
+				if ( button.state == ControlButton::PRESSED )
+					button.press( 0 );
+				button.disable( !mc2xhud::canUse( button.ID, cBills, resourcePoints, false ) );
+			}
+		}
+
+		if ( !shownButtonAt( &button, 1, mouseX, mouseY ) )
+			continue;
+		helpTextHeaderID = mc2xCommandData[i].helpTextHeader;
+		helpTextID = mc2xCommandData[i].helpTextID;
+		if ( released && forSelection && ( button.ID != mc2xhud::kRechargeIndicator ) )
+		{
+			handleMC2XUnitCommand( button.ID );
+			soundSystem->playDigitalSample( LOG_SELECT );
+			continue;
+		}
+		if ( !released || ( button.state != ControlButton::ENABLED ) )
+			continue;
+
+		const long toResourcePoints = mc2xhud::exchange( button.ID, cBills, resourcePoints );
+		if ( toResourcePoints > 0 )
+		{
+			LogisticsData::instance->decrementCBills( toResourcePoints );
+			LogisticsData::instance->addResourcePoints( toResourcePoints );
+		}
+		else if ( toResourcePoints < 0 )
+		{
+			LogisticsData::instance->decrementResourcePoints( -toResourcePoints );
+			LogisticsData::instance->addCBills( -toResourcePoints );
+		}
+		else if ( button.ID == mc2xhud::kSpyMap )
+		{
+			LogisticsData::instance->decrementCBills( mc2xhud::kSpyMapCost );
+			spyMapTime = mc2xhud::kSpyMapSeconds;
+			handleClick( TACMAP_TAB );
+		}
+		soundSystem->playDigitalSample( LOG_SELECT );
+	}
+}
+
+// MC2X's buttons for the selected units (mc2xhud.h, mc2xunits.h)
+void ControlGui::handleMC2XUnitCommand( int button )
+{
+	if ( button == mc2xhud::kDropshipFire )
+	{
+		dropshipFireArmed = !dropshipFireArmed;
+		return;
+	}
+	if ( button == mc2xhud::kPickUp )
+	{
+		pickUpArmed = !pickUpArmed;
+		return;
+	}
+
+	Mover* first = 0;
+	const mc2xhud::Selection selection = mc2xSelection( &first );
+	// the supply modes toggle: on for all, or off when all have it
+	int mode = mc2xunits::kSupplyOff;
+	if ( button == mc2xhud::kRechargeMode )
+		mode = ( mc2xunits::supplyMode( first ) == mc2xunits::kRecharge ) ? mc2xunits::kSupplyOff : mc2xunits::kRecharge;
+	else if ( button == mc2xhud::kReloadMode )
+		mode = ( mc2xunits::supplyMode( first ) == mc2xunits::kReload ) ? mc2xunits::kSupplyOff : mc2xunits::kReload;
+
+	for ( long i = 0; i < Team::home->getRosterSize(); i++ )
+	{
+		Mover* pMover = (Mover*)Team::home->getMover( i );
+		if ( !pMover->isSelected() || pMover->getCommander()->getId() != Commander::home->getId() )
+			continue;
+		switch ( button )
+		{
+			case mc2xhud::kRechargeMode:
+			case mc2xhud::kReloadMode:
+				mc2xunits::setSupplyMode( pMover, mode );
+				break;
+			case mc2xhud::kHideId:
+				mc2xunits::setIdHidden( pMover, true );
+				break;
+			case mc2xhud::kUnhideId:
+				mc2xunits::setIdHidden( pMover, false );
+				break;
+			case mc2xhud::kDropOff:
+				mc2xunits::dropOff( pMover );
+				break;
+			case mc2xhud::kExitUnit:
+				if ( selection.units == 1 )
+					mc2xunits::exitUnit( pMover );
+				break;
+		}
+	}
+}
+
+void ControlGui::endPickUp( Mover* target )
+{
+	pickUpArmed = false;
+	Mover* first = 0;
+	const mc2xhud::Selection selection = mc2xSelection( &first );
+	if ( !first || !mc2xhud::shows( mc2xhud::kPickUp, selection ) || !mc2xunits::pickUp( first, target ) )
+	{
+		soundSystem->playDigitalSample( INVALID_GUI );
+		return;
+	}
+	soundSystem->playDigitalSample( LOG_SELECT );
+}
+
+// as renderVehicleTab draws stock's: the one chosen framed, prices below
+void ControlGui::renderMC2XSupport()
+{
+	if ( !mc2xSupportButtons )
+		return;
+
+	char buffer[32];
+	for ( int i = 0; i < mc2xsupport::kUnitCount; i++ )
+	{
+		ControlButton& button = mc2xSupportButtons[i];
+		if ( button.state == ControlButton::HIDDEN )
+			continue;
+		button.render();
+
+		long color = button.isEnabled() ? 0xff005392 : 0xff7f7f7f;
+		if ( button.state == ControlButton::PRESSED )
+		{
+			ControlButton::makeUVs( button.location, ControlButton::ENABLED, *button.data );
+			GUI_RECT rect = { (long)button.location[0].x, (long)button.location[0].y,
+				(long)button.location[2].x, (long)button.location[2].y };
+			button.render();
+			ControlButton::makeUVs( button.location, button.state, *button.data );
+			drawEmptyRect( rect, 0xffffffff, 0xffffffff );
+			color = 0xffffffff;
+		}
+
+		const mc2xsupport::Unit* unit = mc2xsupport::unitForBlock( mc2xsupport::kFirstUnit + i );
+		long left = float2long( button.location[0].x );
+		long top = float2long( button.location[2].y + TEXT_SKIP );
+		long right = float2long( button.location[2].x );
+		long bottom = float2long( button.location[2].y + 30 + TEXT_SKIP );
+		snprintf( buffer, sizeof( buffer ), "%ld", unit->cost );
+		vehicleFont.render( buffer, left, top, right - left, bottom - top, color, 0, 2 );
+	}
 }
 
 void ControlGui::beginPause()

@@ -60,6 +60,10 @@ class MechPurchaseScreen: public LogisticsScreen
 
 		bool				acceptPressed;
 
+		// wolfman-MC2X's unit-type buttons (shopfilter.h): the group listed
+		int					unitGroupFilter;
+		void				fillVariantList();
+
 
 		static MechPurchaseScreen* s_instance;
 

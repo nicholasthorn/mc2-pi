@@ -134,6 +134,9 @@ float ABLi_popReal (void);
 bool ABLi_popBoolean (void);
 float ABLi_popIntegerReal (void);
 long ABLi_popAnything (ABLStackItem* value);
+// After a pop: true if the call passed another argument (optional
+// parameters, "|" in the registered list).
+bool ABLi_moreParams (void);
 
 char* ABLi_popCharPtr (void);
 int* ABLi_popIntegerPtr (void);

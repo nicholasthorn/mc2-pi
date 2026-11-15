@@ -279,17 +279,26 @@ void PilotReadyScreen::begin()
 	
 }
 
-// Omnitech's layout has a static with no art, drawn white until filled, for the
-// tac map of the mission (the same map as the briefing's)
+// Omnitech's layout (static 38) and wolfman-MC2X's (static 78 of 80; stock's
+// has 74) have a static with no art, drawn white until filled, for the tac
+// map of the mission (the same map as the briefing's); -1 for stock's
+long PilotReadyScreen::missionMapStatic() const
+{
+	const long map = stockLayout ? 78 : 38;
+	return staticCount > map ? map : -1;
+}
+
 void PilotReadyScreen::showMissionMap()
 {
-	const long map = 38;
-	if ( stockLayout || staticCount <= map )
+	const long map = missionMapStatic();
+	if ( map < 0 )
 		return;
 
 	long handle = MissionBriefingScreen::getMissionTGA( LogisticsData::instance->getCurrentMission() );
 	statics[map].setTexture( handle );
-	statics[map].setUVs( 0, 127, 127, 0 );
+	// the whole map: stock's and Omnitech's are 128 wide, MC2X's 256
+	const long mapEdge = handle ? (long)statics[map].getFileWidth() - 1 : 127;
+	statics[map].setUVs( 0, mapEdge, mapEdge, 0 );
 	statics[map].setColor( handle ? 0xffffffff : 0 );
 }
 
@@ -303,8 +312,8 @@ void PilotReadyScreen::end()
 // screen's, and setting the next map would free it
 void PilotReadyScreen::releaseMap()
 {
-	const long map = 38;
-	if ( !stockLayout && staticCount > map )
+	const long map = missionMapStatic();
+	if ( map >= 0 )
 	{
 		statics[map].setTexture( (unsigned long)0 );
 		statics[map].setColor( 0 );
@@ -804,6 +813,17 @@ void PilotReadyScreen::setPilot( LogisticsPilot* pPilot )
 		appendBounded( fileName, ".tga" );
 		EString str = fileName;
 		str.MakeLower();
+		// wolfman-MC2X names the portraits mc2x_<pilot>.tga
+		if ( !fileExists( str ) )
+		{
+			EString mc2x = artPath;
+			mc2x += "mc2x_";
+			mc2x += pPilot->getName();
+			mc2x += ".tga";
+			mc2x.MakeLower();
+			if ( fileExists( mc2x ) )
+				str = mc2x;
+		}
 		statics[pilotPicture].setTexture( str );
 		statics[pilotPicture].setColor( 0xffffffff );
 		statics[pilotPicture].setUVs( 0, 0, 92, 128 );
