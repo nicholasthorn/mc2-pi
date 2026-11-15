@@ -156,15 +156,6 @@ struct MC_TextureNode
 														//Should only be alloced when we need to cache.
 														//This will keep system memory usage to a minimum.
 		MC_VertexArrayNode 	*vertexData;				//This holds the vertex draw data.  NULL if not used.
-
-		// Rough GPU size, for the log: a cached texture's width holds its
-		// byte count, a plain one is square and 32-bit
-		long approxBytes (void) const
-		{
-			if (width > 0xf0000000)
-				return long(width & 0x0fffffff);
-			return (width < 0x10000) ? long(width) * long(width) * 4 : 0;
-		}
 		MC_VertexArrayNode	*vertexData2;
 		MC_VertexArrayNode	*vertexData3;
 
@@ -205,6 +196,15 @@ struct MC_TextureNode
 	void markBlock (DWORD blockNum);
 	
 	DWORD get_gosTextureHandle (void);				//If texture is not in VidRAM, cache a texture out and cache this one in.
+
+	// Rough GPU size, for the log: a cached texture's width holds its
+	// byte count, a plain one is square and 32-bit
+	int64_t approxBytes (void) const
+	{
+		if (width > 0xf0000000)
+			return int64_t(width & 0x0fffffff);
+		return (width < 0x10000) ? int64_t(width) * int64_t(width) * 4 : 0;
+	}
 
 };
 

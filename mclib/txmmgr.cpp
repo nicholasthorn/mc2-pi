@@ -95,16 +95,21 @@ static void noteCacheBytes (long delta)
 
 // Texture handles in use (on the GPU), logged at each new high-water step of
 // 50 up to the MAX_MC2_GOS_TEXTURES limit, so a log shows how close a
-// mission and its settings come to running out.
+// mission and its settings come to running out. Starts again with each
+// mission (turn back to 0).
 static long s_handlesLogged = 0;
-static void noteHandles (long used, long bytes)
+static long s_handlesTurn = 0;
+static void noteHandles (long used, int64_t bytes)
 {
+	if (turn < s_handlesTurn)
+		s_handlesLogged = 0;
+	s_handlesTurn = turn;
 	const long step = 50;
 	if (used >= s_handlesLogged + step)
 	{
 		s_handlesLogged = used - (used % step);
 		fprintf(stderr, "[TXM] texture handles in use: %ld of %d, about %ld MB (new high)\n",
-			used, MAX_MC2_GOS_TEXTURES, bytes / (1024 * 1024));
+			used, MAX_MC2_GOS_TEXTURES, long(bytes / (1024 * 1024)));
 	}
 }
 
@@ -596,14 +601,16 @@ bool MC_TextureManager::flushCache (void)
 
 // Why nothing could be evicted: every handle in use counted by how recently
 // it was used, and whether it may be evicted at all. Logged for the first
-// few turns that run out, then every 300th, since the PAUSE that follows
-// repeats for every texture asked for.
+// few turns that run out in a mission, then every 300th, since the PAUSE
+// that follows repeats for every texture asked for.
 void MC_TextureManager::logFullCache (void)
 {
 	static long lastTurnLogged = -1;
 	static long turnsLogged = 0;
 	if (turn == lastTurnLogged)
 		return;
+	if (turn < lastTurnLogged)
+		turnsLogged = 0;		// a new mission
 	lastTurnLogged = turn;
 	if ((turnsLogged++ >= 10) && ((turnsLogged % 300) != 0))
 		return;
@@ -1886,7 +1893,7 @@ DWORD MC_TextureManager::update (void)
 {
 	DWORD numTexturesFreed = 0;
 	currentUsedTextures = 0;
-	long usedBytes = 0;
+	int64_t usedBytes = 0;
 
 	// free textures unused for 2 seconds (60 turns at the old ~30 fps).
 	// -bench: a turn is a fixed 1/30 s of game time, so keep the 30 turns
