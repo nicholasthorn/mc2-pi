@@ -406,7 +406,9 @@ push the data as in `android/README.md`, "Phones and tablets".
 - [ ] **On-screen keyboard:** tap the pilot name field (prefs) and a save game name:
       Android's keyboard comes up, letters, digits, backspace and Enter type into the
       field, and it goes away when the field loses focus. Is the field hidden under
-      the keyboard on a phone?
+      the keyboard on a phone (it goes over the game, adjustNothing)? Cancel the save
+      dialog with the keyboard up: does the keyboard go too? Hide it with Back, then
+      tap the field: it comes back.
 - [ ] **No edge scroll from a tap:** in mc2_01, tap a control panel button at the bottom
       edge and lift; the map must not keep scrolling. Then use a mouse: edge scrolling
       works again.
