@@ -637,6 +637,13 @@ python3 scripts/mc2x_import.py --downloads <folder with the downloads>     --sto
   `metropolitan`, REAP3 `reap3m01` and `reap3m12` with its campaign walk,
   and Dark Gray's prologue with its campaign walk pass on the folders it
   builds (Linux desktop GL). Not yet run on Windows or for the Quest.
+- Later, from its review: the game could read MC2X's renamed config
+  blocks (`[wolfman-MC2X]`, `mc2x_system.cfg`) and clamp the resolution to
+  the smallest HUD layout it has, so the script would not need to swap
+  config files or raise resolutions; the download, extraction, lower-casing,
+  config and engine-copy pieces should become a module the Omnitech helper
+  (`EASY-INSTALL.md`) shares; and one engine install serving several game
+  folders would save copying the engine into each.
 
 ## Open questions
 

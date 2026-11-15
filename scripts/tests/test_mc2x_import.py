@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from unittest import mock
 import zlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
@@ -94,6 +95,11 @@ def write(path, data=b'x'):
         f.write(data)
 
 
+def read(path):
+    with open(path, 'rb') as f:
+        return f.read()
+
+
 class Clickteam(unittest.TestCase):
     def test_lists_and_extracts_every_compression(self):
         with tempfile.TemporaryDirectory() as t:
@@ -105,10 +111,8 @@ class Clickteam(unittest.TestCase):
             self.assertEqual([f[0] for f in files], ['art.fst', 'Data/Art/MC2X_MM.fit', 'mc2xres.dll'])
             out = os.path.join(t, 'out')
             mi.extract_clickteam(exe, out)
-            with open(os.path.join(out, 'Data', 'Art', 'MC2X_MM.fit'), 'rb') as f:
-                self.assertEqual(f.read(), b'zlib zlib')
-            with open(os.path.join(out, 'mc2xres.dll'), 'rb') as f:
-                self.assertEqual(f.read(), b'bzip2' * 50)
+            self.assertEqual(read(os.path.join(out, 'Data', 'Art', 'MC2X_MM.fit')), b'zlib zlib')
+            self.assertEqual(read(os.path.join(out, 'mc2xres.dll')), b'bzip2' * 50)
 
     def test_extracts_a_chunk_at_a_time(self):
         with tempfile.TemporaryDirectory() as t:
@@ -118,15 +122,14 @@ class Clickteam(unittest.TestCase):
             out = os.path.join(t, 'out')
             mi.extract_clickteam(exe, out, chunk=7)
             for n in ('s', 'z', 'b'):
-                with open(os.path.join(out, n), 'rb') as f:
-                    self.assertEqual(f.read(), content)
+                self.assertEqual(read(os.path.join(out, n)), content)
 
     def test_refuses_names_that_leave_the_folder(self):
         for name in ('..\\escape.txt', 'data\\..\\..\\x', 'C:\\x', '\\root'):
             with tempfile.TemporaryDirectory() as t:
                 exe = os.path.join(t, 'setup.exe')
                 make_clickteam(exe, [(name, b'x', 0)])
-                with self.assertRaises(mi.ImportError_, msg=name):
+                with self.assertRaises(mi.Mc2xImportError, msg=name):
                     mi.extract_clickteam(exe, os.path.join(t, 'out'))
 
     def test_zlib_file_list(self):
@@ -139,7 +142,7 @@ class Clickteam(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             p = os.path.join(t, 'x.exe')
             write(p, b'not an executable at all')
-            with self.assertRaises(mi.ImportError_):
+            with self.assertRaises(mi.Mc2xImportError):
                 mi.clickteam_files(p)
 
 
@@ -163,7 +166,7 @@ class FastFiles(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             fst = os.path.join(t, 'a.fst')
             make_fst(fst, [('data\\a', lzw_codes([300, 257]), 10)])
-            with open(fst, 'rb') as f, self.assertRaises(mi.ImportError_):
+            with open(fst, 'rb') as f, self.assertRaises(mi.Mc2xImportError):
                 mi.fst_data(f, *mi.fst_files(fst)[0][1:])
 
 
@@ -174,7 +177,7 @@ class Identify(unittest.TestCase):
             p = os.path.join(t, 'k.exe')
             write(p, b'abc')
             self.assertEqual(mi.identify(p, known, md5=lambda _: 'good').key, 'k')
-            with self.assertRaises(mi.ImportError_):
+            with self.assertRaises(mi.Mc2xImportError):
                 mi.identify(p, known, md5=lambda _: 'bad')
             write(p, b'abcd')
             self.assertIsNone(mi.identify(p, known, md5=lambda _: 'good'))
@@ -223,13 +226,10 @@ class Folders(unittest.TestCase):
             write(os.path.join(engine, 'readme.txt'), b'not copied')
             write(os.path.join(engine, 'shaders', 'a.frag'), b'glsl')
             mi.setup_folder(folder, stock, engine)
-            with open(os.path.join(folder, 'mc2x-cfg', 'options.cfg'), 'rb') as f:
-                self.assertEqual(f.read(), b'mc2x options')
+            self.assertEqual(read(os.path.join(folder, 'mc2x-cfg', 'options.cfg')), b'mc2x options')
             self.assertFalse(os.path.exists(os.path.join(folder, 'options.cfg')))
-            with open(os.path.join(folder, 'prefs.cfg'), 'rb') as f:
-                self.assertEqual(f.read(), b'stock prefs')
-            with open(os.path.join(folder, 'minprefs.cfg'), 'rb') as f:
-                self.assertEqual(f.read(), b'l ResolutionX = 1024\nl ResolutionY = 768\n')
+            self.assertEqual(read(os.path.join(folder, 'prefs.cfg')), b'stock prefs')
+            self.assertEqual(read(os.path.join(folder, 'minprefs.cfg')), b'l ResolutionX = 1024\nl ResolutionY = 768\n')
             self.assertTrue(os.path.isfile(os.path.join(folder, 'assets', 'graphics', 'arial8.bmp')))
             self.assertTrue(os.path.isfile(os.path.join(folder, 'assets', 'binaries', 'blade.dll')))
             self.assertTrue(os.path.isfile(os.path.join(folder, 'mc2')))
@@ -246,10 +246,8 @@ class Folders(unittest.TestCase):
             linked = os.path.join(t, 'linked')
             mi.link_or_copy_tree(base, linked)
             mi.copy_engine(engine, linked)
-            with open(os.path.join(linked, 'SDL2.dll'), 'rb') as f:
-                self.assertEqual(f.read(), b'new dll')
-            with open(os.path.join(base, 'SDL2.dll'), 'rb') as f:
-                self.assertEqual(f.read(), b'old dll')
+            self.assertEqual(read(os.path.join(linked, 'SDL2.dll')), b'new dll')
+            self.assertEqual(read(os.path.join(base, 'SDL2.dll')), b'old dll')
 
     def test_add_own_files_keeps_shared_ones(self):
         with tempfile.TemporaryDirectory() as t:
@@ -264,8 +262,7 @@ class Folders(unittest.TestCase):
             dest = os.path.join(t, 'dest')
             added = mi.add_own_files(mi.game_view(base), overlay, dest)
             self.assertEqual(added, 2)
-            with open(os.path.join(dest, 'data', 'art', 'own.fit'), 'rb') as f:
-                self.assertEqual(f.read(), b'own')
+            self.assertEqual(read(os.path.join(dest, 'data', 'art', 'own.fit')), b'own')
             self.assertTrue(os.path.isfile(os.path.join(dest, 'data', 'missions', 'dg.fit')))
             self.assertFalse(os.path.exists(os.path.join(dest, 'data', 'art', 'shared.fit')))
             self.assertFalse(os.path.exists(os.path.join(dest, 'data', 'missions', 'loose.fit')))
@@ -276,10 +273,14 @@ class Folders(unittest.TestCase):
             with zipfile.ZipFile(z, 'w') as w:
                 w.writestr('Dark Gray/MC2X/data/missions/a.fit', b'a')
                 w.writestr('Dark Gray/readme.txt', b'r')
+                w.writestr('Dark Gray/MC2X/Art.fst', b'fst')
+                w.writestr('Dark Gray/MC2X/mc2xgame.exe', b'exe')
             out = os.path.join(t, 'out')
             mi.extract_zip_install(z, out)
             self.assertTrue(os.path.isfile(os.path.join(out, 'data', 'missions', 'a.fit')))
             self.assertFalse(os.path.exists(os.path.join(out, 'readme.txt')))
+            self.assertTrue(os.path.isfile(os.path.join(out, 'Art.fst')))
+            self.assertFalse(os.path.exists(os.path.join(out, 'mc2xgame.exe')))
             # a folder whose name only contains "mc2x" is not the install
             z2 = os.path.join(t, 'dg2.zip')
             with zipfile.ZipFile(z2, 'w') as w:
@@ -289,8 +290,8 @@ class Folders(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(out3, 'data', 'b.fit')))
             bad = os.path.join(t, 'bad.zip')
             with zipfile.ZipFile(bad, 'w') as w:
-                w.writestr('MC2X/../../escape.txt', b'x')
-            with self.assertRaises(mi.ImportError_):
+                w.writestr('MC2X/data/../../escape.txt', b'x')
+            with self.assertRaises(mi.Mc2xImportError):
                 mi.extract_zip_install(bad, os.path.join(t, 'out2'))
 
 
@@ -311,30 +312,22 @@ class Build(unittest.TestCase):
             write(os.path.join(stock, 'prefs.cfg'), b'stock')
             known = [mi.Download('reap3', 'setup.exe', os.path.getsize(exe), 'm', 'clickteam', 'mc2x-reap3'),
                      mi.Download('darkgray', 'dg.zip', os.path.getsize(zp), 'm', 'zip', 'mc2x-darkgray')]
-            saved_downloads, saved_md5 = mi.DOWNLOADS, mi.md5_of
-            mi.DOWNLOADS, mi.md5_of = known, (lambda _p: 'm')
-            try:
+            with mock.patch.object(mi, 'DOWNLOADS', known), mock.patch.object(mi, 'md5_of', lambda _p: 'm'):
                 out = os.path.join(t, 'out')
                 log = io.StringIO()
                 made = mi.build(downloads, stock, out, log=lambda s: log.write(s + '\n'))
                 self.assertIn('skipped notes.txt', log.getvalue())
-                with self.assertRaises(mi.ImportError_):
+                with self.assertRaises(mi.Mc2xImportError):
                     mi.build(downloads, stock, out, log=lambda s: None)
                 mi.build(downloads, stock, out, force=True, log=lambda s: None)
-            finally:
-                mi.DOWNLOADS, mi.md5_of = saved_downloads, saved_md5
             reap3 = os.path.join(out, 'mc2x-reap3')
             dg = os.path.join(out, 'mc2x-darkgray')
             self.assertEqual(made, [reap3, dg])
-            with open(os.path.join(reap3, 'data', 'missions', 'm1.fit'), 'rb') as f:
-                self.assertEqual(f.read(), b'm1')
-            with open(os.path.join(reap3, 'prefs.cfg'), 'rb') as f:
-                self.assertEqual(f.read(), b'stock')
+            self.assertEqual(read(os.path.join(reap3, 'data', 'missions', 'm1.fit')), b'm1')
+            self.assertEqual(read(os.path.join(reap3, 'prefs.cfg')), b'stock')
             # Dark Gray's own mission added, the shared one kept as MC2X's
-            with open(os.path.join(dg, 'data', 'missions', 'darkgray_1.fit'), 'rb') as f:
-                self.assertEqual(f.read(), b'dg')
-            with open(os.path.join(dg, 'data', 'missions', 'm1.fit'), 'rb') as f:
-                self.assertEqual(f.read(), b'm1')
+            self.assertEqual(read(os.path.join(dg, 'data', 'missions', 'darkgray_1.fit')), b'dg')
+            self.assertEqual(read(os.path.join(dg, 'data', 'missions', 'm1.fit')), b'm1')
             self.assertFalse(os.path.exists(os.path.join(out, '.mc2x-import')))
 
 

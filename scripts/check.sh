@@ -4,7 +4,8 @@
 # each level runs: .claude/rules/agent-workflow.md.
 #
 #   commit  In each --build-dir: incremental build and unit tests. Then shader
-#           validation if shaders/ changed, cppcheck on the changed .cpp files
+#           validation if shaders/ changed, the scripts' Python tests if
+#           scripts/ changed, cppcheck on the changed .cpp files
 #           (compile commands from the first --build-dir), and checks on the
 #           changed files: line endings kept, no em dashes, trailing
 #           whitespace (warning only).
@@ -124,6 +125,16 @@ if echo "$CHANGED" | grep -q '^shaders/'; then
         ok "shaders"
     else
         fail "shaders (log: ${BUILD_DIRS[0]}/check-shaders.log)"
+    fi
+fi
+
+#---------------------------------------------------------------------------
+# The scripts' own tests (scripts/tests, made-up files only)
+if echo "$CHANGED" | grep -q '^scripts/.*\.py$'; then
+    if python3 -m unittest discover -s scripts/tests > "${BUILD_DIRS[0]}/check-scripts.log" 2>&1; then
+        ok "script tests"
+    else
+        fail "script tests (log: ${BUILD_DIRS[0]}/check-scripts.log)"
     fi
 fi
 

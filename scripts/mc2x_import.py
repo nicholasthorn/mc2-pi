@@ -61,10 +61,15 @@ MC2X_CONFIG = ['prefs.cfg', 'options.cfg', 'options.cfg.old']
 # MC2X has no interface layout under 1024 wide.
 MIN_RESOLUTION = (1024, 768)
 
-BACKSLASH = chr(92)
+# The port's engine files in a package or build: copied into each folder,
+# and never hard-linked between folders
+ENGINE_FILES = ('mc2', 'mc2.exe', 'libmc2res_64.so', 'mc2res_64.dll', 'mc2res.dll')
 
+# The folders Dark Gray's own files can be added to, in order of preference
+# (it was tested on REAP3-G's)
+DARKGRAY_BASES = ('mc2x-reap3', 'mc2x-r70')
 
-class ImportError_(Exception):
+class Mc2xImportError(Exception):
     pass
 
 
@@ -83,14 +88,14 @@ def md5_of(path, chunk=1 << 22):
 
 def identify(path, known=None, md5=None):
     """The Download a file is, None if its size matches none, or
-    ImportError_ if its size matches one but its MD5 does not."""
+    Mc2xImportError if its size matches one but its MD5 does not."""
     known = DOWNLOADS if known is None else known
     md5 = md5_of if md5 is None else md5
     size = os.path.getsize(path)
     for d in known:
         if d.size == size:
             if md5(path) != d.md5:
-                raise ImportError_('%s: the size of %s but not its MD5 (damaged download?)'
+                raise Mc2xImportError('%s: the size of %s but not its MD5 (damaged download?)'
                                    % (os.path.basename(path), d.name))
             return d
     return None
@@ -110,10 +115,10 @@ BLOCK_DATA = 0x7f7f
 
 def _overlay_offset(head):
     if head[:2] != b'MZ':
-        raise ImportError_('not an executable')
+        raise Mc2xImportError('not an executable')
     pe = struct.unpack_from('<I', head, 0x3c)[0]
     if head[pe:pe + 4] != b'PE\0\0':
-        raise ImportError_('not a PE executable')
+        raise Mc2xImportError('not a PE executable')
     sections = struct.unpack_from('<H', head, pe + 6)[0]
     optional = struct.unpack_from('<H', head, pe + 20)[0]
     end = 0
@@ -124,14 +129,15 @@ def _overlay_offset(head):
     return end
 
 
-def _decompress(kind, body):
+def _decompressor(kind):
+    """A decompressor for a Clickteam compression byte; None for stored."""
     if kind == 0:
-        return body
+        return None
     if kind == 1:
-        return zlib.decompressobj().decompress(body)
+        return zlib.decompressobj()
     if kind == 2:
-        return bz2.BZ2Decompressor().decompress(body)
-    raise ImportError_('unknown compression %d' % kind)
+        return bz2.BZ2Decompressor()
+    raise Mc2xImportError('unknown compression %d' % kind)
 
 
 def clickteam_files(path):
@@ -142,10 +148,9 @@ def clickteam_files(path):
         pos = _overlay_offset(head)
         f.seek(pos)
         if f.read(len(CLICKTEAM_SIGNATURE)) != CLICKTEAM_SIGNATURE:
-            raise ImportError_('not a Clickteam installer')
+            raise Mc2xImportError('not a Clickteam installer')
         pos += len(CLICKTEAM_SIGNATURE)
-        f.seek(0, 2)
-        end = f.tell()
+        end = os.fstat(f.fileno()).st_size
         blocks = {}
         while pos + 8 <= end:
             f.seek(pos)
@@ -153,11 +158,12 @@ def clickteam_files(path):
             blocks[block] = (pos + 8, size)
             pos += 8 + size
         if BLOCK_FILE_LIST not in blocks or BLOCK_DATA not in blocks:
-            raise ImportError_('no file list in the installer')
+            raise Mc2xImportError('no file list in the installer')
         list_pos, list_size = blocks[BLOCK_FILE_LIST]
         f.seek(list_pos)
         raw = f.read(list_size)
-        file_list = _decompress(raw[4], raw[5:])
+        d = _decompressor(raw[4])
+        file_list = raw[5:] if d is None else d.decompress(raw[5:])
     data_base = blocks[BLOCK_DATA][0] + 4
     count = struct.unpack_from('<I', file_list, 0)[0]
     p = 4
@@ -170,18 +176,9 @@ def clickteam_files(path):
             continue  # not a file (shortcuts, registry entries)
         offset, csize, _z, usize, _crc = struct.unpack_from('<IIIII', entry, 6)
         name = entry[62:].split(b'\0')[0].decode('cp1252')
-        files.append((name.replace(BACKSLASH, '/'), data_base + offset, csize, usize))
+        files.append((name.replace('\\', '/'), data_base + offset, csize, usize))
     return files
 
-
-def _decompressor(kind):
-    if kind == 0:
-        return None
-    if kind == 1:
-        return zlib.decompressobj()
-    if kind == 2:
-        return bz2.BZ2Decompressor()
-    raise ImportError_('unknown compression %d' % kind)
 
 
 def extract_clickteam(path, out, chunk=1 << 22):
@@ -203,7 +200,7 @@ def extract_clickteam(path, out, chunk=1 << 22):
                     w.write(data)
                     written += len(data)
             if written != usize:
-                raise ImportError_('%s: %s decoded to %d bytes, not %d'
+                raise Mc2xImportError('%s: %s decoded to %d bytes, not %d'
                                    % (os.path.basename(path), name, written, usize))
 
 
@@ -278,7 +275,7 @@ def fst_files(path):
         for _ in range(count):
             offset, stored, size, _hash = struct.unpack('<IIII', f.read(16))
             name = f.read(250).split(b'\0')[0].decode('cp1252')
-            files.append((name.replace(BACKSLASH, '/').lower(), offset, stored, size))
+            files.append((name.replace('\\', '/').lower(), offset, stored, size))
     return files
 
 
@@ -294,7 +291,7 @@ def fst_data(f, offset, stored, size):
             pass
     data = _lzw(raw, size)
     if data is None or len(data) != size:
-        raise ImportError_('%s: a file does not decode' % os.path.basename(f.name))
+        raise Mc2xImportError('%s: a file does not decode' % os.path.basename(f.name))
     return data
 
 
@@ -324,7 +321,7 @@ def _target(out, name):
     part, a drive or an absolute path) is refused."""
     parts = name.split('/')
     if any(p in ('', '.', '..') or ':' in p for p in parts) or os.path.isabs(name):
-        raise ImportError_('unsafe file name %r' % name)
+        raise Mc2xImportError('unsafe file name %r' % name)
     dst = os.path.join(out, *parts)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     return dst
@@ -361,20 +358,18 @@ def raise_resolution(text, minimum=MIN_RESOLUTION):
     least minimum, line endings kept. Stock's prefs files have neither (the
     game then takes 800x600): they are added under [MechCommander2]."""
     keys = (('ResolutionX', minimum[0]), ('ResolutionY', minimum[1]))
+    least_of = dict(keys)
     lines = []
     seen = set()
     for line in text.splitlines(True):
         body = line.rstrip('\r\n')
         ending = line[len(body):]
         words = body.split()
-        for key, least in keys:
-            if len(words) == 4 and words[0] == 'l' and words[1] == key and words[2] == '=':
-                seen.add(key)
-                try:
-                    if int(words[3]) < least:
-                        body = 'l %s = %d' % (key, least)
-                except ValueError:
-                    pass
+        if len(words) == 4 and words[0] == 'l' and words[1] in least_of and words[2] == '=':
+            key = words[1]
+            seen.add(key)
+            if words[3].isdigit() and int(words[3]) < least_of[key]:
+                body = 'l %s = %d' % (key, least_of[key])
         lines.append([body, ending])
     for i, (body, ending) in enumerate(lines):
         if body.strip() == '[MechCommander2]':
@@ -411,24 +406,20 @@ def setup_folder(folder, stock_dir, engine_dir):
         copy_engine(engine_dir, folder)
 
 
-ENGINE_FILES = ('mc2', 'mc2.exe', 'libmc2res_64.so', 'mc2res.dll')
-
-
 def copy_engine(engine_dir, folder):
-    found = False
+    """The engine files of a package or build (and, for Windows, its DLLs)
+    and its shaders/ into folder."""
+    windows = os.path.isfile(os.path.join(engine_dir, 'mc2.exe'))
+    if not windows and not os.path.isfile(os.path.join(engine_dir, 'mc2')):
+        raise Mc2xImportError('%s has no mc2 or mc2.exe' % engine_dir)
     for n in os.listdir(engine_dir):
         src = os.path.join(engine_dir, n)
-        if not os.path.isfile(src):
-            continue
-        if n in ENGINE_FILES or (n.lower().endswith('.dll') and os.path.exists(os.path.join(engine_dir, 'mc2.exe'))):
+        if os.path.isfile(src) and (n in ENGINE_FILES or (windows and n.lower().endswith('.dll'))):
             dst = os.path.join(folder, n)
             if os.path.exists(dst):
                 # a new file, not a write through a hard link into another folder
                 os.remove(dst)
             shutil.copy2(src, dst)
-            found = found or n in ('mc2', 'mc2.exe')
-    if not found:
-        raise ImportError_('%s has no mc2 or mc2.exe' % engine_dir)
     shaders = os.path.join(engine_dir, 'shaders')
     if os.path.isdir(shaders):
         dst = os.path.join(folder, 'shaders')
@@ -447,34 +438,33 @@ def link_or_copy_tree(src, dst):
 
 
 def add_own_files(base_view, overlay, dest):
-    """Writes into dest every data file the game sees in overlay but not in
+    """Puts into dest every data file the game sees in overlay but not in
     base_view (Dark Gray's missions, campaign and art): the MC2X folder's
-    shared files are kept. Returns how many were added."""
-    added = 0
+    shared files are kept. Loose files are moved out of overlay, which is a
+    staging folder. Returns how many were added."""
+    own = [(name, where) for name, where in game_view(overlay).items()
+           if name.startswith('data/') and name not in base_view]
     handles = {}
     try:
-        for name, where in sorted(game_view(overlay).items()):
-            if not name.startswith('data/') or name in base_view:
-                continue
+        # fast-file entries in file order, not name order
+        for name, where in sorted(own, key=lambda e: (e[1][1], e[1][2] if e[1][0] == 'fst' else 0)):
             if where[0] == 'disk':
-                with open(where[1], 'rb') as f:
-                    data = f.read()
-            else:
-                fst = handles.get(where[1])
-                if fst is None:
-                    fst = handles[where[1]] = open(where[1], 'rb')
-                data = fst_data(fst, *where[2:])
-            _write(dest, name, data)
-            added += 1
+                os.replace(where[1], _target(dest, name))
+                continue
+            fst = handles.get(where[1])
+            if fst is None:
+                fst = handles[where[1]] = open(where[1], 'rb')
+            _write(dest, name, fst_data(fst, *where[2:]))
     finally:
         for h in handles.values():
             h.close()
-    return added
+    return len(own)
 
 
 def extract_zip_install(path, out):
     """Dark Gray's zip holds a whole MC2X install in a folder named mc2x:
-    its contents go to out."""
+    of it, what the game reads data from (its fast files and data/) goes
+    to out, a file at a time."""
     with zipfile.ZipFile(path) as z:
         names = [n for n in z.namelist() if not n.endswith('/')]
         prefixes = set()
@@ -485,14 +475,20 @@ def extract_zip_install(path, out):
                     prefixes.add('/'.join(parts[:i + 1]) + '/')
                     break
         if not prefixes:
-            raise ImportError_('%s: no mc2x folder in it' % os.path.basename(path))
+            raise Mc2xImportError('%s: no mc2x folder in it' % os.path.basename(path))
         prefix = sorted(prefixes, key=len)[0]
         for n in names:
-            if n.startswith(prefix):
-                _write(out, n[len(prefix):], z.read(n))
+            if not n.startswith(prefix):
+                continue
+            rest = n[len(prefix):]
+            top_fst = '/' not in rest and rest.lower().endswith('.fst')
+            if top_fst or rest.lower().startswith('data/'):
+                with z.open(n) as src, open(_target(out, rest), 'wb') as dst:
+                    shutil.copyfileobj(src, dst, 1 << 22)
 
 
-def build(downloads, stock_dir, out, engine_dir=None, force=False, log=print):
+def find_downloads(downloads, log):
+    """{Download: path} of the known downloads in a folder."""
     found = {}
     for n in sorted(os.listdir(downloads)):
         p = os.path.join(downloads, n)
@@ -503,51 +499,56 @@ def build(downloads, stock_dir, out, engine_dir=None, force=False, log=print):
             log('skipped %s: not a download this script knows' % n)
             continue
         log('found %s (%s)' % (n, d.key))
-        found[d.key] = p
+        found[d] = p
     if not found:
-        raise ImportError_('no known download in %s' % downloads)
+        raise Mc2xImportError('no known download in %s' % downloads)
+    return found
+
+
+def _clear(folder, force):
+    if os.path.exists(folder):
+        if not force:
+            raise Mc2xImportError('%s is already there (--force replaces it)' % folder)
+        shutil.rmtree(folder)
+
+
+def build(downloads, stock_dir, out, engine_dir=None, force=False, log=print):
+    found = find_downloads(downloads, log)
     os.makedirs(out, exist_ok=True)
     work = os.path.join(out, '.mc2x-import')
     shutil.rmtree(work, ignore_errors=True)
     made = []
     try:
         for d in DOWNLOADS:
-            if d.key not in found or d.kind != 'clickteam':
+            if d not in found or d.kind != 'clickteam':
                 continue
             folder = os.path.join(out, d.folder)
-            if os.path.exists(folder):
-                if not force:
-                    raise ImportError_('%s is already there (--force replaces it)' % folder)
-                shutil.rmtree(folder)
+            _clear(folder, force)
             log('unpacking %s into %s' % (d.name, folder))
             staging = os.path.join(work, d.key)
-            extract_clickteam(found[d.key], staging)
+            extract_clickteam(found[d], staging)
             clashes = lowercase_tree(staging)
             for c in clashes:
                 log('  name clash, left as it is: %s' % c)
             setup_folder(staging, stock_dir, engine_dir)
             os.replace(staging, folder)
             made.append(folder)
-        if 'darkgray' in found:
-            # REAP3-G first: Dark Gray was tested on top of its folder
-            bases = [os.path.join(out, d.folder) for d in reversed(DOWNLOADS) if d.kind == 'clickteam']
+        for d in found:
+            if d.kind != 'zip':
+                continue
+            bases = [os.path.join(out, b) for b in DARKGRAY_BASES]
             base = next((b for b in bases if os.path.isdir(b)), None)
             if base is None:
-                raise ImportError_('Dark Gray needs an MC2X folder to add its files to: '
-                                   'download MC2X R70 or REAP3-G as well')
-            d = next(x for x in DOWNLOADS if x.key == 'darkgray')
+                raise Mc2xImportError('Dark Gray needs an MC2X folder to add its files to: '
+                                      'download MC2X R70 or REAP3-G as well')
             folder = os.path.join(out, d.folder)
-            if os.path.exists(folder):
-                if not force:
-                    raise ImportError_('%s is already there (--force replaces it)' % folder)
-                shutil.rmtree(folder)
+            _clear(folder, force)
             log('unpacking %s and adding its own files to a copy of %s' % (d.name, base))
             staging = os.path.join(work, 'darkgray-install')
-            extract_zip_install(found['darkgray'], staging)
-            lowercase_tree(staging)
+            extract_zip_install(found[d], staging)
             target = os.path.join(work, 'darkgray')
             link_or_copy_tree(base, target)
-            for n in ('mc2', 'mc2.exe', 'libmc2res_64.so', 'mc2res.dll', 'options.cfg'):
+            for n in ENGINE_FILES + ('options.cfg',):
                 p = os.path.join(target, n)
                 if os.path.isfile(p):
                     # a later copy into the folder must not write through a link
@@ -577,7 +578,7 @@ def main(argv=None):
         return 2
     try:
         made = build(args.downloads, args.stock_game_dir, args.out, args.engine, args.force)
-    except ImportError_ as e:
+    except Mc2xImportError as e:
         print('mc2x_import: %s' % e, file=sys.stderr)
         return 1
     for m in made:
