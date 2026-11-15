@@ -8,8 +8,13 @@ controlGui.cpp			: Implementation of the controlGui component.
 #include"controlgui.h"
 #include"formation.h"
 #include"mc2xsupport.h"
+#include"mc2xhud.h"
 
 static bool shownButtonAt( const ControlButton* buttons, int count, float mouseX, float mouseY );
+
+// wolfman-MC2X's exchange and spy map buttons, in mc2xCommandButtons' order
+static const int kMC2XCommands[] = { mc2xhud::kToResourcePoints, mc2xhud::kToCBills, mc2xhud::kSpyMap };
+static const int kMC2XCommandCount = sizeof( kMC2XCommands ) / sizeof( kMC2XCommands[0] );
 #include"team.h"
 #include"gamesound.h"
 #include"comndr.h"
@@ -180,6 +185,9 @@ ControlGui::ControlGui()
 	support2TabData = 0;
 	supportPage = 1;
 	mc2xPendingBlock = -1;
+	mc2xCommandButtons = 0;
+	mc2xCommandData = 0;
+	spyMapTime = 0.f;
 
 	videoInfos = 0;
 	videoInfoCount = 0;
@@ -287,6 +295,10 @@ ControlGui::~ControlGui()
 	support2Tab = 0;
 	delete [] support2TabData;
 	support2TabData = 0;
+	delete [] mc2xCommandButtons;
+	mc2xCommandButtons = 0;
+	delete [] mc2xCommandData;
+	mc2xCommandData = 0;
 
 	if ( missionStatusInfos )
 		delete [] missionStatusInfos;
@@ -381,6 +393,11 @@ void ControlGui::render( bool bPaused )
 		{
 			for ( int i = 0; i < formation::kButtonCount; ++i )
 				formationButtons[i].render();
+		}
+		if ( mc2xCommandButtons )
+		{
+			for ( int i = 0; i < kMC2XCommandCount; ++i )
+				mc2xCommandButtons[i].render();
 		}
 
 		// want to draw the tab on top last
@@ -1220,6 +1237,7 @@ void ControlGui::update( bool bPaused, bool bLOS )
 
 	// MC2X's Formation button takes the same place, for any other units
 	updateFormationButtons( bMover && !bMineLayer && !bSalvage && !bRepair && !bGuardTower, mouseX, mouseY );
+	updateMC2XCommands( bPaused, mouseX, mouseY );
 	
 	if ( bMover && bJump )
 		getButton( JUMP_COMMAND )->disable( false );
@@ -1316,7 +1334,8 @@ bool ControlGui::inRegion( int mouseX, int mouseY, bool bPaused )
 {
 	if ( shownButtonAt( formationButtons, formation::kButtonCount, mouseX, mouseY )
 		|| shownButtonAt( mc2xSupportButtons, mc2xsupport::kUnitCount, mouseX, mouseY )
-		|| shownButtonAt( support2Tab, 1, mouseX, mouseY ) )
+		|| shownButtonAt( support2Tab, 1, mouseX, mouseY )
+		|| shownButtonAt( mc2xCommandButtons, kMC2XCommandCount, mouseX, mouseY ) )
 		return true;
 
 	for ( int i = 0; i < LAST_COMMAND; i++ )
@@ -2895,6 +2914,7 @@ void ControlGui::swapResolutions( int resolutionX, int resolutionY )
 	
 	initFormationButtons( buttonFile, mc2xHud );
 	initMC2XSupport( buttonFile, mc2xHud );
+	initMC2XCommands( buttonFile, mc2xHud );
 
 	getButton( TACMAP_TAB )->press( true );
 
@@ -3163,6 +3183,96 @@ void ControlGui::updateMC2XSupport( float mouseX, float mouseY )
 				soundSystem->playDigitalSample( LOG_SELECT );
 			}
 		}
+	}
+}
+
+// wolfman-MC2X's exchange and spy map buttons (mc2xhud.h), from its layout;
+// other layouts have none
+void ControlGui::initMC2XCommands( FitIniFile& buttonFile, bool mc2xHud )
+{
+	if ( mc2xCommandData )
+	{
+		for ( int i = 0; i < kMC2XCommandCount; i++ )
+			mcTextureManager->removeTexture( mcTextureManager->get_gosTextureHandle( mc2xCommandData[i].textureHandle ) );
+	}
+	delete [] mc2xCommandButtons;
+	mc2xCommandButtons = 0;
+	delete [] mc2xCommandData;
+	mc2xCommandData = 0;
+	if ( !mc2xHud )
+		return;
+
+	mc2xCommandButtons = new ControlButton[kMC2XCommandCount]();
+	mc2xCommandData = new ButtonData[kMC2XCommandCount]();
+	ControlButton::initButtons( buttonFile, kMC2XCommandCount, mc2xCommandButtons, mc2xCommandData, "Button", 0, kMC2XCommands );
+	for ( int i = 0; i < kMC2XCommandCount; i++ )
+	{
+		mc2xCommandButtons[i].ID = kMC2XCommands[i];
+		mc2xCommandButtons[i].hide( 1 );
+	}
+}
+
+// The exchanges between the mission's C-Bills and resource points, and the
+// spy map: every unit on the tac map for a minute of game time.
+void ControlGui::updateMC2XCommands( bool bPaused, float mouseX, float mouseY )
+{
+	if ( spyMapTime > 0.f && !bPaused )
+		spyMapTime -= frameLength;
+	tacMap.setSpyView( spyMapTime > 0.f );
+
+	if ( !mc2xCommandButtons )
+		return;
+
+	// MC2X has no multiplayer
+	const bool shown = !MPlayer && LogisticsData::instance;
+	const long cBills = shown ? LogisticsData::instance->getCBills() : 0;
+	const long resourcePoints = shown ? LogisticsData::instance->getResourcePoints() : 0;
+	const bool released = userInput->leftMouseReleased() && !userInput->isLeftDrag() && !userInput->wasLeftDrag();
+	for ( int i = 0; i < kMC2XCommandCount; i++ )
+	{
+		ControlButton& button = mc2xCommandButtons[i];
+		button.hide( !shown );
+		if ( !shown )
+			continue;
+
+		const bool spyRunning = ( button.ID == mc2xhud::kSpyMap ) && ( spyMapTime > 0.f );
+		if ( spyRunning )
+		{
+			button.disable( 0 );
+			button.press( 1 );
+		}
+		else
+		{
+			if ( button.state == ControlButton::PRESSED )
+				button.press( 0 );
+			button.disable( !mc2xhud::canUse( button.ID, cBills, resourcePoints, false ) );
+		}
+
+		if ( !shownButtonAt( &button, 1, mouseX, mouseY ) )
+			continue;
+		helpTextHeaderID = mc2xCommandData[i].helpTextHeader;
+		helpTextID = mc2xCommandData[i].helpTextID;
+		if ( !released || ( button.state != ControlButton::ENABLED ) )
+			continue;
+
+		const long toResourcePoints = mc2xhud::exchange( button.ID, cBills, resourcePoints );
+		if ( toResourcePoints > 0 )
+		{
+			LogisticsData::instance->decrementCBills( toResourcePoints );
+			LogisticsData::instance->addResourcePoints( toResourcePoints );
+		}
+		else if ( toResourcePoints < 0 )
+		{
+			LogisticsData::instance->decrementResourcePoints( -toResourcePoints );
+			LogisticsData::instance->addCBills( -toResourcePoints );
+		}
+		else if ( button.ID == mc2xhud::kSpyMap )
+		{
+			LogisticsData::instance->decrementCBills( mc2xhud::kSpyMapCost );
+			spyMapTime = mc2xhud::kSpyMapSeconds;
+			handleClick( TACMAP_TAB );
+		}
+		soundSystem->playDigitalSample( LOG_SELECT );
 	}
 }
 

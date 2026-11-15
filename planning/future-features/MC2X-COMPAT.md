@@ -415,6 +415,16 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     offsets bring them in. MC2X's own layout puts the resource-point line
     over the bottom row of the first tab.
 
+22. **C-Bills, resource points and the spy map (2026-11-15, step 8).**
+    Three more HUD buttons, as their help text describes them
+    (`code/mc2xhud.h`, unit tested): Button22 turns 10,000 of the mission's
+    C-Bills into resource points, Button23 turns all resource points into
+    C-Bills (one for one: the help gives no rate), and Button53 buys a
+    60-second spy map for 1,000,000 C-Bills, which draws every unit on the
+    tac map, seen or not, and switches to it. Each is greyed out when it
+    cannot be used. Not in multiplayer. A picture at 1280x1024 shows the
+    tac map full of enemies with the spy map on.
+
 Not tried: the GLES build on desktop (it runs on the Quest), MC2X's
 operation maps (`mc2x_ops_*`) and per-campaign main menus, which stock
 screens never open.
@@ -543,7 +553,8 @@ stock or Omnitech units).
 | done | the shop's unit-type buttons: MC2X lists its vehicles, infantry and dropships as mechs (inventory Type MECH, its Group ID the unit type), so they were for sale already; the buttons filter by group (`code/shopfilter.h`) | |
 | done | formations: the Formation button, its palette of ten and the indicator; a group move order takes the shape (`code/formation.h`, unit tested) | |
 | done | the 14 other support units and the second support tab (`code/mc2xsupport.h`, unit tested) | |
-| 8 | the rest of the HUD, route 2 (pick-up and drop-off, recharge and reload, C-Bills to resource points, hide ID, spy map, exit unit, the dropship's fire button) | weeks |
+| done | C-Bills to resource points and back, the spy map (`code/mc2xhud.h`, unit tested) | |
+| 8 | the rest of the HUD, route 2 (pick-up and drop-off, recharge and reload, hide ID, exit unit, the dropship's fire button) | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.

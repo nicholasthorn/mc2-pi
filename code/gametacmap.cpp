@@ -36,6 +36,7 @@ GameTacMap::GameTacMap()
 
 	buildingPoints = NULL;
 	buildingCount = 0;
+	spyView = false;
 
 	navMarkerCount = 0;
 	curNavMarker = -1;
@@ -396,7 +397,7 @@ void GameTacMap::render()
 						continue;
 				}
 			}
-			else if (ShowMovers || (MPlayer && MPlayer->allUnitsDestroyed[MPlayer->commanderID]) || ((mover->getTeamId() != Team::home->id)
+			else if (ShowMovers || spyView || (MPlayer && MPlayer->allUnitsDestroyed[MPlayer->commanderID]) || ((mover->getTeamId() != Team::home->id)
 				&&  ( contactStatus != CONTACT_NONE )
 				&&  (mover->getStatus() != OBJECT_STATUS_SHUTDOWN) 
 				&&  (!mover->hasNullSignature())

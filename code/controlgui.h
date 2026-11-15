@@ -365,6 +365,14 @@ class ControlGui
 		void				renderMC2XSupport();
 		bool				stockVehicleShown( int i );
 
+		// wolfman-MC2X's exchange and spy map buttons (mc2xhud.h): its
+		// layout's Button22, Button23 and Button53; NULL with other layouts
+		ControlButton*		mc2xCommandButtons;
+		ButtonData*			mc2xCommandData;
+		float				spyMapTime;			// seconds of the spy map left
+		void				initMC2XCommands( FitIniFile& buttonFile, bool mc2xHud );
+		void				updateMC2XCommands( bool bPaused, float mouseX, float mouseY );
+
 		InfoWindow*			infoWnd;
 		PauseWindow*		pauseWnd;
 
