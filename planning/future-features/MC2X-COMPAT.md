@@ -345,9 +345,12 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
       shown now as a text message.
     Engine fixes found on the way, for any data: a leak when a file opens
     under a second name after a failed open, and `RandomNumber(0)`.
-    **3000-frame runs under ASan + UBSan:** 28 of 32 MC2X missions reach
-    3000 frames; `reap3m02`, `m06`, `m07` and `m21` end before then with no
-    error (the mission ending).
+    **3000-frame runs under ASan + UBSan: all 32 MC2X missions reach 3000
+    frames.** Four (`reap3m02`, `m06`, `m07`, `m21`) had ended at once as
+    lost: MC2X places its deployer dropship (a flying mech) with `Damage 1`,
+    which starts a part disabled, and a disabled flying mech was then shot
+    down, failing "Protect your deployer dropship". A mech the mission
+    starts disabled now stays as placed (stock has no flying mechs).
 
 19. **Dark Gray: Border Worlds (2026-11-14).** Compared with R70 + REAP3 as
     the game sees both (FSTs and loose files): 9,429 of its 12,825 files
