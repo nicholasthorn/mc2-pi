@@ -418,8 +418,22 @@ push the data as in `android/README.md`, "Phones and tablets".
       camera work, and moving or clicking the mouse afterwards gives the cursor back
       to it. On Linux under X11, check that a tap clicks once, not twice (X's own
       touch-to-pointer emulation).
-- [ ] **Switching away and back** mid-mission: does the picture come back, with its
-      textures, or is the GL context lost? Note the GPU (Adreno, Mali, PowerVR).
+- [ ] **Switching away and back** mid-mission (phase 3): press Home, open another
+      app, come back. The mission is paused with the pause menu up and has not run on;
+      the sound stops while away and comes back. Does the picture come back with its
+      textures? If the GL context was lost, the game quits with an `[APP] FATAL` line
+      in `mc2.log` instead. Note the GPU (Adreno, Mali, PowerVR); try two vendors.
+- [ ] **A phone call or the screen turning off** mid-mission: the same as switching
+      away. In a menu nothing pauses, and the menu is as it was.
+- [ ] **The full APK on a fresh device** (phase 3's exit): build with
+      `MC2_ANDROID_DATA`, install it on a device that has never had the game data
+      pushed, start it: toasts count the install up (how long does it take?), then
+      the main menu, with no first-start exit (the old sniffer). Start it again: no
+      second install. Install an APK with changed data over it: it copies again, and
+      the settings and saves are still there.
+- [ ] **Not enough space for the data:** fill the device until less than the data's
+      size is free and start a fresh full APK: a message box says how much is needed,
+      and the app closes.
 - [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one
       and runs as a flat window in the headset's home.
 

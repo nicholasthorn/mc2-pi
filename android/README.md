@@ -133,12 +133,33 @@ What to expect so far:
 - **The picture is stretched** to the screen: the game draws at its own
   resolution (800x600 by default) and fills the whole display with it, so a
   20:9 phone widens everything.
-- **Switching away** from the app pauses it, and nothing is saved; Android may
-  close it while it is in the background.
+- **Switching away** from the app (Home, another app, a call) pauses a mission
+  with its pause menu up, as the pause key does, and stops the sound; coming
+  back carries on. Nothing is saved yet: Android may close the app while it is
+  in the background, and the mission is lost then. If the GL context did not
+  survive, the game quits (an `[APP] FATAL` line in `mc2.log`), since it
+  cannot reload its textures.
+
+### A full APK, with the game data inside
+
+For a device without `adb`: name a game data folder and the APK carries it,
+with this checkout's `shaders/` (about 470 MB without movies):
+
+```bash
+MC2_ANDROID_FLAVOUR=phone MC2_ANDROID_DATA=<game data folder> scripts/android/build.sh apk
+```
+
+Build the data with `scripts/build_gamedata.sh ... --no-movies`. The first
+start copies it to the app's files folder (`GameOS/gameos/android_data.cpp`),
+with toasts counting it up, and starts from the minimum settings
+(`minprefs.cfg`), so there is no first-start exit. An APK with different data
+copies it again over the old; settings, saves, `mc2args.txt` and the logs are
+never in the APK and are kept. The copy doubles the space the data takes while
+the APK is installed.
 
 ## Status
 
 Quest: played on a Quest 2, with the bench results in
 `planning/future-features/VR-TABLETOP.md`. Not yet tried on a Quest 3 or Pro.
 
-Phones and tablets: builds; not yet run on a device.
+Phones and tablets: builds, with or without the data inside; not yet run on a device.
