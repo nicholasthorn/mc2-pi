@@ -138,11 +138,14 @@ static const char* getExtraString(DWORD id, bool tableHasText, bool* replacesTab
             while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
                 dll.insert(dll.end(), buf, buf + n);
             fclose(f);
-            if (readPeStringTable(dll.data(), dll.size(), *extra)) {
-                mc2xTable = (strcmp(name, "mc2xres.dll") == 0);
-                fprintf(stderr, "gos_res: %u strings from %s %s\n", (unsigned)extra->size(), name,
-                        mc2xTable ? "over the game's table" : "for ids the game's table lacks");
+            // one that is not a string table: try the next name
+            if (!readPeStringTable(dll.data(), dll.size(), *extra)) {
+                extra->clear();
+                continue;
             }
+            mc2xTable = (strcmp(name, "mc2xres.dll") == 0);
+            fprintf(stderr, "gos_res: %u strings from %s %s\n", (unsigned)extra->size(), name,
+                    mc2xTable ? "over the game's table" : "for ids the game's table lacks");
             break;
         }
     }

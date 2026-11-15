@@ -378,7 +378,7 @@ void MissionBriefingScreen::begin()
 	long tmpMapTextureHandle = getMissionTGA( missionName );
 	statics[mapIndex].setTexture( tmpMapTextureHandle );
 	// the whole map: stock's are 128 wide, wolfman-MC2X's 256
-	const long mapEdge = (long)statics[mapIndex].getFileWidth() - 1;
+	const long mapEdge = tmpMapTextureHandle ? (long)statics[mapIndex].getFileWidth() - 1 : 127;
 	statics[mapIndex].setUVs( 0, mapEdge, mapEdge, 0 );
 	statics[mapIndex].setColor( 0xffffffff );
 
