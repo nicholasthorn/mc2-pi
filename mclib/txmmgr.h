@@ -45,7 +45,11 @@ enum MC_TextureKey
 //Can store up to 1024 8x8 textures in 1 256x256.
 #define MC_MAXTEXTURES				4096
 #define CACHED_OUT_HANDLE			0xFFFFFACE		//If this value is in gosTextureHandle, texture is cached out and must be cached in.
-#define MAX_MC2_GOS_TEXTURES		750
+// Textures on the GPU at once. 750 in 2001 (a Direct3D-era handle budget);
+// in a headset more than that are drawn within one game step (Dark Gray at
+// fog 75), and then every new texture failed. Unused ones are still freed
+// after 2 seconds (update()), so the cap only matters when a view needs them.
+#define MAX_MC2_GOS_TEXTURES		2048
 #define TEXTURE_CACHE_SIZE			(40*1024*1024)	//Extra space here to facilitate editting
 #define MAX_CACHE_SIZE				(40*1024*1024)	//Actual amount map must run in!
 #define MC_MAXFACES					50000
@@ -152,6 +156,15 @@ struct MC_TextureNode
 														//Should only be alloced when we need to cache.
 														//This will keep system memory usage to a minimum.
 		MC_VertexArrayNode 	*vertexData;				//This holds the vertex draw data.  NULL if not used.
+
+		// Rough GPU size, for the log: a cached texture's width holds its
+		// byte count, a plain one is square and 32-bit
+		long approxBytes (void) const
+		{
+			if (width > 0xf0000000)
+				return long(width & 0x0fffffff);
+			return (width < 0x10000) ? long(width) * long(width) * 4 : 0;
+		}
 		MC_VertexArrayNode	*vertexData2;
 		MC_VertexArrayNode	*vertexData3;
 
@@ -1123,6 +1136,7 @@ class MC_TextureManager
 		// DO NOT want to implement a priority system at all.
 		// Returns FALSE if no texture can be cached out this frame. 
 		bool flushCache (void);
+		void logFullCache (void);
 		
 		//-----------------------------------------------------------------------
 		// This routine will run through the TXM Cache on a regular basis and free
