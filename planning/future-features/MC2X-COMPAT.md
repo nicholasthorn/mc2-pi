@@ -598,7 +598,7 @@ stock or Omnitech units).
 | done | C-Bills to resource points and back, the spy map (`code/mc2xhud.h`, unit tested) | |
 | done | the buttons for selected units: dropship fire, hide ID, pick-up and drop-off, recharge and reload, exit unit (`code/mc2xhud.h`, `code/mc2xunits.cpp`; each a reading of one line of help) | |
 | done | operation maps of more than 6 missions (Progress 24); per-campaign main menus are an install-time file swap | |
-| - | install: an extractor for Clickteam installers, or an import step | 1 day |
+| done | install: `scripts/mc2x_import.py` builds game folders from the downloads (see Import below) | |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.
 
@@ -623,7 +623,44 @@ own features, which no data file explains. Order:
 REAP3 is the MC2X test campaign; Dark Gray runs beside it (Progress 19).
 CVE-G (Carver V on MC2X) when its download can be fetched.
 
+## Import
+
+`scripts/mc2x_import.py` (2026-11-15; the user's go-ahead after the terms
+question below) turns a player's own MC2X downloads into game folders for
+this port, never running an installer and never redistributing anything:
+
+```bash
+python3 scripts/mc2x_import.py --downloads <folder with the downloads>     --stock-game-dir <stock game folder> --out <folder> --engine <unpacked package>
+```
+
+- Recognises `MC2X.1.exe` (R70), `MC2X-REAP3-G.4.exe` and Dark Gray's zip
+  by size, checks each against ModDB's MD5, and refuses anything else.
+- Reads the Clickteam installers as data (the reader above), lower-cases
+  every name, moves MC2X's own `prefs.cfg` / `options.cfg` to `mc2x-cfg/`,
+  copies the stock folder's config files and `assets/` (the port's fonts),
+  and sets every prefs file to at least 1024x768 (stock's have no resolution
+  lines; MC2X has no layout under 1024 wide). `--engine` copies in `mc2` /
+  `mc2.exe`, the resource library and `shaders/`.
+- One folder per installer, `mc2x-r70` and `mc2x-reap3`. Dark Gray gets
+  `mc2x-darkgray`: a hard-linked copy of the REAP3 folder (else R70) with
+  only the files the game does not already see there added, read from its
+  fast files where needed (Progress 19's setup; 973 files).
+- Tested on made-up files in CI (`scripts/tests/`, in the shader job), and
+  on the real downloads in WSL: about 1.5 minutes for all three; R70
+  `metropolitan`, REAP3 `reap3m01` and `reap3m12` with its campaign walk,
+  and Dark Gray's prologue with its campaign walk pass on the folders it
+  builds (Linux desktop GL). Not yet run on Windows or for the Quest.
+- Later, from its review: the game could read MC2X's renamed config
+  blocks (`[wolfman-MC2X]`, `mc2x_system.cfg`) and clamp the resolution to
+  the smallest HUD layout it has, so the script would not need to swap
+  config files or raise resolutions; the download, extraction, lower-casing,
+  config and engine-copy pieces should become a module the Omnitech helper
+  (`EASY-INSTALL.md`) shares; and one engine install serving several game
+  folders would save copying the engine into each.
+
 ## Open questions
 
 - Whether MC2X's terms allow a converter that reads its install (no
-  redistribution) the way the remaster's importer does.
+  redistribution) the way the remaster's importer does. The user chose to
+  build the import step (2026-11-15); it reads only the player's own
+  downloads and puts nothing of MC2X's anywhere else.

@@ -85,6 +85,10 @@ needs an uninstall, which deletes saves.
 5. Copies in the engine and leaves a launcher. With `--quest`, pushes the folder
    to the headset over `adb` (about 1.8 GB for Omnitech and the stock data).
 
+`scripts/mc2x_import.py` already does steps 2, 4 and 5 for wolfman-MC2X
+(checksums, an installer read as data, lower-casing, the port's config files
+and engine): the Omnitech helper should share those pieces, not copy them.
+
 Better still, **ask the Omnitech team** (magicX, through ModDB) for permission to
 offer a prepared pack. With it, Omnitech becomes one more download and works on
 the Quest without a PC script. Any approach to the team is the project owner's
