@@ -260,13 +260,13 @@ long SensorSystem::calcContactStatus (MoverPtr mover) {
 	if (!owner->getTeam())
 		return(CONTACT_NONE);
 
-	// wolfman-MC2X's hidden ID: an enemy cannot tell what the unit is
-	if (mc2xunits::idHidden(mover) && mover->getTeam() && owner->getTeam()->isEnemy(mover->getTeam()))
-		return(CONTACT_NONE);
-
 	if (mover->getFlag(OBJECT_FLAG_REMOVED)) {
 		return(CONTACT_NONE);
 	}
+
+	// wolfman-MC2X's hidden ID: an enemy cannot tell what the unit is
+	if (mover->getTeam() && owner->getTeam()->isEnemy(mover->getTeam()) && mc2xunits::idHidden(mover))
+		return(CONTACT_NONE);
 
 	//----------------------------------------------------------
 	//If object we are looking for is at the edge, NO CONTACT!!

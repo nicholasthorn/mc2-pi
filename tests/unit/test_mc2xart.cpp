@@ -114,6 +114,41 @@ TEST_CASE("FitIniFile::open falls back to MC2X's name in the art folder")
 	strcpy(artPath, savedArtPath.c_str());
 }
 
+TEST_CASE("FitIniFile: MC2X's mc2xgsys.fit answers for gamesys.fit's [General]")
+{
+	const std::string savedMissionPath = missionPath;
+	strcpy(missionPath, "mc2xgsys_scratch/");
+	mc2x_mkdir("mc2xgsys_scratch");
+	FILE* fp = fopen("mc2xgsys_scratch/mc2xgsys.fit", "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[mc2xGeneral]\nf MaxVisualRange = 900.0\nFITend\n", fp);
+	fclose(fp);
+	fp = fopen("mc2xgsys_scratch/stock.fit", "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[mc2xGeneral]\nf MaxVisualRange = 900.0\nFITend\n", fp);
+	fclose(fp);
+
+	FitIniFile file;
+	REQUIRE(file.open("mc2xgsys_scratch/gamesys.fit") == NO_ERR);
+	CHECK(file.openedMC2XName());
+	REQUIRE(file.seekBlock("General") == NO_ERR);
+	float range = 0.f;
+	REQUIRE(file.readIdFloat("MaxVisualRange", range) == NO_ERR);
+	CHECK(range == 900.f);
+	CHECK(file.seekBlock("Missing") != NO_ERR);
+	file.close();
+
+	// a file opened under its own name keeps the block names it has
+	REQUIRE(file.open("mc2xgsys_scratch/stock.fit") == NO_ERR);
+	CHECK(file.seekBlock("General") != NO_ERR);
+	file.close();
+
+	remove("mc2xgsys_scratch/mc2xgsys.fit");
+	remove("mc2xgsys_scratch/stock.fit");
+	mc2x_rmdir("mc2xgsys_scratch");
+	strcpy(missionPath, savedMissionPath.c_str());
+}
+
 TEST_CASE("mc2xDataFileName: the data files MC2X renamed")
 {
 	char out[64];
@@ -184,6 +219,17 @@ TEST_CASE("mc2xVehicleButton: stock's support units in MC2X's 22-button layout")
 		CHECK(mc2xVehicleButton(i) == expected[i]);
 	CHECK(mc2xVehicleButton(-1) == -1);
 	CHECK(mc2xVehicleButton(8) == -1);
+}
+
+TEST_CASE("mc2xBlockName: mc2xgsys.fit's General is mc2xGeneral, nothing else is renamed")
+{
+	CHECK(strcmp(mc2xBlockName("data/missions/mc2xgsys.fit", "General"), "mc2xGeneral") == 0);
+	CHECK(strcmp(mc2xBlockName("mc2xgsys.fit", "General"), "mc2xGeneral") == 0);
+	CHECK(mc2xBlockName("data/art/mc2x_buttonlayout1024.fit", "General") == nullptr);
+	CHECK(mc2xBlockName("data/missions/mc2xgsys.fit", "general") == nullptr);
+	CHECK(mc2xBlockName("data/missions/mc2xgsys.fit", "mc2xGeneral") == nullptr);
+	CHECK(mc2xBlockName(nullptr, "General") == nullptr);
+	CHECK(mc2xBlockName("mc2xgsys.fit", nullptr) == nullptr);
 }
 
 }

@@ -119,9 +119,8 @@ void __stdcall gos_CloseResourceDLL(HSTRRES handle)
 // text in the game's table wins over mc2res.dll, so stock text is never
 // replaced; mc2xres.dll is MC2X's whole table, which gives some stock ids
 // other text (a mech's name where stock has a weapon's description), so its
-// text wins (*replacesTable). tableHasText: the game's table has real text
-// for id, which only MC2X's table replaces (no lookup otherwise).
-static const char* getExtraString(DWORD id, bool tableHasText, bool* replacesTable)
+// text wins (*replacesTable). chooseResourceString applies the rule.
+static const char* getExtraString(DWORD id, bool* replacesTable)
 {
     static std::map<uint32_t, std::string>* extra = NULL;
     static bool mc2xTable = false;
@@ -150,8 +149,6 @@ static const char* getExtraString(DWORD id, bool tableHasText, bool* replacesTab
         }
     }
     *replacesTable = mc2xTable;
-    if (tableHasText && !mc2xTable)
-        return NULL;
     std::map<uint32_t, std::string>::const_iterator it = extra->find(id);
     return it == extra->end() ? NULL : it->second.c_str();
 }
@@ -171,9 +168,8 @@ const char* __stdcall gos_GetResourceString(HSTRRES handle, DWORD id)
     }
     gos_StringRes* pstrres = (gos_StringRes*)(handle);
     const char* str = pstrres->getStringByIdFptr(id);
-    const bool tableHasText = (NULL != str) && !isPlaceholderString(str);
     bool replacesTable = false;
-    const char* extra = getExtraString(id, tableHasText, &replacesTable);
+    const char* extra = getExtraString(id, &replacesTable);
     str = chooseResourceString(str, extra, replacesTable);	// pe_strings.h
 
     if(NULL == str) {

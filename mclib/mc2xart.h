@@ -30,4 +30,9 @@ bool mc2xDataFileName(const char* stockFile, char* out, size_t outSize);
 // always have theirs.
 void stockOrMC2XFileName(const char* folder, const char* stockFile, char* name, size_t nameSize);
 
+// MC2X's name for a stock block in the file at mc2xPath, one MC2X renamed
+// (mc2xgsys.fit's [mc2xGeneral] is gamesys.fit's [General]), or nullptr.
+// FitIniFile::seekBlock tries it in a file it opened under MC2X's name.
+const char* mc2xBlockName(const char* mc2xPath, const char* stockBlock);
+
 #endif

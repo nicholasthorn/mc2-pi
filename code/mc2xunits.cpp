@@ -91,11 +91,15 @@ const TransportProfile& profileOf(Mover* transport)
 	return profiles[type] = profile;
 }
 
-float distance2D(GameObject* a, GameObject* b)
+// a and b no further apart than reach, across the ground
+bool within2D(const Stuff::Vector3D& a, const Stuff::Vector3D& b, float reach)
 {
-	const Stuff::Vector3D pa = a->getPosition();
-	const Stuff::Vector3D pb = b->getPosition();
-	return std::sqrt((pa.x - pb.x) * (pa.x - pb.x) + (pa.y - pb.y) * (pa.y - pb.y));
+	return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) <= reach * reach;
+}
+
+bool within2D(GameObject* a, GameObject* b, float reach)
+{
+	return within2D(a->getPosition(), b->getPosition(), reach);
 }
 
 bool alive(Mover* m)
@@ -136,7 +140,7 @@ void standable(Stuff::Vector3D& spot)
 	int row = 0, col = 0;
 	land->worldToCell(spot, row, col);
 	auto passable = [](int r, int c) {
-		return (r >= 0) && (c >= 0) && (r < GameMap->height) && (c < GameMap->width) && GameMap->getPassable(r, c);
+		return GameMap->inBounds(r, c) && GameMap->getPassable(r, c);
 	};
 	if (formation::nearestFreeCell(row, col, 12, passable))
 		land->cellToWorld(row, col, spot);
@@ -145,14 +149,13 @@ void standable(Stuff::Vector3D& spot)
 // the carried units back on the ground round where the transport is
 void putDown(UnitState& state, Stuff::Vector3D where)
 {
-	where.z = land ? land->getTerrainElevation(where) : where.z;
 	for (size_t i = 0; i < state.carried.size(); i++)
 	{
 		Mover* m = moverOf(state.carried[i]);
 		if (!m)
 			continue;
 		Stuff::Vector3D spot = where;
-		const float angle = 6.2831853f * (float)i / (float)state.carried.size();
+		const float angle = Stuff::Two_Pi * (float)i / (float)state.carried.size();
 		if (state.carried.size() > 1)
 		{
 			spot.x += 80.f * std::cos(angle);
@@ -167,6 +170,24 @@ void putDown(UnitState& state, Stuff::Vector3D where)
 	state.carried.clear();
 }
 
+// cargo whose transport is gone (or never named) lands where the transport,
+// else the first unit in it, last was
+void putDownWhereLost(Mover* transport, UnitState& state)
+{
+	Stuff::Vector3D where(0.f, 0.f, 0.f);
+	if (transport)
+		where = transport->getPosition();
+	else if (Mover* first = moverOf(state.carried[0]))
+		where = first->getPosition();
+	putDown(state, where);
+}
+
+// nothing set for the unit: its entry can go
+bool atDefault(const UnitState& state)
+{
+	return !state.idHidden && (state.supplyMode == kSupplyOff) && state.carried.empty() && !state.pickUpTarget;
+}
+
 void moveTo(Mover* transport, Stuff::Vector3D goal)
 {
 	TacticalOrder order;
@@ -176,6 +197,56 @@ void moveTo(Mover* transport, Stuff::Vector3D goal)
 	order.moveParams.wayPath.mode[0] = TRAVEL_MODE_FAST;
 	order.pack(NULL, NULL);
 	transport->handleTacticalOrder(order);
+}
+
+// one unit's pick-up and supply, for seconds
+void updateUnit(Mover* unit, UnitState& state, float seconds)
+{
+	if (state.pickUpTarget)
+	{
+		Mover* target = moverOf(state.pickUpTarget);
+		if (!alive(target) || !canCarry(unit, target))
+			state.pickUpTarget = 0;
+		else if (within2D(unit, target, mc2xhud::kAirliftReach))
+		{
+			state.pickUpTarget = 0;
+			load(unit, target);
+		}
+		else
+		{
+			// the unit moved on: follow it
+			const Stuff::Vector3D at = target->getPosition();
+			if (!within2D(at, state.pickUpGoal, mc2xhud::kAirliftReach))
+			{
+				state.pickUpGoal = at;
+				moveTo(unit, at);
+			}
+		}
+	}
+
+	if (state.supplyMode == kSupplyOff || !ObjectManager)
+		return;
+	for (long i = 0; i < ObjectManager->getNumMovers(); i++)
+	{
+		Mover* other = ObjectManager->getMover(i);
+		if (!alive(other) || (other == unit) || (other->getTeam() != unit->getTeam()))
+			continue;
+		if (!within2D(unit, other, mc2xhud::kSupplyReach))
+			continue;
+		if (state.supplyMode == kRecharge)
+		{
+			// a repair vehicle's refit points are its turret armour
+			if (!other->isRefit() || mc2xsupport::isSupplyCarrier(other->getTypeHandle()))
+				continue;
+			ArmorLocation& pool = other->armor[GROUNDVEHICLE_LOCATION_TURRET];
+			pool.curArmor = mc2xhud::topUp(pool.curArmor, pool.maxArmor, seconds);
+		}
+		else
+		{
+			float used = 0.f;
+			other->refit(mc2xhud::kSupplyPointsPerSecond * seconds, used, true);
+		}
+	}
 }
 
 }
@@ -190,88 +261,31 @@ void putDownAll()
 {
 	for (std::map<unsigned long, UnitState>::iterator it = states.begin(); it != states.end(); ++it)
 	{
-		if (it->second.carried.empty())
-			continue;
-		Mover* transport = moverOf(it->first);
-		Stuff::Vector3D where(0.f, 0.f, 0.f);
-		if (transport)
-			where = transport->getPosition();
-		else if (Mover* first = moverOf(it->second.carried[0]))
-			where = first->getPosition();
-		putDown(it->second, where);
+		if (!it->second.carried.empty())
+			putDownWhereLost(moverOf(it->first), it->second);
 	}
 }
 
 void update(float seconds)
 {
-	for (std::map<unsigned long, UnitState>::iterator it = states.begin(); it != states.end(); ++it)
+	for (std::map<unsigned long, UnitState>::iterator it = states.begin(); it != states.end(); )
 	{
 		UnitState& state = it->second;
 		Mover* unit = moverOf(it->first);
 
 		// a transport lost with its cargo puts it down where it was
 		if (!state.carried.empty() && (!unit || unit->isDestroyed() || unit->isDisabled()))
-		{
-			Stuff::Vector3D where(0.f, 0.f, 0.f);
-			if (unit)
-				where = unit->getPosition();
-			else if (Mover* first = moverOf(state.carried[0]))
-				where = first->getPosition();
-			putDown(state, where);
-		}
+			putDownWhereLost(unit, state);
 		if (!alive(unit))
-		{
 			state.pickUpTarget = 0;
-			continue;
-		}
+		else
+			updateUnit(unit, state, seconds);
 
-		if (state.pickUpTarget)
-		{
-			Mover* target = moverOf(state.pickUpTarget);
-			if (!alive(target) || !canCarry(unit, target))
-				state.pickUpTarget = 0;
-			else if (distance2D(unit, target) <= mc2xhud::kAirliftReach)
-			{
-				state.pickUpTarget = 0;
-				load(unit, target);
-			}
-			else
-			{
-				// the unit moved on: follow it
-				const Stuff::Vector3D at = target->getPosition();
-				const float dx = at.x - state.pickUpGoal.x;
-				const float dy = at.y - state.pickUpGoal.y;
-				if (dx * dx + dy * dy > mc2xhud::kAirliftReach * mc2xhud::kAirliftReach)
-				{
-					state.pickUpGoal = at;
-					moveTo(unit, at);
-				}
-			}
-		}
-
-		if (state.supplyMode == kSupplyOff || !ObjectManager)
-			continue;
-		for (long i = 0; i < ObjectManager->getNumMovers(); i++)
-		{
-			Mover* other = ObjectManager->getMover(i);
-			if (!alive(other) || (other == unit) || (other->getTeam() != unit->getTeam()))
-				continue;
-			if (distance2D(unit, other) > mc2xhud::kSupplyReach)
-				continue;
-			if (state.supplyMode == kRecharge)
-			{
-				// a repair vehicle's refit points are its turret armour
-				if (!other->isRefit() || mc2xsupport::isSupplyCarrier(other->getTypeHandle()))
-					continue;
-				ArmorLocation& pool = other->armor[GROUNDVEHICLE_LOCATION_TURRET];
-				pool.curArmor = mc2xhud::topUp(pool.curArmor, pool.maxArmor, seconds);
-			}
-			else
-			{
-				float used = 0.f;
-				other->refit(mc2xhud::kSupplyPointsPerSecond * seconds, used, true);
-			}
-		}
+		// a unit gone from the game, or with nothing set, needs no entry
+		if (!unit || atDefault(state))
+			it = states.erase(it);
+		else
+			++it;
 	}
 }
 
@@ -322,7 +336,7 @@ bool pickUp(Mover* transport, Mover* unit)
 {
 	if (!alive(transport) || !canCarry(transport, unit))
 		return false;
-	if (distance2D(transport, unit) <= mc2xhud::kAirliftReach)
+	if (within2D(transport, unit, mc2xhud::kAirliftReach))
 		load(transport, unit);
 	else
 	{
@@ -365,7 +379,7 @@ bool rechargeInReach(Mover* repairVehicle)
 			continue;
 		Mover* carrier = moverOf(it->first);
 		if (alive(carrier) && (carrier->getTeam() == repairVehicle->getTeam())
-			&& (distance2D(carrier, repairVehicle) <= mc2xhud::kSupplyReach))
+			&& within2D(carrier, repairVehicle, mc2xhud::kSupplyReach))
 			return true;
 	}
 	return false;

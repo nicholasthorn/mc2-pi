@@ -158,8 +158,8 @@ char marineProfileName[80] = "PEM00001";
 
 //**********************************************************************************
 
-float vehicleTurnRate[110] = 
-{
+TonnageTable<110> vehicleTurnRate =
+{{
 	360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f, //0 through 9 tons
 	240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f, //10 through 19 tons
 	240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f, //20 through 29 tons
@@ -171,7 +171,7 @@ float vehicleTurnRate[110] =
 	120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f, //80 through 89 tons
 	 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, //90 through 99 tons
 	 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f //100 through 109 tons
-};
+}};
 
 //---------------------------------------------------------------------------
 // Game System Tweakable Data
@@ -1531,7 +1531,7 @@ bool GroundVehicle::pivotTo (void) {
 								turnRate = -relFacingToWayPt;
 						}
 					}
-					float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
+					float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
 					if (fabs(turnRate) > maxRate) 
 					{
 						if (turnRate > 0.0)
@@ -1593,7 +1593,7 @@ bool GroundVehicle::pivotTo (void) {
 						else
 							turnRate = 180.0 - relFacingToWayPt;
 					}
-					float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
+					float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
 					if (fabs(turnRate) > maxRate) 
 					{
 						if (turnRate > 0.0)
@@ -1647,7 +1647,7 @@ bool GroundVehicle::pivotTo (void) {
 			if ((relFacingToTarget < -fireArc) || (relFacingToTarget > fireArc)) 
 			{
 				float turnRate = -relFacingToTarget;
-				float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
+				float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
 				if (fabs(turnRate) > maxRate) 
 				{
 					if (turnRate > 0.0)
@@ -1933,7 +1933,7 @@ bool GroundVehicle::updateMovePath (float& newRotate, char& newThrottleSetting, 
 							//-----------------------------------------------
 							// We can and will shift facing to destination...
 							newRotate = -relFacingToWayPt;
-							float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
+							float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
 							if (fabs(newRotate) > maxRate)
 							{
 								if (fabs(newRotate) < 50.0f)
@@ -1994,7 +1994,7 @@ bool GroundVehicle::updateMovePath (float& newRotate, char& newThrottleSetting, 
 						else
 							newRotate = -(relFacingToWayPt - 180.0);
 							
-						float maxRate = tonnageTableValue(vehicleTurnRate, tonnage) * frameLength;
+						float maxRate = vehicleTurnRate[long(tonnage)] * frameLength;
 						if (fabs(newRotate) > maxRate) 
 						{
 							newThrottleSetting = -50.0f;

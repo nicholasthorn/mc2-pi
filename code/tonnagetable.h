@@ -10,16 +10,24 @@
 
 #include <cstddef>
 
-// table[tonnage], with a unit heavier than the table as its last entry and a
-// negative (or NaN) tonnage as its first.
-template <typename T, size_t N>
-inline T tonnageTableValue(const T (&table)[N], float tonnage)
+// A per-ton table that is never read past its ends: table[tons] is that
+// entry, a unit heavier than the table reads the last one and a negative
+// tonnage the first. The legacy call sites index it as the plain array it
+// replaces, table[long(tonnage)], and stay as upstream wrote them. The guard
+// is on the whole tonnage: a NaN or huge float is past help at long().
+template <size_t N>
+struct TonnageTable
 {
-	if (!(tonnage >= 0.0f))
-		return table[0];
-	if (tonnage >= (float)(N - 1))
-		return table[N - 1];
-	return table[(size_t)tonnage];
-}
+	float values[N];
+
+	float operator[](long tons) const
+	{
+		if (tons < 0)
+			return values[0];
+		if ((size_t)tons >= N)
+			return values[N - 1];
+		return values[tons];
+	}
+};
 
 #endif

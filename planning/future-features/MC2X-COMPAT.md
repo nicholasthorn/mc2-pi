@@ -5,7 +5,7 @@ the loader fixes, the ABL commands MC2X's missions call, the fixes the
 sanitizer runs found, the in-mission interface and the front end on MC2X's
 own layouts; all 32 missions run 300 frames, and a REAP3 campaign plays
 from the main menu through logistics, a mission, salvage and pilot review.
-Not built: steps 7 and 8 of "Effort".
+Not built: step 8 of "Effort" (undocumented features).
 Companion to `MOD-COMPAT.md` (MechCommander Omnitech), whose work this leans
 on.
 
@@ -657,6 +657,29 @@ python3 scripts/mc2x_import.py --downloads <folder with the downloads>     --sto
   config and engine-copy pieces should become a module the Omnitech helper
   (`EASY-INSTALL.md`) shares; and one engine install serving several game
   folders would save copying the engine into each.
+
+## Clean-up left
+
+From the whole-branch /simplify of PR #157; the rest is done
+(`claude/mc2x-cleanup`). Each is a larger change than it saves now:
+
+- **One file-name fallback.** MC2X's renamed data files are found by
+  `stockOrMC2XFileName` at 7 call sites, its layouts by the retry in
+  `FitIniFile::open`. One retry in `File::open` after a failed read would
+  cover both, but the ABL library opens through its own callback, and every
+  opener (CSV, ABL, effects, the multiplayer data hash) would need checking.
+- **One ABL stack fix.** `evenStackAfterCallback` and the per-command fixes
+  in `ablmc2.cpp` both stay: the commands give the right results, the evener
+  guards commands a mod registers. A test mode where the evener stops would
+  catch a new offender; no test runs those commands yet.
+- **The MC2X HUD as one object.** `ControlGui` knows MC2X's layout from the
+  name it opened (`openedMC2XName`) and keeps its state in about 20 members;
+  detecting it by content (`Button49`, `Vehicle20`) and moving the state into
+  one object it owns is a refactor of the HUD, best with tests around it.
+- Not worth a change: the parent-building lookups add one argument to an
+  upstream line each; the map UVs are two lines at two screens; `File`'s byte
+  reads already go through the bounded `memcpy` in `read`; the stock support
+  prices are saved once because the legacy table is not `const`.
 
 ## Open questions
 

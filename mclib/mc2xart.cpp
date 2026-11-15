@@ -89,6 +89,30 @@ void stockOrMC2XFileName(const char* folder, const char* stockFile, char* name, 
 		snprintf(name, nameSize, "%s", mc2x);
 }
 
+// Blocks MC2X renamed in a file it renamed.
+struct BlockRename
+{
+	const char* mc2xFile;	// name and extension, lower case
+	const char* stockBlock;
+	const char* mc2xBlock;
+};
+
+const BlockRename kBlockNames[] = {
+	{ "mc2xgsys.fit", "General", "mc2xGeneral" },
+};
+
+const char* mc2xBlockName(const char* mc2xPath, const char* stockBlock)
+{
+	if (!mc2xPath || !stockBlock)
+		return nullptr;
+	const char* slash = strrchr(mc2xPath, '/');
+	const char* file = slash ? slash + 1 : mc2xPath;
+	for (const BlockRename& block : kBlockNames)
+		if ((strcmp(file, block.mc2xFile) == 0) && (strcmp(stockBlock, block.stockBlock) == 0))
+			return block.mc2xBlock;
+	return nullptr;
+}
+
 bool mc2xArtName(const char* stockName, char* out, size_t outSize)
 {
 	if (!stockName || !out || (outSize == 0))
