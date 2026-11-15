@@ -89,6 +89,13 @@ void stockOrMC2XFileName(const char* folder, const char* stockFile, char* name, 
 		snprintf(name, nameSize, "%s", mc2x);
 }
 
+const char* mc2xBlockName(const char* stockBlock)
+{
+	if (stockBlock && (strcmp(stockBlock, "General") == 0))
+		return "mc2xGeneral";
+	return nullptr;
+}
+
 bool mc2xArtName(const char* stockName, char* out, size_t outSize)
 {
 	if (!stockName || !out || (outSize == 0))

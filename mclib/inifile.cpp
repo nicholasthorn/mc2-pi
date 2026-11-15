@@ -484,8 +484,7 @@ long FitIniFile::openMC2XLayout (const char* fName, FileMode _mode, long numChil
 		return(FILE_NOT_OPEN);
 	memcpy(stockName, fName + folderLength, baseLength);
 	stockName[baseLength] = 0;
-	for (size_t i = 0; i < baseLength; i++)
-		stockName[i] = (char)tolower((unsigned char)stockName[i]);
+	S_strlwr(stockName);
 	char mc2xName[128];
 	if (!mc2xArtName(stockName, mc2xName, sizeof(mc2xName)))
 		return(FILE_NOT_OPEN);
@@ -578,6 +577,10 @@ long FitIniFile::seekBlock (const char *blockId)
 	
 	if (blockNum == totalBlocks)
 	{
+		// a file opened under wolfman-MC2X's name may have renamed the block too
+		const char* mc2xBlock = openedMC2X ? mc2xBlockName(blockId) : NULL;
+		if (mc2xBlock)
+			return(seekBlock(mc2xBlock));
 		return(BLOCK_NOT_FOUND);
 	}
 

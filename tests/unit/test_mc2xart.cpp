@@ -186,4 +186,12 @@ TEST_CASE("mc2xVehicleButton: stock's support units in MC2X's 22-button layout")
 	CHECK(mc2xVehicleButton(8) == -1);
 }
 
+TEST_CASE("mc2xBlockName: gamesys.fit's General is mc2xGeneral, nothing else is renamed")
+{
+	CHECK(strcmp(mc2xBlockName("General"), "mc2xGeneral") == 0);
+	CHECK(mc2xBlockName("general") == nullptr);
+	CHECK(mc2xBlockName("mc2xGeneral") == nullptr);
+	CHECK(mc2xBlockName(nullptr) == nullptr);
+}
+
 }

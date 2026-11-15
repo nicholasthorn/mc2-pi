@@ -1941,8 +1941,6 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 		}
 
 	result = gameSystemFile->seekBlock("General");
-	if (result != NO_ERR)	// wolfman-MC2X's mc2xgsys.fit names it mc2xGeneral
-		result = gameSystemFile->seekBlock("mc2xGeneral");
 	gosASSERT(result == NO_ERR);
 
 	result = gameSystemFile->readIdFloat("MaxVisualRange",maxVisualRange);
