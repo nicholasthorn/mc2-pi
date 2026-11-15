@@ -8398,14 +8398,14 @@ void MechWarrior::copyFromData (MechWarriorData &data)
 
 	// a bad save must not index past these arrays: drop the path, and the
 	// unit works out a new one, as pathType undefined always does
-	bool movePathsValid = savedStepsValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,MAX_SAVED_GLOBAL_PATH);
+	bool movePathsValid = savedGlobalPathValid(moveOrders.numGlobalSteps,moveOrders.curGlobalStep,
+		moveOrders.path[0]->globalStep,moveOrders.path[1]->globalStep,MAX_SAVED_GLOBAL_PATH);
 	for (long i = 0; i < 2; i++)
 	{
 		const MovePath* movePath = moveOrders.path[i];
 		movePathsValid = movePathsValid &&
 			savedCountValid(movePath->numSteps,MAX_STEPS_PER_MOVEPATH) &&
-			savedStepsValid(movePath->numStepsWhenNotPaused,movePath->curStep,MAX_STEPS_PER_MOVEPATH) &&
-			savedIndexValid(movePath->globalStep,MAX_SAVED_GLOBAL_PATH);
+			savedStepsValid(movePath->numStepsWhenNotPaused,movePath->curStep,MAX_STEPS_PER_MOVEPATH);
 	}
 	if (!movePathsValid)
 	{
