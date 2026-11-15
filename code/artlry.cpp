@@ -657,6 +657,8 @@ void Artillery::init (bool create)
 	rightContrail = NULL;
 			
 	bomber = NULL;
+	bombRunStarted = false;	// read by CopyTo (save) before a strike sets them
+	inView = false;
 	
 	setFlag(OBJECT_FLAG_RANDOM_OFFSET, 0);
 }

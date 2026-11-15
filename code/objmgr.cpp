@@ -3508,6 +3508,7 @@ long GameObjectManager::Load (PacketFilePtr file, long packetNum)
 			//We have a BattleMech.
 			MechData data;
 			file->readPacket(packetNum,(MemoryPtr)(&data));
+			restoreLoadedVtables(&data);
 			packetNum++;
 
 			BattleMechPtr obj = new BattleMech; 
@@ -3535,6 +3536,7 @@ long GameObjectManager::Load (PacketFilePtr file, long packetNum)
 			//We have a groundVehicle.
 			GroundVehicleData data;
 			file->readPacket(packetNum,(MemoryPtr)(&data));
+			restoreLoadedVtables(&data);
 			packetNum++;
 
 			GroundVehiclePtr obj = new GroundVehicle; 

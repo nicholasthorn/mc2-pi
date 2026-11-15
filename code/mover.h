@@ -743,6 +743,9 @@ typedef struct _MoverData : public GameObjectData
 
 } MoverData;
 
+// after a save packet is read into a MoverData (mover.cpp)
+void restoreLoadedVtables (MoverData* data);
+
 
 typedef enum {
 	MOVETYPE_GROUND,
