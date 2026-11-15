@@ -343,6 +343,8 @@ static void process_events( bool sample, bool reset ) {
             break;
         case SDL_APP_DIDENTERFOREGROUND:
             printf("[APP] back in the foreground\n");
+            if(!gos_IsAutomatedRun() && Environment.AppResumed)
+                Environment.AppResumed();
             break;
         // SDL found the GL context gone when the app came back and made a
         // new one. Every texture and buffer went with the old one, and the
@@ -547,11 +549,17 @@ int main(int argc, char** argv)
     // counted from gos_MarkGameplayStarted() (smoke runs, scripts/smoke.sh).
     // The game's own command-line parser ignores it.
     long autoexit_frames = 0;
+    // -suspendexit <frames>: after that many gameplay frames, act as if the
+    // app went into the background and the system closed it there (the
+    // game's AppSuspending, then quit), to test the resume save on a desktop
+    long suspendexit_frames = 0;
     const char* bench_csv = NULL;
     float bench_fov = 0.0f;
     for(int i=1;i<argc-1;++i) {
         if(0 == strcmp(argv[i], "-autoexit"))
             autoexit_frames = atol(argv[i+1]);
+        if(0 == strcmp(argv[i], "-suspendexit"))
+            suspendexit_frames = atol(argv[i+1]);
         if(0 == strcmp(argv[i], "-bench"))
             bench_csv = argv[i+1];
         if(0 == strcmp(argv[i], "-benchscenario"))
@@ -725,6 +733,13 @@ int main(int argc, char** argv)
                 memcpy(s.stage_ms, stage_ms, sizeof(stage_ms));
                 bench_frames.push_back(s);
             }
+        }
+        if(suspendexit_frames > 0 && frame_count >= suspendexit_frames && !g_exit) {
+            printf("[SUSPENDEXIT] after %ld gameplay frames\n", frame_count);
+            if(Environment.AppSuspending)
+                Environment.AppSuspending();
+            fflush(stdout);
+            g_exit = true;
         }
         if(autoexit_frames > 0 && frame_count >= autoexit_frames) {
             // scripts/smoke.sh treats a missing [AUTOEXIT] line as a failure

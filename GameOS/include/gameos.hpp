@@ -394,6 +394,11 @@ typedef struct
 // close it meanwhile. Not called in -autoexit / -bench runs.
 //
 	void (__stdcall *AppSuspending)();
+//
+// And this, if present, when it is back in the foreground without having been
+// closed. Not called in -autoexit / -bench runs.
+//
+	void (__stdcall *AppResumed)();
 
 } gosEnvironment;
 

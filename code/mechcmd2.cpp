@@ -855,6 +855,8 @@ Stuff::MemoryStream *effectStream = NULL;
 extern MidLevelRenderer::MLRClipper * theClipper;
 
 bool gameStarted = false;
+static bool takeResumeSave(char* name, size_t nameSize, char* loadPath, size_t pathSize);
+
 void __stdcall InitializeGameEngine()
 {
     // sebi WTF? do we ned to do it for InitDW?
@@ -1720,7 +1722,13 @@ void __stdcall InitializeGameEngine()
 		movieSoundUseDirectSound(0);
 #endif
 
-		if (justStartMission)
+		// a campaign mission the system closed in the background (Android):
+		// started as -mission does, but not marked so, so that its end goes
+		// on to the campaign's results
+		char resumeLoad[1024];
+		const bool resuming = !justStartMission
+			&& takeResumeSave(missionName, sizeof(missionName), resumeLoad, sizeof(resumeLoad));
+		if (justStartMission || resuming)
 		{
 			logistics->setLogisticsState(log_STARTMISSIONFROMCMDLINE);
 			char commandersToLoad[MAX_MC_PLAYERS][3] = {{0, 0, 0}, {1, 1, 1}, {2, 0, 2}, {3, 3, 3}, {4, 4, 4}, {5, 5, 5}, {6, 6, 6}, {7, 7, 7}};
@@ -1754,6 +1762,16 @@ void __stdcall InitializeGameEngine()
 			eye->activate();
 			eye->update();
 			mission->start();
+			if (resuming)
+			{
+				// the chassis and variants the save's logistics data names,
+				// then the save over the mission, paused for the player
+				LogisticsData::instance->init();
+				mission->load(resumeLoad);
+				remove(resumeLoad);
+				if (mission->missionInterface && !mission->missionInterface->isPaused())
+					mission->missionInterface->togglePause();
+			}
 		}
 		else
 		{
@@ -1886,15 +1904,104 @@ void __stdcall InitializeGameEngine()
 }
 
 //---------------------------------------------------------------------------
+// The resume save (Android): written when the app goes into the background
+// in a campaign mission and removed when it comes back, so it is only there
+// on a start after the system closed the app meanwhile. The mission's name
+// goes beside it: that mission starts, and the save is loaded over it, as
+// the pause menu's Load does.
+static void resumeFile(char* path, size_t size, const char* name)
+{
+	S_snprintf(path, size, "%s%s", savePath, name);
+}
+
+static void removeResumeSave()
+{
+	char path[1024];
+	resumeFile(path, sizeof(path), "resume.ims");
+	remove(path);
+	resumeFile(path, sizeof(path), "resume.txt");
+	remove(path);
+}
+
+// The save of a run the system closed, if there is one: its mission's name,
+// and the save moved to loadPath, so a load that fails is not tried again on
+// the next start. A save from another version of the game is dropped.
+static bool takeResumeSave(char* name, size_t nameSize, char* loadPath, size_t pathSize)
+{
+	char path[1024], txt[1024];
+	resumeFile(loadPath, pathSize, "resume.loading.ims");
+	remove(loadPath);
+	resumeFile(path, sizeof(path), "resume.ims");
+	resumeFile(txt, sizeof(txt), "resume.txt");
+	bool found = false;
+	FILE* f = fopen(txt, "rb");
+	if (f)
+	{
+		const size_t n = fread(name, 1, nameSize - 1, f);
+		name[n] = 0;
+		fclose(f);
+		found = n > 0 && rename(path, loadPath) == 0;
+	}
+	remove(txt);
+	remove(path);
+	if (!found)
+		return false;
+
+	char version[1024] = {0};
+	PacketFile file;
+	if (file.open(loadPath) == NO_ERR)
+	{
+		file.seekPacket(0);
+		if (file.getPacketSize() > 0 && file.getPacketSize() < (long)sizeof(version))
+			file.readPacket(0, (unsigned char*)version);
+		file.close();
+	}
+	if (strcmp(version, versionStamp) != 0)
+	{
+		printf("[RESUME] %s is from another version of the game: not loaded\n", loadPath);
+		remove(loadPath);
+		return false;
+	}
+	printf("[RESUME] resuming %s\n", name);
+	return true;
+}
+
+//---------------------------------------------------------------------------
 // The app is going into the background (Android: another app, the home
 // screen, a call), and the system may close it there. Pause a mission as
 // the pause key does, so it has not run on without the player when they
-// come back. A multiplayer game cannot pause.
+// come back, and save a campaign mission for a start after a close. A
+// multiplayer game cannot pause.
 void __stdcall AppSuspending()
 {
-	if (mission && mission->isActive() && mission->missionInterface && !MPlayer
-		&& !mission->missionInterface->isPaused())
+	if (!mission || !mission->isActive() || !mission->missionInterface || MPlayer)
+		return;
+	if (!mission->missionInterface->isPaused())
 		mission->missionInterface->togglePause();
+	// a campaign's mission only, as the pause menu's Save
+	if (!LogisticsData::instance || LogisticsData::instance->isSingleMission())
+		return;
+	char path[1024];
+	resumeFile(path, sizeof(path), "resume.ims");
+	mission->save(path);
+	if (!fileExists(path))
+		return;
+	resumeFile(path, sizeof(path), "resume.txt");
+	FILE* f = fopen(path, "wb");
+	if (f)
+	{
+		fputs(mission->getMissionFileName(), f);
+		fclose(f);
+	}
+	printf("[RESUME] saved %s\n", mission->getMissionFileName());
+	fflush(stdout);
+}
+
+// Back from the background without being closed: the game carries on, and
+// the resume save is out of date.
+void __stdcall AppResumed()
+{
+	removeResumeSave();
 }
 
 //---------------------------------------------------------------------------
@@ -2845,6 +2952,7 @@ void __stdcall GetGameOSEnvironment(const char* CommandLine )
 	Environment.DoGameLogic				= DoGameLogic;
 	Environment.TerminateGameEngine		= TerminateGameEngine;
 	Environment.AppSuspending			= AppSuspending;
+	Environment.AppResumed				= AppResumed;
 
 	Environment.Renderer				= 0;
 

@@ -135,8 +135,11 @@ What to expect so far:
   20:9 phone widens everything.
 - **Switching away** from the app (Home, another app, a call) pauses a mission
   with its pause menu up, as the pause key does, and stops the sound; coming
-  back carries on. Nothing is saved yet: Android may close the app while it is
-  in the background, and the mission is lost then. If the GL context did not
+  back carries on. A campaign mission is also saved then (`resume.ims` in the
+  save folder, removed on coming back): if Android closes the app while it is
+  in the background, the next start goes straight back into the mission,
+  paused, instead of the main menu. A single mission or a multiplayer game is
+  not saved, as the pause menu cannot save them either. If the GL context did not
   survive, the game quits (an `[APP] FATAL` line in `mc2.log`), since it
   cannot reload its textures.
 

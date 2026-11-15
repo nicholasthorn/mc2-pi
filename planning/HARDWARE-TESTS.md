@@ -425,6 +425,13 @@ push the data as in `android/README.md`, "Phones and tablets".
       in `mc2.log` instead. Note the GPU (Adreno, Mali, PowerVR); try two vendors.
 - [ ] **A phone call or the screen turning off** mid-mission: the same as switching
       away. In a menu nothing pauses, and the menu is as it was.
+- [ ] **The resume save** (phase 3): in a campaign mission, give a few orders, go to
+      Home, then close the app from the recent apps list. Start it again: it goes
+      straight into the mission, paused, with the units where they were, and the
+      campaign carries on after it (results, then logistics with the same mechs and
+      pilots). Then switch away and back without closing: the next start is the
+      main menu, not the old mission. How long does the save take when switching
+      away (`[RESUME] saved` in `mc2.log`)?
 - [ ] **Switching away at a mission's end:** go to Home while the mission-won
       sequence or an in-mission movie plays. Does the pause menu come up over it on
       return, and does closing it carry the end of the mission on as normal?
