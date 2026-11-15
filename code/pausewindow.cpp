@@ -291,6 +291,14 @@ void PauseWindow::render()
 
 void PauseWindow::init( FitIniFile& file )
 {
+	// a new screen size while the window is open (swapResolutions: a resumed
+	// mission pauses before its own resolution is set) puts the buttons back
+	// where the file has them, so the window slides in again from the new
+	// edge (update), keeping the objectives button as it was
+	const bool objectivesPressed = buttons && buttonCount > OBJECTIVES
+		&& ( buttons[OBJECTIVES].state & ControlButton::PRESSED );
+	currentTime = 0;
+
 	file.seekBlock( "PauseWindow" );
 	file.readIdLong( "ButtonCount", buttonCount );
 	file.readIdLong( "staticCount", staticCount );
@@ -322,6 +330,8 @@ void PauseWindow::init( FitIniFile& file )
 		{
 			buttons[i].move( 0, -ControlGui::hiResOffsetY );
 		}
+		if ( objectivesPressed && buttonCount > OBJECTIVES )
+			buttons[OBJECTIVES].press( 1 );
 	}
 
 	if ( staticCount )
