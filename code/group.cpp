@@ -420,18 +420,16 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 	//-----------------------------------------------------------------
 	// A goal cell must have a route to it from the clicked cell's area,
 	// as the home team moves (its gates open, others' closed). Asked here,
-	// before the search: calcPath uses the same openList.
-	extern GlobalMapPtr GlobalMoveMap[3];
+	// before the search: calcPath uses the same openList. Cached per order,
+	// not in GlobalMap's pathExistsTable, which does not know the team.
 	GlobalMapPtr globalMap = GlobalMoveMap[0];
 	long clickArea = inMapBounds(goalRow, goalCol, GameMap->height, GameMap->width) ? globalMap->calcArea(goalRow, goalCol) : -1;
 	GroupGoalAreas askedAreas;
+	char oldTeamID = globalMap->moverTeamID;
+	globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
 	auto canReach = [globalMap, clickArea] (long area) {
 		GlobalPathStep path[MAX_GLOBAL_PATH];
-		char oldTeamID = globalMap->moverTeamID;
-		globalMap->moverTeamID = Team::home ? (char)Team::home->getId() : -1;
-		long numSteps = globalMap->calcPath(clickArea, area, path);
-		globalMap->moverTeamID = oldTeamID;
-		return (numSteps > 0);
+		return (globalMap->calcPath(clickArea, area, path) > 0);
 	};
 	for (int r = 0; r < GOALMAP_DIM; r++)
 		for (int c = 0; c < GOALMAP_DIM; c++) {
@@ -451,6 +449,7 @@ long MoverGroup::calcMoveGoals (Stuff::Vector3D goal, long numMovers, Stuff::Vec
 				goalMap[index].flags = GOALFLAG_NO_NEIGHBORS;
 			goalMap[index].g = 0;
 		}
+	globalMap->moverTeamID = oldTeamID;
 
 	//-----------------------------------------------
 	// If we haven't already, create the OPEN list...
