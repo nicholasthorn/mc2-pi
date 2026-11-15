@@ -455,9 +455,21 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
       stands empty and whole; the salvage craft can man another. On
       `reap3m01`: the mech disabled, the pilot ejected.
 
-Not tried: the GLES build on desktop (it runs on the Quest), MC2X's
-operation maps (`mc2x_ops_*`) and per-campaign main menus, which stock
-screens never open.
+Not tried: the GLES build on desktop (it runs on the Quest).
+
+24. **Operation maps and main menus (2026-11-15).** Stock's mission
+    selection screen already opens the operation map a campaign names
+    (`OperationFile = "mc2x_ops_reap3"`), but it listed at most 6 missions
+    (`MAX_MISSIONS_IN_GROUP`). MC2X's operations hold up to 24 (REAP3, on a
+    25-button `mc2x_ops_reap3.fit`; the Test Mission Collection 7), so the
+    rest stayed hidden and the list overflowed, leaving no mission chosen.
+    The limit is now 32 (button ids 100 to 131, clear of the screen's own
+    50 to 82). REAP3's map shows all 24 with their pictures and the first
+    mission's briefing. The per-campaign main menus are not a feature of
+    the game: each `mc2x_mm_<campaign>.fit` is marked "File for use in ...
+    campaign only!" and differs from `mc2x_mm.fit` only in its background
+    picture, so a campaign's installer puts its own in place of
+    `mc2x_mm.fit`, which is all the game opens. Nothing to build.
 
 ## ABL
 
@@ -507,7 +519,7 @@ The largest piece, and the one MC2X changed most:
 
 - **Every layout renamed** `mc2x_*` (table above), plus MC2X-only screens
   (`mc2x_ops_*` operation maps per campaign, `mc2x_deploymentteams`,
-  `mc2x_mm_<campaign>` main menus).
+  `mc2x_mm_<campaign>` main menus; see Progress 24).
 - **The HUD is a superset.** `mc2x_buttonlayout1024.fit` has 54 buttons
   (stock 21): formations (10 kinds), C-Bills up/down, recharge, pick-up and
   drop-off, hide ids, spy map, a second support tab; 22 support units
@@ -585,6 +597,7 @@ stock or Omnitech units).
 | done | the 14 other support units and the second support tab (`code/mc2xsupport.h`, unit tested) | |
 | done | C-Bills to resource points and back, the spy map (`code/mc2xhud.h`, unit tested) | |
 | done | the buttons for selected units: dropship fire, hide ID, pick-up and drop-off, recharge and reload, exit unit (`code/mc2xhud.h`, `code/mc2xunits.cpp`; each a reading of one line of help) | |
+| done | operation maps of more than 6 missions (Progress 24); per-campaign main menus are an install-time file swap | |
 | done | install: `scripts/mc2x_import.py` builds game folders from the downloads (see Import below) | |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.

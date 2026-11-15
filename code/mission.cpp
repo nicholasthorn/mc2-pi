@@ -3496,6 +3496,12 @@ void Mission::destroy (bool initLogistics)
 		MoverGroup::goalMap = NULL;
 	}
 
+	if (MoverGroup::goalOpenList)
+	{
+		delete MoverGroup::goalOpenList;
+		MoverGroup::goalOpenList = NULL;
+	}
+
 	if (openList)
 	{
 		delete openList;

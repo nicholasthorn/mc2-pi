@@ -22,7 +22,10 @@ MissionSelectionScreen.h : Header file for mission selection
 
 class FitIniFile;
 
-#define MAX_MISSIONS_IN_GROUP 6
+// Missions an operation map lists. Stock operations hold 6; wolfman-MC2X's
+// hold up to 25 (REAP3), whose buttons past the sixth stayed hidden. The
+// mission buttons' ids run from MSG_FIRST_MISSION (100) to 131.
+#define MAX_MISSIONS_IN_GROUP 32
 
 class MissionSelectionScreen : public LogisticsScreen
 {
