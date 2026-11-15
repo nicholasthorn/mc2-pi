@@ -61,6 +61,7 @@ LogisticsData::LogisticsData()
 	salvageCraftOverride = -1;
 	repairTruckOverride = -1;
 	artilleryPieceOverride = -1;
+	deployerOverride = -1;
 
 	bNewMechs = bNewWeapons = bNewPilots = 0;
 }
@@ -2919,6 +2920,14 @@ bool LogisticsData::canHaveArtilleryPiece()
 	if ( !missionInfo )
 		return true;
 	return missionInfo->canHaveArtilleryPiece();
+}
+bool LogisticsData::canHaveMC2XSupport( int missionSwitch )
+{
+	if ( ( missionSwitch == mc2xsupport::kDeployer ) && ( deployerOverride >= 0 ) )
+		return deployerOverride != 0;
+	if ( !missionInfo )
+		return true;
+	return missionInfo->canHaveMC2XSupport( missionSwitch );
 }
 bool LogisticsData::canHaveAirStrike()
 {

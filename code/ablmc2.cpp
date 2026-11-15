@@ -110,6 +110,7 @@
 
 #include"bldng.h"
 #include"logisticsdata.h"
+#include"mc2xsupport.h"
 #include"msglines.h"
 #include<string>
 #include<vector>
@@ -7158,14 +7159,18 @@ void execToggleArtilleryPiece (void) {
 
 void execToggleDeployer (void) {
 
-	// TOGGLE DEPLOYER (MC2X): MC2X's VTOL deployer support unit, which this
-	// game does not have. Accepted so the scripts compile; nothing happens.
+	// TOGGLE DEPLOYER (MC2X): flips MC2X's Deployer support button for the
+	// rest of the mission, as togglerepairtruck does the repair truck.
+	if (LogisticsData::instance)
+		LogisticsData::instance->deployerOverride = LogisticsData::instance->canHaveMC2XSupport(mc2xsupport::kDeployer) ? 0 : 1;
 }
 
 void execSetDeployerEnabled (void) {
 
 	// SET DEPLOYER ENABLED (MC2X): see toggledeployer.
-	ABLi_popBoolean();
+	bool enabled = ABLi_popBoolean();
+	if (LogisticsData::instance)
+		LogisticsData::instance->deployerOverride = enabled ? 1 : 0;
 }
 
 //-----------------------------------------------------------------------------

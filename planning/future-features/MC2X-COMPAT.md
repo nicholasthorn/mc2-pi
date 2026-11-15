@@ -386,6 +386,35 @@ no `detail textures` folder), and the one bad `tgl.fst` entry. No
     `reap3m01` shows the palette in MC2X's art. Layouts without these
     buttons (stock, Omnitech) are unchanged.
 
+21. **Support units (2026-11-15, step 8, second part).** MC2X's 22 support
+    buttons sit on two support tabs (the second is layout button 49): 14
+    units and Cancel on the first, 7 on the second. Its own 14 units now
+    work like stock's: bought with resource points at the price in their
+    help text (stock's seven take MC2X's prices too, 3,000 to 25,000;
+    MC2X's run from 5,000 to 1,020,000, and its missions give 100,000 to
+    2,000,000), brought in by the VTOL, with the pilot of their own
+    `pmw<unit>.fit`. Object numbers come from MC2X's inventory (its FitID
+    column, which matches `object2.pak`): JamFly 1464, infantry carrier
+    238, specialist 1342, drone 1366, supplier 1259, mercenary 1444, lander
+    1470, humvee 1336, transport 1465, kamikaze 1478 (the swarm brings 5),
+    deployer 1473. Two are this port's reading: the Armored Rescue Vehicle
+    is the inventory's ambulance (the only rescue-like vehicle, and it
+    repairs), and the FlySwatter button brings the FlySwatter vehicle
+    (1480; the button, its pilot and the inventory row are all Swatter,
+    though the help text says RavenDX). Each mission's
+    `<x>EnabledDefault` switch turns a unit off (`SpotterEnabledDefault`
+    the JamFly, `HoverEnabledDefault` the carrier, `ElementalEnabledDefault`
+    the specialist, `MarinesEnabledDefault` the mercenaries,
+    `StingerEnabledDefault` the FlySwatter, `KamikazeEnabledDefault` both
+    kamikaze buttons), and `toggledeployer` / `setdeployerenabled` now
+    switch the deployer. Pure table in `code/mc2xsupport.h`, unit tested.
+    Not in multiplayer (MC2X has none). Checked on `reap3m01`: a drone,
+    the swarm of five, a humvee and a carrier are delivered and charged;
+    pictures of both tabs. At 1024 wide MC2X's leftmost column (x -45)
+    and its tac-map tab are off the screen; MC2X needs 1280, where its
+    offsets bring them in. MC2X's own layout puts the resource-point line
+    over the bottom row of the first tab.
+
 Not tried: the GLES build on desktop (it runs on the Quest), MC2X's
 operation maps (`mc2x_ops_*`) and per-campaign main menus, which stock
 screens never open.
@@ -513,7 +542,8 @@ stock or Omnitech units).
 | - | `TacWaterColor`, the per-type deploy switches and `max<n>tons`: undocumented, left | |
 | done | the shop's unit-type buttons: MC2X lists its vehicles, infantry and dropships as mechs (inventory Type MECH, its Group ID the unit type), so they were for sale already; the buttons filter by group (`code/shopfilter.h`) | |
 | done | formations: the Formation button, its palette of ten and the indicator; a group move order takes the shape (`code/formation.h`, unit tested) | |
-| 8 | the rest of the HUD, route 2 (the 14 other support units, pick-up and drop-off, recharge and reload, C-Bills to resource points, hide ID, spy map, exit unit) | weeks |
+| done | the 14 other support units and the second support tab (`code/mc2xsupport.h`, unit tested) | |
+| 8 | the rest of the HUD, route 2 (pick-up and drop-off, recharge and reload, C-Bills to resource points, hide ID, spy map, exit unit, the dropship's fire button) | weeks |
 | - | install: an extractor for Clickteam installers, or an import step | 1 day |
 
 REAP3 runs from the menus on MC2X's own art with no local workaround.

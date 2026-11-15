@@ -40,6 +40,8 @@ public:
 	// wolfman-MC2X's togglerepairtruck / toggleartillerypiece, the same way
 	int				repairTruckOverride;
 	int				artilleryPieceOverride;
+	// and its toggledeployer / setdeployerenabled
+	int				deployerOverride;
 
 	static LogisticsData*		instance;
 
@@ -220,6 +222,8 @@ public:
 	bool				canHaveAirStrike();
 	bool				canHaveSensorStrike();
 	bool				canHaveMineLayer();
+	// wolfman-MC2X's own support units (mc2xsupport::Switch)
+	bool				canHaveMC2XSupport( int missionSwitch );
 
 	bool				getVideoShown();
 	void				setVideoShown();

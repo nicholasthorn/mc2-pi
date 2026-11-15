@@ -261,6 +261,7 @@ set(SOURCES
     "code/forcegroupcycle.cpp"
     "code/msglines.cpp"
     "code/formation.cpp"
+    "code/mc2xsupport.cpp"
     "code/missiongui.cpp"
     "code/mpconnectiontype.cpp"
     "code/mpgamebrowser.cpp"
@@ -341,7 +342,7 @@ endif()
 if(MC2_STRICT_WARNINGS)
     set_source_files_properties(code/benchscenario.cpp code/typename.cpp code/campaignglobals.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
-    set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netlobby.cpp code/netrules.cpp code/netforce.cpp code/iconsheet.cpp code/forcegroupcycle.cpp code/msglines.cpp code/formation.cpp code/missaim.cpp
+    set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netlobby.cpp code/netrules.cpp code/netforce.cpp code/iconsheet.cpp code/forcegroupcycle.cpp code/msglines.cpp code/formation.cpp code/mc2xsupport.cpp code/missaim.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
     # uismokedriver.cpp is game glue (like benchdirector.cpp) but new code, as is
     # ondisksizes.cpp (compile-time size checks over the game's structs):

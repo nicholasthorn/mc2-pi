@@ -4417,6 +4417,18 @@ void MissionInterfaceManager::addVehicle( const Stuff::Vector3D& pos )
 		return;
 
 	reinforcement = BringInReinforcement(vehicleID[Commander::home->getId()], 255, Commander::home->getId(), pos, true);
+
+	// wolfman-MC2X's kamikaze swarm: the rest of it round the first, started
+	// at once (the VTOL's own power-up is for the first)
+	const long count = controlGui.getVehicleCount();
+	for (long i = 1; i < count; i++) {
+		Stuff::Vector3D spot = pos;
+		spot.x += (i & 1) ? 64.0f : -64.0f;
+		spot.y += (i & 2) ? 64.0f : -64.0f;
+		MoverPtr extra = BringInReinforcement(vehicleID[Commander::home->getId()], 255, Commander::home->getId(), spot, true);
+		if (extra && extra->getPilot())
+			extra->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
+	}
 }
 
 void MissionInterfaceManager::beginVtol (long supportID, long commanderID, Stuff::Vector3D* reinforcePos, MoverPtr salvageTarget)

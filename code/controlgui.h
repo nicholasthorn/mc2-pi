@@ -255,6 +255,9 @@ class ControlGui
 		// wolfman-MC2X's move formation (formation.h): kNone (0) unless its
 		// HUD's palette chose one
 		int		getFormation() const { return formationKind; }
+		// how many units the support delivery under way brings (MC2X's
+		// kamikaze swarm: 5; every other: 1)
+		int		getVehicleCount();
 
 		void	showServerMissing();
 
@@ -348,7 +351,19 @@ class ControlGui
 		int					formationKind;
 		void				initFormationButtons( FitIniFile& buttonFile, bool mc2xHud );
 		void				updateFormationButtons( bool bShow, float mouseX, float mouseY );
-		bool				inFormationButton( int mouseX, int mouseY );
+		// wolfman-MC2X's own support units (mc2xsupport.h): its layout's
+		// [Vehicle7] to [Vehicle20] over two support tabs, and the second tab
+		// (Button49); NULL with other layouts
+		ControlButton*		mc2xSupportButtons;
+		ButtonData*			mc2xSupportData;
+		ControlButton*		support2Tab;
+		ButtonData*			support2TabData;
+		int					supportPage;		// 1, or 2: the second tab
+		int					mc2xPendingBlock;	// the unit being brought in, or -1
+		void				initMC2XSupport( FitIniFile& buttonFile, bool mc2xHud );
+		void				updateMC2XSupport( float mouseX, float mouseY );
+		void				renderMC2XSupport();
+		bool				stockVehicleShown( int i );
 
 		InfoWindow*			infoWnd;
 		PauseWindow*		pauseWnd;

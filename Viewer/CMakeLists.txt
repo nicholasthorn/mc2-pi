@@ -11,6 +11,7 @@ set(VIEWER_SOURCES
     "../code/mission2.cpp"
     "../code/movobj.cpp"
     "../code/typename.cpp"
+    "../code/mc2xsupport.cpp"
     "../code/prefs.cpp"
     "../code/radio.cpp"
     "../code/simplecamera.cpp"
