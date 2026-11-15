@@ -174,16 +174,37 @@ def clickteam_files(path):
     return files
 
 
-def extract_clickteam(path, out):
+def _decompressor(kind):
+    if kind == 0:
+        return None
+    if kind == 1:
+        return zlib.decompressobj()
+    if kind == 2:
+        return bz2.BZ2Decompressor()
+    raise ImportError_('unknown compression %d' % kind)
+
+
+def extract_clickteam(path, out, chunk=1 << 22):
+    """Every file of the installer into out, a chunk at a time (its fast
+    files run to hundreds of MB)."""
     with open(path, 'rb') as f:
         for name, offset, csize, usize in clickteam_files(path):
             f.seek(offset)
-            raw = f.read(csize)
-            data = _decompress(raw[0], raw[1:])
-            if len(data) != usize:
+            d = _decompressor(f.read(1)[0])
+            left = csize - 1
+            written = 0
+            with open(_target(out, name), 'wb') as w:
+                while left > 0:
+                    raw = f.read(min(chunk, left))
+                    if not raw:
+                        break
+                    left -= len(raw)
+                    data = raw if d is None else d.decompress(raw)
+                    w.write(data)
+                    written += len(data)
+            if written != usize:
                 raise ImportError_('%s: %s decoded to %d bytes, not %d'
-                                   % (os.path.basename(path), name, len(data), usize))
-            _write(out, name, data)
+                                   % (os.path.basename(path), name, written, usize))
 
 
 # --------------------------------------------------------------------------
@@ -298,10 +319,19 @@ def game_view(folder):
 # --------------------------------------------------------------------------
 # Game folders
 
+def _target(out, name):
+    """out/name with its folders made; a name that would leave out (a ".."
+    part, a drive or an absolute path) is refused."""
+    parts = name.split('/')
+    if any(p in ('', '.', '..') or ':' in p for p in parts) or os.path.isabs(name):
+        raise ImportError_('unsafe file name %r' % name)
+    dst = os.path.join(out, *parts)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    return dst
+
+
 def _write(out, name, data):
-    dst = os.path.join(out, *name.split('/'))
-    os.makedirs(os.path.dirname(dst) or out, exist_ok=True)
-    with open(dst, 'wb') as w:
+    with open(_target(out, name), 'wb') as w:
         w.write(data)
 
 
@@ -391,7 +421,11 @@ def copy_engine(engine_dir, folder):
         if not os.path.isfile(src):
             continue
         if n in ENGINE_FILES or (n.lower().endswith('.dll') and os.path.exists(os.path.join(engine_dir, 'mc2.exe'))):
-            shutil.copy2(src, os.path.join(folder, n))
+            dst = os.path.join(folder, n)
+            if os.path.exists(dst):
+                # a new file, not a write through a hard link into another folder
+                os.remove(dst)
+            shutil.copy2(src, dst)
             found = found or n in ('mc2', 'mc2.exe')
     if not found:
         raise ImportError_('%s has no mc2 or mc2.exe' % engine_dir)
@@ -443,17 +477,19 @@ def extract_zip_install(path, out):
     its contents go to out."""
     with zipfile.ZipFile(path) as z:
         names = [n for n in z.namelist() if not n.endswith('/')]
-        prefixes = {n[:n.lower().find('mc2x/') + 5] for n in names if 'mc2x/' in n.lower()}
-        prefixes = sorted(prefixes, key=len)
+        prefixes = set()
+        for n in names:
+            parts = n.split('/')
+            for i, p in enumerate(parts[:-1]):
+                if p.lower() == 'mc2x':
+                    prefixes.add('/'.join(parts[:i + 1]) + '/')
+                    break
         if not prefixes:
             raise ImportError_('%s: no mc2x folder in it' % os.path.basename(path))
-        prefix = prefixes[0]
+        prefix = sorted(prefixes, key=len)[0]
         for n in names:
             if n.startswith(prefix):
-                rest = n[len(prefix):]
-                if '..' in rest.split('/'):
-                    raise ImportError_('%s: unsafe path %s' % (os.path.basename(path), n))
-                _write(out, rest, z.read(n))
+                _write(out, n[len(prefix):], z.read(n))
 
 
 def build(downloads, stock_dir, out, engine_dir=None, force=False, log=print):

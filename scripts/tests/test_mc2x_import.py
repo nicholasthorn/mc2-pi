@@ -110,6 +110,25 @@ class Clickteam(unittest.TestCase):
             with open(os.path.join(out, 'mc2xres.dll'), 'rb') as f:
                 self.assertEqual(f.read(), b'bzip2' * 50)
 
+    def test_extracts_a_chunk_at_a_time(self):
+        with tempfile.TemporaryDirectory() as t:
+            exe = os.path.join(t, 'setup.exe')
+            content = bytes(range(256)) * 40
+            make_clickteam(exe, [('s', content, 0), ('z', content, 1), ('b', content, 2)])
+            out = os.path.join(t, 'out')
+            mi.extract_clickteam(exe, out, chunk=7)
+            for n in ('s', 'z', 'b'):
+                with open(os.path.join(out, n), 'rb') as f:
+                    self.assertEqual(f.read(), content)
+
+    def test_refuses_names_that_leave_the_folder(self):
+        for name in ('..\\escape.txt', 'data\\..\\..\\x', 'C:\\x', '\\root'):
+            with tempfile.TemporaryDirectory() as t:
+                exe = os.path.join(t, 'setup.exe')
+                make_clickteam(exe, [(name, b'x', 0)])
+                with self.assertRaises(mi.ImportError_, msg=name):
+                    mi.extract_clickteam(exe, os.path.join(t, 'out'))
+
     def test_zlib_file_list(self):
         with tempfile.TemporaryDirectory() as t:
             exe = os.path.join(t, 'setup.exe')
@@ -217,6 +236,21 @@ class Folders(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(folder, 'shaders', 'a.frag')))
             self.assertFalse(os.path.exists(os.path.join(folder, 'readme.txt')))
 
+    def test_engine_copy_does_not_write_through_links(self):
+        with tempfile.TemporaryDirectory() as t:
+            engine = os.path.join(t, 'engine')
+            write(os.path.join(engine, 'mc2.exe'), b'new exe')
+            write(os.path.join(engine, 'SDL2.dll'), b'new dll')
+            base = os.path.join(t, 'base')
+            write(os.path.join(base, 'SDL2.dll'), b'old dll')
+            linked = os.path.join(t, 'linked')
+            mi.link_or_copy_tree(base, linked)
+            mi.copy_engine(engine, linked)
+            with open(os.path.join(linked, 'SDL2.dll'), 'rb') as f:
+                self.assertEqual(f.read(), b'new dll')
+            with open(os.path.join(base, 'SDL2.dll'), 'rb') as f:
+                self.assertEqual(f.read(), b'old dll')
+
     def test_add_own_files_keeps_shared_ones(self):
         with tempfile.TemporaryDirectory() as t:
             base = os.path.join(t, 'base')
@@ -246,6 +280,13 @@ class Folders(unittest.TestCase):
             mi.extract_zip_install(z, out)
             self.assertTrue(os.path.isfile(os.path.join(out, 'data', 'missions', 'a.fit')))
             self.assertFalse(os.path.exists(os.path.join(out, 'readme.txt')))
+            # a folder whose name only contains "mc2x" is not the install
+            z2 = os.path.join(t, 'dg2.zip')
+            with zipfile.ZipFile(z2, 'w') as w:
+                w.writestr('wolfman-mc2x/MC2X/data/b.fit', b'b')
+            out3 = os.path.join(t, 'out3')
+            mi.extract_zip_install(z2, out3)
+            self.assertTrue(os.path.isfile(os.path.join(out3, 'data', 'b.fit')))
             bad = os.path.join(t, 'bad.zip')
             with zipfile.ZipFile(bad, 'w') as w:
                 w.writestr('MC2X/../../escape.txt', b'x')
