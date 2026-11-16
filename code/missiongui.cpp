@@ -209,6 +209,13 @@ static bool overTouchBar( long x, long y )
 	}
 	return false;
 }
+
+//the interface is at x, y (the game's screen pixels), as the mouse checks
+//below find it: the control panel or the touch screen's command bar
+bool MissionInterfaceManager::isOverInterface( long x, long y )
+{
+	return controlGui.inRegion( x, y, isPaused() && !isPausedWithoutMenu() ) || overTouchBar( x, y );
+}
 bool drawGUIOn = true;				//Used to shut off GUI for Screen Shots and Movie Mode
 bool toggledGUI = true;				//Used to tell if I shut the GUI off or if its in movieMode
 long lightState = 0;

@@ -861,12 +861,21 @@ bool vrWorldPickPoint (Stuff::Vector3D &point)
 	return true;
 }
 
-static void vrPickWorld (void)
+static void vrPickWorld (MissionInterfaceManager *missionGui)
 {
 	vrPickValid = false;
 	float position[3], orientation[4];
 	if (!gos_GetVRPointerRay(position,orientation))
 		return;
+	//a phone's tabletop: a finger on the interface drawn over the battle
+	//picks nothing, and the mouse stays under it
+	float touchX = 0.0f, touchY = 0.0f;
+	if (gos_GetVRTouchPoint(&touchX,&touchY) && missionGui &&
+		missionGui->isOverInterface((long)(touchX * Environment.screenWidth),(long)(touchY * Environment.screenHeight)))
+	{
+		gos_SetVRWorldPointer(false,0.0f,0.0f,0.0f);
+		return;
+	}
 	Stuff::Vector3D origin, direction;
 	float unitsPerMetre = 1.0f;
 	if (!eye || !land || !eye->vrRayToWorld(position,orientation,origin,direction,unitsPerMetre))
@@ -961,7 +970,7 @@ long Mission::render (void)
 			eye->ambientBlue = 0xFF;
 		}
 		BenchStage("world_render",eye->renderWorld());
-		vrPickWorld();
+		vrPickWorld(missionInterface);
 	
 		//-----------------------------------------------------
 		// FOG time.  Set Render state to FOG on!

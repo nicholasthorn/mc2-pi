@@ -271,6 +271,8 @@ public:
 
 		bool	isPaused();
 		bool	isPausedWithoutMenu();
+		//a phone's tabletop: the finger is on the interface, not the battle
+		bool	isOverInterface( long x, long y );
 		int		togglePause();
 		int		togglePauseWithoutMenu();
 		int		toggleHoldPosition();

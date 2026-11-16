@@ -138,7 +138,15 @@ pose never needs to be sent: each device finds it from the marker.
 
 ## Phones: ARCore
 
-Unchanged from the first version of this spec (`AR-PHONE.md`):
+Built first (2026-11-16, `GameOS/gameos/gos_ar.cpp`, ARCore 1.57, not yet run
+on a phone): the table goes on the first level surface ARCore finds in the
+middle of the screen, not a tapped one, so a tap stays an order; the camera
+image uses `LATEST_CAMERA_IMAGE`, so the game is not paced to the camera; a
+tap waits one frame for the game to find the battle under the finger
+(`gos_ar::pointerFor`), and a finger on the interface picks nothing
+(`gos_GetVRTouchPoint`, `MissionInterfaceManager::isOverInterface`). Not
+yet: placing the table again, "hold view", pinch to zoom the table. The plan
+it came from:
 
 | Area | What |
 |---|---|
@@ -176,7 +184,8 @@ may be paced at 30 Hz, as the Quest steps it at 30 Hz.
 
 ## Verification
 
-- Unit tests: `table_anchor` (test_table_anchor.cpp).
+- Unit tests: `table_anchor` (test_table_anchor.cpp), `ar_view` (test_ar_view.cpp:
+  the eye's angles from ARCore's projection, the ray through a tap).
 - CI: the Quest and phone APKs build (Android job); desktop and Pi builds
   unchanged (the tabletop is off unless a tracker turns it on).
 - Device (`planning/HARDWARE-TESTS.md` as phases land): the Quest 2 (grey

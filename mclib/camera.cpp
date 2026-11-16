@@ -1756,7 +1756,9 @@ void Camera::renderWorld (void)
 	// floating text set during the update (HUD text) stays full-window;
 	// what an eye's pass adds is drawn in that eye's half, then dropped
 	const DWORD helpsBeforeEyes = FloatHelp::count();
-	for (int eyeIndex=0;eyeIndex<2;eyeIndex++)
+	// a phone's tabletop (gos_ar) has one eye, the headset and -stereo two
+	const int eyeCount = vrEyes ? vrEyes : 2;
+	for (int eyeIndex=0;eyeIndex<eyeCount;eyeIndex++)
 	{
 		setEye(eyeIndex);
 		render();

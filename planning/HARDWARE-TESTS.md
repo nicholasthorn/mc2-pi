@@ -482,6 +482,23 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
 - [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
       moved the eye the wrong way before the fix, by centimetres.
 
+Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
+`mc2args.txt`, on a phone with ARCore (Pixel 9). GLES.
+
+- [ ] **The camera asks and ARCore starts**: the permission prompt on the
+      first start, then the camera image fills the screen behind the game;
+      `[AR] tracking` in `mc2.log`. Turning the phone over (the other
+      landscape way) keeps the image upright and unstretched.
+- [ ] **The battle stands on the table**: pointed at a table and moved a
+      little, `[AR] table placed on a surface` and the battle on it, staying
+      put as the phone walks round it and leans in, at a sensible size.
+- [ ] **Taps on the table** select and order units where the finger is; taps
+      on the interface work as in a flat game; two fingers scroll the map.
+- [ ] **Switching away and back** (Home, then the app): the camera comes back
+      and the battle is where it was.
+- [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera
+      prompt).
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing

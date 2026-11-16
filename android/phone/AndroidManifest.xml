@@ -24,6 +24,22 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
+    <!-- the tabletop through ARCore (MC2_AR_TABLE=1, AR-TABLETOP.md): the
+         camera, asked for at run time, and only then. Phones without ARCore
+         still install and play flat ("optional" below). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+    <!-- from ARCore's own manifest (android/deps/arcore-*): it looks for its
+         service and the Play Store -->
+    <queries>
+        <package android:name="com.google.ar.core" />
+        <package android:name="com.android.vending" />
+        <intent>
+            <action android:name="com.google.android.play.core.install.BIND_INSTALL_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:label="MC2 phone test"
         android:hasCode="true"
@@ -32,6 +48,17 @@
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <!-- lets simpleperf profile the test build from adb shell -->
         <profileable android:shell="true" />
+        <!-- ARCore: not needed to play, and the oldest ARCore this SDK
+             (1.57) works with; its activity asks to install or update it -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
+        <meta-data android:name="com.google.ar.core.min_apk_version" android:value="262070000" />
+        <activity
+            android:name="com.google.ar.core.InstallActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.Material.Light.Dialog.Alert" />
         <activity
             android:name="com.nicholasthorn.mc2.MC2Activity"
             android:label="MC2 phone test"
