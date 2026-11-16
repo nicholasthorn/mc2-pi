@@ -529,6 +529,25 @@ long Mission::update (void)
 		// the camera as it was until now.
 		float vrHead[4];
 		eye->setVRHead(gos_GetVRHead(vrHead) ? vrHead : NULL);
+		// MC2_XR_STICK_LOG=1: the game camera's own heading and target as they
+		// change, beside the stick's keys (gos_xr)
+		static const bool stickLog = getenv("MC2_XR_STICK_LOG") && getenv("MC2_XR_STICK_LOG")[0] == '1';
+		static float loggedRotation = 1000.0f;
+		static float loggedX = 0.0f, loggedY = 0.0f;
+		if (stickLog)
+		{
+			const Stuff::Vector3D at = eye->getPosition();
+			const float dx = at.x - loggedX, dy = at.y - loggedY;
+			if (fabs(eye->getCameraRotation() - loggedRotation) >= 5.0f || dx * dx + dy * dy >= 300.0f * 300.0f)
+			{
+				// moved: the bearing of the move in the world, degrees
+				printf("[CAMERA] heading %.0f degrees, at %.0f %.0f, moved %.0f %.0f (bearing %.0f)\n",
+					eye->getCameraRotation(), at.x, at.y, dx, dy, atan2(dy, dx) * 180.0f / 3.14159265f);
+				loggedRotation = eye->getCameraRotation();
+				loggedX = at.x;
+				loggedY = at.y;
+			}
+		}
 
 		BenchStage("camera",ProfileTime(MCTimeCameraUpdate,eye->update()));
 		

@@ -281,6 +281,16 @@ uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint3
     return actions;
 }
 
+void headRelativeStick(const float stick[2], float headYaw, float game[2])
+{
+    // seen from above, x right and y ahead: turning left turns the stick
+    // anticlockwise
+    const float c = std::cos(headYaw);
+    const float s = std::sin(headYaw);
+    game[0] = c * stick[0] - s * stick[1];
+    game[1] = s * stick[0] + c * stick[1];
+}
+
 uint32_t pressEvents(PressPattern& press, bool down, double seconds, bool hasLong)
 {
     uint32_t events = 0;
