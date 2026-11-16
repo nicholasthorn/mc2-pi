@@ -2342,6 +2342,16 @@ void Camera::setCameraOrigin (void)
 			if (altitude > localAltitude)
 				localAltitude = altitude;
 			localAngle = vr_eye::kTableCameraAngle;
+			//...and nothing on the table hazed or culled for being far from this
+			//camera: the haze and the far clip measure from it, and it can be
+			//further than they reach (a phone's narrow view puts it four times
+			//as high as the Quest's, and the world was all haze)
+			const float reach = localAltitude + 2.0f * radius;
+			if (MinHazeDistance < reach)
+			{
+				MinHazeDistance = reach;
+				setFarClipDistance(reach + 1.0f);
+			}
 		}
 		while (!isOKView)
 		{

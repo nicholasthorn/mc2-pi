@@ -485,15 +485,18 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
 Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
 `mc2args.txt`, on a phone with ARCore (Pixel 9). GLES.
 
-- [ ] **The camera asks and ARCore starts**: the permission prompt on the
+- [x] **The camera asks and ARCore starts**: the permission prompt on the
       first start, then the camera image fills the screen behind the game;
-      `[AR] tracking` in `mc2.log`. Turning the phone over (the other
-      landscape way) keeps the image upright and unstretched.
-- [ ] **The battle stands on the table**: pointed at a table and moved a
+      `[AR] tracking` in `mc2.log`. Done on a Pixel 9, 2026-11-16. Still to
+      see: turning the phone over (the other landscape way) keeps the image
+      upright and unstretched.
+- [x] **The battle stands on the table**: pointed at a table and moved a
       little, `[AR] table placed on a surface` and the battle on it, staying
-      put as the phone walks round it and leans in, at a sensible size.
+      put as the phone walks round it and leans in, at a sensible size. Done
+      on a Pixel 9, 2026-11-16 (mc2_01 on a desk; at first all haze, fixed).
 - [ ] **Taps on the table** select and order units where the finger is; taps
-      on the interface work as in a flat game; two fingers scroll the map.
+      on the interface work as in a flat game. Two fingers scroll the map:
+      done on a Pixel 9, 2026-11-16.
 - [ ] **Switching away and back** (Home, then the app): the camera comes back
       and the battle is where it was.
 - [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera
