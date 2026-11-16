@@ -61,21 +61,24 @@ vr_eye::Basis eyeFor(const vr_eye::Basis& game, const float xrPos[3], const floa
 TEST_SUITE("VrEye")
 {
 
-TEST_CASE("OpenXR axes turn into the engine camera's: right, up and back all flip")
+TEST_CASE("OpenXR poses keep their axes in the engine camera's")
 {
+	// the game camera's rows are x right, y up, z back in world space, as
+	// OpenXR's (measured on the tabletop: positions once flipped here put the
+	// eye under the ground)
 	float pos[3], quat[4];
 	const float xrForward[3] = {0.0f, 0.0f, -1.0f};
 	vr_eye::fromXr(xrForward, kIdentity, pos, quat);
-	CHECK(near3(pos, 0.0f, 0.0f, 1.0f));
+	CHECK(near3(pos, 0.0f, 0.0f, -1.0f));
 	CHECK(quat[3] == doctest::Approx(1.0f));
 
-	const float xrRight[3] = {1.0f, 0.0f, 0.0f};     // engine x is screen left
+	const float xrRight[3] = {1.0f, 0.0f, 0.0f};
 	vr_eye::fromXr(xrRight, kIdentity, pos, quat);
-	CHECK(near3(pos, -1.0f, 0.0f, 0.0f));
+	CHECK(near3(pos, 1.0f, 0.0f, 0.0f));
 
-	const float xrUp[3] = {0.0f, 1.0f, 0.0f};        // engine y is screen down
+	const float xrUp[3] = {0.0f, 1.0f, 0.0f};
 	vr_eye::fromXr(xrUp, kIdentity, pos, quat);
-	CHECK(near3(pos, 0.0f, -1.0f, 0.0f));
+	CHECK(near3(pos, 0.0f, 1.0f, 0.0f));
 }
 
 TEST_CASE("an unmoved head sees exactly the game camera")
@@ -126,14 +129,31 @@ TEST_CASE("turning the head keeps the horizon level and the game's pitch")
 
 TEST_CASE("leaning and rising move the eye level with the ground, in world units")
 {
+	// a game camera as the engine's really is (its rows logged in the headset,
+	// 2026-11-16): at (10, 20, 30), looking along world +z pitched down by
+	// 0.6 radians; rows x right (world -x), y up and forward, z back and up
+	const float p = 0.6f;
+	vr_eye::Basis engine;
+	engine.x[0] = -1.0f; engine.x[1] = 0.0f; engine.x[2] = 0.0f;
+	engine.y[0] = 0.0f; engine.y[1] = std::cos(p); engine.y[2] = std::sin(p);
+	engine.z[0] = 0.0f; engine.z[1] = std::sin(p); engine.z[2] = -std::cos(p);
+	engine.position[0] = 10.0f; engine.position[1] = 20.0f; engine.position[2] = 30.0f;
+	float view[3];
+	vr_eye::viewDirection(engine, view);
+	CHECK(view[1] < 0.0f);      // it looks down, as the logged camera did
+	CHECK(view[2] > 0.0f);
+
+	// the head half a metre forward: the eye goes along the level view
 	const float forwardHalfMetre[3] = {0.0f, 0.0f, -0.5f};
-	const vr_eye::Basis lean = eyeFor(gameCamera(0.6f), forwardHalfMetre, kIdentity, 4.0f);
+	const vr_eye::Basis lean = eyeFor(engine, forwardHalfMetre, kIdentity, 4.0f);
 	CHECK(near3(lean.position, 10.0f, 20.0f, 32.0f));
+	// a metre up: up (the tabletop put the eye under the ground before)
 	const float upOneMetre[3] = {0.0f, 1.0f, 0.0f};
-	const vr_eye::Basis rise = eyeFor(gameCamera(0.6f), upOneMetre, kIdentity, 4.0f);
+	const vr_eye::Basis rise = eyeFor(engine, upOneMetre, kIdentity, 4.0f);
 	CHECK(near3(rise.position, 10.0f, 24.0f, 30.0f));
+	// a metre right: the screen's right, world -x
 	const float rightOneMetre[3] = {1.0f, 0.0f, 0.0f};
-	const vr_eye::Basis step = eyeFor(gameCamera(0.6f), rightOneMetre, kIdentity, 4.0f);
+	const vr_eye::Basis step = eyeFor(engine, rightOneMetre, kIdentity, 4.0f);
 	CHECK(near3(step.position, 6.0f, 20.0f, 30.0f));
 }
 

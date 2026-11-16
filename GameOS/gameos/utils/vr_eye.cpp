@@ -42,12 +42,14 @@ void flatten(const float v[3], const float n[3], float out[3])
 
 void fromXr(const float xrPosition[3], const float xrOrientation[4], float position[3], float orientation[4])
 {
-    // a point reflection: every axis flips. A rotation's axis is a
-    // pseudovector, so it flips twice (by the reflection and by the change
-    // of handedness): the quaternion stays as it is.
-    position[0] = -xrPosition[0];
-    position[1] = -xrPosition[1];
-    position[2] = -xrPosition[2];
+    // the same axes: the game camera's rows are x right, y up and z back,
+    // as OpenXR's (measured on the tabletop, 2026-11-16: its UP_AXIS row
+    // points up). Positions were once flipped here, which put the eye
+    // below the ground on a table, where the head's offset is scaled up;
+    // in the game's own view it moved by centimetres and went unnoticed.
+    position[0] = xrPosition[0];
+    position[1] = xrPosition[1];
+    position[2] = xrPosition[2];
     for(int i = 0; i < 4; ++i)
         orientation[i] = xrOrientation[i];
 }

@@ -12,7 +12,9 @@
 // z, for where an eye or a pointer points (a pointer taking z went up when
 // the hand pointed down; found in the headset, VR plan Phase 3). Eye bases
 // are unaffected: they are whole matrices. OpenXR view axes: x right, y up,
-// z back. The two differ by a point reflection.
+// z back. In world space the game camera's rows point the same ways (its
+// UP_AXIS row points up, measured on the tabletop on 2026-11-16), so poses
+// pass between them unchanged; the screen's flips are projectZ's.
 namespace vr_eye {
 
 // A camera's axes and position in world space.
