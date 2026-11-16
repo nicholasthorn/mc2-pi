@@ -46,8 +46,8 @@ float tableScale();
 //
 // pointerFor, for each move of the touch screen's pointer (drawable pixels):
 // where the mouse should go, or false when the game has not yet answered for
-// this point (a press then waits a frame, as it must land where the finger
-// was).
+// this point (a press or a release then waits a frame, as it must land where
+// the finger was; a move meanwhile keeps the mouse where it last was).
 bool pointerFor(float x, float y, float& mouseX, float& mouseY);
 // The finger, 0 to 1 across the game's screen (gos_GetVRTouchPoint).
 bool touchPoint(float& x, float& y);

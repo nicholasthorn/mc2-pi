@@ -230,15 +230,16 @@ void poll()
     std::vector<touch::PointerEvent> events = g_gestures.takePointerEvents();
     // a phone's tabletop, in a mission (only a mission picks the world): the
     // pointer goes where the game found the battle under the finger
-    // (gos_ar::pointerFor), and a press waits for that
+    // (gos_ar::pointerFor), and a press or a release waits for that: a drag's
+    // box starts and ends under the finger
     events.insert(events.begin(), g_waiting.begin(), g_waiting.end());
     g_waiting.clear();
     for(size_t i = 0; i < events.size(); ++i) {
         const touch::PointerEvent& e = events[i];
         float x = e.x, y = e.y;
         const bool ready = !inMission() || gos_ar::pointerFor(e.x, e.y, x, y);
-        const bool press = (e.left && !g_pointerLeft) || (e.right && !g_pointerRight);
-        if(press && !ready) {
+        const bool buttons = e.left != g_pointerLeft || e.right != g_pointerRight;
+        if(buttons && !ready) {
             input::moveVirtualPointer(x, y);
             g_waiting.assign(events.begin() + (std::ptrdiff_t)i, events.end());
             break;

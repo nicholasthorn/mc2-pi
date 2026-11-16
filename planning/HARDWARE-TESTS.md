@@ -494,9 +494,13 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
       little, `[AR] table placed on a surface` and the battle on it, staying
       put as the phone walks round it and leans in, at a sensible size. Done
       on a Pixel 9, 2026-11-16 (mc2_01 on a desk; at first all haze, fixed).
-- [ ] **Taps on the table** select and order units where the finger is; taps
-      on the interface work as in a flat game. Two fingers scroll the map:
-      done on a Pixel 9, 2026-11-16.
+- [x] **Taps on the table** select and order units where the finger is; taps
+      on the interface work as in a flat game. Two fingers scroll the map.
+      Done on a Pixel 9, 2026-11-16.
+- [ ] **A drag box on the table**: drag one finger across some units; the box
+      follows the finger without jumping, and selects the units inside where
+      the finger lifted. (It jumped and ended in the wrong place before the
+      fix that keeps the pointer put while a point waits.)
 - [ ] **Switching away and back** (Home, then the app): the camera comes back
       and the battle is where it was.
 - [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera

@@ -67,6 +67,10 @@ struct State {
     int unanswered = 0;         // polls the game has not answered (no mission)
     bool worldValid = false;
     float worldX = 0.0f, worldY = 0.0f;     // 0 to 1 across the game's screen
+    // the mouse as last answered: a drag's pointer stays there while a newer
+    // point waits, instead of jumping to the finger's screen pixel
+    bool haveMouse = false;
+    float mouseX = 0.0f, mouseY = 0.0f;
 };
 State g;
 
@@ -470,8 +474,11 @@ bool pointerFor(float x, float y, float& mouseX, float& mouseY)
 {
     mouseX = x;
     mouseY = y;
-    if(!g.running)
+    // not tracking: the game draws its own screen, where the finger is right
+    if(!g.running || !g.tracking) {
+        g.haveMouse = false;
         return true;
+    }
     if(!g.haveFinger || x != g.fingerX || y != g.fingerY) {
         g.haveFinger = true;
         g.fingerX = x;
@@ -479,16 +486,26 @@ bool pointerFor(float x, float y, float& mouseX, float& mouseY)
         ++g.fingerSerial;
         g.unanswered = 0;
     }
-    // not answered: wait, but not for ever (no mission, nor tracking, picks)
-    if(g.answeredSerial != g.fingerSerial && ++g.unanswered <= 3)
-        return false;
-    if(g.answeredSerial == g.fingerSerial && g.worldValid) {
+    if(g.answeredSerial != g.fingerSerial) {
+        // not answered yet: the pointer stays where it was (a drag lags a
+        // frame rather than jumping), and waits, but not for ever (no
+        // mission picks)
+        if(g.haveMouse) {
+            mouseX = g.mouseX;
+            mouseY = g.mouseY;
+        }
+        return ++g.unanswered > 3;
+    }
+    if(g.worldValid) {
         int vp[4];
         gos_GetWindowViewport(vp);
         const int top = Environment.drawableHeight - vp[1] - vp[3];
         mouseX = (float)vp[0] + g.worldX * (float)vp[2];
         mouseY = (float)top + g.worldY * (float)vp[3];
     }
+    g.haveMouse = true;
+    g.mouseX = mouseX;
+    g.mouseY = mouseY;
     return true;
 }
 
