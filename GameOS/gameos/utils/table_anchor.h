@@ -37,6 +37,12 @@ struct Settings {
 // (distance,drop in metres); null, out of range or not a number: the default.
 Settings settingsFrom(const char* scale, const char* place);
 
+// Zooming on the table (the Quest's right stick, up and down): the scale after
+// 'seconds' with the stick at 'stick' (-1 to 1, up positive). Fully up for a
+// second makes the battle twice as large; near the centre (a stick at rest
+// is a little off) nothing; never past the range.
+float zoomScale(float scale, float stick, float seconds);
+
 // A table ahead of a head at headPosition facing headYaw (about +y), facing
 // the same way.
 Table inFront(const float headPosition[3], float headYaw, float distance, float drop);

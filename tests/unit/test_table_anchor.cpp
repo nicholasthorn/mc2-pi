@@ -112,6 +112,24 @@ TEST_CASE("walking round the table keeps looking at its centre")
 	}
 }
 
+TEST_CASE("zoom: the stick makes the battle larger or smaller, smoothly, within the range")
+{
+	// pushed fully up for a second: the battle twice as large (half the scale)
+	CHECK(table_anchor::zoomScale(600.0f, 1.0f, 1.0f) == doctest::Approx(300.0f).epsilon(1e-3));
+	// down: smaller
+	CHECK(table_anchor::zoomScale(600.0f, -1.0f, 1.0f) == doctest::Approx(1200.0f).epsilon(1e-3));
+	// a frame at a time adds up to the same
+	float s = 600.0f;
+	for(int i = 0; i < 72; ++i)
+		s = table_anchor::zoomScale(s, 1.0f, 1.0f / 72.0f);
+	CHECK(s == doctest::Approx(300.0f).epsilon(1e-3));
+	// a stick near the centre does nothing (it rests a little off)
+	CHECK(table_anchor::zoomScale(600.0f, 0.15f, 1.0f) == doctest::Approx(600.0f));
+	// held long enough: stops at the ends of the range
+	CHECK(table_anchor::zoomScale(600.0f, 1.0f, 100.0f) == doctest::Approx(table_anchor::kMinScale));
+	CHECK(table_anchor::zoomScale(600.0f, -1.0f, 100.0f) == doctest::Approx(table_anchor::kMaxScale));
+}
+
 TEST_CASE("settings: the scale and where the table goes")
 {
 	table_anchor::Settings s = table_anchor::settingsFrom(nullptr, nullptr);

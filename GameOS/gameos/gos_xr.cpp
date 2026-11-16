@@ -54,7 +54,15 @@ const float kScreenWidth = 2.0f;
 const float kHudDistance = 1.5f;
 const float kHudDown = 0.52f;           // radians below the horizon (30 degrees)
 const float kHudWidth = 2.0f;
-const float kTableHudDown = -0.14f;     // the tabletop's: 8 degrees above the horizon
+// the tabletop's: 20 degrees above the horizon and narrower (placed by hand
+// in a Quest 2 on 2026-11-16 at 17 degrees, twice, both times stopped by the
+// old 17 degree limit, and 1.54 m wide)
+const float kTableHudDown = -0.35f;
+const float kTableHudWidth = 1.6f;
+// how far above the horizon the quad may be moved (45 degrees)
+const float kHudHighest = -0.79f;
+// a controller's aim pose lying on a table is about this far above it (m)
+const float kTableControllerHeight = 0.03f;
 
 // the pointer stays this many of the game's screen pixels inside its edges,
 // where the game would scroll the map (the sticks do that)
@@ -220,6 +228,7 @@ struct State {
     table_anchor::Settings tableSettings = {table_anchor::kDefaultScale,
             table_anchor::kDefaultDistance, table_anchor::kDefaultDrop};
     table_anchor::Table table = {{0.0f, -table_anchor::kDefaultDrop, -table_anchor::kDefaultDistance}, 0.0f};
+    bool tableZooming = false;              // the right stick is changing the scale
     bool passthroughAvailable = false;      // the runtime has XR_FB_passthrough
     XrPassthroughFB passthrough = XR_NULL_HANDLE;
     XrPassthroughLayerFB passthroughLayer = XR_NULL_HANDLE;
@@ -752,8 +761,21 @@ void recentreHud()
     memcpy(g.hudOrigin, head.position, sizeof(g.hudOrigin));
     g.hudYaw = vr_controls::yawOf(head.orientation);
     placeHud();
-    if(g.tabletop)
+    if(!g.tabletop)
+        return;
+    // the battle's centre where the right controller is (set it on the real
+    // table), facing the way the head does; without it, ahead of the head
+    vr_controls::Pose hand;
+    if(g.actionSet != XR_NULL_HANDLE && locateIn(g.aimSpaces[1], g.space, hand, true)) {
+        g.table.position[0] = hand.position[0];
+        g.table.position[1] = hand.position[1] - kTableControllerHeight;
+        g.table.position[2] = hand.position[2];
+        g.table.yaw = g.hudYaw;
+        printf("[XR] table placed at the right controller, %.2f m below the head, at 1:%.0f\n",
+                head.position[1] - g.table.position[1], g.tableSettings.scale);
+    } else {
         placeTable(head.position, g.hudYaw);
+    }
 }
 
 // MC2_XR_HUD=distance,degrees,width: the quad's distance (metres), angle
@@ -763,11 +785,14 @@ void readHudSettings()
     g.hudDistance = g.useEyes ? kHudDistance : kScreenDistance;
     g.hudDown = g.useEyes ? kHudDown : 0.0f;
     g.hudWidth = g.useEyes ? kHudWidth : kScreenWidth;
-    // the tabletop: above the table, like a board behind it. Below the
+    // the tabletop: above the table, like a board behind it (unless
+    // MC2_XR_HUD says otherwise, below). Below the
     // horizon it lay over the table while 1.5 m away, further than the
     // table it covered, and the eyes had to cross to read it.
-    if(g.tabletop)
+    if(g.tabletop) {
         g.hudDown = kTableHudDown;
+        g.hudWidth = kTableHudWidth;
+    }
     const char* env = getenv("MC2_XR_HUD");
     float distance = 0.0f, degrees = 0.0f, width = 0.0f;
     const int count = env ? sscanf(env, "%f,%f,%f", &distance, &degrees, &width) : 0;
@@ -789,7 +814,7 @@ void adjustHud(const float left[2])
     const float dt = g.frame.predictedDisplayPeriod > 0 ? (float)g.frame.predictedDisplayPeriod * 1e-9f : 1.0f / 72.0f;
     const float deadZone = 0.2f;
     auto rate = [deadZone](float v) { return std::fabs(v) < deadZone ? 0.0f : v; };
-    g.hudDown = std::min(1.2f, std::max(-0.3f, g.hudDown - 0.5f * rate(left[1]) * dt));
+    g.hudDown = std::min(1.2f, std::max(kHudHighest, g.hudDown - 0.5f * rate(left[1]) * dt));
     g.hudWidth = std::min(4.0f, std::max(0.5f, g.hudWidth + 0.5f * rate(left[0]) * dt));
     if(rate(left[0]) != 0.0f || rate(left[1]) != 0.0f) {
         g.hudAdjusted = true;
@@ -1364,7 +1389,7 @@ bool init()
             const bool room = g.passthroughAvailable && createPassthrough() && createAlphaFill();
             if(!room)
                 destroyPassthrough();
-            printf("[XR] tabletop at 1:%.0f, %s; A puts the table in front of you\n", g.tableSettings.scale,
+            printf("[XR] tabletop at 1:%.0f, %s; A puts the battle at your right controller (set it on the table), the right stick zooms it\n", g.tableSettings.scale,
                     room ? "the room through passthrough" : "no passthrough: the table in the fog");
         }
         if(createActions()) {
@@ -1735,6 +1760,19 @@ void pollInput()
             printf("[XR] interface placed: MC2_XR_HUD=%.2f,%.0f,%.2f\n", g.hudDistance,
                     g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
         g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
+        // the tabletop: zooming makes the battle larger or smaller on the
+        // table, as the game camera's height means nothing there
+        if(g.tabletop) {
+            const uint32_t zoom = vr_controls::ZOOM_IN | vr_controls::ZOOM_OUT;
+            const bool zooming = (g.stickActions & zoom) != 0;
+            if(zooming)
+                g.tableSettings.scale = table_anchor::zoomScale(g.tableSettings.scale, right[1],
+                        (float)g.frame.predictedDisplayPeriod * 1e-9f);
+            else if(g.tableZooming)
+                printf("[XR] table at 1:%.0f (MC2_TABLE_SCALE=%.0f)\n", g.tableSettings.scale, g.tableSettings.scale);
+            g.tableZooming = zooming;
+            g.stickActions &= ~zoom;
+        }
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)

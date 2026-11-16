@@ -74,7 +74,8 @@ bool active();
 // The tabletop (MC2_XR_TABLE=1, planning/future-features/AR-TABLETOP.md):
 // eyeViews and pointerRay are in the table's frame (utils/table_anchor.h),
 // with the room shown round it through passthrough where the headset has it.
-// A places the table in front of the head, with the interface.
+// A puts the table at the right controller (set it on the real table), with
+// the interface in front of the head; the right stick zooms the table.
 // MC2_TABLE_SCALE: world metres to a real one (default 600);
 // MC2_TABLE_PLACE=distance,drop: where it goes from the head, in metres.
 bool tabletop();

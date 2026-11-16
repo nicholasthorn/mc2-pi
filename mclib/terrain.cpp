@@ -979,8 +979,10 @@ void Terrain::geometry (void)
 	Stuff::Vector3D boxMin(FLT_MAX, FLT_MAX, FLT_MAX);
 	Stuff::Vector3D boxMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-	//VR: the ground fades out before the window's edge (vr_edge_fade.h)
-	const bool vrEdge = gos_IsVR();
+	//VR: the ground fades out before the window's edge (vr_edge_fade.h); on
+	//the tabletop it ends at the round window's tiles instead, as the fade
+	//goes to the fog colour, a misty ring over the room
+	const bool vrEdge = gos_IsVR() && !gos_GetVRTabletop();
 	const vr_edge_fade::Range vrEdgeRange = vr_edge_fade::rangeFor(visibleVerticesPerSide, worldUnitsPerVertex);
 	const Stuff::Vector3D vrEdgeCentre = eye->getPosition();
 

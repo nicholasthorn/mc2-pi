@@ -468,13 +468,17 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
 - [x] **The battle stands on the table**, the room round it through passthrough,
       and walking round it or leaning in moves the view. Done on a Quest 2,
       2026-11-16 (after the head position fix: it was on the ceiling).
-- [ ] **The interface panel reads easily**: above the table (8 degrees over the
-      horizon, 1.5 m away) with no need to cross the eyes. Hold A and push the
-      left stick to move it; the log prints the `MC2_XR_HUD` value to keep.
+- [ ] **The interface panel reads easily**: above the table (20 degrees over the
+      horizon, 1.5 m away, 1.6 m wide) with no need to cross the eyes. Hold A
+      and push the left stick to move it; the log prints the `MC2_XR_HUD` value
+      to keep. Placed by hand at 17 degrees and 1.54 m on a Quest 2, 2026-11-16,
+      where the old limit stopped it; the new default is not yet seen.
 - [x] **Clicks on the table** select and order units where the pointer meets the
       ground (the ray is in the table's frame). Done on a Quest 2, 2026-11-16.
-- [ ] **A puts the table where you face**, at a real table, and the sticks
-      scroll and turn the map across it.
+- [x] **A puts the table at the right controller**, laid on a real table, the
+      right stick zooms it (the log prints `MC2_TABLE_SCALE`), and the left
+      stick scrolls the map across it. Done on a Quest 2, 2026-11-16 (mc2_05,
+      zoomed between 1:285 and 1:1673).
 - [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
       moved the eye the wrong way before the fix, by centimetres.
 

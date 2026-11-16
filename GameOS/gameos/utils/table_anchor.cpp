@@ -41,6 +41,16 @@ Settings settingsFrom(const char* scale, const char* place)
     return s;
 }
 
+float zoomScale(float scale, float stick, float seconds)
+{
+    const float deadZone = 0.2f;
+    if(stick > -deadZone && stick < deadZone)
+        return scale;
+    // up makes the battle larger: a smaller scale
+    const float next = scale * std::pow(2.0f, -stick * seconds);
+    return next < kMinScale ? kMinScale : (next > kMaxScale ? kMaxScale : next);
+}
+
 Table inFront(const float headPosition[3], float headYaw, float distance, float drop)
 {
     // ahead is -z turned by the yaw about +y: (-sin, 0, -cos)
