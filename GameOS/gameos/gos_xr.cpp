@@ -1501,12 +1501,21 @@ void pollInput()
                     g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
         // the eyes look where the head does: pan that way too
         float pan[2] = {left[0], left[1]};
+        float headYaw = 0.0f;
         if(g.viewsValid) {      // only with the eyes (MC2_XR_EYES=0 has none)
             const XrQuaternionf& q = g.views[0].pose.orientation;
             const float head[4] = {q.x, q.y, q.z, q.w};
-            vr_controls::headRelativeStick(left, vr_controls::yawOf(head), pan);
+            headYaw = vr_controls::yawOf(head);
+            vr_controls::headRelativeStick(left, headYaw, pan);
         }
+        const uint32_t before = g.stickActions;
         g.stickActions = vr_controls::stickActions(pan, right, g.stickActions);
+        // MC2_XR_STICK_LOG=1: each change of the camera keys, and why
+        static const bool stickLog = getenv("MC2_XR_STICK_LOG") && getenv("MC2_XR_STICK_LOG")[0] == '1';
+        if(stickLog && g.stickActions != before)
+            printf("[XR] stick keys %02x: left %.2f %.2f, head %.0f degrees (eyes %d) -> %.2f %.2f, right %.2f %.2f\n",
+                    (unsigned)g.stickActions, left[0], left[1], headYaw * 180.0f / 3.14159265f, (int)g.viewsValid,
+                    pan[0], pan[1], right[0], right[1]);
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)
