@@ -102,6 +102,7 @@
 
 #include"gvehicl.h" // remove
 #include "forcegroupcycle.h"
+#include"mc2xunits.h"
 
 	static const char* terrainStr[NUM_TERRAIN_TYPES] = {
 			"Blue Water",	//MC_BLUEWATER_TYPE
@@ -892,6 +893,13 @@ void MissionInterfaceManager::update (void)
 
 	}
 	
+	// wolfman-MC2X's pick-up button armed: this click names the unit to carry
+	if ( controlGui.isPickingUp() && !bGui && userInput->leftMouseReleased() && !userInput->wasLeftDrag() )
+	{
+		controlGui.endPickUp( ( target && target->isMover() ) ? (Mover*)target : NULL );
+		return;
+	}
+
 	if( leftRightProfile() ) // using AOE control style
 	{
 		if ( WAYPOINT_KEY == -1 )
@@ -2563,12 +2571,15 @@ int MissionInterfaceManager::handleOrders( TacticalOrder& order)
 		isMoveOrder = true;
 		}
 	else if (order.code == TACTICAL_ORDER_MOVETO_POINT) {
+		MoverPtr movers[MAX_MOVERS];
 		for (long i = 0; i < pTeam->getRosterSize(); i++) {
 			Mover* pMover = pTeam->getMover(i);
 			if (pMover->isSelected() && pMover->getCommander()->getId() == Commander::home->getId())
-				numMovers++;
+				movers[numMovers++] = pMover;
 		}
 		MoverGroup::calcMoveGoals(order.getWayPoint(0), numMovers, moveGoals);
+		// wolfman-MC2X's formation, when its HUD's palette chose one
+		MoverGroup::calcFormationGoals(controlGui.getFormation(), order.getWayPoint(0), numMovers, movers, moveGoals);
 		isMoveOrder = true;
 	}
 
@@ -2578,6 +2589,8 @@ int MissionInterfaceManager::handleOrders( TacticalOrder& order)
 		Mover* pMover = (Mover*)pTeam->getMover( i );
 		if ( pMover->isSelected() && pMover->getCommander()->getId() == Commander::home->getId() )
 		{
+			mc2xunits::orderGiven( pMover );	// wolfman-MC2X's airlift: a pick-up is off
+
 			//---------------------------------------------------------------------
 			// Helper function--perhaps this should just be a part of the mover and
 			// group handleTacticalOrder() functions?
@@ -4459,6 +4472,18 @@ void MissionInterfaceManager::addVehicle( const Stuff::Vector3D& pos )
 		return;
 
 	reinforcement = BringInReinforcement(vehicleID[Commander::home->getId()], 255, Commander::home->getId(), pos, true);
+
+	// wolfman-MC2X's kamikaze swarm: the rest of it round the first, started
+	// at once (the VTOL's own power-up is for the first)
+	const long count = controlGui.getVehicleCount();
+	for (long i = 1; i < count; i++) {
+		Stuff::Vector3D spot = pos;
+		spot.x += (i & 1) ? 64.0f : -64.0f;
+		spot.y += (i & 2) ? 64.0f : -64.0f;
+		MoverPtr extra = BringInReinforcement(vehicleID[Commander::home->getId()], 255, Commander::home->getId(), spot, true);
+		if (extra && extra->getPilot())
+			extra->getPilot()->orderPowerUp(true, ORDER_ORIGIN_SELF);
+	}
 }
 
 void MissionInterfaceManager::beginVtol (long supportID, long commanderID, Stuff::Vector3D* reinforcePos, MoverPtr salvageTarget)
@@ -5687,6 +5712,9 @@ void testKeyStuff()
 
 int MissionInterfaceManager::toggleHotKeys()
 {
+	// no key reference layout (KeyboardRef::init logged it): not an empty pause screen
+	if ( !bDrawHotKeys && !keyboardRef->isLoaded() )
+		return 1;
 	bDrawHotKeys ^= 1;
 	if ( bDrawHotKeys )
 	{

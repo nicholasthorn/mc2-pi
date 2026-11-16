@@ -112,6 +112,7 @@
 #endif
 
 #include "../resource.h"
+#include"tonnagetable.h"
 #include<utils/str_bounded.h>
 
 extern unsigned long		NextIdNumber;
@@ -157,8 +158,8 @@ char marineProfileName[80] = "PEM00001";
 
 //**********************************************************************************
 
-float vehicleTurnRate[110] = 
-{
+TonnageTable<110> vehicleTurnRate =
+{{
 	360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f,360.0f, //0 through 9 tons
 	240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f, //10 through 19 tons
 	240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f,240.0f, //20 through 29 tons
@@ -170,7 +171,7 @@ float vehicleTurnRate[110] =
 	120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f,120.0f, //80 through 89 tons
 	 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, //90 through 99 tons
 	 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f, 90.0f //100 through 109 tons
-};
+}};
 
 //---------------------------------------------------------------------------
 // Game System Tweakable Data
@@ -321,6 +322,7 @@ long GroundVehicleType::init (FilePtr objFile, unsigned long fileSize) {
 	result = vehicleFile.readIdLong("MoveType", moveType);
 	if (result != NO_ERR)
 		moveType = MOVETYPE_GROUND;
+	moveType = moveTypeFromData(moveType);
 
 	result = vehicleFile.readIdFloat("LOSFactor",LOSFactor);
 	if (result != NO_ERR)
@@ -1014,6 +1016,10 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 		return(result);
 
 	name[0] = '\0';
+	// the type's own name, for a DescIndex too long to be one (wolfman-MC2X)
+	char typeName[MAXLEN_MOVER_NAME];
+	if (vehicleFile->readIdString("Name", typeName, MAXLEN_MOVER_NAME - 1) != NO_ERR)
+		typeName[0] = '\0';
 
 	result = vehicleFile->seekBlock("General");
 	if (result != NO_ERR)
@@ -1033,7 +1039,8 @@ long GroundVehicle::init (FitIniFile* vehicleFile)
 		descID = -1;
 	else
 	{
-		cLoadString( descID, name, MAXLEN_MOVER_NAME );
+		if (!cLoadStringIfFits( descID, name, MAXLEN_MOVER_NAME ))
+			copyBounded( name, sizeof(name), typeName );
 		char buffer[256];
 
 		cLoadString( IDS_MFDVEHICLE_PRINTSTRING, buffer, 256 );

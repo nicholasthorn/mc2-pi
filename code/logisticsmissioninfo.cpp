@@ -339,6 +339,13 @@ void LogisticsMissionInfo::readMissionInfo( FitIniFile& file, LogisticsMissionIn
 
 	if ( NO_ERR != file.readIdBoolean("ArtilleryPieceEnabledDefault", pInfo->enableArtilleryPiece) )
 		pInfo->enableArtilleryPiece = 0;
+
+	// wolfman-MC2X's own support units; on unless the mission says otherwise
+	for ( int i = 0; i < mc2xsupport::kSwitchCount; i++ )
+	{
+		if ( NO_ERR != file.readIdBoolean( mc2xsupport::switchKey( (mc2xsupport::Switch)i ), pInfo->enableMC2XSupport[i] ) )
+			pInfo->enableMC2XSupport[i] = true;
+	}
 }
 
 long LogisticsMissionInfo::load( FitIniFile& file )
@@ -1234,6 +1241,14 @@ bool	LogisticsMissionInfo::canHaveSalavageCraft()
 	MissionGroup* pGroup = &groups[currentStage]; 
 	return pGroup->infos[currentMission]->enableSalavageCraft;
 
+}
+
+bool LogisticsMissionInfo::canHaveMC2XSupport( int missionSwitch )
+{
+	if ( missionSwitch < 0 || missionSwitch >= mc2xsupport::kSwitchCount )
+		return false;
+	MissionGroup* pGroup = &groups[currentStage];
+	return pGroup->infos[currentMission]->enableMC2XSupport[missionSwitch];
 }
 
 bool LogisticsMissionInfo::canHaveRepairTruck()

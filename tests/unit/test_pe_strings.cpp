@@ -171,4 +171,35 @@ TEST_CASE("addRuntimeString: text named in data gets an id no string table uses"
 	CHECK_FALSE(findRuntimeString(kRuntimeStringBase + 1000000));
 }
 
+// Which text an id shows: the game's table, or a resource DLL's. Omnitech's
+// mc2res.dll fills only gaps and placeholders; wolfman-MC2X's mc2xres.dll is
+// its whole table and wins; a placeholder never replaces real text.
+TEST_CASE("chooseResourceString: the game's table, Omnitech's DLL, MC2X's DLL")
+{
+	const char* stock = "Clan Pulse Laser: fires faster than...";
+	const char* mod = "Fafnir";
+	auto pick = [](const char* table, const char* extra, bool replaces) {
+		const char* s = chooseResourceString(table, extra, replaces);
+		return std::string(s ? s : "(null)");
+	};
+
+	// a gap-filling DLL (Omnitech): stock text stays, gaps and placeholders fill
+	CHECK(pick(stock, mod, false) == stock);
+	CHECK(pick(NULL, mod, false) == mod);
+	CHECK(pick("undefined", mod, false) == mod);
+	CHECK(pick("undefined_name", mod, false) == mod);
+
+	// MC2X's whole table: its text wins, even over real stock text
+	CHECK(pick(stock, mod, true) == mod);
+	CHECK(pick(NULL, mod, true) == mod);
+
+	// a placeholder in the DLL never replaces real text; with no text either way
+	// the game's placeholder or nothing stays
+	CHECK(pick(stock, "undefined", true) == stock);
+	CHECK(pick(stock, "undefined", false) == stock);
+	CHECK(pick(NULL, "undefined", false) == "undefined");
+	CHECK(pick("undefined", NULL, true) == "undefined");
+	CHECK(pick(NULL, NULL, true) == "(null)");
+}
+
 } // TEST_SUITE("PeStrings")

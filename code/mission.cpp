@@ -14,6 +14,8 @@
 #include"mclib.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef MISSION_H
 #include"mission.h"
 #endif
@@ -120,6 +122,7 @@
 #include "benchdirector.h"
 #include "utils/vr_controls.h"
 #include<utils/str_bounded.h>
+#include"mc2xunits.h"
 
 //----------------------------------------------------------------------------------
 // Macro Definitions
@@ -440,6 +443,9 @@ long Mission::update (void)
 		// Update length of time scenario has been running.
 		if (!missionInterface->isPaused() || MPlayer )
 		{
+			// wolfman-MC2X's airlift and supply carriers
+			mc2xunits::update(frameLength);
+
 			//First Frame we just set LastTimeGetTime.
 			// After that, it increments based on System Time.
 			// NOT the crazy GameOS frameRate.
@@ -1865,8 +1871,13 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	gameplayMarked = false;
 	// Omnitech ABL state is per mission
 	ablClearQueuedBrains();
-	if (LogisticsData::instance)
+	if (LogisticsData::instance) {
 		LogisticsData::instance->salvageCraftOverride = -1;
+		LogisticsData::instance->repairTruckOverride = -1;
+		LogisticsData::instance->artilleryPieceOverride = -1;
+		LogisticsData::instance->deployerOverride = -1;
+	}
+	mc2xunits::reset();
 
 	#ifdef LAB_ONLY
 	x=GetCycles();
@@ -1975,13 +1986,11 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	//----------------------------------------------------------------------
 	// Now that we have some base values, load the master component table...
 	if (!MasterComponent::masterList) {
-		FullPathFileName compFileName;
-		compFileName.init(objectPath,"compbas",".csv");
-#ifdef _DEBUG
-		long loadErr = 
-#endif
-		    MasterComponent::loadMasterList(compFileName, 255, baseSensorRange);
-		gosASSERT(loadErr == NO_ERR);
+		char compFileName[1024];
+		MasterComponent::tableFileName(compFileName, sizeof(compFileName));
+		// without it every unit's weapons and ammo are garbage
+		if (MasterComponent::loadMasterList(compFileName, 255, baseSensorRange) != NO_ERR)
+			STOP(("cannot read the component table %s", compFileName));
 	}
 
 	result = gameSystemFile->readIdUChar("GodMode", godMode);
@@ -2457,7 +2466,9 @@ void Mission::init (const char *missionName, long loadType, long dropZoneID, Stu
 	gosASSERT(library != NULL);
 
 	FullPathFileName libraryFileName2;
-	libraryFileName2.init(missionPath, "corebrain", ".abx");
+	char coreBrainFile[128];	// or wolfman-MC2X's mc2xcore.abx
+	stockOrMC2XFileName(missionPath, "corebrain.abx", coreBrainFile, sizeof(coreBrainFile));
+	libraryFileName2.init(missionPath, coreBrainFile, "");
 	library = ABLi_loadLibrary(libraryFileName2, &numErrors, &numLinesProcessed);
 	gosASSERT(library != NULL);
 	
@@ -3485,6 +3496,12 @@ void Mission::destroy (bool initLogistics)
 	{
 		systemHeap->Free(MoverGroup::goalMap);
 		MoverGroup::goalMap = NULL;
+	}
+
+	if (MoverGroup::goalOpenList)
+	{
+		delete MoverGroup::goalOpenList;
+		MoverGroup::goalOpenList = NULL;
 	}
 
 	if (openList)

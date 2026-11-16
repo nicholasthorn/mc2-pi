@@ -16,6 +16,8 @@
 #include"txmmgr.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef TGAINFO_H
 #include"tgainfo.h"
 #endif
@@ -88,6 +90,26 @@ static void noteCacheBytes (long delta)
 	{
 		s_cacheLogged = s_cacheBytes - (s_cacheBytes % step);
 		fprintf(stderr, "[TXMCACHE] compressed textures in RAM: %ld MB (new high)\n", s_cacheLogged / (1024 * 1024));
+	}
+}
+
+// Texture handles in use (on the GPU), logged at each new high-water step of
+// 50 up to the MAX_MC2_GOS_TEXTURES limit, so a log shows how close a
+// mission and its settings come to running out. Starts again with each
+// mission (turn back to 0).
+static long s_handlesLogged = 0;
+static long s_handlesTurn = 0;
+static void noteHandles (long used, int64_t bytes)
+{
+	if (turn < s_handlesTurn)
+		s_handlesLogged = 0;
+	s_handlesTurn = turn;
+	const long step = 50;
+	if (used >= s_handlesLogged + step)
+	{
+		s_handlesLogged = used - (used % step);
+		fprintf(stderr, "[TXM] texture handles in use: %ld of %d, about %ld MB (new high)\n",
+			used, MAX_MC2_GOS_TEXTURES, long(bytes / (1024 * 1024)));
 	}
 }
 
@@ -398,7 +420,9 @@ void MC_TextureManager::flush (bool justTextures)
 	Check_Object(gosFX::EffectLibrary::Instance);
 
 	FullPathFileName effectsName;
-	effectsName.init(effectsPath,"mc2.fx","");
+	char effectsFile[128];	// or wolfman-MC2X's mc2x.fx
+	stockOrMC2XFileName(effectsPath, "mc2.fx", effectsFile, sizeof(effectsFile));
+	effectsName.init(effectsPath,effectsFile,"");
 
 	File effectFile;
 	long result = effectFile.open(effectsName);
@@ -570,7 +594,46 @@ bool MC_TextureManager::flushCache (void)
 	}
 	
   	//gosASSERT(cacheNotFull);
+	if (!cacheNotFull)
+		logFullCache();
 	return cacheNotFull;
+}
+
+// Why nothing could be evicted: every handle in use counted by how recently
+// it was used, and whether it may be evicted at all. Logged for the first
+// few turns that run out in a mission, then every 300th, since the PAUSE
+// that follows repeats for every texture asked for.
+void MC_TextureManager::logFullCache (void)
+{
+	static long lastTurnLogged = -1;
+	static long turnsLogged = 0;
+	if (turn == lastTurnLogged)
+		return;
+	if (turn < lastTurnLogged)
+		turnsLogged = 0;		// a new mission
+	lastTurnLogged = turn;
+	if ((turnsLogged++ >= 10) && ((turnsLogged % 300) != 0))
+		return;
+
+	long inUse = 0, thisTurn = 0, lastSecond = 0, unique = 0, neverFlush = 0;
+	for (long i=0;i<MC_MAXTEXTURES;i++)
+	{
+		const MC_TextureNode& node = masterTextureNodes[i];
+		if ((node.gosTextureHandle == CACHED_OUT_HANDLE) || (node.gosTextureHandle == 0xffffffff))
+			continue;
+		inUse++;
+		if (node.uniqueInstance)
+			unique++;
+		if (node.neverFLUSH & 1)
+			neverFlush++;
+		if (node.lastUsed >= turn)
+			thisTurn++;
+		else if (node.lastUsed > turn - s_turnRate.turnsFor(1000, 30))
+			lastSecond++;
+	}
+	fprintf(stderr, "[TXM] out of texture handles at turn %ld (%.1f turns/s): %ld in use, "
+		"%ld used this turn, %ld more in the last second, %ld unique, %ld never flushed\n",
+		turn, s_turnRate.turnsPerSecond, inUse, thisTurn, lastSecond, unique, neverFlush);
 }
 
 void MC_TextureManager::addRenderShape(DWORD nodeId, TG_RenderShape* render_shape, DWORD flags)
@@ -1830,6 +1893,7 @@ DWORD MC_TextureManager::update (void)
 {
 	DWORD numTexturesFreed = 0;
 	currentUsedTextures = 0;
+	int64_t usedBytes = 0;
 
 	// free textures unused for 2 seconds (60 turns at the old ~30 fps).
 	// -bench: a turn is a fixed 1/30 s of game time, so keep the 30 turns
@@ -1862,10 +1926,14 @@ DWORD MC_TextureManager::update (void)
 			//Count ACTUAL number of textures being used.
 			// ALSO can't count on turn being right.  Logistics does not update unless simple Camera is up!!
 			if (masterTextureNodes[i].gosTextureHandle != CACHED_OUT_HANDLE)
+			{
 				currentUsedTextures++;
+				usedBytes += masterTextureNodes[i].approxBytes();
+			}
 		}
 	}
-	
+
+	noteHandles(currentUsedTextures, usedBytes);
 	return numTexturesFreed;
 }
 

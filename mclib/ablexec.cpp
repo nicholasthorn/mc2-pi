@@ -46,6 +46,8 @@ int                     execLineNumber;
 int                     execStatementCount = 0;
 
 StackItem*				stack = NULL;
+// one past the last slot ABLi_init allocated
+StackItemPtr			stackLimit = NULL;
 StackItemPtr			tos = NULL;
 StackItemPtr			stackFrameBasePtr = NULL;
 StackItemPtr			StaticDataPtr = NULL;
@@ -395,7 +397,7 @@ void pushInteger (int value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->integer = value;
 }
@@ -406,7 +408,7 @@ void pushReal (float value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->real = value;
 }
@@ -417,7 +419,7 @@ void pushByte (char value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->byte = value;
 }
@@ -428,7 +430,7 @@ void pushAddress (Address address) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->address = address;
 }
@@ -439,7 +441,7 @@ void pushBoolean (bool value) {
 
 	StackItemPtr valuePtr = ++tos;
 
-	if (valuePtr >= &stack[MAXSIZE_STACK])
+	if (valuePtr >= stackLimit)
 		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 	valuePtr->integer = (value ? 1 : 0);
 }

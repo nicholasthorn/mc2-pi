@@ -10,6 +10,9 @@
 // not fit. Any other size is rejected before reading, so a foreign or
 // corrupt map cannot make readPacket write past the buffer.
 //
+// wolfman-MC2X keeps the stock fields but saves footprints with a 128-cell
+// list (520 bytes, from its R70 maps); readFootPrints takes all three.
+//
 // Self-contained (no move.h) so the unit tests can use it; the narrow*
 // functions are templates over the stock struct. Layouts are from the 6.28
 // debug symbols (MCORel.pdb); see planning/future-features/MOD-COMPAT.md.
@@ -76,6 +79,15 @@ struct WideGameObjectFootPrint {
 	int32_t		numCells;
 	int32_t		cells[64][2];
 };
+
+// wolfman-MC2X: stock fields, MAX_GAME_OBJECT_CELLS 128
+struct MC2XGameObjectFootPrint {
+	short		cellPositionRow;
+	short		cellPositionCol;
+	short		preNumCells;
+	short		numCells;
+	short		cells[128][2];
+};
 #pragma pack()
 
 static_assert(sizeof(WideGlobalMapArea) == 31, "Omnitech _GlobalMapArea is 31 bytes");
@@ -83,6 +95,7 @@ static_assert(sizeof(WideDoorInfo) == 5, "Omnitech _DoorInfo is 5 bytes");
 static_assert(sizeof(WideDoorLink) == 13, "Omnitech _DoorLink is 13 bytes");
 static_assert(sizeof(WideGlobalMapDoor) == 73, "Omnitech _GlobalMapDoor is 73 bytes");
 static_assert(sizeof(WideGameObjectFootPrint) == 528, "Omnitech _GameObjectFootPrint is 528 bytes");
+static_assert(sizeof(MC2XGameObjectFootPrint) == 520, "MC2X GameObjectFootPrint is 520 bytes");
 
 // The structs are packed, so their fields are unaligned: check values and
 // assign them, never bind a reference to a field (undefined behaviour).
@@ -199,8 +212,9 @@ bool narrowGlobalMapDoor (Door& out, const WideGlobalMapDoor& in) {
 // Cells past numCells are zeroed, like the stock in-memory footprints.
 // preNumCells is never read by the game and Omnitech's editor can save it
 // unset (Clan Wars missions 5, 11, 16): kept when it fits, else 0.
-template <class FootPrint>
-bool narrowGameObjectFootPrint (FootPrint& out, const WideGameObjectFootPrint& in) {
+// Record is the Omnitech or the MC2X layout.
+template <class FootPrint, class Record = WideGameObjectFootPrint>
+bool narrowGameObjectFootPrint (FootPrint& out, const Record& in) {
 	const int32_t maxCells = (int32_t)(sizeof(out.cells) / sizeof(out.cells[0]));
 	if (!fitsShort(in.cellPositionRow) || !fitsShort(in.cellPositionCol) ||
 		(in.numCells < 0) || (in.numCells > maxCells))
@@ -218,6 +232,19 @@ bool narrowGameObjectFootPrint (FootPrint& out, const WideGameObjectFootPrint& i
 		out.cells[i][1] = (short)in.cells[i][1];
 	}
 	return true;
+}
+
+// Special-area footprints in the stock, Omnitech or MC2X layout, told apart
+// by packet size; false for any other size or a footprint that does not fit.
+template <class Packet, class FootPrint>
+bool readFootPrints (Packet* packetFile, long packet, FootPrint* out, long count) {
+	if (count < 0 || packetFile->seekPacket(packet) != 0)
+		return false;
+	if ((size_t)packetFile->getPacketSize() == sizeof(MC2XGameObjectFootPrint) * (size_t)count)
+		return readPathRecords(packetFile, packet, out, count,
+							   narrowGameObjectFootPrint<FootPrint, MC2XGameObjectFootPrint>);
+	return readPathRecords(packetFile, packet, out, count,
+						   narrowGameObjectFootPrint<FootPrint, WideGameObjectFootPrint>);
 }
 
 #endif

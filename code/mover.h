@@ -753,6 +753,14 @@ typedef enum {
 	NUM_MOVETYPES
 } MoveType;
 
+// A type's MoveType as read from its data. wolfman-MC2X documents
+// "2 = drone" for its small flying units (Drone, JamFly, Kamikaze); they
+// fly as air units here. Any other value is left for setMoveType to reject.
+#define	MOVETYPE_MC2X_DRONE		2
+inline long moveTypeFromData (long moveType) {
+	return (moveType == MOVETYPE_MC2X_DRONE) ? (long)MOVETYPE_AIR : moveType;
+}
+
 class LogisticsPilot;
 
 class Mover : public GameObject {
@@ -944,7 +952,9 @@ class Mover : public GameObject {
 		static long			numOptimalIncrements;
 		static short		rangedCellsIndices[MAX_ATTACK_CELLRANGE][2];
 		static char			rangedCells[RANGED_CELLS_DIM][2];
-		static long			IndirectFireWeapons[20];
+		// wolfman-MC2X lists 30 (stock 20); -1 ends the list
+		static const long	MAX_INDIRECT_FIRE_WEAPONS = 32;
+		static long			IndirectFireWeapons[MAX_INDIRECT_FIRE_WEAPONS];
 		static long			AreaEffectWeapons[20];
 		static unsigned long holdFireIconHandle;
 		

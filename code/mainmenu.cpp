@@ -49,7 +49,11 @@ bool	MainMenu::bDrawMechlopedia = false;;
 void SplashIntro::init()
 {
 	FullPathFileName path;
-	path.init( artPath, "mcl_splashscreenintro", ".fit" );
+	// wolfman-MC2X's own intro; it also ships a leftover mcl_splashscreenintro.fit
+	// whose art it lacks (drawn as a white box). Stock and Omnitech have no such file.
+	path.init( artPath, "mc2x_screenintro", ".fit" );
+	if ( !fileExists( path ) )
+		path.init( artPath, "mcl_splashscreenintro", ".fit" );
 
 	FitIniFile file;
 	if ( NO_ERR != file.open( path ) )

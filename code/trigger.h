@@ -24,6 +24,9 @@
 //---------------------------------------------------------------------------
 
 #define	MAX_TRIGGER_AREAS			16
+// tiles per side of the trigger map: the largest map, wolfman-MC2X's
+// 300x300 (stock maps are at most 120, MAX_MAP_CELL_WIDTH / 3 is 240)
+#define	TRIGGER_MAP_TILES			300
 
 typedef enum {
 	TRIGGER_AREA_NONE,
@@ -46,7 +49,7 @@ class TriggerAreaManager {
 	public:
 
 		TriggerArea				triggerAreas[MAX_TRIGGER_AREAS];
-		unsigned char			map[MAX_MAP_CELL_WIDTH / 3][MAX_MAP_CELL_WIDTH / 3];
+		unsigned char			map[TRIGGER_MAP_TILES][TRIGGER_MAP_TILES];
 		
 	public:
 
@@ -57,8 +60,8 @@ class TriggerAreaManager {
 		void init (void) {
 			for (long i = 0; i < MAX_TRIGGER_AREAS; i++)
 				triggerAreas[i].type = TRIGGER_AREA_NONE;
-			for (long r = 0; r < MAX_MAP_CELL_WIDTH / 3; r++)
-				for (long c = 0; c < MAX_MAP_CELL_WIDTH / 3; c++)
+			for (long r = 0; r < TRIGGER_MAP_TILES; r++)
+				for (long c = 0; c < TRIGGER_MAP_TILES; c++)
 					map[r][c] = 0;
 		}
 

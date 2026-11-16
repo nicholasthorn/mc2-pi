@@ -564,6 +564,7 @@ class MasterComponent {
 
 		void multiplyWeaponRanges (float factor);
 
+		static void tableFileName (char* path, size_t pathSize);
 		static long loadMasterList (const char* fileName, long numComponents, float baseSensorRange);
 		static long saveMasterList (const char* fileName, long numComponents,float baseSensorRange);
 

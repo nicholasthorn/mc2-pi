@@ -481,8 +481,12 @@ void ECharString::Insert( int Start_Index, const ECSChar* p_String )
 		}
 		
 		// use memmove in case we are recycling a buffer.
-		memmove( m_pBuffer->Data(), p_Tmp->Data(), Start_Index * sizeof ( ECSChar ) );
-		memmove( m_pBuffer->Data() + (Start_Index + Length), p_Tmp->Data() + (Start_Index),
+		// (an empty string's data can be null, and memmove must not be given that;
+		// EString::Insert has the same guard)
+		if ( Start_Index > 0 )
+			memmove( m_pBuffer->Data(), p_Tmp->Data(), Start_Index * sizeof ( ECSChar ) );
+		if ( p_Tmp->m_Data_Length > Start_Index )
+			memmove( m_pBuffer->Data() + (Start_Index + Length), p_Tmp->Data() + (Start_Index),
 					(p_Tmp->m_Data_Length - Start_Index) * sizeof (ECSChar) );
 		// write the string last in case we are writing over an old buffer
 		memcpy( m_pBuffer->Data() + Start_Index, p_String, Length * sizeof( ECSChar ) );

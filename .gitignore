@@ -78,3 +78,6 @@ CMakeToolsMeta.in.txt
 CMakeToolsMeta.txt
 compile_commands.json
 
+
+# Python bytecode from the scripts and their tests
+__pycache__/

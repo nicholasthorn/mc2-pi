@@ -36,6 +36,7 @@ GameTacMap::GameTacMap()
 
 	buildingPoints = NULL;
 	buildingCount = 0;
+	spyView = false;
 
 	navMarkerCount = 0;
 	curNavMarker = -1;
@@ -164,14 +165,17 @@ void GameTacMap::render()
 	corners[3].y = corners[2].y = bottom;
 	corners[0].y = corners[1].y = top;
 
-	corners[0].u = 2.f/(float)bmpWidth;
-	corners[3].u = 128.f/(float)bmpWidth;
-	corners[2].u = 2.f/(float)bmpWidth;
-	corners[1].u = 128.f/(float)bmpWidth;
-	corners[0].v = 2.f/(float)bmpWidth;
-	corners[3].v = 128.f/(float)bmpHeight;
-	corners[2].v = 128.f/(float)bmpHeight;
-	corners[1].v = 2.f/(float)bmpWidth;
+	// stock's map is 128x128 and drawn from pixel 2 to its edge; wolfman-MC2X's
+	// are 256x256, drawn the same way (pixels 2 to 128 showed a quarter of it)
+	const float uvStart = 2.f/128.f;
+	corners[0].u = uvStart;
+	corners[3].u = 1.f;
+	corners[2].u = uvStart;
+	corners[1].u = 1.f;
+	corners[0].v = uvStart;
+	corners[3].v = 1.f;
+	corners[2].v = 1.f;
+	corners[1].v = uvStart;
 	
 	gos_DrawTriangles( corners, 3 );
 	gos_DrawTriangles( &corners[1], 3 );
@@ -393,7 +397,7 @@ void GameTacMap::render()
 						continue;
 				}
 			}
-			else if (ShowMovers || (MPlayer && MPlayer->allUnitsDestroyed[MPlayer->commanderID]) || ((mover->getTeamId() != Team::home->id)
+			else if (ShowMovers || spyView || (MPlayer && MPlayer->allUnitsDestroyed[MPlayer->commanderID]) || ((mover->getTeamId() != Team::home->id)
 				&&  ( contactStatus != CONTACT_NONE )
 				&&  (mover->getStatus() != OBJECT_STATUS_SHUTDOWN) 
 				&&  (!mover->hasNullSignature())

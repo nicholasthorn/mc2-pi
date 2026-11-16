@@ -70,12 +70,14 @@ class FitIniFile : public File
 		char 				*currentBlockId;				//Id of current block
 		unsigned long 	currentBlockOffset;			//Offset into file of block start
 		unsigned long 	currentBlockSize;				//Length of current block
+		bool				openedMC2X;						//opened under wolfman-MC2X's name for it
 
 	// Member Functions
 	//------------------
 	protected:
 		long afterOpen (void);
 		void atClose (void);
+		long openMC2XLayout (const char* fName, FileMode _mode, long numChild, bool doNotLower);
 		
 		long findNextBlockStart (char *line = NULL, unsigned long lineLen = 0);
 		long countBlocks (void);
@@ -129,6 +131,8 @@ class FitIniFile : public File
 		virtual long open (FilePtr _parent, unsigned long fileSize, long numChildren = 50);
 		
 		virtual long create (const char* fName);
+		// true when open() found the file under wolfman-MC2X's name for it
+		bool openedMC2XName (void) const { return openedMC2X; }
 		virtual long createWithCase(const char* fName );
 
 

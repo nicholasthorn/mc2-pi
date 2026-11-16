@@ -84,6 +84,7 @@ private:
 	bool				stockLayout;	// mcl_pr_layout.fit is stock's, not Omnitech's
 	long				pilotPicture;	// static that shows the pilot
 	void				showMissionMap();
+	long				missionMapStatic() const;
 
 
 

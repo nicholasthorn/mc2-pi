@@ -224,6 +224,11 @@ TypePtr standardRoutineCall (SymTableNodePtr routineIdPtr) {
 					}
 					if (i == (numParams - 1))
 						ifTokenGetElseError(TKN_RPAREN, ABL_ERR_SYNTAX_MISSING_RPAREN);
+					else if ((i + 1 >= FunctionInfoTable[key].minParams) && (curToken == TKN_RPAREN)) {
+						// the rest are optional (ABLi_moreParams)
+						getToken();
+						break;
+					}
 					else
 						ifTokenGetElseError(TKN_COMMA, ABL_ERR_SYNTAX_MISSING_COMMA);
 				}

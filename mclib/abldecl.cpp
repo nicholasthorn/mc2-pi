@@ -55,6 +55,7 @@ extern TokenCodeType		statementStartList[];
 extern long					eternalOffset;
 extern long					NumStaticVariables;
 extern long					MaxStaticVariables;
+extern long					MaxEternalVariables;
 extern long*				StaticVariablesSizes;
 extern long*				EternalVariablesSizes;
 extern ABLModulePtr			CurLibrary;
@@ -546,6 +547,10 @@ TypePtr enumerationType (void) {
 
 //***************************************************************************
 
+// bytes in one ABL array; the largest in stock, MC2X and Omnitech scripts is
+// about 1K, and 5000 eternal arrays at the cap stay within a few hundred MB
+const long long MAX_ABL_ARRAY_SIZE = 1 << 16;
+
 long arraySize (TypePtr typePtr) {
 
 	if (typePtr->info.array.elementTypePtr->size == 0)
@@ -556,8 +561,17 @@ long arraySize (TypePtr typePtr) {
 		// open arrays must be open at the end...
 		typePtr->size = typePtr->info.array.elementTypePtr->size;
 		}
-	else
-		typePtr->size = typePtr->info.array.elementCount * typePtr->info.array.elementTypePtr->size;
+	else {
+		//--------------------------------------------------------------
+		// The count comes from the script, and an integer literal wraps
+		// to 32 bits, so a negative or huge one must not reach the
+		// allocator.
+		long long size = (long long)typePtr->info.array.elementCount * typePtr->info.array.elementTypePtr->size;
+		// syntaxError does not return
+		if ((typePtr->info.array.elementCount < 0) || (size > MAX_ABL_ARRAY_SIZE))
+			syntaxError(ABL_ERR_SYNTAX_INTEGER_OUT_OF_RANGE);
+		typePtr->size = (long)size;
+	}
 	return(typePtr->size);
 }
 
@@ -660,6 +674,10 @@ void varOrFieldDeclarations (SymTableNodePtr routineIdPtr, long offset) {
 						idPtr->defn.info.data.offset = offset++;
 						break;
 					case VAR_TYPE_ETERNAL: {
+						// EternalVariablesSizes holds MaxEternalVariables, and the
+						// eternals sit at the bottom of the runtime stack
+						if ((eternalOffset >= MaxEternalVariables) || (stack + eternalOffset >= stackLimit))
+							syntaxError(ABL_ERR_SYNTAX_TOO_MANY_ETERNAL_VARS);
 						idPtr->defn.info.data.offset = eternalOffset;
 						//-----------------------------------
 						// Initialize the variable to zero...

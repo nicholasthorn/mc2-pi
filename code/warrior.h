@@ -19,6 +19,8 @@
 #include"move.h"
 #endif
 
+#include"movesavebounds.h"
+
 #ifndef DMOVEMGR_H
 #include"dmovemgr.h"
 #endif
@@ -421,7 +423,6 @@ typedef struct _AttackerRec {
 
 typedef AttackerRec* AttackerRecPtr;
 
-#define MAX_GLOBAL_PATH			50
 
 typedef enum {
 	MOVEPATH_UNDEFINED,
@@ -494,7 +495,7 @@ typedef struct _SaveableMoveOrders {
 	char						pathType;				// "quick" path or global/long-range?
 	Stuff::Vector3D				originalGlobalGoal[2];	// 0 = original final goal, 1 = actual final goal
 	Stuff::Vector3D				globalGoalLocation;
-	GlobalPathStep				globalPath[MAX_GLOBAL_PATH];
+	GlobalPathStep				globalPath[MAX_SAVED_GLOBAL_PATH];
 	char						numGlobalSteps;
 	char						curGlobalStep;
 	MovePath					path[2];				// 0 = current path, 1 = next path
@@ -528,11 +529,20 @@ typedef struct _SaveableMoveOrders {
 		originalGlobalGoal[0] = orders.originalGlobalGoal[0];
 		originalGlobalGoal[1] = orders.originalGlobalGoal[1];
 		globalGoalLocation = orders.globalGoalLocation;
-		memcpy(globalPath,orders.globalPath,sizeof(GlobalPathStep) * MAX_GLOBAL_PATH);
+		memcpy(globalPath,orders.globalPath,sizeof(GlobalPathStep) * MAX_SAVED_GLOBAL_PATH);
 		numGlobalSteps = orders.numGlobalSteps;
 		curGlobalStep = orders.curGlobalStep;
 		path[0] = *(orders.path[0]);
 		path[1] = *(orders.path[1]);
+		if (!savedGlobalPathValid(numGlobalSteps,curGlobalStep,path[0].globalStep,path[1].globalStep,MAX_SAVED_GLOBAL_PATH)) {
+			// a route longer than a save holds: the loaded unit works out a new
+			// one, as for a saved path dropped on load
+			numGlobalSteps = 0;
+			curGlobalStep = 0;
+			pathType = MOVEPATH_UNDEFINED;
+			path[0].init();
+			path[1].init();
+		}
 		timeOfLastStep = orders.timeOfLastStep;
 		moveState = orders.moveState;
 		moveStateGoal = orders.moveStateGoal;
@@ -564,7 +574,7 @@ typedef struct _SaveableMoveOrders {
 		orders.originalGlobalGoal[0] = originalGlobalGoal[0];
 		orders.originalGlobalGoal[1] = originalGlobalGoal[1];
 		orders.globalGoalLocation = globalGoalLocation;
-		memcpy(orders.globalPath,globalPath,sizeof(GlobalPathStep) * MAX_GLOBAL_PATH);
+		memcpy(orders.globalPath,globalPath,sizeof(GlobalPathStep) * MAX_SAVED_GLOBAL_PATH);
 		orders.numGlobalSteps = numGlobalSteps;
 		orders.curGlobalStep = curGlobalStep;
 		for (long i = 0; i < 2; i++)
@@ -744,7 +754,7 @@ typedef struct _MechWarriorData
 	Stuff::Vector3D			mainGoalLocation;
 	float					mainGoalControlRadius;
 	short					lastGoalPathSize;
-	short					lastGoalPath[MAX_GLOBAL_PATH];
+	short					lastGoalPath[MAX_SAVED_GLOBAL_PATH];
 
 	bool					newTacOrderReceived[NUM_ORDERSTATES];
 	TacticalOrder			tacOrder[NUM_ORDERSTATES];

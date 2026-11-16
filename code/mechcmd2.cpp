@@ -12,6 +12,8 @@
 #include"mclib.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef MISSION_H
 #include"mission.h"
 #endif
@@ -1633,7 +1635,9 @@ void __stdcall InitializeGameEngine()
 		Check_Object(gosFX::EffectLibrary::Instance);
 	
 		FullPathFileName effectsName;
-		effectsName.init(effectsPath,"mc2.fx","");
+		char effectsFile[128];	// or wolfman-MC2X's mc2x.fx
+		stockOrMC2XFileName(effectsPath, "mc2.fx", effectsFile, sizeof(effectsFile));
+		effectsName.init(effectsPath,effectsFile,"");
 	
 		File effectFile;
 		long result = effectFile.open(effectsName);
