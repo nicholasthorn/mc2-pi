@@ -3234,7 +3234,8 @@ float __stdcall gos_GetVRFieldOfView()
 bool __stdcall gos_GetVRHead(float orientation[4])
 {
     static const bool follows = !(getenv("MC2_XR_FOLLOW") && getenv("MC2_XR_FOLLOW")[0] == '0');
-    if(!follows || !gos_IsVR())
+    // the tabletop: the head walks round the battle, the game camera stays
+    if(!follows || !gos_IsVR() || gos_GetVRTabletop())
         return false;
 
     // kept when there are no eyes (the system menu) and through a click or a
@@ -3261,7 +3262,8 @@ bool __stdcall gos_GetVRHead(float orientation[4])
 bool __stdcall gos_GetVRKeepGamePitch()
 {
     static const bool keep = getenv("MC2_VR_GAME_PITCH") && getenv("MC2_VR_GAME_PITCH")[0] == '1';
-    return keep;
+    // the tabletop is level with the real one
+    return keep && !gos_GetVRTabletop();
 }
 
 bool __stdcall gos_VRPointerActive()
@@ -3292,8 +3294,15 @@ bool __stdcall gos_VRPickLog()
 
 float __stdcall gos_GetVRWorldScale()
 {
+    if(gos_xr::tabletop())
+        return gos_xr::tableScale();
     static const float scale = getenv("MC2_VR_SCALE") ? (float)atof(getenv("MC2_VR_SCALE")) : 1.0f;
     return scale > 0.0f ? scale : 1.0f;
+}
+
+bool __stdcall gos_GetVRTabletop()
+{
+    return gos_xr::tabletop();
 }
 
 const mat4& __stdcall gos_GetProjection() {

@@ -145,7 +145,8 @@ void GameCamera::render (void)
 		//----------------------------------------------------------
 		// Turn stuff on line by line until perspective is working.
 		
-		if (Environment.Renderer != 3)
+		//no sky on the tabletop (AR-TABLETOP.md): the room is round the battle
+		if (Environment.Renderer != 3 && !gos_GetVRTabletop())
 			BenchStage("world_sky",theSky->render(1));
 		
 		BenchStage("world_terrain",land->render());								//render the Terrain

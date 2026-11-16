@@ -2042,6 +2042,13 @@ struct gosVREyeView
 };
 int __stdcall gos_GetVREyeViews( gosVREyeView views[2] );
 float __stdcall gos_GetVRWorldScale();
+// The tabletop (planning/future-features/AR-TABLETOP.md; the Quest with
+// MC2_XR_TABLE=1, later phones through ARCore): the battle stands on a real
+// table. The eyes and the pointer ray are then in the table's frame, the
+// origin the point the game camera looks at, its -z the game camera's
+// heading; gos_GetVRWorldScale() is the table's scale (world metres to a real
+// one); the game camera does not follow the head; no sky is drawn.
+bool __stdcall gos_GetVRTabletop();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
 // A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.

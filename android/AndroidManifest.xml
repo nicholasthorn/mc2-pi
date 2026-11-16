@@ -16,6 +16,8 @@
          launch unless a controller is awake -->
     <uses-feature android:name="oculus.software.handtracking" android:required="false" />
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
+    <!-- the tabletop's room round the battle (MC2_XR_TABLE=1, XR_FB_passthrough) -->
+    <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="false" />
 
     <!-- multiplayer -->
     <uses-permission android:name="android.permission.INTERNET" />

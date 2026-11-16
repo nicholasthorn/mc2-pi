@@ -71,6 +71,14 @@ bool exitRequested();
 double logicStep();
 // An OpenXR session exists (gos_IsVR).
 bool active();
+// The tabletop (MC2_XR_TABLE=1, planning/future-features/AR-TABLETOP.md):
+// eyeViews and pointerRay are in the table's frame (utils/table_anchor.h),
+// with the room shown round it through passthrough where the headset has it.
+// A places the table in front of the head, with the interface.
+// MC2_TABLE_SCALE: world metres to a real one (default 600);
+// MC2_TABLE_PLACE=distance,drop: where it goes from the head, in metres.
+bool tabletop();
+float tableScale();
 // Every frame, before the input is sampled: reads the controllers into
 // GameOS's virtual mouse and keys.
 void pollInput();
@@ -101,6 +109,8 @@ inline bool hudResting() { return false; }
 inline bool exitRequested() { return false; }
 inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
+inline bool tabletop() { return false; }
+inline float tableScale() { return 1.0f; }
 inline void pollInput() {}
 inline bool pointerActive() { return false; }
 inline void missionTakesOrders() {}

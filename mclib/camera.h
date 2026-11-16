@@ -34,6 +34,7 @@
 #include<stuff/stuff.hpp>
 
 struct gosVREyeView;
+namespace vr_eye { struct Basis; }
 
 inline signed short int float2short(float _in)
 {
@@ -497,6 +498,10 @@ class Camera
 
 		bool vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
 			Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre);
+
+		//VR: the basis the head is put on (the game camera's; on the tabletop,
+		//moved to the point it looks at)
+		vr_eye::Basis vrBaseFor (const Stuff::LinearMatrix4D &origin);
 
 		//VR: the orientation the game camera follows from its next update on
 		//(gos_GetVRHead), or NULL for the game's own view. It holds for the

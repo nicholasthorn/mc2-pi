@@ -461,6 +461,23 @@ push the data as in `android/README.md`, "Phones and tablets".
 - [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one
       and runs as a flat window in the headset's home.
 
+## AR tabletop (`future-features/AR-TABLETOP.md`, branch `ar-tabletop`)
+
+Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
+
+- [x] **The battle stands on the table**, the room round it through passthrough,
+      and walking round it or leaning in moves the view. Done on a Quest 2,
+      2026-11-16 (after the head position fix: it was on the ceiling).
+- [ ] **The interface panel reads easily**: above the table (8 degrees over the
+      horizon, 1.5 m away) with no need to cross the eyes. Hold A and push the
+      left stick to move it; the log prints the `MC2_XR_HUD` value to keep.
+- [ ] **Clicks on the table** select and order units where the pointer meets the
+      ground (the ray is in the table's frame).
+- [ ] **A puts the table where you face**, at a real table, and the sticks
+      scroll and turn the map across it.
+- [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
+      moved the eye the wrong way before the fix, by centimetres.
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing

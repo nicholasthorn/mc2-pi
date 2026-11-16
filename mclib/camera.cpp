@@ -2284,6 +2284,23 @@ static vr_eye::Basis basisOf (const Stuff::LinearMatrix4D &origin)
 }
 
 //------------------------------------------------------------
+// VR on the tabletop (gos_GetVRTabletop, AR-TABLETOP.md): the eyes and the
+// pointer are in the table's frame, whose centre is the point the camera looks
+// at, on the ground, and whose forward is the camera's heading. The basis the
+// head is put on is the game camera's, moved there.
+vr_eye::Basis Camera::vrBaseFor (const Stuff::LinearMatrix4D &origin)
+{
+	vr_eye::Basis basis = basisOf(origin);
+	if (gos_GetVRTabletop())
+	{
+		basis.position[0] = -cameraShift.x;
+		basis.position[1] = cameraShiftZ;
+		basis.position[2] = cameraShift.y;
+	}
+	return basis;
+}
+
+//------------------------------------------------------------
 void Camera::setCameraOrigin (void)
 {
 	if (!usePerspective)
@@ -2383,7 +2400,7 @@ void Camera::setCameraOrigin (void)
 	// the head (vr_eye::eyeBasis). World up is y.
 	if (vrEye)
 	{
-		const vr_eye::Basis game = basisOf(cameraOrigin);
+		const vr_eye::Basis game = vrBaseFor(cameraOrigin);
 		float headPosition[3], headOrientation[4];
 		vr_eye::fromXr(vrEye->position, vrEye->orientation, headPosition, headOrientation);
 		const float worldUp[3] = {0.0f, 1.0f, 0.0f};
@@ -2446,7 +2463,7 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 {
 	if (vrEye)
 		return false;
-	const vr_eye::Basis game = basisOf(vrFollowsHead ? vrGameOrigin : cameraOrigin);
+	const vr_eye::Basis game = vrBaseFor(vrFollowsHead ? vrGameOrigin : cameraOrigin);
 
 	float position[3], orientation[4];
 	vr_eye::fromXr(xrPosition, xrOrientation, position, orientation);
