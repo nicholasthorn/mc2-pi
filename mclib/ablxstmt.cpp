@@ -46,6 +46,9 @@
 
 extern int32_t          level;
 extern int32_t          CallStackLevel;
+
+// ABL calls nested deeper than this are a stack overflow
+const int32_t MAX_ABL_CALL_DEPTH = 128;
 extern int              execLineNumber;
 extern int              execStatementCount;
 extern char*			codeSegmentPtr;
@@ -207,14 +210,15 @@ void execStatement (void) {
 
 void execAssignmentStatement (SymTableNodePtr idPtr) {
 
-	StackItemPtr targetPtr;
+	// a byte address: the target need not be StackItem aligned (below)
+	Address targetPtr;
 	TypePtr targetTypePtr;
 	TypePtr expressionTypePtr;
 
 	//--------------------------
 	// Assignment to variable...
 	targetTypePtr = execVariable(idPtr, USE_TARGET);
-	targetPtr = (StackItemPtr)tos->address;
+	targetPtr = tos->address;
 
 	//------------------------------
 	// Pop off the target address...
@@ -257,9 +261,15 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
         // arr = "aaa";
         // this will copy size bytes (25) from "aaa", which is effectively only 4 bytes!
         // so this fixes it
-        const int srclen = strlen(src) + 1;
+        // The source string ends at its terminator or at the end of its own
+        // array, whichever comes first: a char array filled to its last byte
+        // has no terminator (a wolfman-MC2X brain), and strlen read past it.
 		long size = targetTypePtr->size;
-		memcpy(dest, src, /*size*/srclen<size?srclen:size);
+		long srcSize = (expressionTypePtr && (expressionTypePtr->form == FRM_ARRAY)) ? expressionTypePtr->size : size;
+		long srclen = (long)strnlen(src, (size_t)(srcSize < size ? srcSize : size));
+		memcpy(dest, src, srclen);
+		if (srclen < size)
+			dest[srclen] = 0;
 		}
 	else if ((targetTypePtr == IntegerTypePtr) || (targetTypePtr->form == FRM_ENUM)) {
 		//------------------------------------------------------
@@ -279,7 +289,7 @@ void execAssignmentStatement (SymTableNodePtr idPtr) {
 	pop();
 
 	if (debugger && targetPtr && targetTypePtr)
-		debugger->traceDataStore(idPtr, idPtr->typePtr, targetPtr, targetTypePtr);
+		debugger->traceDataStore(idPtr, idPtr->typePtr, (StackItemPtr)targetPtr, targetTypePtr);
 }
 
 //***************************************************************************
@@ -314,6 +324,12 @@ TypePtr execDeclaredRoutineCall (SymTableNodePtr routineIdPtr, bool skipOrder) {
 	long oldLevel = level;						// level of caller
 	long newLevel = routineIdPtr->level + 1;	// level of callee
 	CallStackLevel++;
+	// Each ABL call is a few C++ frames deep (about 2.3K of native stack on
+	// Linux), so unbounded recursion overran the thread's stack (1MB on
+	// Windows) before the ABL stack filled. Stock, MC2X and Omnitech missions
+	// call at most 4 deep.
+	if (CallStackLevel > MAX_ABL_CALL_DEPTH)
+		runtimeError(ABL_ERR_RUNTIME_STACK_OVERFLOW);
 
 	//-------------------------------------------
 	// First, set up the stack frame of callee...

@@ -14,9 +14,11 @@
 #include "ablsymt.h"
 #include "ablenv.h"
 #include "fuzz/fuzz_targets.h"
+#include "fuzz/fuzz_support.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 extern ModuleEntryPtr ModuleRegistry;
 
@@ -48,6 +50,197 @@ struct AblCompiled
 
 TEST_SUITE("AblScan")
 {
+
+// A char array assignment copied strlen(source) + 1 bytes (bounded by the
+// target), so a source filled to its last byte, with no terminator, was read
+// past its end: ASan, a char[12] in a wolfman-MC2X brain (redrockoutpost).
+// Each static array is its own heap block, so this one is too. The length
+// is now bounded by the source array's size as well.
+TEST_CASE("ABL char array assignment: a source with no terminator is read to its size only")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic char[4] full;\n"
+		"\t\tstatic char[8] copy;\n"
+		"\t\tstatic char[8] shortcopy;\n"
+		"\tcode\n"
+		"\t\tfull[0] = \"a\";\n"
+		"\t\tfull[1] = \"b\";\n"
+		"\t\tfull[2] = \"c\";\n"
+		"\t\tfull[3] = \"d\";\n"
+		"\t\tcopy = full;\n"
+		"\t\tshortcopy = \"xy\";\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	m.execute();
+
+	SymTableNodePtr copy = m.findSymbol("copy");
+	SymTableNodePtr shortCopy = m.findSymbol("shortcopy");
+	REQUIRE(copy != nullptr);
+	REQUIRE(shortCopy != nullptr);
+	const char* copyText = (const char*)(m.getStaticData() + copy->defn.info.data.offset)->address;
+	const char* shortText = (const char*)(m.getStaticData() + shortCopy->defn.info.data.offset)->address;
+	CHECK(strcmp(copyText, "abcd") == 0);
+	CHECK(strcmp(shortText, "xy") == 0);
+	m.destroy();
+}
+
+// Optional trailing parameters ("|" in the registered list): wolfman-MC2X
+// calls newpower(partId, false) where stock calls newpower(false), so one
+// command must compile both. The callback asks ABLi_moreParams().
+TEST_CASE("ABL optional parameters: both forms compile and run")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer one;\n"
+		"\t\tstatic integer two;\n"
+		"\tcode\n"
+		"\t\tone = fuzzoptional(true);\n"
+		"\t\ttwo = fuzzoptional(7, false);\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	m.execute();
+	CHECK(m.getStaticInteger((char*)"one") == 1001);
+	CHECK(m.getStaticInteger((char*)"two") == 2070);
+	m.destroy();
+}
+
+TEST_CASE("ABL optional parameters: too few, too many or the wrong type is an error")
+{
+	const char* bad[] = {
+		"fuzzoptional()",
+		"fuzzoptional(1, true, 2)",
+		"fuzzoptional(1, 2)",
+	};
+	for (const char* call : bad)
+	{
+		CAPTURE(call);
+		std::string source = std::string(
+			"module M : integer;\n"
+			"\tvar\n"
+			"\t\tinteger x;\n"
+			"\tcode\n"
+			"\t\tx = ") + call + ";\n"
+			"\t\treturn(x);\n"
+			"endmodule.\n";
+		AblCompiled c(source.c_str());
+		CHECK(c.handle < 0);
+	}
+}
+
+// A command registered with a result must leave exactly one value on the ABL
+// stack, and one without none. setobjectdamage pushed nothing: each call as a
+// statement took one slot too many off the stack, and a later push landed
+// in the running frame (wolfman-MC2X's reap3m02 lost its local array's
+// address). The executor now evens the stack after every callback.
+TEST_CASE("ABL commands that break the stack contract cannot corrupt the frame")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer before;\n"
+		"\t\tstatic integer after;\n"
+		"\t\tstatic integer result;\n"
+		"\t\tinteger[3] local;\n"
+		"\t\tinteger x;\n"
+		"\tcode\n"
+		"\t\tlocal[0] = 11;\n"
+		"\t\tlocal[1] = 22;\n"
+		"\t\tlocal[2] = 33;\n"
+		"\t\tx = 44;\n"
+		"\t\tbefore = local[0] + local[1] + local[2] + x;\n"
+		"\t\tfuzznopush(1);\n"
+		"\t\tfuzznopush(2);\n"
+		"\t\tfuzznopush(3);\n"
+		"\t\tfuzzextrapush(4);\n"
+		"\t\tresult = fuzznopush(5);\n"
+		"\t\tx = x + 0;\n"
+		"\t\tafter = local[0] + local[1] + local[2] + x;\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	m.execute();
+	CHECK(m.getStaticInteger((char*)"before") == 110);
+	CHECK(m.getStaticInteger((char*)"after") == 110);
+	CHECK(m.getStaticInteger((char*)"result") == 0);
+	m.destroy();
+}
+
+// ABL calls recurse in C++ (about 2.3K of native stack each on Linux), so a
+// script recursing without end overran the thread's stack (1MB on Windows)
+// before the ABL stack filled. Calls nested past 128 now stop with a stack
+// overflow error; missions call at most 4 deep.
+TEST_CASE("ABL recursion stops with a stack overflow at 128 calls")
+{
+	AblCompiled c(
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer depth;\n"
+		"function dive (integer n) : integer;\n"
+		"\tcode\n"
+		"\t\tdepth = n;\n"
+		"\t\treturn(dive(n + 1));\n"
+		"endfunction;\n"
+		"\tcode\n"
+		"\t\treturn(dive(1));\n"
+		"endmodule.\n");
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	CHECK_FALSE(fuzzGuarded([&m] { m.execute(); }));
+	CHECK(m.getStaticInteger((char*)"depth") == 128);
+	m.destroy();
+}
+
+// The runtime stack was allocated as ABL_RUNTIME_STACK_SIZE bytes, but every
+// push was checked against a fixed 10240 slots: right for the 2001 build's
+// 4-byte StackItem, twice what a 64-bit one has room for, so a script with
+// many locals wrote past the block. It now has the 2001 build's 10239 slots,
+// checked against what was allocated: this one, 100 locals a call, gets 97
+// calls deep, as in 2001 (a 64-bit build ran off the end after about 48),
+// then stops with a stack overflow error.
+TEST_CASE("ABL locals that fill the stack stop with a stack overflow, inside it")
+{
+	std::string source =
+		"module M : integer;\n"
+		"\tvar\n"
+		"\t\tstatic integer depth;\n"
+		"function dive (integer n) : integer;\n"
+		"\tvar\n";
+	for (int i = 0; i < 100; i++)
+		source += "\t\tinteger l" + std::to_string(i) + ";\n";
+	source +=
+		"\tcode\n"
+		"\t\tdepth = n;\n"
+		"\t\treturn(dive(n + 1));\n"
+		"endfunction;\n"
+		"\tcode\n"
+		"\t\treturn(dive(1));\n"
+		"endmodule.\n";
+	AblCompiled c(source.c_str());
+	REQUIRE(c.handle >= 0);
+
+	ABLModule m;
+	REQUIRE(m.init(c.handle) == 0);
+	CHECK_FALSE(fuzzGuarded([&m] { m.execute(); }));
+	CHECK(m.getStaticInteger((char*)"depth") > 90);
+	CHECK(m.getStaticInteger((char*)"depth") < 128);
+	m.destroy();
+}
 
 TEST_CASE("ablIntegerLiteral: past the int range, the value's low 32 bits")
 {

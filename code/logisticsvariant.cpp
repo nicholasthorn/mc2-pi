@@ -27,6 +27,7 @@ LogisticsChassis::LogisticsChassis()
 {
 	appearance = 0;
 	chassisNameID = 0;
+	groupID = 0;
 	baseCost = 0;
 	maxWeight = 0;
 	refCount = 0;
@@ -61,12 +62,20 @@ int LogisticsChassis::init( CSVFile* file, int chassisID )
 	gosASSERT( result == NO_ERR );
 
 	// Omnitech's string table has placeholders ("undefined") for many of its
-	// mechs: it names them from the data file
+	// mechs: it names them from the data file. wolfman-MC2X points some at
+	// long encyclopedia texts: those take the data file's name, and the name
+	// id becomes one for that text, so every later name lookup finds it.
 	char nameText[256];
-	cLoadString( chassisNameID, nameText, 256 );
+	const bool fits = cLoadStringIfFits( chassisNameID, nameText, 256 );
+	if ( !fits )
+		nameText[0] = 0;
 	if ( ( !nameText[0] || isPlaceholderString( nameText ) )
 		&& NO_ERR == file->readString( 3, 2, buffer, 256 ) )
+	{
 		chassisNameText = buffer;
+		if ( !fits && buffer[0] )
+			chassisNameID = (long)addRuntimeString( buffer, (const char*)fileName );
+	}
 	else
 		chassisNameText = nameText;
 	

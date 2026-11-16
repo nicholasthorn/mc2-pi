@@ -168,6 +168,7 @@ typedef enum {
 typedef struct {
 	SymTableNodePtr			symbol;
 	long					numParams;
+	long					minParams;		// fewer than numParams: the rest are optional
 	FunctionParamType		params[MAX_FUNCTION_PARAMS];
 	FunctionReturnType		returnType;
 } StandardFunctionInfo;

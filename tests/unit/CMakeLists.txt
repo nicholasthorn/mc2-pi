@@ -29,6 +29,12 @@ add_executable(mc2_tests
     test_typename.cpp
     test_missaim.cpp
     test_mechtypefit.cpp
+    test_campaignglobals.cpp
+    test_mc2xart.cpp
+    test_shopfilter.cpp
+    test_formation.cpp
+    test_mc2xsupport.cpp
+    test_mc2xhud.cpp
     test_iconsheet.cpp
     test_str_bounded.cpp
     test_frame_stats.cpp
@@ -61,6 +67,8 @@ add_executable(mc2_tests
     test_gos_net_gns.cpp
     test_tga_readers.cpp
     test_move_save_bounds.cpp
+    test_group_goals.cpp
+    test_tonnage_table.cpp
     test_forcegroupcycle.cpp
     test_msglines.cpp
     test_txmcachename.cpp
@@ -139,8 +147,12 @@ add_executable(mc2_tests
     ${MC2_SRC}/code/typename.cpp
     ${MC2_SRC}/code/missaim.cpp
     ${MC2_SRC}/code/mechtypefit.cpp
+    ${MC2_SRC}/code/campaignglobals.cpp
+    ${MC2_SRC}/mclib/mc2xart.cpp
     ${MC2_SRC}/code/forcegroupcycle.cpp
     ${MC2_SRC}/code/msglines.cpp
+    ${MC2_SRC}/code/formation.cpp
+    ${MC2_SRC}/code/mc2xsupport.cpp
 )
 
 # Engine headers are legacy code: include them as SYSTEM headers (replacing the
@@ -167,7 +179,7 @@ set_source_files_properties(
     test_fst_roundtrip.cpp test_lzdecomp.cpp test_paths.cpp test_pixel_repack.cpp test_routines.cpp
     test_audio_pan.cpp test_globalmapio.cpp test_frame_stats.cpp test_benchscenario.cpp
     test_uismokewalk.cpp test_iconsheet.cpp test_vr_edge_fade.cpp
-    test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_typename.cpp test_missaim.cpp test_mechtypefit.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_tga_readers.cpp test_move_save_bounds.cpp test_txmcachename.cpp test_forcegroupcycle.cpp test_msglines.cpp
+    test_tga_writer.cpp test_render_heuristics.cpp test_hud_layout.cpp test_jpeg_decode.cpp test_pe_strings.cpp test_typename.cpp test_missaim.cpp test_mechtypefit.cpp test_campaignglobals.cpp test_mc2xart.cpp test_shopfilter.cpp test_formation.cpp test_mc2xsupport.cpp test_mc2xhud.cpp test_str_bounded.cpp test_image_tga.cpp test_stereo.cpp test_vr_eye.cpp test_vr_controls.cpp test_input_latch.cpp test_csvfield.cpp test_args_file.cpp test_log_file.cpp test_estring.cpp test_wave_parse.cpp test_pqueue.cpp test_tga_readers.cpp test_move_save_bounds.cpp test_group_goals.cpp test_tonnage_table.cpp test_txmcachename.cpp test_forcegroupcycle.cpp test_msglines.cpp
     test_fuzz_replay.cpp test_ablscan.cpp fuzz/fuzz_support.cpp fuzz/fuzz_fit.cpp fuzz/fuzz_csv.cpp fuzz/fuzz_tga.cpp fuzz/fuzz_abl.cpp
     fuzz/libfuzzer_main.cpp fuzz/fuzz_gos_stubs.cpp
     test_netwire.cpp test_netlan.cpp test_netlobby.cpp test_netsession.cpp test_netrules.cpp test_netforce.cpp test_gos_net.cpp test_gos_net_gns.cpp
@@ -194,12 +206,21 @@ set_source_files_properties(
     ${MC2_SRC}/code/typename.cpp
     ${MC2_SRC}/code/missaim.cpp
     ${MC2_SRC}/code/mechtypefit.cpp
+    ${MC2_SRC}/code/campaignglobals.cpp
     ${MC2_SRC}/code/forcegroupcycle.cpp
     ${MC2_SRC}/code/msglines.cpp
+    ${MC2_SRC}/code/formation.cpp
+    ${MC2_SRC}/code/mc2xsupport.cpp
     ${MC2_SRC}/GameOS/gameos/utils/jpeg_decode.cpp
     ${MC2_SRC}/GameOS/gameos/utils/pe_strings.cpp
     ${MC2_SRC}/GameOS/gameos/utils/str_bounded.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+# mc2xart.cpp includes file.h from its own folder, so not as a SYSTEM header:
+# dstd.h's MSVC "#pragma warning" lines are allowed, as in mclib/CMakeLists.txt
+if(MC2_STRICT_WARNINGS)
+    set_source_files_properties(${MC2_SRC}/mclib/mc2xart.cpp
+        PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
+endif()
 
 # Fixtures are copied next to the tests and opened by RELATIVE path:
 # File::open lowercases the whole name, so an absolute path with upper-case

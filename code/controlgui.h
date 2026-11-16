@@ -100,8 +100,11 @@ class ControlButton
 	void setColor( unsigned long newColor );
 	static void makeUVs( gos_VERTEX* vertices, int State, ButtonData& data );
 
+	// fileIndex: the block number to read for each button (NULL: i), for
+	// wolfman-MC2X's support buttons, which are in another order
 	static void initButtons( FitIniFile& file, long buttonCount, 
-			ControlButton* buttons, ButtonData* buttonData, const char* str, aFont* font = 0 );
+			ControlButton* buttons, ButtonData* buttonData, const char* str, aFont* font = 0,
+			const int* fileIndex = 0 );
 
 
 	enum States
@@ -249,6 +252,16 @@ class ControlGui
 		int		getCurrentRange();
 		void	pressInfoButton( ){ handleClick( INFO_COMMAND ); }
 		bool	infoButtonPressed() { return getButton( INFO_COMMAND )->state & ControlButton::PRESSED; }
+		// wolfman-MC2X's move formation (formation.h): kNone (0) unless its
+		// HUD's palette chose one
+		int		getFormation() const { return formationKind; }
+		// how many units the support delivery under way brings (MC2X's
+		// kamikaze swarm: 5; every other: 1)
+		int		getVehicleCount();
+		// wolfman-MC2X's pick-up button: armed, the next click on one of our
+		// units has the selected transport go and load it
+		bool	isPickingUp() const { return pickUpArmed; }
+		void	endPickUp( Mover* target );
 
 		void	showServerMissing();
 
@@ -333,6 +346,39 @@ class ControlGui
 
 
 		static long			vehicleCosts[LAST_VEHICLE];
+
+		// wolfman-MC2X's formation buttons, its layout's 24 to 43 (the palette,
+		// the Formation button, the indicators); NULL with other layouts
+		ControlButton*		formationButtons;
+		ButtonData*			formationData;
+		bool				formationMenuOpen;
+		int					formationKind;
+		void				initFormationButtons( FitIniFile& buttonFile, bool mc2xHud );
+		void				updateFormationButtons( bool bShow, float mouseX, float mouseY );
+		// wolfman-MC2X's own support units (mc2xsupport.h): its layout's
+		// [Vehicle7] to [Vehicle20] over two support tabs, and the second tab
+		// (Button49); NULL with other layouts
+		ControlButton*		mc2xSupportButtons;
+		ButtonData*			mc2xSupportData;
+		ControlButton*		support2Tab;
+		ButtonData*			support2TabData;
+		int					supportPage;		// 1, or 2: the second tab
+		int					mc2xPendingBlock;	// the unit being brought in, or -1
+		void				initMC2XSupport( FitIniFile& buttonFile, bool mc2xHud );
+		void				updateMC2XSupport( float mouseX, float mouseY );
+		void				renderMC2XSupport();
+		bool				stockVehicleShown( int i );
+
+		// wolfman-MC2X's exchange and spy map buttons (mc2xhud.h): its
+		// layout's Button22, Button23 and Button53; NULL with other layouts
+		ControlButton*		mc2xCommandButtons;
+		ButtonData*			mc2xCommandData;
+		float				spyMapTime;			// seconds of the spy map left
+		bool				dropshipFireArmed;	// Button44: the next click fires the dropships
+		bool				pickUpArmed;		// Button47: the next click picks a unit up
+		void				handleMC2XUnitCommand( int button );
+		void				initMC2XCommands( FitIniFile& buttonFile, bool mc2xHud );
+		void				updateMC2XCommands( bool bPaused, float mouseX, float mouseY );
 
 		InfoWindow*			infoWnd;
 		PauseWindow*		pauseWnd;

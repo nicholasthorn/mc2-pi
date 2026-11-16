@@ -127,6 +127,7 @@
 #endif
 
 #include "../resource.h"
+#include"tonnagetable.h"
 
 //--------
 // DEFINES
@@ -261,8 +262,8 @@ float tonnageTurnRate[110] =
 };
 */
 
-float tonnageTurnRate[110] = 
-{
+TonnageTable<110> tonnageTurnRate =
+{{
 	720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f, //0 through 9 tons
 	720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f, //10 through 19 tons
 	720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f, //20 through 29 tons
@@ -274,7 +275,7 @@ float tonnageTurnRate[110] =
 	720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f, //80 through 89 tons
 	720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f, //90 through 99 tons
 	720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f,720.0f //100 through 109 tons
-};
+}};
 
 long stupidNewSageColumns[8] = 
 {
@@ -680,6 +681,7 @@ long BattleMechType::init (FilePtr objFile, unsigned long fileSize)
 	result = mechFile.readIdLong("MoveType", moveType);
 	if (result != NO_ERR)
 		moveType = MOVETYPE_GROUND;
+	moveType = moveTypeFromData(moveType);
 
 	result = mechFile.readIdFloat("LOSFactor",LOSFactor);
 	if (result != NO_ERR)
@@ -1405,7 +1407,8 @@ long BattleMech::init (DWORD variantNum)
 
 	mechFile->readInt(5,2,descID);
 
-	cLoadString( descID, thisMechName, 127 );
+	// a description too long for a name (wolfman-MC2X) keeps the CSV name
+	cLoadStringIfFits( descID, thisMechName, 127 );
 
 	char tmp[256];
 	cLoadString( IDS_MFDMCH_PRINTSTRING, tmp, 256 );
@@ -6163,7 +6166,10 @@ long BattleMech::update (void)
 			}
 		}
 		
-		if (getMoveType() == MOVETYPE_AIR)
+		// A disabled flier is shot down; one the mission starts disabled (a part
+		// with Damage 1, as wolfman-MC2X's landed deployer dropship is) stays
+		// as it was placed. Stock has no flying mechs.
+		if ((getMoveType() == MOVETYPE_AIR) && !startDisabled)
 		{
 			setStatus(OBJECT_STATUS_DESTROYED);
 			timeLeft = 0.0f;		

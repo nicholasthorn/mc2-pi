@@ -26,10 +26,13 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 #include"comndr.h"
 #include"missionresults.h"
 #include<zlib.h>
+#include"mc2xart.h"
 
 #ifndef VIEWER
 #include"multplyr.h"
 #include"chatwindow.h"
+// wolfman-MC2X campaign globals, saved with the campaign
+#include"campaignglobals.h"
 #else
 	bool MissionResults::FirstTimeResults = false;
 #endif
@@ -56,6 +59,9 @@ LogisticsData::LogisticsData()
 	missionInfo = 0;
 	rpJustAdded = false;
 	salvageCraftOverride = -1;
+	repairTruckOverride = -1;
+	artilleryPieceOverride = -1;
+	deployerOverride = -1;
 
 	bNewMechs = bNewWeapons = bNewPilots = 0;
 }
@@ -120,9 +126,8 @@ void LogisticsData::init()
 //*************************************************************************************************
 void LogisticsData::initComponents()
 {
-	char componentPath[256];
-	strcpy( componentPath, objectPath );
-	strcat( componentPath, "compbas.csv" );
+	char componentPath[1024];
+	MasterComponent::tableFileName( componentPath, sizeof( componentPath ) );
 
 	
 	File componentFile;
@@ -193,9 +198,8 @@ void LogisticsData::initPilots()
 
 	pilots.Clear();
 
-	char pilotPath[256];
-	strcpy( pilotPath, objectPath );
-	strcat( pilotPath, "pilots.csv" );
+	char pilotPath[512];
+	pilotListFileName( pilotPath, sizeof( pilotPath ) );
 
 	
 	File pilotFile;
@@ -225,11 +229,28 @@ void LogisticsData::initPilots()
 	}
 }
 
+// folder + stockFile, or MC2X's name for it (mc2xart.h)
+static void dataFilePath( char* path, size_t pathSize, const char* folder, const char* stockFile )
+{
+	char name[128];
+	stockOrMC2XFileName( folder, stockFile, name, sizeof( name ) );
+	snprintf( path, pathSize, "%s%s", folder, name );
+}
+
+void LogisticsData::inventoryFileName( char* path, size_t pathSize )
+{
+	dataFilePath( path, pathSize, artPath, "buildings.csv" );
+}
+
+void LogisticsData::pilotListFileName( char* path, size_t pathSize )
+{
+	dataFilePath( path, pathSize, objectPath, "pilots.csv" );
+}
+
 void LogisticsData::initVariants()
 {
-	char variantPath[256];
-	strcpy( variantPath, artPath );
-	strcat( variantPath, "buildings.csv" );
+	char variantPath[512];
+	inventoryFileName( variantPath, sizeof( variantPath ) );
 
 
 	CSVFile variantFile;
@@ -318,6 +339,9 @@ void LogisticsData::initVariants()
 		chassis->init( &mechFile, chassisID++ );
 		chassis->setFitID(fitID);
 		chassis->setScale( scale );
+		long groupID = 0;
+		if ( NO_ERR == variantFile.readLong( i, 2, groupID ) )
+			chassis->setGroupID( groupID );
 
 		int row = 23;
 		char buffer[256];
@@ -1134,6 +1158,10 @@ long	LogisticsData::save( FitIniFile& file )
 			(*mIter)->save( file, mechCount++ );
 		}
 
+#ifndef VIEWER
+	campaignglobals::save( file );
+#endif
+
 	return 0;
 }
 
@@ -1157,6 +1185,9 @@ void LogisticsData::clearVariants()
 
 long	LogisticsData::load( FitIniFile& file )
 {
+#ifndef VIEWER
+	campaignglobals::load( file );
+#endif
 	clearInventory();
 	resourcePoints = 0;
 	pilots.Clear();
@@ -2433,6 +2464,7 @@ void				LogisticsData::startNewCampaign( const char* fileName )
 		delete MPlayer;
 		MPlayer = NULL;
 	}
+	campaignglobals::reset();
 #endif
 
 	inventory.Clear();
@@ -2869,6 +2901,8 @@ bool LogisticsData::canHaveSalavageCraft()
 }
 bool LogisticsData::canHaveRepairTruck()
 {
+	if ( repairTruckOverride >= 0 )
+		return repairTruckOverride != 0;
 	if ( !missionInfo )
 		return true;
 	return missionInfo->canHaveRepairTruck();
@@ -2881,9 +2915,19 @@ bool LogisticsData::canHaveScoutCopter()
 }
 bool LogisticsData::canHaveArtilleryPiece()
 {
+	if ( artilleryPieceOverride >= 0 )
+		return artilleryPieceOverride != 0;
 	if ( !missionInfo )
 		return true;
 	return missionInfo->canHaveArtilleryPiece();
+}
+bool LogisticsData::canHaveMC2XSupport( int missionSwitch )
+{
+	if ( ( missionSwitch == mc2xsupport::kDeployer ) && ( deployerOverride >= 0 ) )
+		return deployerOverride != 0;
+	if ( !missionInfo )
+		return true;
+	return missionInfo->canHaveMC2XSupport( missionSwitch );
 }
 bool LogisticsData::canHaveAirStrike()
 {

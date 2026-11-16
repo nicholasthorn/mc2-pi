@@ -139,6 +139,7 @@ class File
 		protected:
 
 			void setup (void);
+			void releaseStaleName (void);
 
 		public:
 

@@ -20,6 +20,8 @@
 #include "platform_str.h"
 
 #include"utilities.h"
+#include "paths.h"
+#include "mc2xart.h"
 //******************************************************************************************
 
 const char* ComponentFormString [] = {
@@ -623,6 +625,17 @@ bool MasterComponent::isDefensiveWeapon (void) {
 	// we will want to specify DEFENSIVE/OFFENSIVE for each weapon, and then
 	// check against this field...
 	return((masterID == clanAntiMissileSystemID) || (masterID == innerSphereAntiMissileSystemID));
+}
+
+//---------------------------------------------------------------------------
+
+// The master component table: compbas.csv, or mc2xcomp.csv when only that
+// is there (wolfman-MC2X renamed it; same columns).
+void MasterComponent::tableFileName (char* path, size_t pathSize) {
+
+	char name[128];
+	stockOrMC2XFileName(objectPath, "compbas.csv", name, sizeof(name));
+	snprintf(path, pathSize, "%s%s", objectPath, name);
 }
 
 //---------------------------------------------------------------------------

@@ -15,7 +15,8 @@ Microsoft source, not stock MC2:
   Volstand, Mercenaries Star, Laskos Legion, Desert Fox, Day of Heroes, Clan
   Eagle.
 - **wolfman-MC2X**, revision 70 (readme Oct 2026). Campaign: Dark Gray:
-  Borderworlds (MC2X r20). No source published that we could find.
+  Borderworlds (MC2X r20). No source published that we could find. Studied
+  and test-loaded in `MC2X-COMPAT.md` (2026-11-14).
 
 None of them load on this port as shipped. This file records what an Omnitech
 campaign needs, so the work can be sized.
@@ -696,6 +697,11 @@ Test loads: Clan Wars (Omnitech) is the first. For MC2X, MC2X-CVE-G first,
 then Dark Gray: Borderworlds (see "To do: MC2X missions").
 
 ## To do: MC2X missions
+
+**Superseded by `MC2X-COMPAT.md` (2026-11-14):** MC2X R70 and REAP3 were
+unpacked and run there; Dark Gray: Borderworlds has no download left, and
+REAP3 is the test campaign. The leads below are kept for reference; that
+file has the confirmed blocker list.
 
 Status: not started, written 2026-11-04. No MC2X data has been run on this
 port, and this machine has none. The gaps below come from reading the

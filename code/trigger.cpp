@@ -32,12 +32,20 @@ void TriggerAreaManager::destroy (void) {
 
 //---------------------------------------------------------------------------
 
-long TriggerAreaManager::add (long ULrow, long ULcol, long LRrow, long LRcol, long type, long param) {
+// Keeps a trigger area's tile range inside the map array: the old bounds
+// checks were gosASSERTs, off in release builds.
+static void clampTileDims (long tileDims[4]) {
+	for (long i = 0; i < 4; i++) {
+		if (tileDims[i] < 0)
+			tileDims[i] = 0;
+		if (tileDims[i] > TRIGGER_MAP_TILES)
+			tileDims[i] = TRIGGER_MAP_TILES;
+	}
+}
 
-    gosASSERT(ULrow >= 0 && ULrow/3 + 1 < MAX_MAP_CELL_WIDTH/3);
-    gosASSERT(LRrow >= 0 && LRrow/3 + 1 < MAX_MAP_CELL_WIDTH/3);
-    gosASSERT(ULcol >= 0 && ULcol/3 + 1 < MAX_MAP_CELL_WIDTH/3);
-    gosASSERT(LRcol >= 0 && LRcol/3 + 1 < MAX_MAP_CELL_WIDTH/3);
+//---------------------------------------------------------------------------
+
+long TriggerAreaManager::add (long ULrow, long ULcol, long LRrow, long LRcol, long type, long param) {
 
     int i;
 	for (i = 1; i < MAX_TRIGGER_AREAS; i++)
@@ -57,6 +65,7 @@ long TriggerAreaManager::add (long ULrow, long ULcol, long LRrow, long LRcol, lo
 		tileDims[1] = ULcol / 3 + 1;
 		tileDims[2] = LRrow / 3;
 		tileDims[3] = LRcol / 3 + 1;
+		clampTileDims(tileDims);
 		for (long r = tileDims[0]; r < tileDims[2]; r++)
 			for (long c = tileDims[1]; c < tileDims[3]; c++) {
 				//assert((map[r][c] == 0) || (map[r][c] == i), i," Duplicate Trigger ");
@@ -79,6 +88,7 @@ void TriggerAreaManager::remove (long areaHandle) {
 	tileDims[1] = triggerAreas[areaHandle].dim[1] / 3 + 1;
 	tileDims[2] = triggerAreas[areaHandle].dim[2] / 3;
 	tileDims[3] = triggerAreas[areaHandle].dim[3] / 3 + 1;
+	clampTileDims(tileDims);
 	for (long r = tileDims[0]; r < tileDims[2]; r++)
 		for (long c = tileDims[1]; c < tileDims[3]; c++)
 			if (map[r][c] == areaHandle)

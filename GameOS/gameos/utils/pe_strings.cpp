@@ -156,6 +156,18 @@ bool isPlaceholderString(const char* text)
     return *text == '\0' || *text == '_';
 }
 
+const char* chooseResourceString(const char* tableText, const char* extraText,
+                                 bool extraReplacesTable)
+{
+    const bool tableHasText = tableText && !isPlaceholderString(tableText);
+    if (!extraText || (tableHasText && !extraReplacesTable))
+        return tableText;
+    // a placeholder never replaces real text
+    if (tableText && isPlaceholderString(extraText))
+        return tableText;
+    return extraText;
+}
+
 namespace {
 
 typedef std::pair<std::string, std::string> RuntimeStringKey;	// key, text

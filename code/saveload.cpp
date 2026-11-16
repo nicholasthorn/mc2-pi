@@ -14,6 +14,8 @@
 #include"mclib.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef MISSION_H
 #include"mission.h"
 #endif
@@ -112,6 +114,7 @@
 
 #include "../resource.h"
 #include<gameos.hpp>
+#include"mc2xunits.h"
 #ifndef LINUX_BUILD
 #include<ddraw.h>
 #else
@@ -257,6 +260,9 @@ void Mission::save (const char *saveFileName)
 		soundSystem->playDigitalSample(INVALID_GUI);
 		return;
 	}
+
+	// wolfman-MC2X's airlift is not saved: its cargo goes down first
+	mc2xunits::putDownAll();
 
 	userInput->mouseOff();
 
@@ -789,13 +795,11 @@ void Mission::load (const char *loadFileName)
 	//----------------------------------------------------------------------
 	// Now that we have some base values, load the master component table...
 	if (!MasterComponent::masterList) {
-		FullPathFileName compFileName;
-		compFileName.init(objectPath,"compbas",".csv");
-#ifdef _DEBUG
-		long loadErr = 
-#endif
-			MasterComponent::loadMasterList(compFileName, 255, baseSensorRange);
-		gosASSERT(loadErr == NO_ERR);
+		char compFileName[1024];
+		MasterComponent::tableFileName(compFileName, sizeof(compFileName));
+		// without it every unit's weapons and ammo are garbage
+		if (MasterComponent::loadMasterList(compFileName, 255, baseSensorRange) != NO_ERR)
+			STOP(("cannot read the component table %s", compFileName));
 	}
 
 	result = gameSystemFile->readIdUChar("GodMode", godMode);
@@ -1020,7 +1024,9 @@ void Mission::load (const char *loadFileName)
 	libraryFileName.init(missionPath, "miscfunc", ".abx");
 	err = ABLi_loadLibrary(libraryFileName, &numErrors, &numLinesProcessed);
 
-	libraryFileName.init(missionPath, "corebrain", ".abx");
+	char coreBrainFile[128];	// or wolfman-MC2X's mc2xcore.abx (a loaded game did not find it)
+	stockOrMC2XFileName(missionPath, "corebrain.abx", coreBrainFile, sizeof(coreBrainFile));
+	libraryFileName.init(missionPath, coreBrainFile, "");
 	err = ABLi_loadLibrary(libraryFileName, &numErrors, &numLinesProcessed);
 
 	FullPathFileName brainFileName;

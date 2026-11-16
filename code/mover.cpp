@@ -258,10 +258,13 @@ float Mover::recoverRange;
 float Mover::recoverTime;
 float Mover::recoverCost;
 float Mover::recoverAmount;
-long Mover::IndirectFireWeapons[20] = {-1,-1,-1,-1,-1,
+long Mover::IndirectFireWeapons[MAX_INDIRECT_FIRE_WEAPONS] = {-1,-1,-1,-1,-1,
 									   -1,-1,-1,-1,-1,  
 									   -1,-1,-1,-1,-1, 
-									   -1,-1,-1,-1,-1};
+									   -1,-1,-1,-1,-1,
+									   -1,-1,-1,-1,-1,
+									   -1,-1,-1,-1,-1,
+									   -1,-1};
 
 long Mover::AreaEffectWeapons[20] 	= {-1,-1,-1,-1,-1,
 									   -1,-1,-1,-1,-1,  
@@ -1877,7 +1880,7 @@ long Mover::loadGameSystem (FitIniFilePtr mechFile, float visualRange) {
 	result = mechFile->readIdFloat("RefitBayAmmoCost", Mover::refitCostArray[AMMO_REFIT_COST][REFIT_BAY]);
 	Assert(result == NO_ERR, 0, "Couldn't find RefitBayAmmoCost in Mover:General block in gamesys.fit");
 	
-	result = mechFile->readIdLongArray("IndirectFireWeaponComponentIndex",Mover::IndirectFireWeapons,20);
+	result = mechFile->readIdLongArray("IndirectFireWeaponComponentIndex",Mover::IndirectFireWeapons,MAX_INDIRECT_FIRE_WEAPONS);
 	Assert(result == NO_ERR, 0, "Couldn't find IndirectFireWeaponComponentIndex in Mover:General block in gamesys.fit");
 	
 	result = mechFile->readIdLongArray("AreaEffectWeaponComponentIndex",Mover::AreaEffectWeapons,20);
@@ -1984,9 +1987,16 @@ long Mover::loadGameSystem (FitIniFilePtr mechFile, float visualRange) {
 	if (result != NO_ERR)
 		DefaultAttackRadius = 275.0;
 
-	result = mechFile->readIdFloatArray("WarriorRankScale", WarriorRankScale, NUM_WARRIOR_RANKS);
+	// wolfman-MC2X's table has 6 entries (stock's 4, for 5 ranks: entries the
+	// file leaves out keep their default); the game uses the first 5
+	float rankScale[6] = { 0 };
+	for (long rank = 0; rank < NUM_WARRIOR_RANKS; rank++)
+		rankScale[rank] = WarriorRankScale[rank];
+	result = mechFile->readIdFloatArray("WarriorRankScale", rankScale, 6);
 	if (result != NO_ERR)
 		return(result);
+	for (long rank = 0; rank < NUM_WARRIOR_RANKS; rank++)
+		WarriorRankScale[rank] = rankScale[rank];
 
     // sebi: show me where are they used
     /*
@@ -2125,8 +2135,8 @@ long Mover::loadGameSystem (FitIniFilePtr mechFile, float visualRange) {
 		SensorSizeModifier[i][1] = sizeTable[i * 2 + 1];
 	}
 
-	long masterIDs[9];
-	result = mechFile->readIdLongArray("SensorMasterIDs", masterIDs, 9);
+	long masterIDs[10];	// wolfman-MC2X lists 10 (stock 9)
+	result = mechFile->readIdLongArray("SensorMasterIDs", masterIDs, 10);
 	if (result != NO_ERR)
 		return(result);
 	
@@ -5693,7 +5703,7 @@ bool Mover::getWeaponIndirectFire (long weaponIndex)
 		return(false);
 
 	//--------------------------------------------------------------------
-	for (long i=0;i<20;i++)
+	for (long i=0;i<MAX_INDIRECT_FIRE_WEAPONS;i++)
 	{
 		if (IndirectFireWeapons[i] == inventory[weaponIndex].masterID)
 			return true;

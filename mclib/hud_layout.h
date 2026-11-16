@@ -41,3 +41,13 @@ inline long hudBaseHeight(int layoutWidth)
 {
 	return layoutWidth == 640 ? 480 : layoutWidth == 800 ? 600 : 768;
 }
+
+// wolfman-MC2X's mc2x_buttonlayout<w>.fit has 22 support-unit buttons in its
+// own order (Vehicle0 to Vehicle21) where stock has 8. Which of MC2X's is
+// stock's support button vehicleIndex (airstrike, guard tower / artillery,
+// sensor probe, repair vehicle, scout, minelayer, recovery, cancel), or -1.
+inline int mc2xVehicleButton(int vehicleIndex)
+{
+	static const int buttons[8] = { 0, 6, 1, 2, 3, 4, 5, 21 };
+	return (vehicleIndex >= 0) && (vehicleIndex < 8) ? buttons[vehicleIndex] : -1;
+}

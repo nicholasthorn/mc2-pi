@@ -1,0 +1,6 @@
+module BigArray : integer;
+	var
+		integer[100000,100000]		cells;
+	code
+		return(0);
+endmodule.

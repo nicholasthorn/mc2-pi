@@ -313,7 +313,7 @@ long BuildingType::init (FilePtr objFile, unsigned long fileSize) {
 	if (objectNameID != -1)	
 	{
 		char s[255];
-		cLoadString(objectNameID, s, 254);
+		cLoadStringIfFits(objectNameID, s, 254);	// not used; a long text is no error
 	}
 
 	for (long i=0;i<18;i++)
@@ -726,9 +726,15 @@ long Building::update (void)
 		// if not, find parent in ObjMgr and get its pointer.
 		if ((parentId != 0xffffffff) && (parentId != 0))
 		{
-			parent = ObjectManager->findByCellPosition((parentId>>16),(parentId & 0x0000ffff))->getWatchID();
-			if (ObjectManager->getByWatchID(parent)->canBeCaptured())
-				ObjectManager->getByWatchID(parent)->setFlag(OBJECT_FLAG_CAPTURABLE, true);
+			// a building only: in wolfman-MC2X maps another object can come first
+			// in that cell; none leaves parent 0 (GameObjectManager logs it)
+			GameObjectPtr parentObj = ObjectManager->findByCellPosition((parentId>>16),(parentId & 0x0000ffff), BUILDING);
+			if (parentObj)
+			{
+				parent = parentObj->getWatchID();
+				if (parentObj->canBeCaptured())
+					parentObj->setFlag(OBJECT_FLAG_CAPTURABLE, true);
+			}
 
 			gosASSERT(parent != 0);
 		}

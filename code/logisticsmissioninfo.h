@@ -21,6 +21,8 @@ class FitIniFile;
 CLASS DESCRIPTION
 LogisticsMissionInfo:
 **************************************************************************************************/
+#include"mc2xsupport.h"
+
 class LogisticsMissionInfo
 {
 	public:
@@ -103,6 +105,8 @@ class LogisticsMissionInfo
 		bool				canHaveAirStrike();
 		bool				canHaveSensorStrike();
 		bool				canHaveMineLayer();
+		// wolfman-MC2X's own support units (mc2xsupport.h): a switch per unit
+		bool				canHaveMC2XSupport( int missionSwitch );
 		bool				getVideoShown();
 		void				setVideoShown();
 
@@ -149,6 +153,8 @@ class LogisticsMissionInfo
 			bool enableAirStrike;
 			bool enableSensorStrike;
 			bool enableMineLayer;
+			// wolfman-MC2X's <x>EnabledDefault switches, mc2xsupport::Switch order
+			bool enableMC2XSupport[mc2xsupport::kSwitchCount];
 		};	
 
 		typedef EList<MissionInfo*, MissionInfo*> MISSION_LIST;

@@ -1,11 +1,15 @@
 # MC2 (pi-port)
 
-A maintained update of the MechCommander 2 open-source engine (alariq's
-Linux/Windows port): fixes, mod support, tests and CI for 64-bit Linux and
-Windows, plus the Raspberry Pi 4/400 through an OpenGL ES 3.1 renderer, and
-Meta Quest 2 VR in development (`planning/future-features/VR-TABLETOP.md`).
-Desktop GL stays the default everywhere but the Pi. The main branch is
-`pi-port` (historical name; it is the default branch).
+MechCommander 2 in VR: the focus is the standalone Meta Quest 2 build
+(Android, OpenXR, GLES 3.1), playable today
+(`planning/future-features/VR-TABLETOP.md`). It sits on a maintained update
+of the MechCommander 2 open-source engine (alariq's Linux/Windows port):
+fixes, mod support (Omnitech, MC2X), LAN multiplayer, tests and CI. The
+flat builds (Windows, Linux x64 and arm64, the Raspberry Pi 4/400 through
+the same OpenGL ES 3.1 renderer) are kept working as cross-platform extras;
+a change must not break them. Desktop GL stays the default everywhere but
+the Pi and the Quest. The main branch is `pi-port` (historical name, from
+where the work started; it is the default branch).
 
 ## Repos, remotes and upstream policy
 

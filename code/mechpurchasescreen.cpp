@@ -7,6 +7,7 @@ MechPurchaseScreen.cpp			: Implementation of the MechPurchaseScreen component.
 \*************************************************************************************************/
 
 #include"mechpurchasescreen.h"
+#include"shopfilter.h"
 #include"mclib.h"
 #include"logisticsdata.h"
 #include"mechbayscreen.h"
@@ -34,6 +35,7 @@ MechPurchaseScreen::MechPurchaseScreen(  )
 	acceptPressed = 0;
 	pDragMech = NULL;
 	dragStartLeft = 0;
+	unitGroupFilter = shopfilter::kAllGroups;
 	helpTextArrayID = 4; 
 	inventoryListBox.setID( INVENTORY_ID );
 	variantListBox.setID( VARIANT_ID );
@@ -252,6 +254,30 @@ void MechPurchaseScreen::render( int xOffset, int yOffset )
 
 //-------------------------------------------------------------------------------------------------
 
+// The units for sale, under the unit-type filter (all unless an MC2X button
+// chose one)
+void MechPurchaseScreen::fillVariantList()
+{
+	variantListBox.removeAllItems(true);
+
+	LogisticsVariant* pVariants[256];
+	int count = 256;
+
+	LogisticsData::instance->getPurchasableMechs( pVariants, count );
+
+	for ( int i =0; i < count; i++ )
+	{
+		if ( !shopfilter::shows( unitGroupFilter, pVariants[i]->getGroupID() ) )
+			continue;
+		if ( !MPlayer || MPlayer->missionSettings.variants || pVariants[i]->isDesignerMech() )
+		{
+			LogisticsMech* pMech = new LogisticsMech( pVariants[i], -1 );
+			MechListBoxItem* item = new MechListBoxItem( pMech, 1 );
+			variantListBox.AddItem( item );
+		}
+	}
+}
+
 void MechPurchaseScreen::begin()
 {
 
@@ -302,20 +328,7 @@ void MechPurchaseScreen::begin()
 	}
 	
 
-	LogisticsVariant* pVariants[256];
-	int count = 256;
-
-	LogisticsData::instance->getPurchasableMechs( pVariants, count );
-
-	for ( int i =0; i < count; i++ )
-	{
-		if ( !MPlayer || MPlayer->missionSettings.variants || pVariants[i]->isDesignerMech() )
-		{
-			LogisticsMech* pMech = new LogisticsMech( pVariants[i], -1 );
-			MechListBoxItem* item = new MechListBoxItem( pMech, 1 );
-			variantListBox.AddItem( item );
-		}
-	}
+	fillVariantList();
 
 	if ( !pSelMech )
 	{
@@ -492,6 +505,19 @@ int	MechPurchaseScreen::handleMessage( unsigned long what, unsigned long who )
 			case MB_MSG_MAINMENU:
 				status = MAINMENU;
 				break;
+			default:
+			{
+				// wolfman-MC2X's unit-type buttons
+				const int group = shopfilter::groupForButton( who );
+				if ( group != shopfilter::kNotAFilter )
+				{
+					unitGroupFilter = group;
+					fillVariantList();
+					variantListBox.SelectItem( variantListBox.GetItemCount() ? 0 : -1 );
+					soundSystem->playDigitalSample( LOG_SELECT );
+				}
+				break;
+			}
 		}
 	}
 

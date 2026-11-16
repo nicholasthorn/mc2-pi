@@ -257,8 +257,12 @@ set(SOURCES
     "code/typename.cpp"
     "code/missaim.cpp"
     "code/mechtypefit.cpp"
+    "code/campaignglobals.cpp"
     "code/forcegroupcycle.cpp"
     "code/msglines.cpp"
+    "code/formation.cpp"
+    "code/mc2xsupport.cpp"
+    "code/mc2xunits.cpp"
     "code/missiongui.cpp"
     "code/mpconnectiontype.cpp"
     "code/mpgamebrowser.cpp"
@@ -337,9 +341,9 @@ endif()
 # "#pragma warning" lines; the unit tests see it as a SYSTEM header, the game
 # target cannot, so only that warning is relaxed here.
 if(MC2_STRICT_WARNINGS)
-    set_source_files_properties(code/benchscenario.cpp code/typename.cpp
+    set_source_files_properties(code/benchscenario.cpp code/typename.cpp code/campaignglobals.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas")
-    set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netlobby.cpp code/netrules.cpp code/netforce.cpp code/iconsheet.cpp code/forcegroupcycle.cpp code/msglines.cpp code/missaim.cpp
+    set_source_files_properties(code/uismokewalk.cpp code/netwire.cpp code/netsession.cpp code/netlan.cpp code/netlobby.cpp code/netrules.cpp code/netforce.cpp code/iconsheet.cpp code/forcegroupcycle.cpp code/msglines.cpp code/formation.cpp code/mc2xsupport.cpp code/missaim.cpp
         PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
     # uismokedriver.cpp is game glue (like benchdirector.cpp) but new code, as is
     # ondisksizes.cpp (compile-time size checks over the game's structs):
@@ -350,7 +354,7 @@ if(MC2_STRICT_WARNINGS)
     foreach(_dir GameOS/include GameOS/gameos mclib gui code netlib thirdparty)
         list(APPEND _mc2_legacy_isystem "-isystem" "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}")
     endforeach()
-    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp code/mechtypefit.cpp
+    set_source_files_properties(code/uismokedriver.cpp code/ondisksizes.cpp code/mechtypefit.cpp code/mc2xunits.cpp
         PROPERTIES COMPILE_OPTIONS
         "${MC2_STRICT_WARNINGS};-Wno-unknown-pragmas;${_mc2_legacy_isystem}")
 endif()

@@ -27,6 +27,9 @@
 #                     walks below (walk 1 for MechCommander Omnitech data
 #                     when the game dir has it)
 #   --timeout S       seconds before a run counts as hung (default: 300)
+#   --screen WxH      Xvfb screen size (default: 800x600); larger for a game
+#                     dir whose options.cfg asks for more (wolfman-MC2X
+#                     needs 1024x768 or more)
 #   --log-dir DIR     where to keep per-run logs (default: ./smoke-logs)
 #   --display         run on the current display instead of Xvfb (to watch)
 #   --deterministic   run each mission with -deterministic (fixed game step
@@ -91,6 +94,7 @@ UI_WALKS=""
 UI_SET=0
 FRAMES=600
 TIMEOUT=300
+SCREEN=800x600
 LOG_DIR="$PWD/smoke-logs"
 USE_DISPLAY=0
 DETERMINISTIC=0
@@ -104,6 +108,7 @@ while [ $# -gt 0 ]; do
         --frames)    FRAMES="$2"; shift 2 ;;
         --ui)        UI_WALKS="$2"; UI_SET=1; shift 2 ;;
         --timeout)   TIMEOUT="$2"; shift 2 ;;
+        --screen)    SCREEN="$2"; shift 2 ;;
         --log-dir)   LOG_DIR="$2"; shift 2 ;;
         --display)   USE_DISPLAY=1; shift ;;
         --deterministic) DETERMINISTIC=1; shift ;;
@@ -170,7 +175,7 @@ else
     # The game's resolution (800x600, minprefs.cfg). -autoexit runs are
     # windowed at that size anyway (FullScreen is ignored), so the screen
     # size only has to be big enough.
-    RUN=(xvfb-run -a -s "-screen 0 800x600x24")
+    RUN=(xvfb-run -a -s "-screen 0 ${SCREEN}x24")
 fi
 
 # Log lines that mean something went wrong even if the game kept running.

@@ -175,7 +175,11 @@ typedef enum {
 #define	RELPOS_FLAG_PASSABLE_START		2
 #define	RELPOS_FLAG_PASSABLE_GOAL		4
 
-#define MAX_GLOBAL_PATH					50
+// Doors in a global route; a longer one counts as no route. Stock routes
+// reach 26 doors, MC2X's 300x300 maps 63. 120 fits the char step counters.
+#define MAX_GLOBAL_PATH					120
+// saved games keep the stock 50 (MechWarriorData's size)
+#define MAX_SAVED_GLOBAL_PATH			50
 
 #define	NUM_MOVE_LEVELS					2
 

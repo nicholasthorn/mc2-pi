@@ -544,12 +544,29 @@ void enterStandardRoutine (const char* name, long routineKey, bool isOrder, cons
 	routineIdPtr->typePtr = NULL;
 
 	FunctionInfoTable[tableIndex].numParams = 0;
+	FunctionInfoTable[tableIndex].minParams = 0;
 	if (paramList) {
-		FunctionInfoTable[tableIndex].numParams = strlen(paramList);
-		if (FunctionInfoTable[tableIndex].numParams > MAX_FUNCTION_PARAMS)
-			ABL_Fatal(0, " ABL.enterStandardRoutine: Too Many Standard Function Params ");
+		// A "|" marks where optional trailing parameters start ("?|b": one
+		// argument, then an optional boolean); the callback asks
+		// ABLi_moreParams() whether the call passed them.
+		char paramTypes[MAX_FUNCTION_PARAMS + 1];
+		long numTypes = 0;
+		long minParams = -1;
+		for (const char* p = paramList; *p; p++) {
+			if (*p == '|') {
+				if (minParams < 0)
+					minParams = numTypes;
+				continue;
+			}
+			if (numTypes >= MAX_FUNCTION_PARAMS)
+				ABL_Fatal(0, " ABL.enterStandardRoutine: Too Many Standard Function Params ");
+			paramTypes[numTypes++] = *p;
+		}
+		paramTypes[numTypes] = '\0';
+		FunctionInfoTable[tableIndex].numParams = numTypes;
+		FunctionInfoTable[tableIndex].minParams = (minParams < 0) ? numTypes : minParams;
 		for (long i = 0; i < FunctionInfoTable[tableIndex].numParams; i++)
-			switch (paramList[i]) {
+			switch (paramTypes[i]) {
 				case '?':
 					FunctionInfoTable[tableIndex].params[i] = PARAM_TYPE_ANYTHING;
 					break;
@@ -582,7 +599,7 @@ void enterStandardRoutine (const char* name, long routineKey, bool isOrder, cons
 					break;
 				default: {
 					char err[255];
-					sprintf(err, " ABL.enterStandardRoutine: bad param type (%c) for (%s)", paramList[i], name);
+					sprintf(err, " ABL.enterStandardRoutine: bad param type (%c) for (%s)", paramTypes[i], name);
 					ABL_Fatal(0, err);
 				}
 			}

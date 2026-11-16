@@ -301,3 +301,67 @@ TEST_CASE("globalmapio: special-area footprints, stock and Omnitech wide")
 	wide.cells[1][1] = -40000;
 	CHECK_FALSE(narrowGameObjectFootPrint(out, wide));
 }
+
+TEST_CASE("globalmapio: readFootPrints takes stock, Omnitech and MC2X footprints")
+{
+	// wolfman-MC2X keeps the stock short fields and doubles the cell list to
+	// 128: 520 bytes (R70 metropolitan: 284 footprints, at most 4 cells)
+	static_assert(sizeof(MC2XGameObjectFootPrint) == 520, "MC2X footprint is 520 bytes");
+	MC2XGameObjectFootPrint mx[2] = {};
+	mx[0].cellPositionRow = 96; mx[0].cellPositionCol = 52; mx[0].numCells = 3;
+	mx[0].cells[0][0] = 96; mx[0].cells[0][1] = 51;
+	mx[0].cells[1][0] = 96; mx[0].cells[1][1] = 52;
+	mx[0].cells[2][0] = 96; mx[0].cells[2][1] = 53;
+	mx[0].cells[3][0] = 7;	// past numCells: ignored, zeroed
+	mx[1].cellPositionRow = 263; mx[1].cellPositionCol = 142;
+	{
+		OnePacket f("mc2x_fp.pak", mx, sizeof(mx));
+		StockFootPrint out[2];
+		std::memset(out, 0x5A, sizeof(out));
+		REQUIRE(readFootPrints(&f.in, 0, out, 2));
+		CHECK(out[0].cellPositionRow == 96);
+		CHECK(out[0].cellPositionCol == 52);
+		CHECK(out[0].numCells == 3);
+		CHECK(out[0].cells[0][1] == 51);
+		CHECK(out[0].cells[2][1] == 53);
+		CHECK(out[0].cells[3][0] == 0);
+		CHECK(out[1].cellPositionRow == 263);
+		CHECK(out[1].numCells == 0);
+	}
+
+	// more cells than the stock list holds: refused, not cut short
+	mx[0].numCells = 65;
+	{
+		OnePacket f("mc2x_fp_big.pak", mx, sizeof(mx));
+		StockFootPrint out[2] = {};
+		CHECK_FALSE(readFootPrints(&f.in, 0, out, 2));
+	}
+	mx[0].numCells = 3;
+
+	// the other two layouts go through the same call
+	StockFootPrint stock = {};
+	stock.cellPositionRow = 5; stock.numCells = 1; stock.cells[0][0] = 5;
+	{
+		OnePacket f("stock_fp2.pak", &stock, sizeof(stock));
+		StockFootPrint out = {};
+		REQUIRE(readFootPrints(&f.in, 0, &out, 1));
+		CHECK(std::memcmp(&stock, &out, sizeof(out)) == 0);
+	}
+	WideGameObjectFootPrint wide = {};
+	wide.cellPositionRow = 37; wide.numCells = 1; wide.cells[0][0] = 36;
+	{
+		OnePacket f("wide_fp2.pak", &wide, sizeof(wide));
+		StockFootPrint out = {};
+		REQUIRE(readFootPrints(&f.in, 0, &out, 1));
+		CHECK(out.cellPositionRow == 37);
+		CHECK(out.cells[0][0] == 36);
+	}
+
+	// any other size is still refused
+	unsigned char odd[300] = {};
+	{
+		OnePacket f("odd_fp.pak", odd, sizeof(odd));
+		StockFootPrint out = {};
+		CHECK_FALSE(readFootPrints(&f.in, 0, &out, 1));
+	}
+}

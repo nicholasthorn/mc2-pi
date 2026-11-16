@@ -460,4 +460,30 @@ TEST_CASE("FitIniFile hex values: 32-bit range and zero padding")
 	CHECK(byteValue == 0x7F);
 }
 
+// An in-memory file (every FST entry is one) copied whatever was asked for:
+// a wolfman-MC2X model whose loader reads 25 bytes past its end read past the
+// heap buffer (ASan). A read now stops at the end and zero-fills the rest.
+TEST_CASE("File::read of an in-memory file stops at its end")
+{
+	char image[4] = {'a', 'b', 'c', 'd'};
+	File f;
+	REQUIRE(f.open(image, (int)sizeof(image)) == NO_ERR);
+
+	unsigned char buf[8];
+	memset(buf, 'x', sizeof(buf));
+	CHECK(f.read(buf, 2) == 2);
+	CHECK(memcmp(buf, "ab", 2) == 0);
+
+	memset(buf, 'x', sizeof(buf));
+	CHECK(f.read(buf, 6) == 2);
+	CHECK(memcmp(buf, "cd\0\0\0\0", 6) == 0);
+	CHECK(buf[6] == 'x');
+
+	memset(buf, 'x', sizeof(buf));
+	CHECK(f.read(buf, 3) == 0);
+	CHECK(memcmp(buf, "\0\0\0", 3) == 0);
+	CHECK(f.getLogicalPosition() == 4);
+	f.close();
+}
+
 } // TEST_SUITE("FileStack")

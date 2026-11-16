@@ -19,6 +19,9 @@ LogisticsDialog.cpp			: Implementation of the LogisticsDialog component.
 #include"sounds.h"
 #include"gamesound.h"
 #include<utils/str_bounded.h>
+#include"ffile.h"
+#include<set>
+#include<string>
 
 // A headset has no keyboard, so a save or a variant starts with a name nobody
 // has used, and OK works straight away. A name in the list can still be picked
@@ -592,6 +595,18 @@ void LogisticsSaveDialog::beginCampaign()
 }
 
 
+// An entry as tall as its text: a name wider than the list (MC2X's "Test
+// Mission Collection") wraps, and in an entry of the layout's height it
+// was drawn over the next one. Never shorter than the layout's height.
+static void addGameEntry( aListBox& list, aLocalizedListItem* entry )
+{
+	const float layoutHeight = entry->height();
+	entry->sizeToText();
+	if ( entry->height() < layoutHeight )
+		entry->resize( (long)entry->width(), (long)layoutHeight );
+	list.AddItem( entry );
+}
+
 void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 {
 	gameListBox.removeAllItems( true );
@@ -633,7 +648,7 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 				{
 					pEntry->setHiddenText( findResult.cFileName );
 					pEntry->setColor( edits[0].getColor() );
-					gameListBox.AddItem( pEntry );
+					addGameEntry( gameListBox, pEntry );
 				}
 				else
 					delete pEntry;		// was leaked for every rejected save
@@ -661,7 +676,7 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 
 			pEntry->setHiddenText( "campaign" );
 			pEntry->setColor( edits[0].getColor() );
-			gameListBox.AddItem( pEntry );
+			addGameEntry( gameListBox, pEntry );
 		}
 
 		path.init(campaignPath, "tutorial", ".fit" );
@@ -677,7 +692,45 @@ void LogisticsSaveDialog::initDialog( const char* path, bool bCampaign )
 
 			pEntry->setHiddenText( "tutorial" );
 			pEntry->setColor( edits[0].getColor() );
-			gameListBox.AddItem( pEntry );
+			addGameEntry( gameListBox, pEntry );
+		}
+
+		// Any other campaign kept only in a fast file: wolfman-MC2X ships its
+		// campaigns in mission.fst. Stock and Omnitech FSTs hold only the two
+		// above; one also on disk was listed by the search.
+		std::set<std::string> listed;
+		const size_t folderLength = strlen( campaignPath );
+		for ( long f = 0; f < numFastFiles; f++ )
+		{
+			if ( !fastFiles || !fastFiles[f] )
+				continue;
+			const FILE_HANDLE* entries = fastFiles[f]->getFilesInfo();
+			for ( long i = 0; entries && i < fastFiles[f]->getNumFiles(); i++ )
+			{
+				const char* entryName = entries[i].pfe ? entries[i].pfe->name : NULL;
+				if ( !entryName || S_strnicmp( entryName, campaignPath, folderLength ) != 0 )
+					continue;
+				const char* base = entryName + folderLength;
+				const size_t baseLength = strlen( base );
+				if ( baseLength <= 4 || baseLength >= 128 || strchr( base, '/' ) || S_stricmp( base + baseLength - 4, ".fit" ) != 0 )
+					continue;
+				std::string name( base, baseLength - 4 );
+				S_strlwr( &name[0] );
+				if ( name == "campaign" || name == "tutorial" || !listed.insert( name ).second )
+					continue;
+				path.init( campaignPath, name.c_str(), ".fit" );
+				if ( fileExists( path, FILE_ON_DISK ) )
+					continue;
+
+				aLocalizedListItem* pEntry = new aLocalizedListItem();
+				*pEntry = s_instance->templateItem;
+				char campaignName[1024];
+				readCampaignNameFromFile( name.c_str(), campaignName, 1023 );
+				pEntry->setText( campaignName );
+				pEntry->setHiddenText( name.c_str() );
+				pEntry->setColor( edits[0].getColor() );
+				addGameEntry( gameListBox, pEntry );
+			}
 		}
 	}
 }

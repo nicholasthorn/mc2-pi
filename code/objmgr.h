@@ -514,7 +514,8 @@ class GameObjectManager {
 
 		GameObjectPtr findByBlockVertex (long blockNum, long vertex);
 
-		GameObjectPtr findByCellPosition (long row, long col);
+		// objectClass: only objects of that class (-1: any)
+		GameObjectPtr findByCellPosition (long row, long col, long objectClass = -1);
 
 		GameObjectPtr findByUnitInfo (long commander, long group, long mate);
 

@@ -10,6 +10,8 @@
 #include"mclib.h"
 #endif
 
+#include"mc2xart.h"
+
 #ifndef LINUX_BUILD
 #include"crtdbg.h"
 #endif
@@ -508,10 +510,10 @@ static uint32_t netHashFile (uint32_t hash, const char* path, unsigned long& tot
 static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 
 	char path[1024];
-	snprintf(path, sizeof(path), "%scompbas.csv", objectPath);
+	MasterComponent::tableFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 
-	snprintf(path, sizeof(path), "%spilots.csv", objectPath);
+	LogisticsData::pilotListFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 	File pilotList;
 	if (pilotList.open(path) == NO_ERR) {
@@ -523,7 +525,7 @@ static uint32_t netHashLogisticsFiles (uint32_t hash, unsigned long& total) {
 		pilotList.close();
 	}
 
-	snprintf(path, sizeof(path), "%sbuildings.csv", artPath);
+	LogisticsData::inventoryFileName(path, sizeof(path));
 	hash = netHashFile(hash, path, total);
 	CSVFile objects;
 	if (objects.open(path) == NO_ERR) {
@@ -557,7 +559,9 @@ static uint32_t netDataHash (const char* missionName) {
 	}
 	path.init(objectPath, "object2", ".pak");
 	hash = netHashFile(hash, path, total);
-	path.init(missionPath, "gamesys", ".fit");
+	char gameSystemName[128];
+	stockOrMC2XFileName(missionPath, "gamesys.fit", gameSystemName, sizeof(gameSystemName));
+	path.init(missionPath, gameSystemName, "");
 	hash = netHashFile(hash, path, total);
 	hash = netHashLogisticsFiles(hash, total);
 	printf("[NET] game data: %lu bytes, hash %08x\n", total, (unsigned)hash);
