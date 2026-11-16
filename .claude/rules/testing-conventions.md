@@ -53,6 +53,10 @@ Coverage is still to come (`planning/QUALITY-ROADMAP.md`).
   `STOP: ` or `FATAL` line. Logs go to `--log-dir`. A new error that is
   genuinely harmless gets fixed at the source (see the post-`glewInit()` error
   clear), not added to an ignore list.
+- `-suspendexit N` acts, after N gameplay frames, as if Android sent the
+  app into the background and closed it: the resume save is written and the
+  game quits. A second start without `-mission` (with `-autoexit`) resumes
+  it. Use a scratch `HOME` (the save goes in the user data directory).
 - A `STOP` (and so `Fatal`, `Assert`, `ABL_Fatal`) logs and ends the
   process with exit 1, with no message box in an automated run.
   `MC2_STOP_EXITS=0` makes `STOP` and `Assert` carry on (mod bring-up);

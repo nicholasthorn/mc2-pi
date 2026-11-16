@@ -190,6 +190,12 @@ void Logistics::start (long startMode)
 					mission->destroy();
 					playFullScreenVideo( LogisticsData::instance->getFinalVideo() );
 					setLogisticsState(log_SPLASH);
+					// a resumed mission (Android) started without the menus
+					if ( !missionBegin )
+					{
+						missionBegin = new MissionBegin;
+						missionBegin->init();
+					}
 					missionBegin->beginSplash();
 					userInput->mouseOn();
 					char tmp[256];

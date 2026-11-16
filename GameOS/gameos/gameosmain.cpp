@@ -8,6 +8,8 @@
 
 #include <SDL2/SDL.h>
 #include "gos_input.h"
+#include "gos_touch.h"
+#include "android_data.h"
 #include "gos_logfile.h"
 
 #include "utils/camera.h"
@@ -47,6 +49,9 @@ extern void gos_DestroyAudio();
 
 static bool g_exit = false;
 static bool g_focus_lost = false;
+// between SDL_APP_WILLENTERBACKGROUND and SDL_APP_DIDENTERFOREGROUND: Android
+// may have taken the window's surface, so nothing is drawn
+static bool g_in_background = false;
 static bool g_gameplay_started = false;
 
 // -bench <csv>: fixed game step, fixed seed, no player input, per-frame
@@ -293,7 +298,11 @@ static void process_events( bool sample, bool reset ) {
     SDL_Event event;
     while( SDL_PollEvent( &event ) ) {
 
-        if(g_focus_lost) {
+        // the app's own events come whether or not the window has focus
+        // (Android takes it away before the app goes into the background)
+        const bool appEvent = event.type == SDL_APP_WILLENTERBACKGROUND || event.type == SDL_APP_DIDENTERFOREGROUND
+            || event.type == SDL_RENDER_DEVICE_RESET || event.type == SDL_QUIT;
+        if(g_focus_lost && !appEvent) {
             if(event.type != SDL_WINDOWEVENT || event.window.event != SDL_WINDOWEVENT_FOCUS_GAINED) {
                 continue;
             } else {
@@ -308,6 +317,7 @@ static void process_events( bool sample, bool reset ) {
             switch( event.type ) {
             case SDL_KEYDOWN: case SDL_KEYUP: case SDL_MOUSEMOTION:
             case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: case SDL_MOUSEWHEEL:
+            case SDL_FINGERDOWN: case SDL_FINGERUP: case SDL_FINGERMOTION:
                 continue;
             }
         }
@@ -322,6 +332,33 @@ static void process_events( bool sample, bool reset ) {
         case SDL_QUIT:
             g_exit = true;
             break;
+        // Android: the app is going into the background. These two events
+        // arrive together; SDL then blocks this thread in a later event poll
+        // until the app comes back (SDL_HINT_ANDROID_BLOCK_ON_PAUSE), and
+        // pauses the sound itself. The game pauses its mission now: the
+        // system may close the app without another frame.
+        case SDL_APP_WILLENTERBACKGROUND:
+            printf("[APP] going into the background\n");
+            fflush(stdout);
+            gos_touch::cancel();
+            if(!gos_IsAutomatedRun() && Environment.AppSuspending)
+                Environment.AppSuspending();
+            g_in_background = true;
+            break;
+        case SDL_APP_DIDENTERFOREGROUND:
+            printf("[APP] back in the foreground\n");
+            g_in_background = false;
+            if(!gos_IsAutomatedRun() && Environment.AppResumed)
+                Environment.AppResumed();
+            break;
+        // SDL found the GL context gone when the app came back and made a
+        // new one. Every texture and buffer went with the old one, and the
+        // engine cannot reload them (MOBILE.md, app lifecycle): quit rather
+        // than draw garbage or crash.
+        case SDL_RENDER_DEVICE_RESET:
+            printf("[APP] FATAL: the GL context was lost in the background; the game cannot reload its textures, quitting\n");
+            g_exit = true;
+            break;
         case SDL_WINDOWEVENT:
             switch(event.window.event) {
                 case SDL_WINDOWEVENT_RESIZED:
@@ -330,24 +367,46 @@ static void process_events( bool sample, bool reset ) {
                     float w = (float)event.window.data1;(void)w;
                     float h = (float)event.window.data2;(void)h;
                     SPEW(("INPUT", "resize event: w: %f h:%f\n", w, h));
+#ifdef __ANDROID__
+                    // the game keeps Android's surface at whatever size it is
+                    // (keepSurface, gameos_graphics.cpp): follow it when Android
+                    // changes it (split screen, a foldable), or the picture and
+                    // the touch and mouse positions are scaled to the old size
+                    if(gos_GetWindow())
+                        graphics::get_drawable_size(gos_GetWindow(), &Environment.drawableWidth, &Environment.drawableHeight);
+#endif
                     break;
                 }
                 case SDL_WINDOWEVENT_FOCUS_LOST:
+#ifdef __ANDROID__
+                    printf("[APP] focus lost\n");
+#endif
                     g_focus_lost = true;
+                    gos_touch::cancel();
                     set_mouse_capture(false);
                     break;
                 case SDL_WINDOWEVENT_FOCUS_GAINED:
+#ifdef __ANDROID__
+                    printf("[APP] focus gained\n");
+#endif
                     g_focus_lost = false;
                     set_mouse_capture(true);
                     break;
             }
             break;
         case SDL_MOUSEMOTION:
-            input::handleMouseMotion(&event); 
+            input::handleMouseMotion(&event);
+            gos_touch::mouseUsed(&event);
+            break;
+        case SDL_FINGERDOWN:
+        case SDL_FINGERUP:
+        case SDL_FINGERMOTION:
+            gos_touch::handleEvent(&event);
             break;
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
             //input::handleMouseButton(&event);
+            gos_touch::mouseUsed(&event);
             break;
         case SDL_MOUSEWHEEL:
             input::handleMouseWheel(&event);
@@ -366,6 +425,8 @@ static void process_events( bool sample, bool reset ) {
 
     // VR controllers: every frame, so a quick press is held until sampled
     gos_xr::pollInput();
+    // the touch screen, the same way
+    gos_touch::poll();
 
     if(sample) {
         input::updateMouseState();
@@ -384,9 +445,11 @@ static void draw_screen( void )
     glCullFace(GL_FRONT);
     //CHECK_GL_ERROR;
     
-	const int viewport_w = Environment.drawableWidth;
-	const int viewport_h = Environment.drawableHeight;
-    glViewport(0, 0, viewport_w, viewport_h);
+    // the whole window, or on a phone the game's shape fitted into it (the
+    // glClears above take the bars to black)
+    int viewport[4];
+    gos_GetWindowViewport(viewport);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
     CHECK_GL_ERROR;
 
@@ -411,7 +474,7 @@ extern float frameRate;
 // Android has no shell, no working directory of ours and no HOME: run in the
 // app's files folder (where adb pushes the data), take the command line from
 // mc2args.txt there (format: utils/args_file.h) and log to mc2.log beside it.
-static void android_prepare(int& argc, char**& argv)
+static bool android_prepare(int& argc, char**& argv)
 {
     static std::vector<std::string> args;   // argv points into these
     static std::vector<char*> argvs;
@@ -431,8 +494,13 @@ static void android_prepare(int& argc, char**& argv)
     // cannot be set up: one that fails later, opening the device, gets no second try.
     setenv("SDL_AUDIODRIVER", "aaudio,openslES,android", 0);
 
+    // a full APK carries the game data: copied here on the first start
+    if(!android_data::install())
+        return false;
+    android_data::firstStartSettings();
+
     if(argc > 1)
-        return;
+        return true;
     // by full path: SDL resolves a relative one against the internal storage
     // folder and the APK assets, not the current directory
     const std::string argsPath = std::string(dir ? dir : ".") + "/mc2args.txt";
@@ -440,7 +508,7 @@ static void android_prepare(int& argc, char**& argv)
     char* text = (char*)SDL_LoadFile(argsPath.c_str(), &len);
     if(!text) {
         printf("[ANDROID] no %s, starting normally\n", argsPath.c_str());
-        return;
+        return true;
     }
     args = args_file::parse(std::string(text, len));
     SDL_free(text);
@@ -460,15 +528,34 @@ static void android_prepare(int& argc, char**& argv)
     for(int i = 1; i < argc; ++i)
         printf(" %s", argv[i]);
     printf("\n");
+    return true;
 }
 #endif
 
 #ifndef DISABLE_GAMEOS_MAIN
+// Every return from main. On Android, SDL's activity starts main again in
+// this process if the window comes back before the activity has finished
+// (SDLActivity.handleNativeState), over this run's globals: the game's sound
+// system outlives the audio engine, a crash at the first volume set. The
+// process ends instead.
+static int end_main(int code)
+{
+#ifdef __ANDROID__
+    printf("[APP] main ended: closing the process\n");
+    fflush(stdout);
+    fflush(stderr);
+    _exit(code);
+#endif
+    return code;
+}
+
 int main(int argc, char** argv)
 {
 #ifdef __ANDROID__
-    android_prepare(argc, argv);
+    if(!android_prepare(argc, argv))
+        return end_main(1);
 #endif
+    gos_touch::init();
     //signal(SIGTRAP, SIG_IGN);
 
     // gather command line
@@ -491,11 +578,17 @@ int main(int argc, char** argv)
     // counted from gos_MarkGameplayStarted() (smoke runs, scripts/smoke.sh).
     // The game's own command-line parser ignores it.
     long autoexit_frames = 0;
+    // -suspendexit <frames>: after that many gameplay frames, act as if the
+    // app went into the background and the system closed it there (the
+    // game's AppSuspending, then quit), to test the resume save on a desktop
+    long suspendexit_frames = 0;
     const char* bench_csv = NULL;
     float bench_fov = 0.0f;
     for(int i=1;i<argc-1;++i) {
         if(0 == strcmp(argv[i], "-autoexit"))
             autoexit_frames = atol(argv[i+1]);
+        if(0 == strcmp(argv[i], "-suspendexit"))
+            suspendexit_frames = atol(argv[i+1]);
         if(0 == strcmp(argv[i], "-bench"))
             bench_csv = argv[i+1];
         if(0 == strcmp(argv[i], "-benchscenario"))
@@ -538,7 +631,7 @@ int main(int argc, char** argv)
     if(bench_fov < 0.0f || bench_fov >= 170.0f) {
         // tan(fov / 2) in the projection breaks down towards 180
         fprintf(stderr, "-benchfov %g: must be between 0 (off) and 170 degrees\n", bench_fov);
-        return 2;
+        return end_main(2);
     }
     if(g_bench) {
         gos_EnableBenchStages();
@@ -593,6 +686,17 @@ int main(int argc, char** argv)
 
         process_events(run_logic, input_used);
         input_used = run_logic;
+        // not another frame: after a lost GL context it would draw with a
+        // dead one
+        if(g_exit)
+            break;
+        // a frame drawn now would go to a surface Android has taken away
+        // (GL_OUT_OF_MEMORY on a Pixel 9); the next event poll blocks until
+        // the app is back
+        if(g_in_background) {
+            input_used = false;
+            continue;
+        }
 
 		uint64_t logic_tick = timing::gettickcount();
         if(run_logic) {
@@ -666,6 +770,13 @@ int main(int argc, char** argv)
                 bench_frames.push_back(s);
             }
         }
+        if(suspendexit_frames > 0 && frame_count >= suspendexit_frames && !g_exit) {
+            printf("[SUSPENDEXIT] after %ld gameplay frames\n", frame_count);
+            if(Environment.AppSuspending)
+                Environment.AppSuspending();
+            fflush(stdout);
+            g_exit = true;
+        }
         if(autoexit_frames > 0 && frame_count >= autoexit_frames) {
             // scripts/smoke.sh treats a missing [AUTOEXIT] line as a failure
             printf("[AUTOEXIT] %ld gameplay frames in %.1f s (%.1f fps)\n", frame_count,
@@ -713,6 +824,6 @@ int main(int argc, char** argv)
 
     Environment.TerminateGameEngine();
 
-    return g_exit_code;
+    return end_main(g_exit_code);
 }
 #endif // DISABLE_GAMEOS_MAIN

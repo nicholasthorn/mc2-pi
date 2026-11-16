@@ -25,6 +25,7 @@
 #include "gos_render.h"
 #include "gos_xr.h"
 #include "utils/vr_eye.h"
+#include "utils/screen_fit.h"
 
 graphics::RenderWindowHandle g_win_h;
 
@@ -1948,7 +1949,13 @@ void gosRenderer::handleEvents()
         // (headset off and on). Keep the surface's size: the projection above still
         // maps the game's screen onto all of it, and the panel keeps the game's
         // shape (gos_xr quadHeight).
+        // Android without VR (phones and tablets) is the same: the surface is the
+        // whole screen, so the game's screen is scaled onto all of it.
+#ifdef __ANDROID__
+        const bool keepSurface = true;
+#else
         const bool keepSurface = gos_VRHeadset();
+#endif
         if(keepSurface || graphics::resize_window(win_h_, width_, height_))
 		{
             if(!keepSurface)
@@ -2511,6 +2518,13 @@ HGOSWINDOW gos_CreateWindow(int w, int h, int bpp, int display) {
     // no display, say: create_window has logged why, and the callers end the game
     if(!g_win_h)
         return nullptr;
+
+#if defined(__ANDROID__) && !defined(MC2_OPENXR)
+    // a phone or tablet: the whole screen, with the status and navigation
+    // bars hidden (SDL's immersive mode). The game's own fullscreen setting
+    // is never applied here, as the window keeps Android's surface.
+    graphics::set_window_fullscreen(g_win_h, true);
+#endif
 
     Environment.displayIndex = display;
     graphics::get_window_size(g_win_h, &Environment.screenWidth, &Environment.screenHeight);
@@ -3107,6 +3121,46 @@ bool __stdcall gos_IsVR()
     // the flat paths on a desktop; not for playing
     static const bool forced = getenv("MC2_VR_PATHS") && getenv("MC2_VR_PATHS")[0] == '1';
     return forced || gos_xr::active();
+}
+
+// Phones and tablets (MOBILE.md, aspect ratio): the window is the whole
+// screen, whatever its shape. A mission runs at the screen's shape
+// (gos_PhoneResolution) and fills it; the menus' 4:3 screens are fitted into
+// it with black bars (gos_GetWindowViewport), not stretched.
+#if defined(__ANDROID__) && !defined(MC2_OPENXR)
+static const bool kFitScreenShape = true;
+#else
+static const bool kFitScreenShape = false;
+#endif
+
+bool __stdcall gos_PhoneResolution(int* width, int* height)
+{
+    if(!kFitScreenShape || Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
+        return false;
+    // the display's size while the window covers it: when this is first
+    // asked the window may not have grown to the whole screen yet (the status
+    // bar still shown), and a Pixel 9 got 1812x768 instead of 1724x768. In
+    // split screen, the window's own (screenShape).
+    int displayWidth = 0, displayHeight = 0;
+    graphics::get_display_size(Environment.displayIndex, &displayWidth, &displayHeight);
+    int screenWidth = 0, screenHeight = 0;
+    screen_fit::screenShape(Environment.drawableWidth, Environment.drawableHeight,
+            displayWidth, displayHeight, screenWidth, screenHeight);
+    screen_fit::phoneResolution(screenWidth, screenHeight, *width, *height);
+    return true;
+}
+
+void __stdcall gos_GetWindowViewport(int vp[4])
+{
+    if(kFitScreenShape) {
+        screen_fit::fitViewport(Environment.drawableWidth, Environment.drawableHeight,
+                Environment.screenWidth, Environment.screenHeight, vp);
+        return;
+    }
+    vp[0] = 0;
+    vp[1] = 0;
+    vp[2] = Environment.drawableWidth;
+    vp[3] = Environment.drawableHeight;
 }
 
 bool __stdcall gos_VRHeadset()

@@ -1,6 +1,6 @@
-# Meta Quest test build
+# Android test builds: Meta Quest, phones and tablets
 
-An Android app that runs MechCommander 2 in VR through OpenXR on a Quest 2,
+The Quest build is an Android app that runs MechCommander 2 in VR through OpenXR on a Quest 2,
 with the GLES 3.1 renderer. It began as a measurement tool: run the `-bench`
 scenario on the headset's own CPU and GPU driver, mono and `-stereo`, and pull
 the numbers back (the VR plan's Phase 0 go/no-go,
@@ -86,7 +86,86 @@ segment and for the whole run, including the `<stage>_ms` stage times
 (`bench/README.md`). If the app dies without a log, `adb logcat -d` has the
 crash.
 
+## Phones and tablets
+
+The same app without VR, for phones and tablets
+(`planning/future-features/MOBILE.md`, phase 0):
+
+```bash
+MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh
+```
+
+It differs from the Quest build only in its build: no OpenXR (`MC2_OPENXR=OFF`,
+no loader in the APK), its own manifest (`android/phone/AndroidManifest.xml`:
+no headset features, a normal launcher entry, either landscape way up) and its
+own package, `com.nicholasthorn.mc2.phone`, so the two can be installed side
+by side. The game builds in `android/build/game-phone`; the result is
+`android/mc2-phone-test.apk`. Every script here takes the same variable, for
+example `MC2_ANDROID_FLAVOUR=phone scripts/android/run_bench.sh --data ...`.
+`package.sh` packages the Quest flavour only, for now.
+
+The game data and `shaders/` go in
+`/sdcard/Android/data/com.nicholasthorn.mc2.phone/files`, as on the headset:
+
+```bash
+D=/sdcard/Android/data/com.nicholasthorn.mc2.phone/files
+adb install -r android/mc2-phone-test.apk
+adb shell mkdir -p $D
+adb push <game data folder>/. $D/
+adb push shaders $D/
+adb shell am start -n com.nicholasthorn.mc2.phone/com.nicholasthorn.mc2.MC2Activity
+```
+
+What to expect so far:
+
+- **Touch** (`GameOS/gameos/gos_touch.cpp`, rules in `utils/touch_gestures.h`
+  and `utils/touch_bar.h`): one finger is the mouse with its left button (tap
+  to click, hold or move to drag); two fingers move the camera in a mission
+  (pinch to zoom, move together to scroll). Missions use the one-button
+  controls while touching: tap a unit to select, ground to move, an enemy to
+  attack. A command bar on the right edge in a mission adds Waypoints, Add
+  to selection, Force fire, Select visible, Next group and New group. In a
+  mission, a finger held still for half a second is the right button (follow
+  a unit with the camera, or drag to turn it). A text field brings up the
+  on-screen keyboard. `MC2_TOUCH=0` in `mc2args.txt` goes back
+  to SDL's own taps as clicks. A Bluetooth or USB mouse and keyboard play as
+  on a PC.
+- **The whole screen, at its shape:** the status and navigation bars are
+  hidden and the game draws under a camera cutout. Missions run at the
+  screen's shape, 768 high (1724x768 on a 20:9 phone), so nothing is
+  stretched and the wide HUD layout is used; the menus' 4:3 screens sit in
+  the middle with black bars at the sides. The resolution in the options is
+  overridden on a phone (`[SCREEN]` in `mc2.log`).
+- **Switching away** from the app (Home, another app, a call) pauses a mission
+  with its pause menu up, as the pause key does, and stops the sound; coming
+  back carries on. A campaign mission is also saved then (`resume.ims` in the
+  save folder, removed on coming back): if Android closes the app while it is
+  in the background, the next start goes straight back into the mission,
+  paused, instead of the main menu. A single mission or a multiplayer game is
+  not saved, as the pause menu cannot save them either. If the GL context did not
+  survive, the game quits (an `[APP] FATAL` line in `mc2.log`), since it
+  cannot reload its textures.
+
+### A full APK, with the game data inside
+
+For a device without `adb`: name a game data folder and the APK carries it,
+with this checkout's `shaders/` (about 470 MB without movies):
+
+```bash
+MC2_ANDROID_FLAVOUR=phone MC2_ANDROID_DATA=<game data folder> scripts/android/build.sh apk
+```
+
+Build the data with `scripts/build_gamedata.sh ... --no-movies`. The first
+start copies it to the app's files folder (`GameOS/gameos/android_data.cpp`),
+with toasts counting it up, and starts from the minimum settings
+(`minprefs.cfg`), so there is no first-start exit. An APK with different data
+copies it again over the old; settings, saves, `mc2args.txt` and the logs are
+never in the APK and are kept. The copy doubles the space the data takes while
+the APK is installed.
+
 ## Status
 
-Played on a Quest 2, with the bench results in
+Quest: played on a Quest 2, with the bench results in
 `planning/future-features/VR-TABLETOP.md`. Not yet tried on a Quest 3 or Pro.
+
+Phones and tablets: builds, with or without the data inside; not yet run on a device.

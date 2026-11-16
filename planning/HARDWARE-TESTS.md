@@ -372,6 +372,95 @@ Omnitech's menus run at 1280x1024, so try this with PR 96's frame size change in
       leaves the diagram before the drag counts picks up nothing, and a component
       that cannot be removed sounds its refusal once.
 
+## Phones and tablets (`future-features/MOBILE.md`, branch `android-flat`)
+
+GLES. Build with `MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh`, install and
+push the data as in `android/README.md`, "Phones and tablets".
+
+- [ ] **It starts and fills the screen** on an Android tablet or phone (Android 10 or
+      later): no status or navigation bar, nothing left black by a camera cutout.
+      The menus are 4:3 in the middle with black bars; a mission fills the screen
+      unstretched (round things round). Note the device, its GPU and the screen size.
+      Done on a Pixel 9 (Mali-G715, 2424x1080), 2026-11-15.
+- [ ] **A mouse plays mc2_01** (phase 0's exit): a Bluetooth or USB mouse and keyboard
+      through the campaign start, logistics and the mission to its end. Clicks land
+      where the cursor is drawn, across the whole screen.
+- [ ] **Menus and logistics by finger** (phase 1): taps click where the finger is, a
+      double tap selects all of a type, a held or moved finger drags (mech bay, pilot
+      screens). No click should come from landing two fingers. Is the 80 ms wait before
+      a held finger presses noticeable?
+- [ ] **Camera by two fingers** in mc2_01: pinch out zooms in, pinch in zooms out, one
+      zoom level per quarter of spacing; moving both fingers scrolls the map with them
+      (not against them). Are the slop (2% of the screen height) and the scroll dead
+      zone (6%) right on a phone and on a tablet?
+- [ ] **A mission by touch** (phase 2) in mc2_01: tap a mech to select it, tap ground
+      to move, tap an enemy to attack (the one-button profile while touching). The
+      command bar shows on the right edge only in the mission, not in menus or the
+      pause menu. Waypoints: tap it, tap several points, tap it off: the mech walks the
+      route. Add: tap it, tap two mechs: both selected. Force fire: tap it, tap ground:
+      they fire at it, and the button goes out. Visible, Group and New grp do as E,
+      grave and Ctrl + grave. Does the bar cover anything that matters (radar, the
+      top right messages)? Are the buttons big enough on a phone?
+- [ ] **Long press** in mc2_01: hold a finger still on one of your mechs for half a
+      second: the camera follows it. Hold on empty ground, then drag: the camera turns
+      and tilts. Is half a second right? In a menu, holding a list's scroll arrow still
+      scrolls.
+- [ ] **On-screen keyboard:** tap the pilot name field (prefs) and a save game name:
+      Android's keyboard comes up, letters, digits, backspace and Enter type into the
+      field, and it goes away when the field loses focus. Is the field hidden under
+      the keyboard on a phone (it goes over the game, adjustNothing)? Cancel the save
+      dialog with the keyboard up: does the keyboard go too? Hide it with Back, then
+      tap the field: it comes back.
+- [ ] **No edge scroll from a tap:** in mc2_01, tap a control panel button at the bottom
+      edge and lift; the map must not keep scrolling. Then use a mouse: edge scrolling
+      works again.
+- [ ] **Split screen or a foldable** (Android): change the app's size while it runs; the
+      picture fills the new size and taps still land under the finger.
+- [ ] **A touch screen laptop** (Windows or Linux, GL): taps and the two finger
+      camera work, and moving or clicking the mouse afterwards gives the cursor back
+      to it. On Linux under X11, check that a tap clicks once, not twice (X's own
+      touch-to-pointer emulation).
+- [ ] **Switching away and back** mid-mission (phase 3): press Home, open another
+      app, come back. The mission is paused with the pause menu up and has not run on;
+      the sound stops while away and comes back. Does the picture come back with its
+      textures? If the GL context was lost, the game quits with an `[APP] FATAL` line
+      in `mc2.log` instead. Note the GPU (Adreno, Mali, PowerVR); try two vendors.
+- [ ] **A phone call or the screen turning off** mid-mission: the same as switching
+      away. In a menu nothing pauses, and the menu is as it was.
+- [ ] **The resume save** (phase 3): in a campaign mission, give a few orders, go to
+      Home, then close the app from the recent apps list. Start it again: it goes
+      straight into the mission, paused, with the units where they were, and the
+      campaign carries on after it (results, then logistics with the same mechs and
+      pilots). Then switch away and back without closing: the next start is the
+      main menu, not the old mission. How long does the save take when switching
+      away (`[RESUME] saved` in `mc2.log`)? The pause menu slides in at the right
+      edge with its buttons (it once came up as a black panel: fixed, checked on a
+      Pixel 9 with `-suspendexit`).
+- [ ] **Exit and start again:** Exit Game from the main menu, then open the app at
+      once from the launcher. It starts normally; `mc2.log`'s previous run ends with
+      `[APP] main ended: closing the process` and no `CRASH` lines.
+- [ ] **Switching away at a mission's end:** go to Home while the mission-won
+      sequence or an in-mission movie plays. Does the pause menu come up over it on
+      return, and does closing it carry the end of the mission on as normal?
+- [ ] **The Quest now pauses too:** on a Quest, take the headset off mid-mission until
+      it sleeps, then put it back on: the mission is paused with its pause menu
+      (new with phase 3), which the controllers close. Is that wanted in VR?
+- [ ] **A data update over adb-pushed data:** with the data pushed by `adb` and little
+      space left, install a full APK: it installs (only new or bigger files count
+      against the space), and files the new data no longer has are removed
+      (`[DATA] removed` lines in `mc2.log`).
+- [ ] **The full APK on a fresh device** (phase 3's exit): build with
+      `MC2_ANDROID_DATA`, install it on a device that has never had the game data
+      pushed, start it: toasts count the install up (how long does it take?), then
+      the main menu, with no first-start exit (the old sniffer). Start it again: no
+      second install. Install an APK with changed data over it: it copies again, and
+      the settings and saves are still there.
+- [ ] **Not enough space for the data:** fill the device until less than the data's
+      size is free and start a fresh full APK: a message box says how much is needed,
+      and the app closes.
+- [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one
+      and runs as a flat window in the headset's home.
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing

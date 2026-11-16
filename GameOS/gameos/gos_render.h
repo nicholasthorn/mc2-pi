@@ -17,6 +17,8 @@ void                get_window_size         (RenderWindowHandle rw_handle, int* 
 int                 get_window_bpp          (RenderWindowHandle rw_handle);
 // may be different than window size (e.g. when switching to fullscreen)
 void                get_drawable_size       (RenderWindowHandle rw_handle, int* width, int* height);
+// the display's own size in pixels (SDL's desktop mode); false if unknown
+bool                get_display_size        (int display_index, int* width, int* height);
 void                swap_window             (RenderWindowHandle h);
 void                destroy_window          (RenderWindowHandle rw_handle);
 void                grab_window             (RenderWindowHandle h, bool b_grab);

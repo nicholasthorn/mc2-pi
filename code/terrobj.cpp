@@ -1255,7 +1255,8 @@ void TerrainObject::CopyTo (TerrainObjectData *data)
 		data->numCellsCovered = maxCellsCovered;
 	}
 
-	memcpy(data->cellsCovered,cellsCovered, sizeof(short) * data->numCellsCovered * 2);
+	if (cellsCovered && data->numCellsCovered > 0)	// none: cellsCovered is NULL
+		memcpy(data->cellsCovered,cellsCovered, sizeof(short) * data->numCellsCovered * 2);
 
 	GameObject::CopyTo(data);
 }

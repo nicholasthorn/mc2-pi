@@ -596,6 +596,16 @@ void get_drawable_size(RenderWindowHandle rw_handle, int* width, int* height)
 	SDL_GL_GetDrawableSize(rw->window_, width, height);
 }
 
+bool get_display_size(int display_index, int* width, int* height)
+{
+    SDL_DisplayMode mode;
+    if(SDL_GetDesktopDisplayMode(display_index, &mode) != 0 || mode.w <= 0 || mode.h <= 0)
+        return false;
+    *width = mode.w;
+    *height = mode.h;
+    return true;
+}
+
 //==============================================================================
 void destroy_window(RenderWindowHandle rw_handle)
 {

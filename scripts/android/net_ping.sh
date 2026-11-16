@@ -23,7 +23,7 @@ ADDRESS=${3:-$("$ADB" shell "ip -4 addr show wlan0" | sed -n 's/.*inet \([0-9.]*
 
 "$ADB" shell "mkdir -p $DIR"
 trap '"$ADB" shell "pkill -x net_ping; rm -rf $DIR"' EXIT
-"$ADB" push "$ROOT/android/build/game/net_ping" "$DIR/net_ping" > /dev/null
+"$ADB" push "$GAME_BUILD/net_ping" "$DIR/net_ping" > /dev/null
 "$ADB" shell "chmod 755 $DIR/net_ping"
 # adb stays attached to the server, here in the background
 "$ADB" shell "cd $DIR && ./net_ping server $PORT $((SECONDS_TO_RUN + 30))" 2>&1 | sed -u 's/^/headset: /' &

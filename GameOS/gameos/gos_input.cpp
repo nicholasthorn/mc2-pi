@@ -7,7 +7,7 @@
 static input::MouseInfo g_mouse_info;
 static input::KeyboardInfo g_keyboard_info;
 
-// the VR controllers' pointer and keys (setVirtualPointer, setVirtualKey),
+// the VR controllers' or touch screen's pointer and keys (setVirtualPointer, setVirtualKey),
 // latched between samples
 static struct {
     bool active;
@@ -18,6 +18,7 @@ static struct {
 static const int NUM_VIRTUAL_KEYS = 512;
 static InputLatch g_virtual_keys[NUM_VIRTUAL_KEYS];
 static uint32_t g_keyboard_samples = 0;
+static float g_virtual_wheel = 0.0f;
 
 namespace input {
 
@@ -125,6 +126,8 @@ void updateMouseState() {
         mi->y_ = g_virtual_mouse.y;
     }
     g_virtual_mouse.was_active = g_virtual_mouse.active;
+    mi->wheel_vert_ += g_virtual_wheel;
+    g_virtual_wheel = 0.0f;
     int buttons[] = {SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_RIGHT, SDL_BUTTON_X1, SDL_BUTTON_X2 };
 
     for(unsigned int b=0; b < sizeof(buttons)/sizeof(buttons[0]); ++b) {
@@ -201,7 +204,7 @@ void updateKeyboardState() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// VR controllers
+// VR controllers and the touch screen
 //
 
 void setVirtualPointer(float x, float y, uint32_t buttons) {
@@ -211,6 +214,14 @@ void setVirtualPointer(float x, float y, uint32_t buttons) {
     g_virtual_mouse.buttons.set(buttons);
 }
 
+bool moveVirtualPointer(float x, float y) {
+    if(!g_virtual_mouse.active)
+        return false;
+    g_virtual_mouse.x = x;
+    g_virtual_mouse.y = y;
+    return true;
+}
+
 void clearVirtualPointer() {
     g_virtual_mouse.active = false;
     g_virtual_mouse.buttons.set(0);
@@ -218,6 +229,10 @@ void clearVirtualPointer() {
 
 uint32_t keyboardSamples() {
     return g_keyboard_samples;
+}
+
+void addVirtualWheel(float steps) {
+    g_virtual_wheel += steps;
 }
 
 void setVirtualKey(int scancode, bool down) {

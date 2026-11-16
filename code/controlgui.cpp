@@ -3560,7 +3560,8 @@ void ControlGui::setRolloverHelpText( unsigned long textID )
 	if ( helpTextID && textID != 0 )
 		return;
 
-	if ( useLeftRightMouseProfile )
+	// the touch screen's cursor works the one-button profile (missiongui.cpp)
+	if ( useLeftRightMouseProfile && !gos_TouchPointer() )
 		textID ++;
 
 	helpTextHeaderID = 0;

@@ -387,6 +387,19 @@ typedef struct
 
 	bool (__stdcall *HookDoesFileExist)( const char* FileName);
 
+//
+// GameOS calls this, if present, when the app is about to go into the
+// background (Android: another app, the home screen, a call). The game is
+// between frames; it is stopped until the app comes back, and the system may
+// close it meanwhile. Not called in -autoexit / -bench runs.
+//
+	void (__stdcall *AppSuspending)();
+//
+// And this, if present, when it is back in the foreground without having been
+// closed. Not called in -autoexit / -bench runs.
+//
+	void (__stdcall *AppResumed)();
+
 } gosEnvironment;
 
 
@@ -2033,6 +2046,32 @@ bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
 // A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.
 bool __stdcall gos_VRHeadset();
+// Phones and tablets: the game resolution of the screen's shape, which a
+// mission should run at; false elsewhere (and before the window exists).
+bool __stdcall gos_PhoneResolution( int* width, int* height );
+// Where the game's screen is drawn in the window, as a GL viewport (x, y from
+// the bottom left, width, height): the whole window, or on a phone the game's
+// shape fitted into it with bars. Mouse and touch positions go through it.
+void __stdcall gos_GetWindowViewport( int vp[4] );
+// The cursor is the touch screen's (gos_touch): from a finger landing until a
+// real mouse is used. It then rests where the last finger lifted, so mouse
+// only behaviour such as scrolling at the screen edge should not follow it.
+bool __stdcall gos_TouchPointer();
+// The touch screen's command bar in a mission (utils/touch_bar.h), for the
+// game to draw: buttons as shares of the screen (0 to 1), with a label and
+// whether each is on. GameOS takes the fingers on it; the game only draws.
+struct gosTouchBarButton {
+	float x, y, w, h;
+	const char* label;
+	bool lit;
+};
+// Fills up to maxButtons and returns how many; 0 while the bar is hidden (no
+// mission taking orders, or the cursor is not the touch screen's).
+int __stdcall gos_GetTouchBar( gosTouchBarButton* buttons, int maxButtons );
+// A text field took (true) or lost (false) the focus: while the cursor is the
+// touch screen's, its keyboard shows (Android's on-screen keyboard), and what
+// is typed arrives as key presses, as from a real keyboard.
+void __stdcall gos_TouchTextInput( bool focused );
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.
@@ -2087,6 +2126,9 @@ bool __stdcall gos_VRPickLog();
 // then, as those keys would type in a text box or skip a movie elsewhere.
 //
 void __stdcall gos_VRMissionTakesOrders();
+// The same for the touch screen (gos_touch): its command bar shows, and two
+// fingers scroll the camera with the arrow keys, only then.
+void __stdcall gos_TouchMissionTakesOrders();
 
 
 

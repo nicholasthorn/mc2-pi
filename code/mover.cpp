@@ -2250,6 +2250,9 @@ void Mover::init (bool create) {
 	damageRateCheckTime = 1.0;
 	pilotCheckDamageTally = 0;
 	numBodyLocations = 0;
+	// every location and space, the unused ones too (a vehicle has fewer
+	// locations than a mech): CopyTo saves all of them
+	memset(body, 0, sizeof(body));
 	fieldedCV = 0;
 	numArmorLocations = 0;
 	attackRange = FIRERANGE_OPTIMAL;
@@ -7399,6 +7402,23 @@ void Mover::CopyTo (MoverData *data)
 	}
 
 	GameObject::CopyTo(dynamic_cast<GameObjectData *>(data));
+}
+
+//---------------------------------------------------------------------------
+// A save packet holds the saving run's vtable pointer in the mover's control
+// and dynamics, which are read into MoverData raw. Put this run's back before
+// they are used or destroyed, keeping the loaded fields: the pointer comes
+// first in a class without bases (GCC, Clang and MSVC).
+template <class T> static void restoreVtable (T& part)
+{
+	const T fresh;
+	memcpy((void*)&part, (const void*)&fresh, sizeof(void*));
+}
+
+void restoreLoadedVtables (MoverData* data)
+{
+	restoreVtable(data->control);
+	restoreVtable(data->dynamics);
 }
 
 //---------------------------------------------------------------------------

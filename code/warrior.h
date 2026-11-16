@@ -123,8 +123,10 @@ class BldgAppearance;
 #define	MOVEPATH_ERR_ESCAPING_TILE		-13
 #define	MOVEPATH_ERR_TACORDER_CLEARED	-14
 
-#define	MAX_QUEUED_TACORDERS				2000
 #define	MAX_QUEUED_TACORDERS_PER_WARRIOR	16
+// a queue for every warrior: when MAX_WARRIORS went from 120 to 200 this
+// stayed 2000 (125 queues), and loading an in-mission save crashed
+#define	MAX_QUEUED_TACORDERS				(MAX_WARRIORS * MAX_QUEUED_TACORDERS_PER_WARRIOR)
 
 typedef enum {
 	ORDER_CURRENT,
