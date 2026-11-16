@@ -447,3 +447,17 @@ TEST_CASE("the panel's width: one layout pixel the same size on any screen")
 	CHECK(vr_eye::panelWidth(2.0f, 0) == doctest::Approx(2.0f));
 	CHECK(vr_eye::panelWidth(2.0f, -5) == doctest::Approx(2.0f));
 }
+
+TEST_CASE("the tabletop's game camera is high enough to see the whole table")
+{
+	// 90 degrees across a square screen: half the view reaches as far as the
+	// camera is high, so the height is the window's radius, and a tenth more
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 90.0f, 1.0f) == doctest::Approx(2200.0f).epsilon(1e-3));
+	// a 4:3 screen: the shorter way decides, so it goes higher
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 90.0f, 0.75f) == doctest::Approx(2200.0f / 0.75f).epsilon(1e-3));
+	// a wider view needs less height
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 115.6f, 0.75f) < vr_eye::tableCameraAltitude(2000.0f, 90.0f, 0.75f));
+	// nothing usable: 0, and the caller keeps its own height
+	CHECK(vr_eye::tableCameraAltitude(0.0f, 90.0f, 0.75f) == 0.0f);
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 0.0f, 0.75f) == 0.0f);
+}

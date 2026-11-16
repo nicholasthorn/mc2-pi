@@ -373,6 +373,24 @@ TEST_CASE("world pick: a ray up, or one that runs out, meets nothing") {
 	CHECK_FALSE(vr_controls::rayHitsGround(origin, level, testGround, nullptr, 25.0f, 400.0f, distance));
 }
 
+TEST_CASE("world pick: a ray from inside the ground comes out and meets it further on") {
+	// the tabletop: the hand can be inside a hill on the table. From (0, 0, 5),
+	// under the ground at 10, a ray rising at 45 degrees comes out and never
+	// meets the ground again
+	const float s = std::sqrt(0.5f);
+	const float origin[3] = {0.0f, 0.0f, 5.0f};
+	const float out[3] = {s, 0.0f, s};
+	float distance = 0.0f;
+	CHECK_FALSE(vr_controls::rayHitsGround(origin, out, testGround, nullptr, 25.0f, 5000.0f, distance));
+	// from inside the wall (x > 500, ground at 50), down along -x at 45
+	// degrees: out of the wall's face at x = 500 (z 25), then down onto the
+	// low ground (10) at x = 485
+	const float inWall[3] = {520.0f, 0.0f, 45.0f};
+	const float downOut[3] = {-s, 0.0f, -s};
+	REQUIRE(vr_controls::rayHitsGround(inWall, downOut, testGround, nullptr, 5.0f, 5000.0f, distance));
+	CHECK(distance * s == doctest::Approx(35.0f).epsilon(0.01));
+}
+
 TEST_CASE("world pick: spheres are hit on their near side, missed beside, ignored behind") {
 	const float origin[3] = {0.0f, 0.0f, 0.0f};
 	const float dir[3] = {1.0f, 0.0f, 0.0f};

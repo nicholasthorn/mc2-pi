@@ -846,8 +846,24 @@ static float vrGroundHeight (void*, float x, float y)
 	return land->getTerrainElevation(position);
 }
 
+//VR: the point in the world the controller's ray picked this frame, for the
+//orders (vrWorldPickPoint): the mouse goes where it shows on the game
+//camera's screen, but finding the ground under the mouse again goes through
+//the terrain's tiles and can land elsewhere, far off on the tabletop
+static bool vrPickValid = false;
+static Stuff::Vector3D vrPickPoint;
+
+bool vrWorldPickPoint (Stuff::Vector3D &point)
+{
+	if (!vrPickValid)
+		return false;
+	point = vrPickPoint;
+	return true;
+}
+
 static void vrPickWorld (void)
 {
+	vrPickValid = false;
 	float position[3], orientation[4];
 	if (!gos_GetVRPointerRay(position,orientation))
 		return;
@@ -925,6 +941,8 @@ static void vrPickWorld (void)
 	}
 	gos_SetVRWorldPointer(true,screen.x / Environment.screenWidth,screen.y / Environment.screenHeight,
 		best / unitsPerMetre);
+	vrPickValid = true;
+	vrPickPoint = target;
 }
 
 //----------------------------------------------------------------------------------

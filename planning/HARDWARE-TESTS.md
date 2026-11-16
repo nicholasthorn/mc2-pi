@@ -471,8 +471,8 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
 - [ ] **The interface panel reads easily**: above the table (8 degrees over the
       horizon, 1.5 m away) with no need to cross the eyes. Hold A and push the
       left stick to move it; the log prints the `MC2_XR_HUD` value to keep.
-- [ ] **Clicks on the table** select and order units where the pointer meets the
-      ground (the ray is in the table's frame).
+- [x] **Clicks on the table** select and order units where the pointer meets the
+      ground (the ray is in the table's frame). Done on a Quest 2, 2026-11-16.
 - [ ] **A puts the table where you face**, at a real table, and the sticks
       scroll and turn the map across it.
 - [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising

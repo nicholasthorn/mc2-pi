@@ -123,6 +123,7 @@
 
 
 extern void testKeyStuff();
+extern bool vrWorldPickPoint (Stuff::Vector3D &point);
 
 extern long helpTextHeaderID;
 extern long helpTextID;
@@ -790,6 +791,16 @@ void MissionInterfaceManager::update (void)
 	mouseXY.x = mouseX;
 	mouseXY.y = mouseY;
 	eye->inverseProject(mouseXY, wPos);
+	//VR: the point the controller's ray met, where the mouse was put; the
+	//ground found again under the mouse can be elsewhere (vrWorldPickPoint)
+	Stuff::Vector3D vrPoint;
+	if (!bGui && gos_VRPointerActive() && vrWorldPickPoint(vrPoint))
+	{
+		if (gos_VRPickLog() && (userInput->isLeftClick() || userInput->isRightClick()))
+			printf("[VR] click at mouse %d %d: ground under the mouse (%.0f %.0f %.0f), the ray's point (%.0f %.0f %.0f)\n",
+				mouseX,mouseY,wPos.x,wPos.y,wPos.z,vrPoint.x,vrPoint.y,vrPoint.z);
+		wPos = vrPoint;
+	}
 
 	// find out if this position is passable, has line of sight
 	int cellR, cellC;

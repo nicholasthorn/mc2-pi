@@ -190,6 +190,17 @@ void overlayTextScale(int windowWidth, int windowHeight, int eyeWidth, int eyeHe
     scaleY = kOverlayTextEyePixels * (float)windowHeight / (float)eyeHeight;
 }
 
+float tableCameraAltitude(float windowRadius, float horizontalFov, float heightOverWidth)
+{
+    if(windowRadius <= 0.0f || horizontalFov <= 0.0f || horizontalFov >= 179.0f)
+        return 0.0f;
+    // the narrower half of the screen decides; a tenth more for the corners
+    // of the picked units' bounds and the slight tilt
+    const float tanHalf = std::tan(horizontalFov * 0.5f * 3.14159265f / 180.0f);
+    const float shape = (heightOverWidth > 0.0f && heightOverWidth < 1.0f) ? heightOverWidth : 1.0f;
+    return 1.1f * windowRadius / (tanHalf * shape);
+}
+
 float parseGameFov(const char* text)
 {
     char* end = nullptr;

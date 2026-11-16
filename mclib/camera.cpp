@@ -2328,6 +2328,19 @@ void Camera::setCameraOrigin (void)
 		bool isOKView = false;
 		float localAltitude = cameraAltitude;
 		float localAngle = projectionAngle;
+		//VR on the tabletop: straight down, high enough to see the whole round
+		//window, so every point on the table can be picked through this
+		//camera's screen (vrPickWorld) and every unit on it is in view
+		if (gos_GetVRTabletop())
+		{
+			const float heightOverWidth = (Environment.screenWidth > 0) ?
+				(float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
+			const float radius = 0.5f * (float)Terrain::visibleVerticesPerSide * Terrain::worldUnitsPerVertex;
+			const float altitude = vr_eye::tableCameraAltitude(radius, camera_fov, heightOverWidth);
+			if (altitude > localAltitude)
+				localAltitude = altitude;
+			localAngle = vr_eye::kTableCameraAngle;
+		}
 		while (!isOKView)
 		{
 			cameraDirection.range = localAltitude;

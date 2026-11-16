@@ -83,6 +83,15 @@ const float kMaxGameFov = 120.0f;
 // is no use.
 float gameFieldOfView(const float leftFov[4], const float rightFov[4], float heightOverWidth);
 
+// The tabletop's game camera (AR-TABLETOP.md): it looks straight down
+// (kTableCameraAngle degrees below the horizon) from at least this height, so
+// the whole round terrain window, windowRadius from the point it looks at, is
+// on its screen: every point on the table can then be picked through it, and
+// every unit on the table is in its view. horizontalFov in degrees,
+// heightOverWidth the screen's (0: square). 0 when either is unusable.
+const float kTableCameraAngle = 89.0f;
+float tableCameraAltitude(float windowRadius, float horizontalFov, float heightOverWidth);
+
 // A field of view given as text (MC2_XR_FOV): its degrees when in the range
 // above, 0 for "0" (keep the game's own), -1 for anything else.
 float parseGameFov(const char* text);
