@@ -1499,7 +1499,14 @@ void pollInput()
         if(g.buttonDown[BUTTON_A] && g.hudAdjusted)
             printf("[XR] interface placed: MC2_XR_HUD=%.2f,%.0f,%.2f\n", g.hudDistance,
                     g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
-        g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
+        // the eyes look where the head does: pan that way too
+        float pan[2] = {left[0], left[1]};
+        if(g.viewsValid) {      // only with the eyes (MC2_XR_EYES=0 has none)
+            const XrQuaternionf& q = g.views[0].pose.orientation;
+            const float head[4] = {q.x, q.y, q.z, q.w};
+            vr_controls::headRelativeStick(left, vr_controls::yawOf(head), pan);
+        }
+        g.stickActions = vr_controls::stickActions(pan, right, g.stickActions);
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)

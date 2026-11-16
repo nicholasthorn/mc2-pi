@@ -469,6 +469,40 @@ TEST_CASE("sticks: turning wins over panning and zoom (turning holds shift, whic
 	CHECK(vr_controls::stickActions(up, upRight, 0) == vr_controls::ROTATE_RIGHT);
 }
 
+TEST_CASE("sticks: the left stick pans the way the head faces, not the game camera") {
+	const float centre[2] = {0.0f, 0.0f};
+	const float up[2] = {0.0f, 1.0f};
+	const float right[2] = {1.0f, 0.0f};
+	float game[2];
+
+	// facing straight ahead: as it is
+	vr_controls::headRelativeStick(up, 0.0f, game);
+	CHECK(game[0] == doctest::Approx(0.0f));
+	CHECK(game[1] == doctest::Approx(1.0f));
+
+	// turned left (positive yaw, as yawOf): ahead of the head is the game's left
+	vr_controls::headRelativeStick(up, 0.5f * kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == vr_controls::PAN_LEFT);
+	// and the head's right is the game's ahead
+	vr_controls::headRelativeStick(right, 0.5f * kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == vr_controls::PAN_UP);
+
+	// turned round: pushing ahead pans the game's down, not up (the inverted pan)
+	vr_controls::headRelativeStick(up, kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == vr_controls::PAN_DOWN);
+	vr_controls::headRelativeStick(up, -kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == vr_controls::PAN_DOWN);
+
+	// half way between: both keys, the nearest of the eight directions
+	vr_controls::headRelativeStick(up, -0.25f * kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == (vr_controls::PAN_UP | vr_controls::PAN_RIGHT));
+
+	// a small deflection stays small, whatever the heading
+	const float nudge[2] = {0.2f, 0.2f};
+	vr_controls::headRelativeStick(nudge, 1.0f, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == 0u);
+}
+
 }
 
 TEST_CASE("a beam to a far pick still has a valid orientation")

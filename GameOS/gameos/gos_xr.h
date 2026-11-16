@@ -21,7 +21,8 @@
 //
 // Controllers (VR plan, Phase 3): the ray from the hand that last pulled
 // its trigger or grip is the mouse where it meets the quad; the trigger is
-// the left button, the grip the right. Left stick: pan (arrow keys); right
+// the left button, the grip the right. Left stick: pan (arrow keys, turned
+// to where the head faces, vr_controls::headRelativeStick); right
 // stick: turn (shift + left / right) and zoom (keypad + / -). Held while
 // clicking: B waypoints (Ctrl), X run (Space), Y jump (J), left stick click
 // force fire (F). Right stick click selects the visible units (E); the left
