@@ -13,7 +13,6 @@
 #include"multplyr.h"
 #include"chatwindow.h"
 #include"gamesound.h"
-#include"briefingpanes.h"
 
 
 #define RP_INDEX 1
@@ -59,7 +58,7 @@ MissionBriefingScreen::~MissionBriefingScreen()
 	}
 
 	missionListBox.destroy();  //NO Default destructor for aListBox.  Just call destroy.
-	for ( int i = 0; i < 3; i++ )
+	for ( int i = 0; i < briefingpanes::kPanes - 1; i++ )
 		paneListBoxes[i].destroy();
 }
 
@@ -413,7 +412,7 @@ static bool readBriefingText( FitIniFile& fitFile, const char* key, char* text, 
 void MissionBriefingScreen::begin()
 {
 	missionListBox.removeAllItems( true );
-	for ( int i = 0; i < 3; i++ )
+	for ( int i = 0; i < briefingpanes::kPanes - 1; i++ )
 		paneListBoxes[i].removeAllItems( true );
 
 	runTime = 0;
@@ -541,19 +540,7 @@ void MissionBriefingScreen::begin()
 	fitFile.seekBlock( "MissionSettings" );
 
 	char blurb[4096];
-	result = fitFile.readIdString("Blurb", blurb, 4095 );
-
-	bool tmpBool = false;
-	result = fitFile.readIdBoolean("BlurbUseResourceString", tmpBool);
-	if (NO_ERR == result && tmpBool )
-	{
-		unsigned long tmpInt = 0;
-		result = fitFile.readIdULong("BlurbResourceStringID", tmpInt);
-		if (NO_ERR == result)
-		{
-			cLoadString( tmpInt, blurb, 2047 );
-		}
-	}
+	readBriefingText( fitFile, "Blurb", blurb, sizeof( blurb ) );
 
 
 	addLBItem( blurb, 0xff005392, -1 );

@@ -24,6 +24,8 @@
 #include"simplecamera.h"
 #endif
 
+#include"briefingpanes.h"
+
 #define MN_MSG_PLAY 80
 #define MN_MSG_STOP 82
 #define MN_MSG_PAUSE 81
@@ -66,9 +68,9 @@ class MissionBriefingScreen: public LogisticsScreen
 	aListBox		missionListBox; 
 	// MechCommander Omnitech's other briefing panes (briefingpanes.h); the
 	// briefing pane is missionListBox
-	aListBox		paneListBoxes[3];
+	aListBox		paneListBoxes[briefingpanes::kPanes - 1];
 	bool		bHasPanes;
-	bool		paneHasText[4];
+	bool		paneHasText[briefingpanes::kPanes];
 	long		currentPane;
 
 	aListBox&	paneListBox( long pane );
