@@ -184,6 +184,14 @@ class Appearance
 		{
 			return false;
 		}
+
+		//VR pointer: two opposite corners of the world box the selection box
+		//is projected from (recalcBounds), so aiming at its centre lands on
+		//the object for isMouseOver. False for what has none.
+		virtual bool worldSelectBox (Stuff::Vector3D& corner0, Stuff::Vector3D& corner1)
+		{
+			return false;
+		}
 				
 		virtual void drawSelectBox (DWORD color);
 

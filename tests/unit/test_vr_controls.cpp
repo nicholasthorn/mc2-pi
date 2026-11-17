@@ -430,6 +430,34 @@ TEST_CASE("rayHitsBox: where a ray first meets a box") {
 	CHECK_FALSE(vr_controls::rayHitsBox(inside, along, boxMin, boxMax, distance));
 }
 
+TEST_CASE("boxPickSphere: centred on a unit's box, sized by it") {
+	// a mech-sized box: 60 tall, the sphere 1.2 times its largest half extent
+	const float mechMin[3] = {-10.0f, -8.0f, 0.0f};
+	const float mechMax[3] = {10.0f, 8.0f, 60.0f};
+	float centre[3] = {0.0f, 0.0f, 0.0f};
+	float radius = 0.0f;
+	vr_controls::boxPickSphere(mechMin, mechMax, 10.0f, centre, radius);
+	CHECK(centre[0] == doctest::Approx(0.0f));
+	CHECK(centre[1] == doctest::Approx(0.0f));
+	CHECK(centre[2] == doctest::Approx(30.0f));
+	CHECK(radius == doctest::Approx(36.0f));
+
+	// power armour: a small box low down, so the centre is on it, not 6 m up;
+	// the sphere is no smaller than minRadius
+	const float paMin[3] = {102.0f, 48.0f, 5.0f};
+	const float paMax[3] = {106.0f, 52.0f, 15.0f};
+	vr_controls::boxPickSphere(paMin, paMax, 10.0f, centre, radius);
+	CHECK(centre[0] == doctest::Approx(104.0f));
+	CHECK(centre[1] == doctest::Approx(50.0f));
+	CHECK(centre[2] == doctest::Approx(10.0f));
+	CHECK(radius == doctest::Approx(10.0f));
+
+	// corners given either way round (rotated or mirrored boxes)
+	vr_controls::boxPickSphere(paMax, paMin, 1.0f, centre, radius);
+	CHECK(centre[2] == doctest::Approx(10.0f));
+	CHECK(radius == doctest::Approx(6.0f));
+}
+
 TEST_CASE("sticks: small deflections do nothing, full ones give their direction") {
 	const float centre[2] = {0.0f, 0.0f};
 	const float nudge[2] = {0.2f, -0.2f};

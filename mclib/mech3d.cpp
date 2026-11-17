@@ -2032,6 +2032,24 @@ bool Mech3DAppearance::isMouseOver (float px, float py)
 }	
 
 //-----------------------------------------------------------------------------
+// VR pointer: the box recalcBounds projects for the selection box, with the
+// root node offset it last found (a copter's flight height, a jump).
+bool Mech3DAppearance::worldSelectBox (Stuff::Vector3D& corner0, Stuff::Vector3D& corner1)
+{
+	if (!mechType)
+		return false;
+
+	corner0.x = position.x + mechType->typeUpperLeft.x;
+	corner0.y = position.y + mechType->typeUpperLeft.y;
+	corner0.z = position.z + mechType->typeUpperLeft.z + baseRootNodeDifference;
+
+	corner1.x = position.x + mechType->typeLowerRight.x;
+	corner1.y = position.y + mechType->typeLowerRight.y;
+	corner1.z = position.z + mechType->typeLowerRight.z + baseRootNodeDifference;
+	return true;
+}
+
+//-----------------------------------------------------------------------------
 bool Mech3DAppearance::recalcBounds (void)
 {
 	Stuff::Vector4D tempPos;
