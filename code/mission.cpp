@@ -1784,8 +1784,9 @@ bool IsGateDisabled (int objectWID) {
 	if (objectWID < 1)
 		return(false);
 	GameObjectPtr obj = ObjectManager->getByWatchID(objectWID);
-	// A destroyed gate is rubble, locked open (Gate::destroyGate), and its
-	// cells are clear; isDisabled() is also true for destroyed objects, so
+	// A destroyed gate is rubble, locked open with its cells clear
+	// (Gate::destroyGate, or GameObjectManager::load for one destroyed at the
+	// start); isDisabled() is also true for destroyed objects, so
 	// without this the long-route search closed its area for good and long
 	// orders never went through it (the 2001 code did the same).
 	if (obj && obj->isDestroyed())
