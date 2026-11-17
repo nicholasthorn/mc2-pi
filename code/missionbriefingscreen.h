@@ -64,9 +64,19 @@ class MissionBriefingScreen: public LogisticsScreen
 	float			modelScales[MAX_OBJECTIVES];
 	long			modelColors[MAX_OBJECTIVES][3];
 	aListBox		missionListBox; 
+	// MechCommander Omnitech's other briefing panes (briefingpanes.h); the
+	// briefing pane is missionListBox
+	aListBox		paneListBoxes[3];
+	bool		bHasPanes;
+	bool		paneHasText[4];
+	long		currentPane;
 
+	aListBox&	paneListBox( long pane );
+	void		showPane( long pane );
 	int			addLBItem( const char* itemName, unsigned long color, int ID);
 	int			addItem( int ID, unsigned long color, int LBid );
+	int			addLBItem( aListBox& listBox, const char* itemName, unsigned long color, int ID);
+	int			addItem( aListBox& listBox, int ID, unsigned long color, int LBid );
 	void		addObjectiveButton( float fMakerX, float fMarkerY, int count, int priority,
 											   float mapWidth, float mapHeight, bool display );
 	void		setupDropZone( float fX, float fY, float mapWidth, float mapHeight );
