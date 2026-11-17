@@ -2466,9 +2466,14 @@ bool				LogisticsData::startNewCampaign( const char* fileName )
 
 	FullPathFileName path;
 	path.init( campaignPath, fileName, ".fit" );
-	if ( NO_ERR != file.open( path ) || !campaignstart::hasFirstMission( file ) )
+	if ( NO_ERR != file.open( path ) )
 	{
-		PAUSE(("Campaign %s is missing or has no mission in its first group", (const char*)path));
+		PAUSE(("Campaign %s not found", (const char*)path));
+		return false;
+	}
+	if ( !campaignstart::hasFirstMission( file ) )
+	{
+		PAUSE(("Campaign %s has no mission in its first group", (const char*)path));
 		return false;
 	}
 
