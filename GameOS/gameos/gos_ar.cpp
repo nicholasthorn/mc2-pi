@@ -11,7 +11,9 @@
 #include "gameos.hpp"
 #include "utils/ar_view.h"
 #include "utils/graphics.h"
+#include "utils/screen_fit.h"
 #include "utils/table_anchor.h"
+#include "utils/vr_controls.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_system.h>
@@ -59,16 +61,16 @@ struct State {
     bool tablePlaced = false;   // anywhere yet (ahead of the phone at first)
     ArAnchor* anchor = nullptr; // on a surface
 
-    // the finger (drawable pixels) and the game's answer for it: each new
-    // point is a new serial, a ray asked for carries it, the answer is for it
+    // the finger (drawable pixels) and whether the game has answered for it:
+    // the game asks for its ray (pointerRay) and answers (setWorldPointer) in
+    // one pick, which runs only while the finger's point is unanswered
     bool haveFinger = false;
     float fingerX = 0.0f, fingerY = 0.0f;
-    unsigned fingerSerial = 0, askedSerial = 0, answeredSerial = 0;
+    bool answered = false;
     int unanswered = 0;         // polls the game has not answered (no mission)
-    bool worldValid = false;
-    float worldX = 0.0f, worldY = 0.0f;     // 0 to 1 across the game's screen
-    // the mouse as last answered: a drag's pointer stays there while a newer
-    // point waits, instead of jumping to the finger's screen pixel
+    // the mouse from the last answer (drawable pixels): a drag's pointer
+    // stays there while a newer point waits, instead of jumping to the
+    // finger's screen pixel
     bool haveMouse = false;
     float mouseX = 0.0f, mouseY = 0.0f;
 };
@@ -243,13 +245,28 @@ void readPose(const ArPose* pose, float position[3], float orientation[4])
     position[0] = raw[4]; position[1] = raw[5]; position[2] = raw[6];
 }
 
-// the heading a camera with this orientation looks along, about +y (0: -z)
-float headingOf(const float q[4])
+// where ARCore keeps the table's anchor
+void readAnchor()
 {
-    // the camera's -z turned by q
-    const float fx = -2.0f * (q[0] * q[2] + q[3] * q[1]);
-    const float fz = -(1.0f - 2.0f * (q[0] * q[0] + q[1] * q[1]));
-    return std::atan2(-fx, -fz);
+    ArPose* at = nullptr;
+    ArPose_create(g.session, nullptr, &at);
+    ArAnchor_getPose(g.session, g.anchor, at);
+    float unused[4];
+    readPose(at, g.table.position, unused);
+    ArPose_destroy(at);
+}
+
+// once the table is anchored, ARCore need not look for surfaces any more
+void stopPlaneFinding()
+{
+    ArConfig* config = nullptr;
+    ArConfig_create(g.session, &config);
+    ArSession_getConfig(g.session, config);
+    ArConfig_setPlaneFindingMode(g.session, config, AR_PLANE_FINDING_MODE_DISABLED);
+    const ArStatus configured = ArSession_configure(g.session, config);
+    ArConfig_destroy(config);
+    if(configured != AR_SUCCESS)
+        printf("[AR] could not stop looking for surfaces (%d)\n", (int)configured);
 }
 
 // The table on the first level surface found under the middle of the screen,
@@ -281,18 +298,14 @@ void findSurface()
             ArPose_destroy(pose);
             if(planeType == AR_PLANE_HORIZONTAL_UPWARD_FACING && inside &&
                ArHitResult_acquireNewAnchor(g.session, hit, &g.anchor) == AR_SUCCESS) {
-                g.table.yaw = headingOf(g.orientation);
-                ArPose* at = nullptr;
-                ArPose_create(g.session, nullptr, &at);
-                ArAnchor_getPose(g.session, g.anchor, at);
-                float unused[4];
-                readPose(at, g.table.position, unused);
-                ArPose_destroy(at);
+                g.table.yaw = vr_controls::yawOf(g.orientation);
+                readAnchor();
                 const float dx = g.table.position[0] - g.position[0];
                 const float dy = g.table.position[1] - g.position[1];
                 const float dz = g.table.position[2] - g.position[2];
                 printf("[AR] table placed on a surface %.2f m from the phone, %.2f m below it, at 1:%.0f\n",
                         std::sqrt(dx * dx + dy * dy + dz * dz), -dy, g.tableSettings.scale);
+                stopPlaneFinding();
             }
         }
         ArTrackable_release(trackable);
@@ -370,10 +383,11 @@ void beginFrame()
         return;
     // the window's size and the display's rotation, for the camera image's
     // corners and the projection
-    if(--g.framesToRotation <= 0 || g.width != Environment.drawableWidth || g.height != Environment.drawableHeight) {
+    const bool resized = g.width != Environment.drawableWidth || g.height != Environment.drawableHeight;
+    if(--g.framesToRotation <= 0 || resized) {
         g.framesToRotation = kRotationEvery;
         const int rotation = displayRotation();
-        if(rotation != g.rotation || g.width != Environment.drawableWidth || g.height != Environment.drawableHeight) {
+        if(rotation != g.rotation || resized) {
             g.rotation = rotation;
             g.width = Environment.drawableWidth;
             g.height = Environment.drawableHeight;
@@ -418,7 +432,7 @@ void beginFrame()
 
     // the table: ahead of and below the phone until a surface is found
     if(!g.tablePlaced) {
-        g.table = table_anchor::inFront(g.position, headingOf(g.orientation),
+        g.table = table_anchor::inFront(g.position, vr_controls::yawOf(g.orientation),
                 g.tableSettings.distance, g.tableSettings.drop);
         g.tablePlaced = true;
     }
@@ -427,14 +441,8 @@ void beginFrame()
     } else {
         ArTrackingState anchorState = AR_TRACKING_STATE_STOPPED;
         ArAnchor_getTrackingState(g.session, g.anchor, &anchorState);
-        if(anchorState == AR_TRACKING_STATE_TRACKING) {
-            ArPose* at = nullptr;
-            ArPose_create(g.session, nullptr, &at);
-            ArAnchor_getPose(g.session, g.anchor, at);
-            float unused[4];
-            readPose(at, g.table.position, unused);
-            ArPose_destroy(at);
-        }
+        if(anchorState == AR_TRACKING_STATE_TRACKING)
+            readAnchor();
     }
 }
 
@@ -483,30 +491,16 @@ bool pointerFor(float x, float y, float& mouseX, float& mouseY)
         g.haveFinger = true;
         g.fingerX = x;
         g.fingerY = y;
-        ++g.fingerSerial;
+        g.answered = false;
         g.unanswered = 0;
     }
-    if(g.answeredSerial != g.fingerSerial) {
-        // not answered yet: the pointer stays where it was (a drag lags a
-        // frame rather than jumping), and waits, but not for ever (no
-        // mission picks)
-        if(g.haveMouse) {
-            mouseX = g.mouseX;
-            mouseY = g.mouseY;
-        }
-        return ++g.unanswered > 3;
+    // not answered yet: the pointer stays where it was (a drag lags a frame
+    // rather than jumping), and waits, but not for ever (no mission picks)
+    if(g.haveMouse) {
+        mouseX = g.mouseX;
+        mouseY = g.mouseY;
     }
-    if(g.worldValid) {
-        int vp[4];
-        gos_GetWindowViewport(vp);
-        const int top = Environment.drawableHeight - vp[1] - vp[3];
-        mouseX = (float)vp[0] + g.worldX * (float)vp[2];
-        mouseY = (float)top + g.worldY * (float)vp[3];
-    }
-    g.haveMouse = true;
-    g.mouseX = mouseX;
-    g.mouseY = mouseY;
-    return true;
+    return g.answered || ++g.unanswered > 3;
 }
 
 bool touchPoint(float& x, float& y)
@@ -517,33 +511,43 @@ bool touchPoint(float& x, float& y)
     gos_GetWindowViewport(vp);
     if(vp[2] <= 0 || vp[3] <= 0)
         return false;
-    const int top = Environment.drawableHeight - vp[1] - vp[3];
-    x = (g.fingerX - (float)vp[0]) / (float)vp[2];
-    y = (g.fingerY - (float)top) / (float)vp[3];
+    x = screen_fit::acrossViewport(g.fingerX, vp[0], vp[2]);
+    y = screen_fit::acrossViewport(g.fingerY, Environment.drawableHeight - vp[1] - vp[3], vp[3]);
     return true;
 }
 
 bool pointerRay(float position[3], float orientation[4])
 {
-    if(!g.running || !g.tracking || !g.haveFinger || Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
+    // a point already answered needs no pick (the game picks every frame)
+    if(!g.running || !g.tracking || !g.haveFinger || g.answered ||
+       Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
         return false;
     // the camera image fills the window, as the projection does
     float ray[4];
     ar_view::rayThroughPixel(g.orientation, g.fov, g.fingerX / (float)Environment.drawableWidth,
             g.fingerY / (float)Environment.drawableHeight, ray);
     table_anchor::toTable(g.table, g.position, ray, position, orientation);
-    g.askedSerial = g.fingerSerial;
     return true;
 }
 
 void setWorldPointer(bool valid, float x, float y)
 {
-    if(!g.running)
+    // the answer to pointerRay, in the same pick: the mouse goes to the
+    // battle's point on the game's screen, or stays under the finger on the
+    // interface
+    if(!g.running || !g.haveFinger || g.answered)
         return;
-    g.answeredSerial = g.askedSerial;
-    g.worldValid = valid;
-    g.worldX = x;
-    g.worldY = y;
+    g.answered = true;
+    g.mouseX = g.fingerX;
+    g.mouseY = g.fingerY;
+    if(valid) {
+        int vp[4];
+        gos_GetWindowViewport(vp);
+        const int top = Environment.drawableHeight - vp[1] - vp[3];
+        g.mouseX = (float)vp[0] + x * (float)vp[2];
+        g.mouseY = (float)top + y * (float)vp[3];
+    }
+    g.haveMouse = true;
 }
 
 void pause()

@@ -37,8 +37,9 @@ SDL_FingerID g_barFinger = 0;
 // right, to see a press
 bool g_pointerLeft = false;
 bool g_pointerRight = false;
-// a phone's tabletop: pointer moves from a press on, held until the game
-// has found the battle under the press (gos_ar::pointerFor)
+// pointer events not yet given to the game: on a phone's tabletop, from a
+// press or release on, until the game has found the battle under it
+// (gos_ar::pointerFor)
 std::vector<touch::PointerEvent> g_waiting;
 // the touch screen started text input for a text field (gos_TouchTextInput),
 // which was off before, so it stops it when the field lets go
@@ -227,21 +228,20 @@ void poll()
     }
 
     g_gestures.update(now());
-    std::vector<touch::PointerEvent> events = g_gestures.takePointerEvents();
     // a phone's tabletop, in a mission (only a mission picks the world): the
     // pointer goes where the game found the battle under the finger
     // (gos_ar::pointerFor), and a press or a release waits for that: a drag's
     // box starts and ends under the finger
-    events.insert(events.begin(), g_waiting.begin(), g_waiting.end());
-    g_waiting.clear();
-    for(size_t i = 0; i < events.size(); ++i) {
-        const touch::PointerEvent& e = events[i];
+    const std::vector<touch::PointerEvent> events = g_gestures.takePointerEvents();
+    g_waiting.insert(g_waiting.end(), events.begin(), events.end());
+    size_t done = 0;
+    for(; done < g_waiting.size(); ++done) {
+        const touch::PointerEvent& e = g_waiting[done];
         float x = e.x, y = e.y;
         const bool ready = !inMission() || gos_ar::pointerFor(e.x, e.y, x, y);
         const bool buttons = e.left != g_pointerLeft || e.right != g_pointerRight;
         if(buttons && !ready) {
             input::moveVirtualPointer(x, y);
-            g_waiting.assign(events.begin() + (std::ptrdiff_t)i, events.end());
             break;
         }
         // bit 0 left, bit 2 right, as gos_GetMouseInfo reports them
@@ -251,6 +251,7 @@ void poll()
         g_pointerLeft = e.left;
         g_pointerRight = e.right;
     }
+    g_waiting.erase(g_waiting.begin(), g_waiting.begin() + (std::ptrdiff_t)done);
     const int step = g_gestures.takeWheelStep();
     if(step != 0)
         input::addVirtualWheel((float)step);
