@@ -884,7 +884,7 @@ static void vrPickWorld (void)
 			const float hi[3] = {corner1.x, corner1.y, corner1.z};
 			// no smaller than the old vehicle sphere (about 3 m): small units
 			// stay easy to point at, and the aim point is the box's centre
-			vr_controls::boxPickSphere(lo,hi,14.4f,c,radius);
+			vr_controls::boxPickSphere(lo,hi,12.0f * 1.2f,c,radius);
 		}
 		else
 		{
