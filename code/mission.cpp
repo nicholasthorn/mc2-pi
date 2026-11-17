@@ -877,12 +877,14 @@ static void vrPickWorld (void)
 		float radius = 0.0f;
 		AppearancePtr appearance = mover->getAppearance();
 		Stuff::Vector3D corner0, corner1;
-		if (appearance && appearance->worldSelectBox(corner0,corner1))
+		// (an empty box, never filled from a shape, would aim at the feet)
+		if (appearance && appearance->worldSelectBox(corner0,corner1) && (corner0.z != corner1.z))
 		{
 			const float lo[3] = {corner0.x, corner0.y, corner0.z};
 			const float hi[3] = {corner1.x, corner1.y, corner1.z};
-			// at least 2 m across: small units stay easy to point at
-			vr_controls::boxPickSphere(lo,hi,10.0f,c,radius);
+			// no smaller than the old vehicle sphere (about 3 m): small units
+			// stay easy to point at, and the aim point is the box's centre
+			vr_controls::boxPickSphere(lo,hi,14.4f,c,radius);
 		}
 		else
 		{
