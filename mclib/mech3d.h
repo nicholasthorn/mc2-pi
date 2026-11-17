@@ -517,6 +517,8 @@ class Mech3DAppearance: public ObjectAppearance
 		}
 		
 		virtual bool isMouseOver (float px, float py);
+
+		virtual bool worldSelectBox (Stuff::Vector3D& corner0, Stuff::Vector3D& corner1);
 		
 		virtual bool recalcBounds (void);
 		

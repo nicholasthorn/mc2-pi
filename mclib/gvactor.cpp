@@ -1536,6 +1536,35 @@ bool GVAppearance::isMouseOver (float px, float py)
 }	
 
 //-----------------------------------------------------------------------------
+// VR pointer: the box recalcBounds projects for the selection box, turned
+// with the vehicle as it is there.
+bool GVAppearance::worldSelectBox (Stuff::Vector3D& corner0, Stuff::Vector3D& corner1)
+{
+	if (!appearType)
+		return false;
+
+	Stuff::Vector3D minBox;
+	minBox.x = -appearType->typeUpperLeft.x;
+	minBox.y = appearType->typeUpperLeft.z;
+	minBox.z = appearType->typeUpperLeft.y;
+
+	Stuff::Vector3D maxBox;
+	maxBox.x = -appearType->typeLowerRight.x;
+	maxBox.y = appearType->typeLowerRight.z;
+	maxBox.z = appearType->typeLowerRight.y;
+
+	if (rotation != 0.0f)
+	{
+		Rotate(minBox,-rotation);
+		Rotate(maxBox,-rotation);
+	}
+
+	corner0.Add(position,minBox);
+	corner1.Add(position,maxBox);
+	return true;
+}
+
+//-----------------------------------------------------------------------------
 bool GVAppearance::recalcBounds (void)
 {
 	Stuff::Vector4D tempPos;
