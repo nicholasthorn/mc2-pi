@@ -180,7 +180,8 @@ public:
 
 	int					setCurrentMission( const char* missionName );
 
-	void				startNewCampaign( const char* fileName = "campaign");
+	// false, with the game untouched, when the campaign cannot start
+	bool				startNewCampaign( const char* fileName = "campaign");
 	void				startMultiPlayer();
 	void				setPurchaseFile( const char* fileName );
 
