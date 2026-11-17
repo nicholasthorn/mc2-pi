@@ -121,6 +121,7 @@
 #include<gameos.hpp>
 #include "benchdirector.h"
 #include "utils/vr_controls.h"
+#include "utils/vr_eye.h"
 #include<utils/str_bounded.h>
 #include"mc2xunits.h"
 
@@ -861,8 +862,33 @@ bool vrWorldPickPoint (Stuff::Vector3D &point)
 	return true;
 }
 
+//VR on the tabletop: how much of the game's screen about its centre the
+//interface leaves clear, which the game camera keeps the table inside
+//(Camera::setCameraOrigin), so no point on the table shows under the panel,
+//where picking it would click the panel; measured once a second, as buttons
+//come and go
+extern float vrTableClearRadius;
+
+static bool vrPanelAt (int x, int y, void *missionGui)
+{
+	return ((MissionInterfaceManager *)missionGui)->isOverPanel(x,y);
+}
+
+static void vrMeasureTableClear (MissionInterfaceManager *missionGui)
+{
+	static long framesToMeasure = 0;
+	if (!gos_GetVRTabletop() || !missionGui || --framesToMeasure > 0)
+		return;
+	framesToMeasure = 60;
+	const float radius = vr_eye::clearRadius(Environment.screenWidth,Environment.screenHeight,vrPanelAt,missionGui);
+	if (radius != vrTableClearRadius && gos_VRPickLog())
+		printf("[VR] the interface leaves %.0f pixels clear about the screen's centre\n",radius);
+	vrTableClearRadius = radius;
+}
+
 static void vrPickWorld (MissionInterfaceManager *missionGui)
 {
+	vrMeasureTableClear(missionGui);
 	vrPickValid = false;
 	float position[3], orientation[4];
 	if (!gos_GetVRPointerRay(position,orientation))

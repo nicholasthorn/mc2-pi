@@ -216,6 +216,11 @@ bool MissionInterfaceManager::isOverInterface( long x, long y )
 {
 	return controlGui.inRegion( x, y, isPaused() && !isPausedWithoutMenu() ) || overTouchBar( x, y );
 }
+
+bool MissionInterfaceManager::isOverPanel( long x, long y )
+{
+	return controlGui.inRegion( x, y, false ) || overTouchBar( x, y );
+}
 bool drawGUIOn = true;				//Used to shut off GUI for Screen Shots and Movie Mode
 bool toggledGUI = true;				//Used to tell if I shut the GUI off or if its in movieMode
 long lightState = 0;

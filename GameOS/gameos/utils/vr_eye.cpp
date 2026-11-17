@@ -201,6 +201,29 @@ float tableCameraAltitude(float windowRadius, float horizontalFov, float heightO
     return 1.1f * windowRadius / (tanHalf * shape);
 }
 
+float clearRadius(int width, int height, ScreenCovered covered, void* context)
+{
+    if(width <= 0 || height <= 0 || !covered)
+        return 0.0f;
+    // rays close enough that a button 40 pixels across is not missed at the
+    // edge of a phone's screen, in 4 pixel steps
+    const int kRays = 128;
+    const float kStep = 4.0f;
+    const float cx = 0.5f * (float)width, cy = 0.5f * (float)height;
+    float best = std::min(cx, cy);
+    for(int i = 0; i < kRays && best > 0.0f; ++i) {
+        const float angle = 2.0f * 3.14159265f * (float)i / (float)kRays;
+        const float dx = std::cos(angle), dy = std::sin(angle);
+        for(float d = 0.0f; d < best; d += kStep) {
+            if(covered((int)(cx + d * dx), (int)(cy + d * dy), context)) {
+                best = d;
+                break;
+            }
+        }
+    }
+    return best;
+}
+
 float parseGameFov(const char* text)
 {
     char* end = nullptr;

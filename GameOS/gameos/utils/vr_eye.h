@@ -91,6 +91,14 @@ float gameFieldOfView(const float leftFov[4], const float rightFov[4], float hei
 // heightOverWidth the screen's (0: square). 0 when either is unusable.
 const float kTableCameraAngle = 89.0f;
 float tableCameraAltitude(float windowRadius, float horizontalFov, float heightOverWidth);
+// The tabletop: the radius, in screen pixels, of the largest circle about the
+// screen's centre that stays on the screen and off the interface
+// (covered(x, y, context): the game's panel and buttons there), so the game
+// camera can keep the table clear of it: a point on the table that showed
+// under the panel would click the panel. Looked for along rays from the
+// centre; 0 when the centre itself is covered or there is no screen.
+typedef bool (*ScreenCovered)(int x, int y, void* context);
+float clearRadius(int width, int height, ScreenCovered covered, void* context);
 
 // A field of view given as text (MC2_XR_FOV): its degrees when in the range
 // above, 0 for "0" (keep the game's own), -1 for anything else.

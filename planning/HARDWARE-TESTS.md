@@ -507,8 +507,10 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
       is logged, ARCore stops looking for surfaces; walk round the table and
       come back: the battle has not drifted off the desk.
 - [ ] **Units near the table's edge**: tap a unit at the edge nearest the
-      phone. Known gap: a point that shows under the control panel on the
-      game's top-down screen presses the panel instead.
+      phone, and ground there: it selects and orders, the panel is not
+      pressed. The same on a Quest 2 by pointing (it could not pick there:
+      the game camera now keeps the table off the interface on its screen,
+      `vr_eye::clearRadius`). `MC2_XR_PICK_LOG=1` logs the clear radius.
 - [ ] **Switching away and back** (Home, then the app): the camera comes back
       and the battle is where it was.
 - [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera

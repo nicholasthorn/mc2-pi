@@ -273,6 +273,9 @@ public:
 		bool	isPausedWithoutMenu();
 		//a phone's tabletop: the finger is on the interface, not the battle
 		bool	isOverInterface( long x, long y );
+		//the tabletop: the panel and buttons are at x, y, the pause menu aside
+		//(where the table must not show, vr_eye::clearRadius)
+		bool	isOverPanel( long x, long y );
 		int		togglePause();
 		int		togglePauseWithoutMenu();
 		int		toggleHoldPosition();

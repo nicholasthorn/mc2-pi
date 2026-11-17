@@ -2303,6 +2303,11 @@ vr_eye::Basis Camera::vrBaseFor (const Stuff::LinearMatrix4D &origin)
 }
 
 //------------------------------------------------------------
+//VR on the tabletop: the radius, in the game's screen pixels, of the circle
+//about the screen's centre that the interface leaves clear (0: not known);
+//the mission measures it (vr_eye::clearRadius)
+float vrTableClearRadius = 0.0f;
+
 void Camera::setCameraOrigin (void)
 {
 	if (!usePerspective)
@@ -2338,7 +2343,17 @@ void Camera::setCameraOrigin (void)
 			const float heightOverWidth = (Environment.screenWidth > 0) ?
 				(float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
 			const float radius = 0.5f * (float)Terrain::visibleVerticesPerSide * Terrain::worldUnitsPerVertex;
-			const float altitude = vr_eye::tableCameraAltitude(radius, camera_fov, heightOverWidth);
+			//...kept off the interface on this camera's screen too: a point on the
+			//table there would click the panel (vrTableClearRadius, measured by
+			//the mission), though no higher than two and a half times
+			float shape = heightOverWidth;
+			if (vrTableClearRadius > 0.0f && Environment.screenWidth > 0)
+			{
+				const float clear = 2.0f * vrTableClearRadius / (float)Environment.screenWidth;
+				if (clear < shape)
+					shape = (clear > 0.4f * shape) ? clear : 0.4f * shape;
+			}
+			const float altitude = vr_eye::tableCameraAltitude(radius, camera_fov, shape);
 			if (altitude > localAltitude)
 				localAltitude = altitude;
 			localAngle = vr_eye::kTableCameraAngle;

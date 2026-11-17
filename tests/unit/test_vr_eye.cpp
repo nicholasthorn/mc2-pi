@@ -461,3 +461,45 @@ TEST_CASE("the tabletop's game camera is high enough to see the whole table")
 	CHECK(vr_eye::tableCameraAltitude(0.0f, 90.0f, 0.75f) == 0.0f);
 	CHECK(vr_eye::tableCameraAltitude(2000.0f, 0.0f, 0.75f) == 0.0f);
 }
+
+namespace {
+
+// a control panel along the bottom of a 1000 x 600 screen, from y 450 down
+bool bottomPanel(int, int y, void*)
+{
+	return y >= 450;
+}
+
+// a button of the size given (x0, y0, x1, y1), anywhere on the screen
+bool button(int x, int y, void* context)
+{
+	const int* r = (const int*)context;
+	return x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3];
+}
+
+bool nothing(int, int, void*)
+{
+	return false;
+}
+
+}
+
+TEST_CASE("the tabletop's table stays clear of the interface on the game's screen")
+{
+	// no interface: the screen's shorter half decides
+	CHECK(vr_eye::clearRadius(1000, 600, nothing, nullptr) == doctest::Approx(300.0f).epsilon(0.02));
+	// a panel 150 pixels below the centre: the table stops above it
+	CHECK(vr_eye::clearRadius(1000, 600, bottomPanel, nullptr) == doctest::Approx(150.0f).epsilon(0.03));
+	// a button off to the side, 200 pixels right of the centre at its height,
+	// 40 pixels square: the rays find it
+	const int side[4] = {700, 280, 740, 320};
+	CHECK(vr_eye::clearRadius(1000, 600, button, (void*)side) == doctest::Approx(200.0f).epsilon(0.03));
+	// a button in a corner, beyond the screen's half height: no effect
+	const int corner[4] = {0, 0, 60, 60};
+	CHECK(vr_eye::clearRadius(1000, 600, button, (void*)corner) == doctest::Approx(300.0f).epsilon(0.02));
+	// the interface over the centre (a menu): nothing clear
+	const int middle[4] = {400, 200, 600, 400};
+	CHECK(vr_eye::clearRadius(1000, 600, button, (void*)middle) == 0.0f);
+	// no screen yet
+	CHECK(vr_eye::clearRadius(0, 600, nothing, nullptr) == 0.0f);
+}
