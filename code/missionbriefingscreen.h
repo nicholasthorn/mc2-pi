@@ -75,6 +75,7 @@ class MissionBriefingScreen: public LogisticsScreen
 
 	aListBox&	paneListBox( long pane );
 	void		showPane( long pane );
+	void		updateScreenAndChat();
 	int			addLBItem( const char* itemName, unsigned long color, int ID);
 	int			addItem( int ID, unsigned long color, int LBid );
 	int			addLBItem( aListBox& listBox, const char* itemName, unsigned long color, int ID);

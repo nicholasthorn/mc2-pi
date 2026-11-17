@@ -143,6 +143,24 @@ void MissionBriefingScreen::render(int xOffset, int yOffset )
 
 }
 
+// The end of every update, whichever pane is showing: the video window, the
+// screen's own controls and, in multiplayer, the chat window
+void MissionBriefingScreen::updateScreenAndChat()
+{
+	camera.update();
+
+	if ( !MPlayer || !ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
+		LogisticsScreen::update();
+
+	 if ( MPlayer && ChatWindow::instance() )
+	 {
+		 if ( ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
+			textObjects[helpTextArrayID].setText( "" );
+
+		ChatWindow::instance()->update();
+	 }
+}
+
 void MissionBriefingScreen::update()
 {
 
@@ -158,8 +176,7 @@ void MissionBriefingScreen::update()
 	{
 		// the objective highlighting belongs to the briefing pane
 		paneListBox( currentPane ).update();
-		camera.update();
-		LogisticsScreen::update();
+		updateScreenAndChat();
 		return;
 	}
 
@@ -301,18 +318,7 @@ void MissionBriefingScreen::update()
 		}
 	}
 
-	camera.update();
-
-	if ( !MPlayer || !ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
-		LogisticsScreen::update();
-
-	 if ( MPlayer && ChatWindow::instance() )
-	 { 
-		 if ( ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
-			textObjects[helpTextArrayID].setText( "" );
-
-		ChatWindow::instance()->update();
-	 }
+	updateScreenAndChat();
 
 
 
