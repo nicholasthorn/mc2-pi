@@ -63,7 +63,7 @@ struct State {
 
     // the finger (drawable pixels) and whether the game has answered for it:
     // the game asks for its ray (pointerRay) and answers (setWorldPointer) in
-    // one pick, which runs only while the finger's point is unanswered
+    // one pick, every frame in a mission
     bool haveFinger = false;
     float fingerX = 0.0f, fingerY = 0.0f;
     bool answered = false;
@@ -518,9 +518,9 @@ bool touchPoint(float& x, float& y)
 
 bool pointerRay(float position[3], float orientation[4])
 {
-    // a point already answered needs no pick (the game picks every frame)
-    if(!g.running || !g.tracking || !g.haveFinger || g.answered ||
-       Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
+    // every frame, answered or not: an order goes to the point the last pick
+    // met (vrWorldPickPoint), which a skipped pick would forget
+    if(!g.running || !g.tracking || !g.haveFinger || Environment.drawableWidth <= 0 || Environment.drawableHeight <= 0)
         return false;
     // the camera image fills the window, as the projection does
     float ray[4];
@@ -535,7 +535,7 @@ void setWorldPointer(bool valid, float x, float y)
     // the answer to pointerRay, in the same pick: the mouse goes to the
     // battle's point on the game's screen, or stays under the finger on the
     // interface
-    if(!g.running || !g.haveFinger || g.answered)
+    if(!g.running || !g.haveFinger)
         return;
     g.answered = true;
     g.mouseX = g.fingerX;

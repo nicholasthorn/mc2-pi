@@ -500,7 +500,15 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
 - [ ] **A drag box on the table**: drag one finger across some units; the box
       follows the finger without jumping, and selects the units inside where
       the finger lifted. (It jumped and ended in the wrong place before the
-      fix that keeps the pointer put while a point waits.)
+      fix that keeps the pointer put while a point waits.) Known gap: the
+      box is drawn, and selects, as the game's top-down view sees it, not
+      where the finger swept.
+- [ ] **The table stays put after placement**: once `[AR] table placed`
+      is logged, ARCore stops looking for surfaces; walk round the table and
+      come back: the battle has not drifted off the desk.
+- [ ] **Units near the table's edge**: tap a unit at the edge nearest the
+      phone. Known gap: a point that shows under the control panel on the
+      game's top-down screen presses the panel instead.
 - [ ] **Switching away and back** (Home, then the app): the camera comes back
       and the battle is where it was.
 - [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera
