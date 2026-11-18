@@ -3,6 +3,7 @@ set(VIEWER_SOURCES
     "../code/gamesound.cpp"
     "../code/logisticscomponent.cpp"
     "../code/logisticsdata.cpp"
+    "../code/campaignstart.cpp"
     "../code/logisticsmech.cpp"
     "../code/logisticsmissioninfo.cpp"
     "../code/logisticspilot.cpp"
