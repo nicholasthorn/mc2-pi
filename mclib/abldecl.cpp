@@ -375,6 +375,12 @@ TypePtr doType (void) {
 				return(NULL);
 				}
 			else if (idPtr->defn.key == DFN_TYPE) {
+				// a type used in its own definition ("type T = T;") has no
+				// type yet: identifierType would hand back NULL
+				if (idPtr->typePtr == NULL) {
+					syntaxError(ABL_ERR_SYNTAX_NOT_A_TYPE_IDENTIFIER);
+					return(NULL);
+				}
 				//----------------------------------------------------------
 				// NOTE: Array types should be parsed in this case if a left
 				// bracket follows the type identifier.
