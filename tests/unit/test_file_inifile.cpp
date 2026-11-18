@@ -442,6 +442,21 @@ TEST_CASE("FitIniFile readIdString keeps the line breaks of a string spanning li
 		"st Lf = \"one\ntwo\n\nthree\"\r\n"
 		"st Crlf = \"one\r\ntwo\r\nthree\"\r\n"
 		"st After = \"x\"\r\n", fp);
+// A string spread over several lines (mission briefings) was gathered in a
+// 2048-byte line and stopped there, so anything longer was cut mid-sentence
+// with no error. A longer one is now read whole, up to the caller's buffer.
+TEST_CASE("FitIniFile readIdString reads a multi-line string longer than 2 KB")
+{
+	const char* path = "inifile_longmulti.fit";
+	std::string body;
+	for (int i = 0; i < 60; i++)
+		body += "Line " + std::to_string(i) + " of a long briefing, padded out to be wide enough.\n";
+	REQUIRE(body.size() > 3000);
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[B]\nst Blurb = \"", fp);
+	fputs(body.c_str(), fp);
+	fputs("The end.\"\nst After = \"next\"\n", fp);
 	fclose(fp);
 
 	FitIniFile fit;
@@ -454,6 +469,15 @@ TEST_CASE("FitIniFile readIdString keeps the line breaks of a string spanning li
 	CHECK(strcmp(text, "one\ntwo\nthree") == 0);
 	CHECK(fit.readIdString("After", text, sizeof(text)) == NO_ERR);
 	CHECK(strcmp(text, "x") == 0);
+	static char blurb[8192];
+	CHECK(fit.readIdString("Blurb", blurb, sizeof(blurb) - 1) == NO_ERR);
+	const std::string text(blurb);
+	CHECK(text.size() > 3000);
+	CHECK(text.find("Line 59 of a long briefing") != std::string::npos);
+	CHECK(text.substr(text.size() - 8) == "The end.");
+	char after[16] = "";
+	CHECK(fit.readIdString("After", after, sizeof(after)) == NO_ERR);
+	CHECK(strcmp(after, "next") == 0);
 	fit.close();
 	remove(path);
 }

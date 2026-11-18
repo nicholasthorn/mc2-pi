@@ -1148,9 +1148,13 @@ long FitIniFile::copyString (char *dest, char *src, unsigned long bufLen)
 }
 
 //---------------------------------------------------------------------------
+// A string may span several lines (mission briefings); they are gathered here
+// before the copy, so this is the longest string readIdString can return.
+static const unsigned long MAX_STRING_LENGTH = 8192;
+
 long FitIniFile::readIdString (const char *varName, char *result, unsigned long bufferSize)
 {
-	char line[2048];
+	char line[MAX_STRING_LENGTH];
 	char searchString[255];
 	
 	//--------------------------------
@@ -1167,7 +1171,7 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 	int	testy;
 	do
 	{
-		readLine((MemoryPtr)line,2047);
+		readLine((MemoryPtr)line,sizeof(line) - 1);
 		testy = S_strnicmp(line, searchString, strlen(searchString));
 		if (testy == 0)
 		{
@@ -1200,7 +1204,7 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 			long curLen = strlen( equalSign );
 			// equalSign points into line: the room left is what follows it.
 			const long room = (long)sizeof(line) - (long)(equalSign - line);
-			char tmpLine[2047];
+			char tmpLine[MAX_STRING_LENGTH];
 			do
 			{
 				readLine((MemoryPtr)tmpLine,sizeof(tmpLine) - 1);
