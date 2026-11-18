@@ -428,20 +428,6 @@ TEST_CASE("FitIniFile readIdString cuts a string longer than the buffer and term
 	remove(path);
 }
 
-// A string spanning lines keeps every line break. readLine stops at '\r' and
-// '\n' (the port's support for Linux files), and the join added a '\n' after
-// each later line but none after the first, so the first break was lost:
-// MechCommander Omnitech's briefings, whose lines break with a bare LF inside
-// CRLF files, showed "14 days later\nThings" as "14 days laterThings".
-TEST_CASE("FitIniFile readIdString keeps the line breaks of a string spanning lines")
-{
-	const char* path = "inifile_multiline.fit";
-	FILE* fp = fopen(path, "wb");
-	REQUIRE(fp != nullptr);
-	fputs("FITini\r\n[B]\r\n"
-		"st Lf = \"one\ntwo\n\nthree\"\r\n"
-		"st Crlf = \"one\r\ntwo\r\nthree\"\r\n"
-		"st After = \"x\"\r\n", fp);
 // A string spread over several lines (mission briefings) was gathered in a
 // 2048-byte line and stopped there, so anything longer was cut mid-sentence
 // with no error. A longer one is now read whole, up to the caller's buffer.
@@ -462,13 +448,6 @@ TEST_CASE("FitIniFile readIdString reads a multi-line string longer than 2 KB")
 	FitIniFile fit;
 	REQUIRE(fit.open(path) == NO_ERR);
 	REQUIRE(fit.seekBlock("B") == NO_ERR);
-	char text[64];
-	CHECK(fit.readIdString("Lf", text, sizeof(text)) == NO_ERR);
-	CHECK(strcmp(text, "one\ntwo\n\nthree") == 0);
-	CHECK(fit.readIdString("Crlf", text, sizeof(text)) == NO_ERR);
-	CHECK(strcmp(text, "one\ntwo\nthree") == 0);
-	CHECK(fit.readIdString("After", text, sizeof(text)) == NO_ERR);
-	CHECK(strcmp(text, "x") == 0);
 	static char blurb[8192];
 	CHECK(fit.readIdString("Blurb", blurb, sizeof(blurb) - 1) == NO_ERR);
 	const std::string text(blurb);
@@ -478,6 +457,36 @@ TEST_CASE("FitIniFile readIdString reads a multi-line string longer than 2 KB")
 	char after[16] = "";
 	CHECK(fit.readIdString("After", after, sizeof(after)) == NO_ERR);
 	CHECK(strcmp(after, "next") == 0);
+	fit.close();
+	remove(path);
+}
+
+// A string spanning lines keeps every line break. readLine stops at '\r' and
+// '\n' (the port's support for Linux files), and the join added a '\n' after
+// each later line but none after the first, so the first break was lost:
+// MechCommander Omnitech's briefings, whose lines break with a bare LF inside
+// CRLF files, showed "14 days later\nThings" as "14 days laterThings".
+TEST_CASE("FitIniFile readIdString keeps the line breaks of a string spanning lines")
+{
+	const char* path = "inifile_multiline.fit";
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\r\n[B]\r\n"
+		"st Lf = \"one\ntwo\n\nthree\"\r\n"
+		"st Crlf = \"one\r\ntwo\r\nthree\"\r\n"
+		"st After = \"x\"\r\n", fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	REQUIRE(fit.seekBlock("B") == NO_ERR);
+	char text[64];
+	CHECK(fit.readIdString("Lf", text, sizeof(text)) == NO_ERR);
+	CHECK(strcmp(text, "one\ntwo\n\nthree") == 0);
+	CHECK(fit.readIdString("Crlf", text, sizeof(text)) == NO_ERR);
+	CHECK(strcmp(text, "one\ntwo\nthree") == 0);
+	CHECK(fit.readIdString("After", text, sizeof(text)) == NO_ERR);
+	CHECK(strcmp(text, "x") == 0);
 	fit.close();
 	remove(path);
 }
