@@ -1213,8 +1213,10 @@ long FitIniFile::readIdString (const char *varName, char *result, unsigned long 
 				long addedLen = strlen( tmpLine ) + 1;
 				if ( curLen + addedLen < room )
 				{
-					strcat( equalSign, tmpLine );
+					// the break goes before each later line: readLine drops the
+					// one that ended the first, as it does the one ending this
 					strcat( equalSign, "\n" );
+					strcat( equalSign, tmpLine );
 					curLen += addedLen;
 				}
 				else
