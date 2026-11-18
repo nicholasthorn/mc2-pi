@@ -428,6 +428,39 @@ TEST_CASE("FitIniFile readIdString cuts a string longer than the buffer and term
 	remove(path);
 }
 
+// A string spread over several lines (mission briefings) was gathered in a
+// 2048-byte line and stopped there, so anything longer was cut mid-sentence
+// with no error. A longer one is now read whole, up to the caller's buffer.
+TEST_CASE("FitIniFile readIdString reads a multi-line string longer than 2 KB")
+{
+	const char* path = "inifile_longmulti.fit";
+	std::string body;
+	for (int i = 0; i < 60; i++)
+		body += "Line " + std::to_string(i) + " of a long briefing, padded out to be wide enough.\n";
+	REQUIRE(body.size() > 3000);
+	FILE* fp = fopen(path, "wb");
+	REQUIRE(fp != nullptr);
+	fputs("FITini\n[B]\nst Blurb = \"", fp);
+	fputs(body.c_str(), fp);
+	fputs("The end.\"\nst After = \"next\"\n", fp);
+	fclose(fp);
+
+	FitIniFile fit;
+	REQUIRE(fit.open(path) == NO_ERR);
+	REQUIRE(fit.seekBlock("B") == NO_ERR);
+	static char blurb[8192];
+	CHECK(fit.readIdString("Blurb", blurb, sizeof(blurb) - 1) == NO_ERR);
+	const std::string text(blurb);
+	CHECK(text.size() > 3000);
+	CHECK(text.find("Line 59 of a long briefing") != std::string::npos);
+	CHECK(text.substr(text.size() - 8) == "The end.");
+	char after[16] = "";
+	CHECK(fit.readIdString("After", after, sizeof(after)) == NO_ERR);
+	CHECK(strcmp(after, "next") == 0);
+	fit.close();
+	remove(path);
+}
+
 // Hex numbers are parsed digit by digit from the right; a value with more
 // than 8 digits shifted an int by 32 or more (UBSan, found by the UI smoke
 // walks). Digits past the 8th are now ignored, as a 32-bit value has no room
