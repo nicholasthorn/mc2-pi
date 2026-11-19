@@ -1,0 +1,6 @@
+module M : integer;
+	type
+		SELF = self;
+	code
+		return(0);
+endmodule.
