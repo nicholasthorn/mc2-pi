@@ -364,6 +364,7 @@ void MissionInterfaceManager::init (void)
 	dragStart.Zero();
 	dragEnd.Zero();
 	isDragging = FALSE;	
+	vrDragPoints = 0;
 	terrainLineChanged = 0;
 	lastForceGroup = -1;
 	
@@ -3032,8 +3033,8 @@ void MissionInterfaceManager::render (void)
 	if (drawGUIOn)
 	{
 		//-------------------------
-		// Draw the dragSelect Box
-		if (isDragging)
+		// Draw the dragSelect Box (VR: on the ground instead, drawVRDragBox)
+		if (isDragging && !gos_IsVR())
 		{
 			gos_VERTEX vertices[5];
 			DWORD color = SB_WHITE;
@@ -3900,6 +3901,87 @@ void MissionInterfaceManager::doDrag(bool bGui)
 	else if ( gos_GetKeyStatus(KEY_LMOUSE) == KEY_RELEASED )
 	{
 		dragStart.Zero();
+	}
+	updateVRDragOutline();
+}
+
+//VR: the drag box selects the units whose place on the game camera's screen
+//is inside it; the headset and the phone's tabletop do not show that screen,
+//so the box is drawn where those units stand: the ground under its edges
+//(Camera::inverseProjectZ meets the ground for VR), at the terrain's height
+void MissionInterfaceManager::updateVRDragOutline (void)
+{
+	vrDragPoints = 0;
+	if (!isDragging || !gos_IsVR() || !eye || !land)
+		return;
+	Stuff::Vector4D start;
+	eye->projectZ( dragStart, start );
+	const float corners[5][2] = { {start.x, start.y}, {dragEnd.x, start.y}, {dragEnd.x, dragEnd.y},
+		{start.x, dragEnd.y}, {start.x, start.y} };
+	for (int edge = 0; edge < 4; edge++)
+	{
+		for (int step = 0; step < kVRDragSteps; step++)
+		{
+			const float t = (float)step / (float)kVRDragSteps;
+			Stuff::Vector4D screen;
+			screen.x = corners[edge][0] + t * (corners[edge + 1][0] - corners[edge][0]);
+			screen.y = corners[edge][1] + t * (corners[edge + 1][1] - corners[edge][1]);
+			screen.z = screen.w = 0.0f;
+			Stuff::Vector3D ground;
+			eye->inverseProjectZ( screen, ground );
+			if ( Terrain::IsValidTerrainPosition( ground ) )
+				ground.z = land->getTerrainElevation( ground );
+			vrDragOutline[vrDragPoints++] = ground;
+		}
+	}
+	vrDragOutline[vrDragPoints++] = vrDragOutline[0];
+	//the middle, for the fill
+	Stuff::Vector4D middle;
+	middle.x = 0.5f * (start.x + dragEnd.x);
+	middle.y = 0.5f * (start.y + dragEnd.y);
+	middle.z = middle.w = 0.0f;
+	eye->inverseProjectZ( middle, vrDragCentre );
+	if ( Terrain::IsValidTerrainPosition( vrDragCentre ) )
+		vrDragCentre.z = land->getTerrainElevation( vrDragCentre );
+}
+
+//VR: the drag box on the ground for the eye being drawn: a faint fill and a
+//white edge, over everything (the ground it follows would hide parts of it)
+void MissionInterfaceManager::drawVRDragBox (void)
+{
+	if (!isDragging || vrDragPoints < 2 || !gos_IsVR() || !eye)
+		return;
+	gos_SetRenderState( gos_State_AlphaMode, gos_Alpha_AlphaInvAlpha );
+	gos_SetRenderState( gos_State_Specular, FALSE );
+	gos_SetRenderState( gos_State_AlphaTest, FALSE );
+	gos_SetRenderState( gos_State_Texture, 0 );
+	gos_SetRenderState( gos_State_Filter, gos_FilterNone );
+	gos_SetRenderState( gos_State_ZCompare, 0 );
+	gos_SetRenderState( gos_State_ZWrite, 0 );
+
+	Stuff::Vector4D centre;
+	const bool centreSeen = eye->projectZ( vrDragCentre, centre );
+	for (long i = 0; i + 1 < vrDragPoints; i++)
+	{
+		Stuff::Vector4D a, b;
+		if (!eye->projectZ( vrDragOutline[i], a ) || !eye->projectZ( vrDragOutline[i + 1], b ))
+			continue;
+		gos_VERTEX v[3];
+		const Stuff::Vector4D *points[3] = { &a, &b, &centre };
+		for (int k = 0; k < 3; k++)
+		{
+			v[k].x = points[k]->x;
+			v[k].y = points[k]->y;
+			v[k].z = points[k]->z;
+			v[k].rhw = points[k]->w;
+			v[k].u = v[k].v = 0.0f;
+			v[k].argb = 0x30ffffff;
+			v[k].frgb = 0xff000000;
+		}
+		if (centreSeen)
+			gos_DrawTriangles( v, 3 );
+		v[0].argb = v[1].argb = 0xffffffff;
+		gos_DrawLines( v, 2 );
 	}
 }
 

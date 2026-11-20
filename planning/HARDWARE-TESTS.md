@@ -481,6 +481,10 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
       zoomed between 1:285 and 1:1673).
 - [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
       moved the eye the wrong way before the fix, by centimetres.
+- [ ] **A drag box on the ground** (Quest, in normal VR and on the table):
+      drag the trigger across some units; the box lies on the terrain round
+      them, a white edge and a faint fill, in both eyes, not on the interface
+      panel, and the units inside it are selected.
 - [x] **"Tabletop view" in the graphics options** (Quest only, under the
       hardware rasterizer box): tick it, Accept, and the battle goes onto a
       table ahead of you with the room round it (`[XR] tabletop on`); untick
@@ -511,9 +515,9 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
 - [ ] **A drag box on the table**: drag one finger across some units; the box
       follows the finger without jumping, and selects the units inside where
       the finger lifted. (It jumped and ended in the wrong place before the
-      fix that keeps the pointer put while a point waits.) Known gap: the
-      box is drawn, and selects, as the game's top-down view sees it, not
-      where the finger swept.
+      fix that keeps the pointer put while a point waits.) The box lies on
+      the ground of the battle, a white edge and a faint fill, and the units
+      selected are the ones inside it.
 - [ ] **The table stays put after placement**: once `[AR] table placed`
       is logged, ARCore stops looking for surfaces; walk round the table and
       come back: the battle has not drifted off the desk.

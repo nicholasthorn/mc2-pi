@@ -185,6 +185,10 @@ void GameCamera::render (void)
 
 		if (useNonWeaponEffects)
 			BenchStage("world_weather",weather->render());				//Draw the weather
+
+		//VR: the drag box lies on the ground, seen by each eye
+		if (mission && mission->missionInterface)
+			mission->missionInterface->drawVRDragBox();
 	}
 
 	if (drawOldWay && !inMovieMode)

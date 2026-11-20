@@ -138,6 +138,12 @@ public:
 		long						vehicleID[MAX_TEAMS];
 		Stuff::Vector3D				dragStart;
 		Stuff::Vector3D				dragEnd;
+		//VR: the drag box on the ground, its outline round the edges and back
+		//to the first point (updateVRDragOutline, drawVRDragBox)
+		enum { kVRDragSteps = 16, kVRDragPoints = 4 * kVRDragSteps + 1 };
+		Stuff::Vector3D				vrDragOutline[kVRDragPoints];
+		Stuff::Vector3D				vrDragCentre;
+		long						vrDragPoints;
 		bool						selectClicked;			// left click
 		bool						commandClicked;			// usually right clicked
 		bool						cameraClicked;
@@ -210,6 +216,8 @@ public:
 		
 		virtual void update (void);
 		virtual void drawVTOL (void);
+		//VR: the drag box on the terrain, drawn for each eye (GameCamera::render)
+		void drawVRDragBox (void);
 		virtual void render (void);
 						
 		void	initMechs(){ controlGui.initMechs(); }	
@@ -324,6 +332,7 @@ public:
 		bool canJump(); // selected units can jump
 		bool canJumpToWPos();
 		void doDrag(bool bGui);
+		void updateVRDragOutline (void);
 
 
 		int attackShort();
