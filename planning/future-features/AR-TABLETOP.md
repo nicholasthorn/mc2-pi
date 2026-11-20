@@ -2,8 +2,10 @@
 
 Status: in progress (branch `ar-tabletop`, started 2026-11-16). Phase 1 on
 the Quest works in a Quest 2: the battle stands on the table and reads as
-strongly 3D (see "Why it looks more 3D than VR"); the phone side is not
-started. Written 2026-11-15 as `AR-PHONE.md` (phones only); widened
+strongly 3D (see "Why it looks more 3D than VR"); on the Quest it is turned
+on and off in the graphics options ("Tabletop view", saved as `VRTabletop`;
+`MC2_XR_TABLE=1` starts it on until that is saved); phones run it through
+ARCore with `MC2_AR_TABLE=1` (on a Pixel 9). Written 2026-11-15 as `AR-PHONE.md` (phones only); widened
 2026-11-16 to cover the Quest the same way, scenarios for a table, and
 headsets and phones sharing one table. Builds on `VR-TABLETOP.md` (mode 2, its
 phase 5) and `MOBILE.md` (the phone port). ARCore API names are from its NDK C

@@ -2050,6 +2050,12 @@ float __stdcall gos_GetVRWorldScale();
 // the table's scale (world metres to a real one); the game camera does not
 // follow the head; no sky is drawn.
 bool __stdcall gos_GetVRTabletop();
+// The graphics options' "Tabletop view" on the Quest: whether the headset can
+// switch to it as the game runs, switching it, and whether it starts on when
+// the saved options do not say (MC2_XR_TABLE=1; readable before the session).
+bool __stdcall gos_VRTabletopAvailable();
+void __stdcall gos_SetVRTabletop( bool on );
+bool __stdcall gos_VRTabletopByDefault();
 bool __stdcall gos_GetVRKeepGamePitch();
 bool __stdcall gos_IsVR();
 // A real OpenXR session, unlike gos_IsVR(), which MC2_VR_PATHS also turns on.

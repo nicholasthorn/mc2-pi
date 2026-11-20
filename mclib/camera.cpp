@@ -2308,6 +2308,13 @@ vr_eye::Basis Camera::vrBaseFor (const Stuff::LinearMatrix4D &origin)
 //the mission measures it (vr_eye::clearRadius)
 float vrTableClearRadius = 0.0f;
 
+//VR on the tabletop: the haze distance it raised, and the haze and far clip
+//from before, put back when the tabletop is turned off (the graphics
+//options) unless something set them since (-1: not raised)
+static float vrTableHazeRaisedTo = -1.0f;
+static float vrTableHazeBefore = 0.0f;
+static float vrTableFarBefore = 0.0f;
+
 void Camera::setCameraOrigin (void)
 {
 	if (!usePerspective)
@@ -2364,9 +2371,24 @@ void Camera::setCameraOrigin (void)
 			const float reach = localAltitude + 2.0f * radius;
 			if (MinHazeDistance < reach)
 			{
+				if (MinHazeDistance != vrTableHazeRaisedTo)
+				{
+					vrTableHazeBefore = MinHazeDistance;
+					vrTableFarBefore = MaxClipDistance;
+				}
 				MinHazeDistance = reach;
 				setFarClipDistance(reach + 1.0f);
+				vrTableHazeRaisedTo = reach;
 			}
+		}
+		else if (vrTableHazeRaisedTo >= 0.0f)
+		{
+			if (MinHazeDistance == vrTableHazeRaisedTo)
+			{
+				MinHazeDistance = vrTableHazeBefore;
+				setFarClipDistance(vrTableFarBefore);
+			}
+			vrTableHazeRaisedTo = -1.0f;
 		}
 		while (!isOKView)
 		{

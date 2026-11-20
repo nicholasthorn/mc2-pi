@@ -149,8 +149,9 @@ What to expect so far:
 ### The tabletop through ARCore
 
 `MC2_AR_TABLE=1` in `mc2args.txt` puts the battle on a real table, seen
-through the phone's camera (`planning/future-features/AR-TABLETOP.md`; the
-Quest's is `MC2_XR_TABLE=1`). The app asks for the camera at start and needs
+through the phone's camera (`planning/future-features/AR-TABLETOP.md`; on the
+Quest it is "Tabletop view" in the graphics options, or `MC2_XR_TABLE=1` until
+that is saved). The app asks for the camera at start and needs
 Google Play Services for AR (ARCore), which most recent phones have; without
 either it plays flat, and `[AR]` lines in `mc2.log` say why.
 

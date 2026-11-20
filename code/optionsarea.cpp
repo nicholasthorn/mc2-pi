@@ -7,6 +7,7 @@ OptionsArea.cpp			: Implementation of the OptionsArea component.
 \*************************************************************************************************/
 
 #include"optionsarea.h"
+#include"utils/pe_strings.h"
 #include"prefs.h"
 #include"inifile.h"
 #include"userinput.h"
@@ -52,6 +53,7 @@ extern SoundSystem *sndSystem;
 #define MSG_LOCAL_SHADOWS	306
 #define MSG_ASYNC_MOUSE		307
 #define MSG_HARDWARE_RASTERIZER 308
+#define MSG_VR_TABLETOP 320	// not in the layout: past MSG_TAB
 #define MSG_RESET	309
 
 #define MSG_GREEN	400
@@ -366,6 +368,7 @@ OptionsGraphics::OptionsGraphics()
     resolutionModesStr = NULL;
     numResolutionModes = 0;
     bExpanded = 0;
+    hasTabletopButton = false;
 }
 
 void OptionsGraphics::init(long xOffset, long yOffset)
@@ -514,6 +517,25 @@ void OptionsGraphics::init(long xOffset, long yOffset)
 
 	helpTextArrayID = 1;
 
+	//the Quest: "Tabletop view", a copy of the hardware rasterizer's check
+	//box in the free row under it, with its own text (the string table has
+	//none for it)
+	hasTabletopButton = false;
+	if ( gos_VRTabletopAvailable() )
+	{
+		for ( int i = 0; i < buttonCount; i++ )
+		{
+			if ( buttons[i].getID() != MSG_HARDWARE_RASTERIZER )
+				continue;
+			tabletopButton = buttons[i];
+			tabletopButton.setID( MSG_VR_TABLETOP );
+			tabletopButton.setText( (int)addRuntimeString( "Tabletop view (the battle on a table in the room)", "options:vr-tabletop" ) );
+			tabletopButton.move( 0, 30 );
+			hasTabletopButton = true;
+			break;
+		}
+	}
+
 
 
 	
@@ -531,6 +553,9 @@ void OptionsGraphics::render()
 {
 
 	LogisticsScreen::render();
+
+	if ( hasTabletopButton )
+		tabletopButton.render();
 
 	resolutionList.render();
 	
@@ -555,6 +580,8 @@ void OptionsGraphics::update()
 		if ( !bExpanded )
 		{
 			LogisticsScreen::update();
+			if ( hasTabletopButton )
+				tabletopButton.update();
 		}
 
 		if ( userInput->leftMouseReleased() )
@@ -597,6 +624,8 @@ void OptionsGraphics::end()
 	prefs.useLocalShadows = getButton( MSG_LOCAL_SHADOWS )->isPressed();
 	prefs.asyncMouse = getButton( MSG_ASYNC_MOUSE )->isPressed();
 	prefs.renderer = getButton( MSG_HARDWARE_RASTERIZER )->isPressed() ? 0 : 3;
+	if ( hasTabletopButton )
+		prefs.vrTabletop = tabletopButton.isPressed();
 
 	int sel = resolutionList.GetSelectedItem();
 	if ( sel > -1 && sel < numResolutionModes )	// an empty list still reports item 0
@@ -682,6 +711,8 @@ void OptionsGraphics::reset(const CPrefs& newPrefs)
 	getButton( MSG_LOCAL_SHADOWS )->press( newPrefs.useLocalShadows );
 	getButton( MSG_ASYNC_MOUSE )->press( newPrefs.asyncMouse );
 	getButton( MSG_HARDWARE_RASTERIZER )->press( (newPrefs.renderer != 3) );
+	if ( hasTabletopButton )
+		tabletopButton.press( newPrefs.vrTabletop );
 
     // find index of mode
     int index = -1;

@@ -481,6 +481,14 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
       zoomed between 1:285 and 1:1673).
 - [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
       moved the eye the wrong way before the fix, by centimetres.
+- [ ] **"Tabletop view" in the graphics options** (Quest only, under the
+      hardware rasterizer box): tick it, Accept, and the battle goes onto a
+      table ahead of you with the room round it (`[XR] tabletop on`); untick
+      it and the battle is all round again, with the haze back where the fog
+      setting puts it (`[XR] tabletop off`). Both in a mission and from the
+      main menu; it is still set after a restart (`VRTabletop` in the
+      options file). Cancel puts the old setting back. With no saved setting
+      `MC2_XR_TABLE=1` still starts it on. Not on desktop or the phone.
 
 Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
 `mc2args.txt`, on a phone with ARCore (Pixel 9). GLES.

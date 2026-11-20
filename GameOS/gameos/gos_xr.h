@@ -80,6 +80,11 @@ bool active();
 // MC2_TABLE_PLACE=distance,drop: where it goes from the head, in metres.
 bool tabletop();
 float tableScale();
+// The tabletop can be turned on and off as the game runs (the graphics
+// options): a session with eyes. Turning it on puts the table ahead of the
+// head and the room round it, off brings back the battle all round.
+bool tabletopAvailable();
+void setTabletop(bool on);
 // Every frame, before the input is sampled: reads the controllers into
 // GameOS's virtual mouse and keys.
 void pollInput();
@@ -112,6 +117,8 @@ inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
 inline bool tabletop() { return false; }
 inline float tableScale() { return 1.0f; }
+inline bool tabletopAvailable() { return false; }
+inline void setTabletop(bool) {}
 inline void pollInput() {}
 inline bool pointerActive() { return false; }
 inline void missionTakesOrders() {}

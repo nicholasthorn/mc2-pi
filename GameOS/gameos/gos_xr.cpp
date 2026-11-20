@@ -288,7 +288,8 @@ bool createInstance(JavaVM* vm, jobject activity)
                     extensions.push_back(XR_EXT_USER_PRESENCE_EXTENSION_NAME);
                     presence = true;
                 }
-                if(g.tabletop && strcmp(property.extensionName, XR_FB_PASSTHROUGH_EXTENSION_NAME) == 0) {
+                // for the tabletop, which the options can turn on later
+                if(strcmp(property.extensionName, XR_FB_PASSTHROUGH_EXTENSION_NAME) == 0) {
                     extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
                     g.passthroughAvailable = true;
                 }
@@ -296,8 +297,7 @@ bool createInstance(JavaVM* vm, jobject activity)
         }
     }
     printf("[XR] user presence: %s\n", presence ? "available" : "not available");
-    if(g.tabletop)
-        printf("[XR] passthrough: %s\n", g.passthroughAvailable ? "available" : "not available");
+    printf("[XR] passthrough: %s\n", g.passthroughAvailable ? "available" : "not available");
     XrInstanceCreateInfoAndroidKHR android = xrStruct<XrInstanceCreateInfoAndroidKHR>(XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR);
     android.applicationVM = vm;
     android.applicationActivity = activity;
@@ -467,6 +467,15 @@ bool createAlphaFill()
 
 // The eye bound now: alpha 1 wherever the world drew. The renderer caches
 // GL state, so whatever this changes is put back.
+// the room round the table through passthrough, where the headset has it
+bool startRoom()
+{
+    const bool room = g.passthroughAvailable && createPassthrough() && (g.alphaProgram || createAlphaFill());
+    if(!room)
+        destroyPassthrough();
+    return room;
+}
+
 void fillAlpha()
 {
     if(!g.alphaProgram)
@@ -1386,9 +1395,7 @@ bool init()
             && createImage(g.quad, width, height, false, "screen", false, quadMips) && (!g.useEyes || createEyes())) {
         readHudSettings();
         if(g.tabletop) {
-            const bool room = g.passthroughAvailable && createPassthrough() && createAlphaFill();
-            if(!room)
-                destroyPassthrough();
+            const bool room = startRoom();
             printf("[XR] tabletop at 1:%.0f, %s; A puts the battle at your right controller (set it on the table), the right stick zooms it\n", g.tableSettings.scale,
                     room ? "the room through passthrough" : "no passthrough: the table in the fog");
         }
@@ -1676,6 +1683,38 @@ bool exitRequested()
 bool tabletop()
 {
     return g.session != XR_NULL_HANDLE && g.tabletop;
+}
+
+bool tabletopAvailable()
+{
+    return g.session != XR_NULL_HANDLE && g.useEyes;
+}
+
+void setTabletop(bool on)
+{
+    if(!tabletopAvailable() || on == g.tabletop)
+        return;
+    g.tabletop = on;
+    g.tableZooming = false;
+    // the interface panel where the view puts it (above the table, or below
+    // the horizon), in front of the head
+    readHudSettings();
+    vr_controls::Pose head;
+    if(locate(g.viewSpace, head)) {
+        memcpy(g.hudOrigin, head.position, sizeof(g.hudOrigin));
+        g.hudYaw = vr_controls::yawOf(head.orientation);
+        if(on)
+            placeTable(head.position, g.hudYaw);
+    }
+    placeHud();
+    bool room = false;
+    if(on)
+        room = startRoom();
+    else
+        destroyPassthrough();       // lets go of the cameras
+    printf("[XR] tabletop %s%s\n", on ? "on" : "off",
+            on ? (room ? ": the room through passthrough; A puts the battle at your right controller"
+                       : ": no passthrough, the table in the fog") : "");
 }
 
 float tableScale()

@@ -3328,6 +3328,22 @@ bool __stdcall gos_GetVRTabletop()
     return gos_xr::tabletop() || gos_ar::active();
 }
 
+bool __stdcall gos_VRTabletopAvailable()
+{
+    return gos_xr::tabletopAvailable();
+}
+
+void __stdcall gos_SetVRTabletop(bool on)
+{
+    gos_xr::setTabletop(on);
+}
+
+bool __stdcall gos_VRTabletopByDefault()
+{
+    const char* table = getenv("MC2_XR_TABLE");
+    return table && table[0] == '1';
+}
+
 const mat4& __stdcall gos_GetProjection() {
     gosASSERT(g_gos_renderer);
 	return g_gos_renderer->getProj2Screen();
