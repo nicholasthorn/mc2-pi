@@ -217,6 +217,17 @@ bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3]
     return true;
 }
 
+void boxPickSphere(const float corner0[3], const float corner1[3], float minRadius, float centre[3],
+                   float& radius)
+{
+    float largest = 0.0f;
+    for(int i = 0; i < 3; ++i) {
+        centre[i] = (corner0[i] + corner1[i]) * 0.5f;
+        largest = std::max(largest, std::fabs(corner1[i] - corner0[i]) * 0.5f);
+    }
+    radius = std::max(minRadius, largest * 1.2f);
+}
+
 float yawOf(const float orientation[4])
 {
     const float forward[3] = {0.0f, 0.0f, -1.0f};

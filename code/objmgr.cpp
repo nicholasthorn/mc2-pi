@@ -1302,11 +1302,21 @@ void GameObjectManager::addObject (ObjDataLoader *objData, long& curTerrainObjec
 						}
 					}
 					((GatePtr)obj)->setTeamId(obj->getTeamId(), true);
+					// A gate the mission starts destroyed (setDamage above) never runs
+					// Gate::destroyGate: leave it as that would, rubble locked open and
+					// not gate cells, so pathing treats it as a gate blown in play.
+					bool destroyedGate = obj->isDestroyed();
 					short* curCoord = ((GatePtr)obj)->cellsCovered;
 					for (int i = 0; i < ((GatePtr)obj)->numCellsCovered; i++) {
 						long r = *curCoord++;
 						long c = *curCoord++;
-						GameMap->setGate(r, c, true);
+						GameMap->setGate(r, c, !destroyedGate);
+					}
+					if (destroyedGate) {
+						((GatePtr)obj)->setLockedOpen();
+						((GatePtr)obj)->opened = true;
+						((GatePtr)obj)->closed = ((GatePtr)obj)->closing = ((GatePtr)obj)->opening = false;
+						obj->setFlag(OBJECT_FLAG_TANGIBLE, false);
 					}
 				}
 			}

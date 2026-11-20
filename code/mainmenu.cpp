@@ -239,6 +239,20 @@ void MainMenu::setDrawBackground( bool bNewDrawBackground )
 	}
 }
 
+// Closes the save/load/campaign dialog: back to the menu, or to the game
+void MainMenu::closeSaveDialog()
+{
+	LogisticsSaveDialog::instance()->end();
+	bSave = bLoad = bLoadCampaign = 0 ;
+	if ( !bDrawBackground )
+		status = NEXT;
+	else
+	{
+		beginAnim.begin();
+		endAnim.end();
+	}
+}
+
 int	MainMenu::handleMessage( unsigned long what, unsigned long who )
 {
 	switch ( who )
@@ -259,8 +273,10 @@ int	MainMenu::handleMessage( unsigned long what, unsigned long who )
 				LogisticsSaveDialog::instance()->beginCampaign();
 				if ( LogisticsSaveDialog::instance()->isDone() )
 				{
-					LogisticsData::instance->startNewCampaign( LogisticsSaveDialog::instance()->getFileName());
-					status = RESTART;
+					if ( LogisticsData::instance->startNewCampaign( LogisticsSaveDialog::instance()->getFileName()) )
+						status = RESTART;
+					else
+						closeSaveDialog(); // it logged why
 				}
 			}
 			break;
@@ -547,8 +563,10 @@ void MainMenu::update()
 			}
 			else if ( bLoadCampaign )
 			{
-				LogisticsData::instance->startNewCampaign( LogisticsSaveDialog::instance()->getFileName());
-				status = endResult = RESTART;
+				if ( !LogisticsData::instance->startNewCampaign( LogisticsSaveDialog::instance()->getFileName()) )
+					closeSaveDialog(); // it logged why
+				else
+					status = endResult = RESTART;
 //				background.beginFadeOut( 1.0f );
 //				beginFadeOut( 1.0f );
 				bLoadCampaign = 0;
@@ -574,15 +592,7 @@ void MainMenu::update()
 		else if ( LogisticsSaveDialog::instance()->getStatus() == LogisticsScreen::NO &&
 			LogisticsSaveDialog::instance()->isDone())
 		{
-			LogisticsSaveDialog::instance()->end();
-			bSave = bLoad = bLoadCampaign = 0 ;
-			if ( !bDrawBackground )
-				status = NEXT;
-			else
-			{
-				beginAnim.begin();
-				endAnim.end();
-			}
+			closeSaveDialog();
 		}
 		return;
 	}

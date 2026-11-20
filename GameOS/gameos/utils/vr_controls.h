@@ -71,6 +71,13 @@ bool rayHitsSphere(const float origin[3], const float dir[3], const float centre
 bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3], const float boxMax[3],
                 float& distance, float* leaving = nullptr);
 
+// A sphere to point at a unit by, from the world box its selection box is
+// projected from (corners either way round): centred on the box, so the game's
+// own picking aimed at the centre lands inside the selection box, with a
+// radius of 1.2 times the box's largest half extent and at least minRadius.
+void boxPickSphere(const float corner0[3], const float corner1[3], float minRadius, float centre[3],
+                   float& radius);
+
 // The heading of an orientation: the angle about +y of its -z axis, seen
 // from above. Looking up or down and tilting the head do not change it.
 float yawOf(const float orientation[4]);

@@ -920,17 +920,38 @@ static void vrPickWorld (MissionInterfaceManager *missionGui)
 		MoverPtr mover = ObjectManager->getMover(i);
 		if (!mover || !mover->getExists() || mover->isDestroyed())
 			continue;
-		// a mech is 10 to 12 m tall, a vehicle about 4 m (0.2 m a world unit)
-		const float halfHeight = mover->isMech() ? 30.0f : 12.0f;
-		Stuff::Vector3D centre = mover->getPosition();
-		centre.z += halfHeight;
-		const float c[3] = {centre.x, centre.y, centre.z};
+		// a sphere about the box the unit's selection box is projected from,
+		// so the point the game's picking gets is on the unit whatever its
+		// size or height: power armour, a copter in flight. Without a box: a
+		// mech is 10 to 12 m tall, a vehicle about 4 m (0.2 m a world unit).
+		float c[3] = {0.0f, 0.0f, 0.0f};
+		float radius = 0.0f;
+		AppearancePtr appearance = mover->getAppearance();
+		Stuff::Vector3D corner0, corner1;
+		// (an empty box, never filled from a shape, would aim at the feet)
+		if (appearance && appearance->worldSelectBox(corner0,corner1) && (corner0.z != corner1.z))
+		{
+			const float lo[3] = {corner0.x, corner0.y, corner0.z};
+			const float hi[3] = {corner1.x, corner1.y, corner1.z};
+			// no smaller than the old vehicle sphere (about 3 m): small units
+			// stay easy to point at, and the aim point is the box's centre
+			vr_controls::boxPickSphere(lo,hi,12.0f * 1.2f,c,radius);
+		}
+		else
+		{
+			const float halfHeight = mover->isMech() ? 30.0f : 12.0f;
+			const Stuff::Vector3D position = mover->getPosition();
+			c[0] = position.x;
+			c[1] = position.y;
+			c[2] = position.z + halfHeight;
+			radius = halfHeight * 1.2f;
+		}
 		float distance = 0.0f;
-		if (vr_controls::rayHitsSphere(o,d,c,halfHeight * 1.2f,distance) && (!hit || (distance < best)))
+		if (vr_controls::rayHitsSphere(o,d,c,radius,distance) && (!hit || (distance < best)))
 		{
 			hit = true;
 			best = distance;
-			target = centre;
+			target = Stuff::Vector3D(c[0],c[1],c[2]);
 		}
 	}
 	// buildings: a ray meeting a wall must stop there, or the point it picks is
@@ -1837,6 +1858,13 @@ bool IsGateDisabled (int objectWID) {
 	if (objectWID < 1)
 		return(false);
 	GameObjectPtr obj = ObjectManager->getByWatchID(objectWID);
+	// A destroyed gate is rubble, locked open with its cells clear
+	// (Gate::destroyGate, or GameObjectManager::load for one destroyed at the
+	// start); isDisabled() is also true for destroyed objects, so
+	// without this the long-route search closed its area for good and long
+	// orders never went through it (the 2001 code did the same).
+	if (obj && obj->isDestroyed())
+		return(false);
 	if (obj && obj->isDisabled())
 		return(true);
 	// isBuilding() is also true for gates and turrets: use the virtual

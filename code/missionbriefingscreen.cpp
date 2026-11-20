@@ -40,6 +40,10 @@ MissionBriefingScreen::MissionBriefingScreen(  )
 	}
 	runTime = 0.0f;
 	bClicked = false;
+	bHasPanes = false;
+	for ( int i = 0; i < briefingpanes::kPanes; i++ )
+		paneHasText[i] = false;
+	currentPane = briefingpanes::kBriefing;
 }
 
 MissionBriefingScreen::~MissionBriefingScreen()
@@ -54,6 +58,8 @@ MissionBriefingScreen::~MissionBriefingScreen()
 	}
 
 	missionListBox.destroy();  //NO Default destructor for aListBox.  Just call destroy.
+	for ( int i = 0; i < briefingpanes::kPanes - 1; i++ )
+		paneListBoxes[i].destroy();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -76,15 +82,28 @@ void MissionBriefingScreen::init( FitIniFile* file )
 	buttonText = first + 2;
 	videoCover = first + 3;
 
+	// MechCommander Omnitech's mcl_mn.fit has a button per briefing pane
+	bHasPanes = true;
+	for ( int i = 0; i < briefingpanes::kPanes; i++ )
+		bHasPanes = bHasPanes && getButton( briefingpanes::buttonForPane( i ) );
+
 	for ( int i= 0; i < buttonCount; i++ )
-		buttons[i].setMessageOnRelease();
+	{
+		// pane buttons select on press, as in MechCommander Omnitech
+		if ( !bHasPanes || briefingpanes::paneForButton( buttons[i].getID() ) == -1 )
+			buttons[i].setMessageOnRelease();
+	}
 
-	missionListBox.init( rects[1].left(), rects[1].top(),
-						rects[1].width(), rects[1].height() );
+	for ( int i = 0; i < (bHasPanes ? briefingpanes::kPanes : 1); i++ )
+	{
+		aListBox& listBox = paneListBox( i );
+		listBox.init( rects[1].left(), rects[1].top(),
+							rects[1].width(), rects[1].height() );
 
-	missionListBox.setPressFX( -1 );
-	missionListBox.setHighlightFX( -1 );
-	missionListBox.setDisabledFX( -1 );
+		listBox.setPressFX( -1 );
+		listBox.setHighlightFX( -1 );
+		listBox.setDisabledFX( -1 );
+	}
 
 	getButton( MN_MSG_PLAY )->showGUIWindow( 0 );
 	getButton( MN_MSG_STOP )->showGUIWindow( 0 );
@@ -97,9 +116,10 @@ void MissionBriefingScreen::init( FitIniFile* file )
 
 void MissionBriefingScreen::render(int xOffset, int yOffset )
 {
-	missionListBox.move(xOffset, yOffset );
-	missionListBox.render();
-	missionListBox.move( -xOffset, -yOffset);
+	aListBox& listBox = paneListBox( currentPane );
+	listBox.move(xOffset, yOffset );
+	listBox.render();
+	listBox.move( -xOffset, -yOffset);
 
 	camera.render();
 
@@ -123,6 +143,24 @@ void MissionBriefingScreen::render(int xOffset, int yOffset )
 
 }
 
+// The end of every update, whichever pane is showing: the video window, the
+// screen's own controls and, in multiplayer, the chat window
+void MissionBriefingScreen::updateScreenAndChat()
+{
+	camera.update();
+
+	if ( !MPlayer || !ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
+		LogisticsScreen::update();
+
+	 if ( MPlayer && ChatWindow::instance() )
+	 {
+		 if ( ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
+			textObjects[helpTextArrayID].setText( "" );
+
+		ChatWindow::instance()->update();
+	 }
+}
+
 void MissionBriefingScreen::update()
 {
 
@@ -133,6 +171,14 @@ void MissionBriefingScreen::update()
 	}
 	else
 		getButton( MB_MSG_PREV )->disable( false );
+
+	if ( currentPane != briefingpanes::kBriefing )
+	{
+		// the objective highlighting belongs to the briefing pane
+		paneListBox( currentPane ).update();
+		updateScreenAndChat();
+		return;
+	}
 
 	int oldSel = missionListBox.GetSelectedItem();
 	missionListBox.update();
@@ -272,18 +318,7 @@ void MissionBriefingScreen::update()
 		}
 	}
 
-	camera.update();
-
-	if ( !MPlayer || !ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
-		LogisticsScreen::update();
-
-	 if ( MPlayer && ChatWindow::instance() )
-	 { 
-		 if ( ChatWindow::instance()->pointInside(userInput->getMouseX(), userInput->getMouseY()) )
-			textObjects[helpTextArrayID].setText( "" );
-
-		ChatWindow::instance()->update();
-	 }
+	updateScreenAndChat();
 
 
 
@@ -361,9 +396,30 @@ long	MissionBriefingScreen::getMissionTGA( const char* missionName )
 
 }
 
+// Reads a briefing text and its resource string flag; false when it has no text
+static bool readBriefingText( FitIniFile& fitFile, const char* key, char* text, unsigned long textSize )
+{
+	text[0] = 0;
+	fitFile.readIdString( key, text, textSize - 1 );
+
+	char flag[64];
+	bool bUseResource = false;
+	sprintf( flag, "%sUseResourceString", key );
+	if ( NO_ERR == fitFile.readIdBoolean( flag, bUseResource ) && bUseResource )
+	{
+		unsigned long resourceID = 0;
+		sprintf( flag, "%sResourceStringID", key );
+		if ( NO_ERR == fitFile.readIdULong( flag, resourceID ) )
+			cLoadString( resourceID, text, textSize - 1 );
+	}
+	return briefingpanes::hasText( text );
+}
+
 void MissionBriefingScreen::begin()
 {
 	missionListBox.removeAllItems( true );
+	for ( int i = 0; i < briefingpanes::kPanes - 1; i++ )
+		paneListBoxes[i].removeAllItems( true );
 
 	runTime = 0;
 	bClicked = 0;
@@ -490,22 +546,53 @@ void MissionBriefingScreen::begin()
 	fitFile.seekBlock( "MissionSettings" );
 
 	char blurb[4096];
-	result = fitFile.readIdString("Blurb", blurb, 4095 );
-
-	bool tmpBool = false;
-	result = fitFile.readIdBoolean("BlurbUseResourceString", tmpBool);
-	if (NO_ERR == result && tmpBool )
-	{
-		unsigned long tmpInt = 0;
-		result = fitFile.readIdULong("BlurbResourceStringID", tmpInt);
-		if (NO_ERR == result)
-		{
-			cLoadString( tmpInt, blurb, 2047 );
-		}
-	}
+	readBriefingText( fitFile, "Blurb", blurb, sizeof( blurb ) );
 
 
 	addLBItem( blurb, 0xff005392, -1 );
+
+	// MechCommander Omnitech continues a long briefing in Blurb3 and adds
+	// panes for Blurb4, Blurb5 and Blurb2, colored as its MCORel.exe does
+	if ( readBriefingText( fitFile, "Blurb3", blurb, sizeof( blurb ) ) )
+	{
+		addItem( IDS_MN_DIVIDER, 0xff005392, -1 );
+		addLBItem( blurb, 0xff00ff00, -1 );
+	}
+
+	if ( bHasPanes )
+	{
+		using namespace briefingpanes;
+		paneHasText[kBriefing] = true;
+
+		paneHasText[kTactical] = readBriefingText( fitFile, "Blurb4", blurb, sizeof( blurb ) );
+		if ( paneHasText[kTactical] )
+		{
+			aListBox& listBox = paneListBox( kTactical );
+			addItem( listBox, IDS_MN_DIVIDER, 0xff005392, -1 );
+			addLBItem( listBox, "TACTICAL INFORMATION", 0xffff0000, -1 );
+			addItem( listBox, IDS_MN_DIVIDER, 0xff005392, -1 );
+			addLBItem( listBox, blurb, 0xffff0000, -1 );
+			addItem( listBox, IDS_MN_DIVIDER, 0xff005392, -1 );
+		}
+
+		paneHasText[kDescription] = readBriefingText( fitFile, "Blurb2", blurb, sizeof( blurb ) );
+		if ( paneHasText[kDescription] )
+		{
+			addItem( paneListBox( kDescription ), IDS_MN_DIVIDER, 0xff005392, -1 );
+			addLBItem( paneListBox( kDescription ), blurb, 0xff00ff00, -1 );
+		}
+
+		paneHasText[kAdditional] = readBriefingText( fitFile, "Blurb5", blurb, sizeof( blurb ) );
+		if ( paneHasText[kAdditional] )
+		{
+			addItem( paneListBox( kAdditional ), IDS_MN_DIVIDER, 0xff005392, -1 );
+			addLBItem( paneListBox( kAdditional ), blurb, 0xffffff00, -1 );
+		}
+
+		for ( int i = 0; i < kPanes; i++ )
+			getButton( buttonForPane( i ) )->disable( !paneHasText[i] );
+		showPane( kBriefing );
+	}
 
 	int RP = LogisticsData::instance->getCBills();
 	char text[32];
@@ -640,31 +727,60 @@ void MissionBriefingScreen::addObjectiveButton( float fX, float fY, int count, i
 
 int MissionBriefingScreen::addLBItem( const char* text, unsigned long color, int ID)
 {
+	return addLBItem( missionListBox, text, color, ID );
+}
+
+int MissionBriefingScreen::addLBItem( aListBox& listBox, const char* text, unsigned long color, int ID)
+{
 	aTextListItem* pEntry = new aTextListItem( IDS_MN_LB_FONT );
 	pEntry->setID( ID );
-	pEntry->resize( missionListBox.width() - missionListBox.getScrollBarWidth() - 10,
+	pEntry->resize( listBox.width() - listBox.getScrollBarWidth() - 10,
 		pEntry->height() );
 	pEntry->setText( text );
 	pEntry->setColor( color );
 	pEntry->sizeToText();
 	pEntry->forceToTop(true);
-	return missionListBox.AddItem( pEntry );
+	return listBox.AddItem( pEntry );
 
 }
 
 int  MissionBriefingScreen::addItem( int ID, unsigned long color, int LBid)
 {
+	return addItem( missionListBox, ID, color, LBid );
+}
+
+int  MissionBriefingScreen::addItem( aListBox& listBox, int ID, unsigned long color, int LBid)
+{
 	
 	aTextListItem* pEntry = new aTextListItem( IDS_MN_LB_FONT );
 	pEntry->setID( LBid );
-	pEntry->resize( missionListBox.width() - missionListBox.getScrollBarWidth() - 10,
+	pEntry->resize( listBox.width() - listBox.getScrollBarWidth() - 10,
 		pEntry->height() );
 	pEntry->setText( ID );
 	pEntry->setColor( color );
-	return missionListBox.AddItem( pEntry );
+	return listBox.AddItem( pEntry );
 
 }
 
+
+aListBox& MissionBriefingScreen::paneListBox( long pane )
+{
+	if ( pane <= briefingpanes::kBriefing || pane >= briefingpanes::kPanes )
+		return missionListBox;
+	return paneListBoxes[pane - 1];
+}
+
+// Shows a pane and presses its button only, as MechCommander Omnitech does
+void MissionBriefingScreen::showPane( long pane )
+{
+	currentPane = pane;
+	for ( int i = 0; i < briefingpanes::kPanes; i++ )
+	{
+		aButton* pButton = getButton( briefingpanes::buttonForPane( i ) );
+		if ( pButton && pButton->isEnabled() && pButton->isPressed() != ( i == pane ) )
+			pButton->press( i == pane );
+	}
+}
 
 void MissionBriefingScreen::end()
 {
@@ -706,6 +822,11 @@ int MissionBriefingScreen::handleMessage( unsigned long msg, unsigned long who )
 
 	case MB_MSG_MAINMENU:
 		status = MAINMENU;
+		break;
+
+	default:
+		if ( bHasPanes && briefingpanes::paneForButton( who ) != -1 )
+			showPane( briefingpanes::selectPane( paneHasText, currentPane, who ) );
 		break;
 	}
 
