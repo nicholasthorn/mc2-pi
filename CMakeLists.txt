@@ -161,6 +161,23 @@ if(MC2_OPENXR)
     message("Presenting through OpenXR")
 endif()
 
+# MC2_ARCORE: the tabletop on a phone through ARCore (AR-TABLETOP.md). The
+# phone build (scripts/android, MC2_ANDROID_FLAVOUR=phone) passes ARCORE_DIR,
+# the AAR as fetch_deps.sh unpacks it, with the C header in include/
+option(MC2_ARCORE "The phone's tabletop through ARCore (Android phones)" OFF)
+if(MC2_ARCORE)
+    if(NOT ANDROID OR NOT MC2_GLES OR MC2_OPENXR OR NOT ARCORE_DIR)
+        message(FATAL_ERROR "MC2_ARCORE is for the Android phone build (GLES, no OpenXR) and needs ARCORE_DIR (scripts/android/build.sh sets both)")
+    endif()
+    add_library(arcore_sdk_c SHARED IMPORTED)
+    set_target_properties(arcore_sdk_c PROPERTIES
+        IMPORTED_LOCATION "${ARCORE_DIR}/jni/arm64-v8a/libarcore_sdk_c.so")
+    set(ARCORE_INCLUDE_DIR "${ARCORE_DIR}/include")
+    add_definitions(-DMC2_ARCORE)
+    list(APPEND MC2_GL_LIBS arcore_sdk_c)
+    message("The phone's tabletop through ARCore")
+endif()
+
 message("Found SDL2 package ${SDL2_LIBRARIES}" )
 message("SDL2 prefix: ${SDL2_PREFIX}")
 message("OPENGL library found in ${OPENGL}")

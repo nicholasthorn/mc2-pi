@@ -69,6 +69,8 @@ build_deps() {
 }
 
 build_game() {
+    # a checkout from before the phone took ARCore
+    [ -z "$AR_DEPS" ] || [ -d "$AR_DEPS" ] || "$ROOT/scripts/android/fetch_deps.sh"
     "$CMAKE" -S "$ROOT" -B "$GAME_BUILD" "${COMMON[@]}" -DMC2_GLES=ON -DMC2_BUILD_TESTS=OFF \
         "-DMC2_VERSION=${MC2_VERSION:-}" "${XR_CMAKE[@]}"
     "$CMAKE" --build "$GAME_BUILD"
@@ -102,19 +104,29 @@ build_apk() {
     local A="$BUILD/apk"
     rm -rf "$A"; mkdir -p "$A/classes" "$A/dex" "$A/stage/lib/arm64-v8a"
 
-    # Java: SDL's activity and ours
-    local sources classes
+    # Java: SDL's activity and ours, and the flavour's libraries' classes
+    # (ARCore's on the phone), which go into the dex as they are
+    local sources classes classpath="$ANDROID_JAR" sep=":" jar
+    [ $WIN = 1 ] && sep=";"
+    for jar in "${JAVA_JARS[@]}"; do classpath="$classpath$sep$jar"; done
     mapfile -t sources < <(find "$DEPS/$SDL2_DIR/android-project/app/src/main/java" "$ROOT/android/java" -name '*.java')
-    "$J/javac" -nowarn --release 11 -classpath "$ANDROID_JAR" -d "$A/classes" "${sources[@]}"
+    "$J/javac" -nowarn --release 11 -classpath "$classpath" -d "$A/classes" "${sources[@]}"
     mapfile -t classes < <(find "$A/classes" -name '*.class')
-    "$BT/d8$BAT" --release --min-api $MIN_SDK --lib "$ANDROID_JAR" --output "$A/dex" "${classes[@]}"
+    "$BT/d8$BAT" --release --min-api $MIN_SDK --lib "$ANDROID_JAR" --output "$A/dex" "${classes[@]}" "${JAVA_JARS[@]}"
+
+    # the libraries' resources (ARCore's install dialog, which it finds by name)
+    local res=() dir
+    for dir in "${JAVA_RES[@]}"; do
+        "$BT/aapt2" compile --dir "$dir" -o "$A/res-$(basename "$(dirname "$dir")").zip"
+        res+=(-R "$A/res-$(basename "$(dirname "$dir")").zip")
+    done
 
     # manifest, then dex and native libraries: stripped copies (the unstripped
     # ones stay in android/build for reading crash stacks), stored uncompressed
     # and page-aligned so they load straight from the APK (extractNativeLibs false)
     local version=()
     [ -z "$MC2_VERSION" ] || version=(--version-name "$MC2_VERSION" --replace-version)
-    "$BT/aapt2" link -o "$A/base.apk" --manifest "$MANIFEST" \
+    "$BT/aapt2" link -o "$A/base.apk" --manifest "$MANIFEST" "${res[@]}" --auto-add-overlay \
         -I "$ANDROID_JAR" --min-sdk-version $MIN_SDK --target-sdk-version $TARGET_SDK "${version[@]}"
     cp "$A/dex/classes.dex" "$A/stage/"
     local lib libs=("$PREFIX/lib/libSDL2.so" "$PREFIX/lib/libSDL2_mixer.so"

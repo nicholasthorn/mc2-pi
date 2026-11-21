@@ -103,6 +103,7 @@
 #include"gvehicl.h" // remove
 #include "forcegroupcycle.h"
 #include"mc2xunits.h"
+#include"utils/vr_eye.h"
 
 	static const char* terrainStr[NUM_TERRAIN_TYPES] = {
 			"Blue Water",	//MC_BLUEWATER_TYPE
@@ -123,6 +124,7 @@
 
 
 extern void testKeyStuff();
+extern bool vrWorldPickPoint (Stuff::Vector3D &point);
 
 extern long helpTextHeaderID;
 extern long helpTextID;
@@ -207,6 +209,18 @@ static bool overTouchBar( long x, long y )
 			return true;
 	}
 	return false;
+}
+
+//the interface is at x, y (the game's screen pixels), as the mouse checks
+//below find it: the control panel or the touch screen's command bar
+bool MissionInterfaceManager::isOverInterface( long x, long y )
+{
+	return controlGui.inRegion( x, y, isPaused() && !isPausedWithoutMenu() ) || overTouchBar( x, y );
+}
+
+bool MissionInterfaceManager::isOverPanel( long x, long y )
+{
+	return controlGui.inRegion( x, y, false ) || overTouchBar( x, y );
 }
 bool drawGUIOn = true;				//Used to shut off GUI for Screen Shots and Movie Mode
 bool toggledGUI = true;				//Used to tell if I shut the GUI off or if its in movieMode
@@ -351,6 +365,7 @@ void MissionInterfaceManager::init (void)
 	dragStart.Zero();
 	dragEnd.Zero();
 	isDragging = FALSE;	
+	vrDragPoints = 0;
 	terrainLineChanged = 0;
 	lastForceGroup = -1;
 	
@@ -790,6 +805,16 @@ void MissionInterfaceManager::update (void)
 	mouseXY.x = mouseX;
 	mouseXY.y = mouseY;
 	eye->inverseProject(mouseXY, wPos);
+	//VR: the point the controller's ray met, where the mouse was put; the
+	//ground found again under the mouse can be elsewhere (vrWorldPickPoint)
+	Stuff::Vector3D vrPoint;
+	if (!bGui && gos_VRPointerActive() && vrWorldPickPoint(vrPoint))
+	{
+		if (gos_VRPickLog() && (userInput->isLeftClick() || userInput->isRightClick()))
+			printf("[VR] click at mouse %d %d: ground under the mouse (%.0f %.0f %.0f), the ray's point (%.0f %.0f %.0f)\n",
+				mouseX,mouseY,wPos.x,wPos.y,wPos.z,vrPoint.x,vrPoint.y,vrPoint.z);
+		wPos = vrPoint;
+	}
 
 	// find out if this position is passable, has line of sight
 	int cellR, cellC;
@@ -3009,8 +3034,8 @@ void MissionInterfaceManager::render (void)
 	if (drawGUIOn)
 	{
 		//-------------------------
-		// Draw the dragSelect Box
-		if (isDragging)
+		// Draw the dragSelect Box (VR: on the ground instead, drawVRDragBox)
+		if (isDragging && !gos_IsVR())
 		{
 			gos_VERTEX vertices[5];
 			DWORD color = SB_WHITE;
@@ -3877,6 +3902,117 @@ void MissionInterfaceManager::doDrag(bool bGui)
 	else if ( gos_GetKeyStatus(KEY_LMOUSE) == KEY_RELEASED )
 	{
 		dragStart.Zero();
+	}
+	updateVRDragOutline();
+}
+
+//VR: where the ground at x, y shows on the game camera's screen, at the
+//ground's height there (vr_eye::groundForScreen)
+static bool vrGroundOnScreen (float x, float y, void *, float screen[2])
+{
+	Stuff::Vector3D ground( x, y, 0.0f );
+	if ( Terrain::IsValidTerrainPosition( ground ) )
+		ground.z = land->getTerrainElevation( ground );
+	Stuff::Vector4D onScreen;
+	eye->projectZ( ground, onScreen );		//off the screen too: it fills it in
+	screen[0] = onScreen.x;
+	screen[1] = onScreen.y;
+	return true;
+}
+
+//VR: the ground that shows at sx, sy on the game camera's screen, found by
+//the projection the selection goes by, from the guess x, y (moved to the
+//answer); where that fails, the ground the camera's rays meet instead
+static Stuff::Vector3D vrGroundForScreen (float sx, float sy, float &x, float &y)
+{
+	Stuff::Vector3D ground;
+	if ( vr_eye::groundForScreen( vrGroundOnScreen, NULL, sx, sy, x, y, 8.0f ) )
+	{
+		ground.x = x;
+		ground.y = y;
+	}
+	else
+	{
+		Stuff::Vector4D screen;
+		screen.x = sx;
+		screen.y = sy;
+		screen.z = screen.w = 0.0f;
+		eye->inverseProjectZ( screen, ground );
+	}
+	ground.z = 0.0f;
+	if ( Terrain::IsValidTerrainPosition( ground ) )
+		ground.z = land->getTerrainElevation( ground );
+	return ground;
+}
+
+//VR: the drag box selects the units whose place on the game camera's screen
+//is inside it; the headset and the phone's tabletop do not show that screen,
+//so the box is drawn where those units stand: the ground under its edges
+//(Camera::inverseProjectZ meets the ground for VR), at the terrain's height
+void MissionInterfaceManager::updateVRDragOutline (void)
+{
+	vrDragPoints = 0;
+	if (!isDragging || !gos_IsVR() || !eye || !land)
+		return;
+	Stuff::Vector4D start;
+	eye->projectZ( dragStart, start );
+	const float corners[5][2] = { {start.x, start.y}, {dragEnd.x, start.y}, {dragEnd.x, dragEnd.y},
+		{start.x, dragEnd.y}, {start.x, start.y} };
+	//each point from the last, round from the corner pressed on, whose
+	//place on the ground is known
+	float x = dragStart.x, y = dragStart.y;
+	for (int edge = 0; edge < 4; edge++)
+	{
+		for (int step = 0; step < kVRDragSteps; step++)
+		{
+			const float t = (float)step / (float)kVRDragSteps;
+			const float sx = corners[edge][0] + t * (corners[edge + 1][0] - corners[edge][0]);
+			const float sy = corners[edge][1] + t * (corners[edge + 1][1] - corners[edge][1]);
+			vrDragOutline[vrDragPoints++] = vrGroundForScreen( sx, sy, x, y );
+		}
+	}
+	vrDragOutline[vrDragPoints++] = vrDragOutline[0];
+	//the middle, for the fill
+	vrDragCentre = vrGroundForScreen( 0.5f * (start.x + dragEnd.x), 0.5f * (start.y + dragEnd.y), x, y );
+}
+
+//VR: the drag box on the ground for the eye being drawn: a faint fill and a
+//white edge, over everything (the ground it follows would hide parts of it)
+void MissionInterfaceManager::drawVRDragBox (void)
+{
+	if (!isDragging || vrDragPoints < 2 || !gos_IsVR() || !eye)
+		return;
+	gos_SetRenderState( gos_State_AlphaMode, gos_Alpha_AlphaInvAlpha );
+	gos_SetRenderState( gos_State_Specular, FALSE );
+	gos_SetRenderState( gos_State_AlphaTest, FALSE );
+	gos_SetRenderState( gos_State_Texture, 0 );
+	gos_SetRenderState( gos_State_Filter, gos_FilterNone );
+	gos_SetRenderState( gos_State_ZCompare, 0 );
+	gos_SetRenderState( gos_State_ZWrite, 0 );
+
+	Stuff::Vector4D centre;
+	const bool centreSeen = eye->projectZ( vrDragCentre, centre );
+	for (long i = 0; i + 1 < vrDragPoints; i++)
+	{
+		Stuff::Vector4D a, b;
+		if (!eye->projectZ( vrDragOutline[i], a ) || !eye->projectZ( vrDragOutline[i + 1], b ))
+			continue;
+		gos_VERTEX v[3];
+		const Stuff::Vector4D *points[3] = { &a, &b, &centre };
+		for (int k = 0; k < 3; k++)
+		{
+			v[k].x = points[k]->x;
+			v[k].y = points[k]->y;
+			v[k].z = points[k]->z;
+			v[k].rhw = points[k]->w;
+			v[k].u = v[k].v = 0.0f;
+			v[k].argb = 0x30ffffff;
+			v[k].frgb = 0xff000000;
+		}
+		if (centreSeen)
+			gos_DrawTriangles( v, 3 );
+		v[0].argb = v[1].argb = 0xffffffff;
+		gos_DrawLines( v, 2 );
 	}
 }
 

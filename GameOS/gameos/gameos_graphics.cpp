@@ -23,6 +23,7 @@
 #include "utils/string_utils.h"
 #include "utils/timing.h"
 #include "gos_render.h"
+#include "gos_ar.h"
 #include "gos_xr.h"
 #include "utils/vr_eye.h"
 #include "utils/screen_fit.h"
@@ -3094,24 +3095,35 @@ void __stdcall gos_SetStereoEye(int eye)
     // mission, the fog colour the world fades to)
     const vec3 background = uint32_to_vec4(g_gos_renderer->getClearColorValue()).zyx();
     gos_xr::setEyeClearColor(background.x, background.y, background.z);
-    // VR: the eye's own image (its size, its viewport)
-    if(gos_xr::bindEye(eye)) {
+    // VR: the eye's own image (its size, its viewport); a phone's tabletop:
+    // the window, behind the camera image
+    const bool xrEye = gos_xr::bindEye(eye);
+    if(xrEye || gos_ar::bindEye(eye)) {
         int width, height;
         float scale_x, scale_y;
-        gos_xr::eyeImageSize(eye, width, height);
+        if(xrEye)
+            gos_xr::eyeImageSize(eye, width, height);
+        else
+            gos_ar::eyeImageSize(eye, width, height);
         vr_eye::overlayTextScale(Environment.screenWidth, Environment.screenHeight, width, height, scale_x, scale_y);
         g_gos_renderer->setEyeTextScale(scale_x, scale_y);
         return;
     }
     g_gos_renderer->setEyeTextScale(0.0f, 0.0f);
     int vp[4];
-    stereo::eyeViewport(eye, Environment.drawableWidth, Environment.drawableHeight, vp);
+    // the game camera again: the window's viewport (on a phone, the game's
+    // shape fitted into it)
+    if(eye < 0)
+        gos_GetWindowViewport(vp);
+    else
+        stereo::eyeViewport(eye, Environment.drawableWidth, Environment.drawableHeight, vp);
     glViewport(vp[0], vp[1], vp[2], vp[3]);
 }
 
 int __stdcall gos_GetVREyeViews(gosVREyeView views[2])
 {
-    return gos_xr::eyeViews(views);
+    const int eyes = gos_xr::eyeViews(views);
+    return eyes ? eyes : gos_ar::eyeViews(views);
 }
 
 bool __stdcall gos_IsVR()
@@ -3120,7 +3132,8 @@ bool __stdcall gos_IsVR()
     // distance-only culling, the whole terrain window), to compare them with
     // the flat paths on a desktop; not for playing
     static const bool forced = getenv("MC2_VR_PATHS") && getenv("MC2_VR_PATHS")[0] == '1';
-    return forced || gos_xr::active();
+    // a phone's tabletop takes them too: the camera goes anywhere
+    return forced || gos_xr::active() || gos_ar::active();
 }
 
 // Phones and tablets (MOBILE.md, aspect ratio): the window is the whole
@@ -3209,10 +3222,12 @@ float __stdcall gos_GetVRFieldOfView()
     static float leftFov[4], rightFov[4];
     if(!haveEyes) {
         gosVREyeView views[2];
-        if(gos_GetVREyeViews(views) != 2)
+        const int eyes = gos_GetVREyeViews(views);
+        if(eyes < 1)
             return 100.0f;      // MC2_VR_PATHS=1 has no eyes to ask
+        // a phone has one eye: it is both
         memcpy(leftFov, views[0].fov, sizeof(leftFov));
-        memcpy(rightFov, views[1].fov, sizeof(rightFov));
+        memcpy(rightFov, views[eyes > 1 ? 1 : 0].fov, sizeof(rightFov));
         haveEyes = true;
     }
     // the window can change size during a mission
@@ -3234,7 +3249,8 @@ float __stdcall gos_GetVRFieldOfView()
 bool __stdcall gos_GetVRHead(float orientation[4])
 {
     static const bool follows = !(getenv("MC2_XR_FOLLOW") && getenv("MC2_XR_FOLLOW")[0] == '0');
-    if(!follows || !gos_IsVR())
+    // the tabletop: the head walks round the battle, the game camera stays
+    if(!follows || !gos_IsVR() || gos_GetVRTabletop())
         return false;
 
     // kept when there are no eyes (the system menu) and through a click or a
@@ -3261,22 +3277,29 @@ bool __stdcall gos_GetVRHead(float orientation[4])
 bool __stdcall gos_GetVRKeepGamePitch()
 {
     static const bool keep = getenv("MC2_VR_GAME_PITCH") && getenv("MC2_VR_GAME_PITCH")[0] == '1';
-    return keep;
+    // the tabletop is level with the real one
+    return keep && !gos_GetVRTabletop();
 }
 
 bool __stdcall gos_VRPointerActive()
 {
-    return gos_xr::pointerActive();
+    return gos_xr::pointerActive() || gos_ar::active();
 }
 
 bool __stdcall gos_GetVRPointerRay(float position[3], float orientation[4])
 {
-    return gos_xr::pointerRay(position, orientation);
+    return gos_xr::pointerRay(position, orientation) || gos_ar::pointerRay(position, orientation);
 }
 
 void __stdcall gos_SetVRWorldPointer(bool valid, float x, float y, float metres)
 {
     gos_xr::setWorldPointer(valid, x, y, metres);
+    gos_ar::setWorldPointer(valid, x, y);
+}
+
+bool __stdcall gos_GetVRTouchPoint(float* x, float* y)
+{
+    return x && y && gos_ar::touchPoint(*x, *y);
 }
 
 void __stdcall gos_VRMissionTakesOrders()
@@ -3292,8 +3315,33 @@ bool __stdcall gos_VRPickLog()
 
 float __stdcall gos_GetVRWorldScale()
 {
+    if(gos_xr::tabletop())
+        return gos_xr::tableScale();
+    if(gos_ar::active())
+        return gos_ar::tableScale();
     static const float scale = getenv("MC2_VR_SCALE") ? (float)atof(getenv("MC2_VR_SCALE")) : 1.0f;
     return scale > 0.0f ? scale : 1.0f;
+}
+
+bool __stdcall gos_GetVRTabletop()
+{
+    return gos_xr::tabletop() || gos_ar::active();
+}
+
+bool __stdcall gos_VRTabletopAvailable()
+{
+    return gos_xr::tabletopAvailable();
+}
+
+void __stdcall gos_SetVRTabletop(bool on)
+{
+    gos_xr::setTabletop(on);
+}
+
+bool __stdcall gos_VRTabletopByDefault()
+{
+    const char* table = getenv("MC2_XR_TABLE");
+    return table && table[0] == '1';
 }
 
 const mat4& __stdcall gos_GetProjection() {

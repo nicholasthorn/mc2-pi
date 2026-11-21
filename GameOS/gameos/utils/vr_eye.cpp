@@ -42,12 +42,14 @@ void flatten(const float v[3], const float n[3], float out[3])
 
 void fromXr(const float xrPosition[3], const float xrOrientation[4], float position[3], float orientation[4])
 {
-    // a point reflection: every axis flips. A rotation's axis is a
-    // pseudovector, so it flips twice (by the reflection and by the change
-    // of handedness): the quaternion stays as it is.
-    position[0] = -xrPosition[0];
-    position[1] = -xrPosition[1];
-    position[2] = -xrPosition[2];
+    // the same axes: the game camera's rows are x right, y up and z back,
+    // as OpenXR's (measured on the tabletop, 2026-11-16: its UP_AXIS row
+    // points up). Positions were once flipped here, which put the eye
+    // below the ground on a table, where the head's offset is scaled up;
+    // in the game's own view it moved by centimetres and went unnoticed.
+    position[0] = xrPosition[0];
+    position[1] = xrPosition[1];
+    position[2] = xrPosition[2];
     for(int i = 0; i < 4; ++i)
         orientation[i] = xrOrientation[i];
 }
@@ -186,6 +188,73 @@ void overlayTextScale(int windowWidth, int windowHeight, int eyeWidth, int eyeHe
         return;
     scaleX = kOverlayTextEyePixels * (float)windowWidth / (float)eyeWidth;
     scaleY = kOverlayTextEyePixels * (float)windowHeight / (float)eyeHeight;
+}
+
+float tableCameraAltitude(float windowRadius, float horizontalFov, float heightOverWidth)
+{
+    if(windowRadius <= 0.0f || horizontalFov <= 0.0f || horizontalFov >= 179.0f)
+        return 0.0f;
+    // the narrower half of the screen decides; a tenth more for the corners
+    // of the picked units' bounds and the slight tilt
+    const float tanHalf = std::tan(horizontalFov * 0.5f * 3.14159265f / 180.0f);
+    const float shape = (heightOverWidth > 0.0f && heightOverWidth < 1.0f) ? heightOverWidth : 1.0f;
+    return 1.1f * windowRadius / (tanHalf * shape);
+}
+
+float clearRadius(int width, int height, ScreenCovered covered, void* context)
+{
+    if(width <= 0 || height <= 0 || !covered)
+        return 0.0f;
+    // rays close enough that a button 40 pixels across is not missed at the
+    // edge of a phone's screen, in 4 pixel steps
+    const int kRays = 128;
+    const float kStep = 4.0f;
+    const float cx = 0.5f * (float)width, cy = 0.5f * (float)height;
+    float best = std::min(cx, cy);
+    for(int i = 0; i < kRays && best > 0.0f; ++i) {
+        const float angle = 2.0f * 3.14159265f * (float)i / (float)kRays;
+        const float dx = std::cos(angle), dy = std::sin(angle);
+        for(float d = 0.0f; d < best; d += kStep) {
+            if(covered((int)(cx + d * dx), (int)(cy + d * dy), context)) {
+                best = d;
+                break;
+            }
+        }
+    }
+    return best;
+}
+
+bool groundForScreen(GroundOnScreen onScreen, void* context, float targetX, float targetY,
+        float& x, float& y, float step)
+{
+    if(!onScreen || step <= 0.0f)
+        return false;
+    float px = x, py = y;
+    // the ground is smooth where the camera looks: a few steps do
+    for(int i = 0; i < 8; ++i) {
+        float s[2];
+        if(!onScreen(px, py, context, s))
+            return false;
+        const float ex = targetX - s[0], ey = targetY - s[1];
+        if(ex * ex + ey * ey < 0.25f) {
+            x = px;
+            y = py;
+            return true;
+        }
+        float sx[2], sy[2];
+        if(!onScreen(px + step, py, context, sx) || !onScreen(px, py + step, context, sy))
+            return false;
+        // the screen's change for a world unit each way, and the step that
+        // undoes the error
+        const float a = (sx[0] - s[0]) / step, c = (sx[1] - s[1]) / step;
+        const float b = (sy[0] - s[0]) / step, d = (sy[1] - s[1]) / step;
+        const float det = a * d - b * c;
+        if(std::fabs(det) < 1e-12f)
+            return false;
+        px += (d * ex - b * ey) / det;
+        py += (a * ey - c * ex) / det;
+    }
+    return false;
 }
 
 float parseGameFov(const char* text)

@@ -121,6 +121,7 @@
 #include<gameos.hpp>
 #include "benchdirector.h"
 #include "utils/vr_controls.h"
+#include "utils/vr_eye.h"
 #include<utils/str_bounded.h>
 #include"mc2xunits.h"
 
@@ -846,11 +847,61 @@ static float vrGroundHeight (void*, float x, float y)
 	return land->getTerrainElevation(position);
 }
 
-static void vrPickWorld (void)
+//VR: the point in the world the controller's ray picked this frame, for the
+//orders (vrWorldPickPoint): the mouse goes where it shows on the game
+//camera's screen, but finding the ground under the mouse again goes through
+//the terrain's tiles and can land elsewhere, far off on the tabletop
+static bool vrPickValid = false;
+static Stuff::Vector3D vrPickPoint;
+
+bool vrWorldPickPoint (Stuff::Vector3D &point)
 {
+	if (!vrPickValid)
+		return false;
+	point = vrPickPoint;
+	return true;
+}
+
+//VR on the tabletop: how much of the game's screen about its centre the
+//interface leaves clear, which the game camera keeps the table inside
+//(Camera::setCameraOrigin), so no point on the table shows under the panel,
+//where picking it would click the panel; measured once a second, as buttons
+//come and go
+extern float vrTableClearRadius;
+
+static bool vrPanelAt (int x, int y, void *missionGui)
+{
+	return ((MissionInterfaceManager *)missionGui)->isOverPanel(x,y);
+}
+
+static void vrMeasureTableClear (MissionInterfaceManager *missionGui)
+{
+	static long framesToMeasure = 0;
+	if (!gos_GetVRTabletop() || !missionGui || --framesToMeasure > 0)
+		return;
+	framesToMeasure = 60;
+	const float radius = vr_eye::clearRadius(Environment.screenWidth,Environment.screenHeight,vrPanelAt,missionGui);
+	if (radius != vrTableClearRadius && gos_VRPickLog())
+		printf("[VR] the interface leaves %.0f pixels clear about the screen's centre\n",radius);
+	vrTableClearRadius = radius;
+}
+
+static void vrPickWorld (MissionInterfaceManager *missionGui)
+{
+	vrMeasureTableClear(missionGui);
+	vrPickValid = false;
 	float position[3], orientation[4];
 	if (!gos_GetVRPointerRay(position,orientation))
 		return;
+	//a phone's tabletop: a finger on the interface drawn over the battle
+	//picks nothing, and the mouse stays under it
+	float touchX = 0.0f, touchY = 0.0f;
+	if (gos_GetVRTouchPoint(&touchX,&touchY) && missionGui &&
+		missionGui->isOverInterface((long)(touchX * Environment.screenWidth),(long)(touchY * Environment.screenHeight)))
+	{
+		gos_SetVRWorldPointer(false,0.0f,0.0f,0.0f);
+		return;
+	}
 	Stuff::Vector3D origin, direction;
 	float unitsPerMetre = 1.0f;
 	if (!eye || !land || !eye->vrRayToWorld(position,orientation,origin,direction,unitsPerMetre))
@@ -946,6 +997,8 @@ static void vrPickWorld (void)
 	}
 	gos_SetVRWorldPointer(true,screen.x / Environment.screenWidth,screen.y / Environment.screenHeight,
 		best / unitsPerMetre);
+	vrPickValid = true;
+	vrPickPoint = target;
 }
 
 //----------------------------------------------------------------------------------
@@ -964,7 +1017,7 @@ long Mission::render (void)
 			eye->ambientBlue = 0xFF;
 		}
 		BenchStage("world_render",eye->renderWorld());
-		vrPickWorld();
+		vrPickWorld(missionInterface);
 	
 		//-----------------------------------------------------
 		// FOG time.  Set Render state to FOG on!

@@ -57,6 +57,7 @@ void holdForClick(ClickHold& hold, float pull, float& u, float& v, float dragDis
 // origin along the unit vector dir first meets the ground: height(context,
 // x, y) is the ground's height there. Marches in steps of 'step' up to
 // maxDistance, then narrows the crossing down. False when it meets nothing.
+// A ray that starts under the ground counts from where it comes out.
 bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(void* context, float x, float y),
                    void* context, float step, float maxDistance, float& distance);
 
