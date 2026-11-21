@@ -57,7 +57,8 @@ Out (for now):
 | `missions/purchaseNN.fit` | `[Mechs]`, `[Pilots]`, `[Components]` for sale before this mission | Generated |
 
 Note: `[PartN]` positions must be on passable ground of that `.pak`; buildings
-come from the `.pak` and are referenced by `BuildingWID`.
+come from the `.pak`, and objectives name a building (or a unit) by its exact
+position.
 
 ### Objectives (declarative, in the mission `.fit`)
 
@@ -182,8 +183,9 @@ Checklist a design must answer:
 | `mc2-mission-validate` | Built files | Validator report, then a headless run, then a playtest list |
 
 Underneath them: a **map catalogue** (`campaigns/maps.md` or generated):
-every stock and Omnitech map with size, biome, buildings (with `BuildingWID`),
-passable regions and stock start points. It is how a "jungle base assault" is
+every stock and Omnitech map with size, biome, buildings (exact positions and
+cells, which is how objectives name them), passable regions and stock start
+points (every stock part position is known-passable ground). It is how a "jungle base assault" is
 matched to a real `.pak`, and how the builder places units on passable ground.
 
 The validator (`scripts/validate_campaign.py`, unit tested):
@@ -191,13 +193,24 @@ The validator (`scripts/validate_campaign.py`, unit tested):
 - `campaign.fit`: every `FileName`, `PurchaseFile`, `OperationFile` exists;
   counts match blocks; at least `NumberToComplete` reachable missions per group.
 - Mission `.fit`: block counts match (`NumParts`, `NumObjectives`,
-  `NumConditions`...); every profile, CSV, variant and brain exists; part
-  positions inside the map; objective conditions name real parts and
-  buildings; every flag that activates an objective is set somewhere.
+  `NumConditions`...); every profile, CSV, variant and brain exists (brains
+  in `data/missions/warriors/`); part positions inside the map; every
+  objective condition's `PositionX`/`PositionY` equals a part's start
+  position or a building's position exactly (that is how the engine finds
+  them; an unmatched building leaves a null for `Status()`); every flag that
+  activates an objective is set somewhere; no comment lines (the FIT reader
+  has none, and finds block names in them).
+- Purchase files: every component of every mech on sale is in the
+  component list (else the mech is not offered on stock data).
 - Text: length limits per field (8 KB for a FIT string, less where the
   reading code's buffer is smaller).
 - Then: `scripts/smoke.sh --missions "<name>"` (loads, ABL compiles, runs
   N frames without `STOP`), and a `-bench` scenario for screenshots.
+- Then an autoplay run: a test brain on the player's units plays the
+  objectives, and the run must end `[MISSION] ended: won` with every
+  primary objective's `[OBJECTIVE] ... successful` line in order. The
+  testbed's `tb_autoplay.abl` is hand-written for one mission; the build
+  skill would generate one from the spec's objective list.
 
 Rejected: writing a terrain generator first (largest cost, least certain, and
 reused maps are enough to prove the pipeline); a single "make me a campaign"
@@ -206,10 +219,14 @@ context in one pass).
 
 ## Order of work
 
-1. **Hand-built test mission.** One stock map, a new `.fit` written by hand
-   (three objectives chained by flags, a hidden reinforcement, literal text),
-   a one-group campaign. Run through `smoke.sh` and played once. Records the
-   real friction: text line breaks, unit references, objective wiring.
+1. **Hand-built test mission.** Done 2026-11-20 (`campaigns/testbed/`, branch
+   `mission-testbed`): tb_01 on mc2_01's map, three primaries chained by
+   flags, a relief lance released by a trigger, a secondary, literal text, a
+   one-group campaign. It loads, an autoplay run wins it, and the campaign
+   walks through logistics to launch. Twelve findings in
+   `campaigns/testbed/README.md`; the ones that change the plan are folded
+   into the validator above. It also found and fixed a crash at the end of
+   every won `-mission` run. Not yet played by a person.
 2. **Validator**, test-first against stock missions (all must pass) and broken
    fixtures.
 3. **Map catalogue** for stock maps.
