@@ -1,0 +1,125 @@
+//****************************************************************************************//
+//
+//		tb_autoplay
+//		Test only (install.sh --autoplay puts it in place of PBrain on the
+//		player's units): plays tb_01's objectives so a headless run walks the
+//		whole chain. Move to the airfield (objective 0), attack the hangar
+//		(objective 1), then hold the airfield against the relief lance
+//		(objective 2). The [OBJECTIVE] log lines show how far it got.
+//
+//****************************************************************************************//
+
+fsm tb_autoplay;
+
+	var
+
+		static WorldPosition		airfield;
+		static integer			hangarID;
+		static integer			AttackStateHandle;
+		static integer			numFunctionalWeapons;
+		static integer[20]		weaponList;
+
+//****************************************************************************************
+
+function init;
+
+	code
+
+		airfield[0] = 3136.0;
+		airfield[1] = -789.3;
+		airfield[2] = 0;
+
+		// The hangar is the terrain object at cell (156, 225) (objective 1's
+		// CellX, CellY). Which one is the row is not documented: take the id
+		// that exists.
+		hangarID = getTerrainObjectPartID(225, 156);
+		if (objectExists(hangarID) == 0) then
+			hangarID = getTerrainObjectPartID(156, 225);
+		endif;
+
+		setTargetPriority(0, TARGET_PRIORITY_CURTARGET, -1, 1000, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		setTargetPriority(1, TARGET_PRIORITY_MOVER, 0, 0, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		setTargetPriority(2, TARGET_PRIORITY_NONE, 0, 0, 0);
+		AttackStateHandle = getStateHandle("attack");
+
+endfunction;
+
+//----------------------------------------------------------------------------------------
+
+function update : integer;
+
+	code
+
+		numFunctionalWeapons = getWeapons(weaponList, 1);
+		if (numFunctionalWeapons == 0) then
+			trans noWeapons;
+		endif;
+		return(0);
+
+endfunction;
+
+//----------------------------------------------------------------------------------------
+
+state noWeapons;
+
+	code
+
+		corePower(false);
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state attack;
+
+	code
+
+		update;
+		coreAttack(0, TACORDER_PARAM_PURSUE);
+		resetOrders(1);
+		transBack;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state holdAirfield;
+
+	code
+
+		update;
+		setTargetPriority(1, TARGET_PRIORITY_MOVER, 0, 1500, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		coreGuard(airfield, -1, AttackStateHandle);
+		resetOrders(1);
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state killHangar;
+
+	code
+
+		update;
+		coreAttack(hangarID, TACORDER_PARAM_PURSUE);
+		resetOrders(1);
+		trans holdAirfield;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state start;
+
+	code
+
+		update;
+		coreMoveTo(airfield, 0);
+		resetOrders(1);
+		trans killHangar;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+endfsm.
