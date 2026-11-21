@@ -793,6 +793,13 @@ int main(int argc, char** argv)
         }
     }
 
+    // A game that quit before -autoexit's frames (a won -mission run) still
+    // reports its end state, for smoke.sh --deterministic
+    if(autoexit_frames > 0 && frame_count < autoexit_frames && g_fixed_step && g_have_state) {
+        printf("[STATEHASH] %08x\n", (unsigned)g_last_state);
+        fflush(stdout);
+    }
+
     // stop sampling before the CSV write and shutdown
     perf_control(false);
 

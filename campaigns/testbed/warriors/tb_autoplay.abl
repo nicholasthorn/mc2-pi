@@ -36,6 +36,11 @@ function init;
 		if (objectExists(hangarID) == 0) then
 			hangarID = getTerrainObjectPartID(156, 225);
 		endif;
+		// Without it the run would only time out at objective 2: end it
+		// here, with a FATAL line smoke.sh reports.
+		if (objectExists(hangarID) == 0) then
+			fatal(1, "tb_autoplay: no hangar at cell 156, 225");
+		endif;
 
 		setTargetPriority(0, TARGET_PRIORITY_CURTARGET, -1, 1000, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
 		setTargetPriority(1, TARGET_PRIORITY_MOVER, 0, 0, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);

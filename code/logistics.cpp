@@ -172,8 +172,10 @@ void Logistics::start (long startMode)
 
 			lastMissionResult = scenarioResult;
 			// scripts/smoke.sh: a run may end in a won mission before -autoexit's frames
-			printf( "[MISSION] ended: %s\n", scenarioResult >= mis_PLAYER_WIN_SMALL ? "won" :
-				(scenarioResult == mis_PLAYER_DRAW ? "draw" : "lost") );
+			// "won" only for the result the code below treats as a win
+			printf( "[MISSION] ended: %s\n", scenarioResult == mis_PLAYER_WIN_BIG ? "won" :
+				(scenarioResult == mis_PLAYER_WIN_SMALL ? "small win" :
+				(scenarioResult == mis_PLAYER_DRAW ? "draw" : "lost")) );
 			fflush( stdout );
 			if ( !missionResults )
 			{

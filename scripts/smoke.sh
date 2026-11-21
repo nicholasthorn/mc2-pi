@@ -183,6 +183,13 @@ fi
 # can land in the middle of a line of buffered stdout output.
 BAD='OpenGL Error|: ERROR: |STOP: |FATAL|runtime error: |ERROR: AddressSanitizer|ERROR: LeakSanitizer'
 
+# bad_lines LOG: the lines matching BAD, leaving out [OBJECTIVE] lines, which
+# quote mission text ("STOP: hold fire" is a briefing, not an error). The game
+# flushes each of them as it prints it, so a STOP cannot land inside one.
+bad_lines() {
+    grep -v '^\[OBJECTIVE\]' "$1" | grep -E "$BAD"
+}
+
 failed=0
 
 # run_game LOG ARGS...: run ./mc2 ARGS in the game dir, output to LOG. Sets
@@ -203,7 +210,7 @@ run_game() {
 report() {
     local name="$1" log="$2" summary="$3"
     local nbad
-    nbad=$(grep -cE "$BAD" "$log")
+    nbad=$(bad_lines "$log" | wc -l)
     [ "$nbad" -gt 0 ] && reasons+=("$nbad error line(s)")
 
     if [ ${#reasons[@]} -eq 0 ]; then
@@ -211,7 +218,7 @@ report() {
     else
         failed=1
         echo "FAIL $name (${secs}s): $(printf '%s; ' "${reasons[@]}")"
-        grep -E "$BAD" "$log" | sort | uniq -c | sort -rn | head -10 | sed 's/^/    /'
+        bad_lines "$log" | sort | uniq -c | sort -rn | head -10 | sed 's/^/    /'
         echo "    log: $log"
     fi
 }
@@ -279,7 +286,7 @@ for m in "${MISSION_LIST[@]}"; do
         log2="$LOG_DIR/$m.again.log"
         run_game "$log2" -mission "$arg" -autoexit "$FRAMES" "${EXTRA[@]}"
         mission_checks "$log2" "$m"
-        nbad2=$(grep -cE "$BAD" "$log2")
+        nbad2=$(bad_lines "$log2" | wc -l)
         [ "$nbad2" -gt 0 ] && reasons+=("$nbad2 error line(s) ($log2)")
         second=("${reasons[@]}")
         reasons=("${first[@]}")
