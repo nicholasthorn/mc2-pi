@@ -1236,6 +1236,7 @@ EString CDisplayTextMessage::InstanceDescription() {
 
 int CDisplayTextMessage::Execute()
 {
+	printf("[OBJECTIVE] %.1fs message: %s\n", scenarioTime, m_message.Data()); fflush(stdout);
 	ControlGui::instance->setChatText("", m_message.Data(), 0xf0000000, 0);
 	return true;
 }
@@ -1938,6 +1939,8 @@ objective_status_type CObjective::Status() {
 			m_resolved = true;
 			m_changedStatus = true;
 			m_resolvedStatus = OS_FAILED;
+			// For smoke runs and mission authoring: see the objective chain in the log.
+			printf("[OBJECTIVE] %.1fs failed: %s\n", scenarioTime, m_title.Data()); fflush(stdout);
 			if (!IsHiddenTrigger()) {
 				soundSystem->playBettySample(BETTY_CANNOT_COMP_OBJ);
 			}
@@ -1951,6 +1954,7 @@ objective_status_type CObjective::Status() {
 			m_resolved = true;
 			m_changedStatus = true;
 			m_resolvedStatus = OS_SUCCESSFUL;
+			printf("[OBJECTIVE] %.1fs successful: %s\n", scenarioTime, m_title.Data()); fflush(stdout);
 			if (!IsHiddenTrigger()) {
 				soundSystem->playBettySample(BETTY_OBJECTIVE_COMPLETE);
 			}

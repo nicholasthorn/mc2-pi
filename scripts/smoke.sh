@@ -228,7 +228,11 @@ EXTRA=()
 # spent in menus / loading.
 mission_checks() {
     local log="$1" name="$2" mline aline started
-    grep -q '^\[AUTOEXIT\]' "$log" || reasons+=("never reached $FRAMES frames")
+    # A mission won before the frames ran out (one played by a test brain,
+    # campaigns/testbed --autoplay) ends the run with "[MISSION] ended: won".
+    if ! grep -q '^\[AUTOEXIT\]' "$log" && ! grep -q '^\[MISSION\] ended: won' "$log"; then
+        reasons+=("never reached $FRAMES frames")
+    fi
     mline=$(grep -n -m1 '^\[MISSION\]' "$log" | cut -d: -f1)
     aline=$(grep -n -m1 '^\[AUTOEXIT\]' "$log" | cut -d: -f1)
     if [ -z "$mline" ] || { [ -n "$aline" ] && [ "$mline" -gt "$aline" ]; }; then
@@ -265,7 +269,7 @@ for m in "${MISSION_LIST[@]}"; do
     case "$m" in *" "*) arg="\"$m\"" ;; esac
     run_game "$log" -mission "$arg" -autoexit "$FRAMES" "${EXTRA[@]}"
     mission_checks "$log" "$m"
-    summary="$(grep -m1 '^\[AUTOEXIT\]' "$log")"
+    summary="$(grep -m1 -e '^\[AUTOEXIT\]' -e '^\[MISSION\] ended:' "$log")"
     if [ "$DETERMINISTIC" = 1 ]; then
         # A second run must end in the same game state: [STATEHASH] is the
         # game-state checksum after the last frame (GameOS, fixed step only).
