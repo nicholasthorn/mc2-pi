@@ -481,10 +481,12 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
       zoomed between 1:285 and 1:1673).
 - [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
       moved the eye the wrong way before the fix, by centimetres.
-- [ ] **A drag box on the ground** (Quest, in normal VR and on the table):
+- [x] **A drag box on the ground** (Quest, in normal VR and on the table):
       drag the trigger across some units; the box lies on the terrain round
       them, a white edge and a faint fill, in both eyes, not on the interface
-      panel, and the units inside it are selected.
+      panel, and the units inside it are selected. Done on a Quest 2 on the
+      table, 2026-11-21 (mc2_21): the corner follows the pointer. Normal VR
+      not yet seen with the fix.
 - [x] **"Tabletop view" in the graphics options** (Quest only, under the
       hardware rasterizer box): tick it, Accept, and the battle goes onto a
       table ahead of you with the room round it (`[XR] tabletop on`); untick
