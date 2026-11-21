@@ -1,0 +1,29 @@
+FITini
+
+[Campaign]
+
+l GroupCount = 1
+l CBills = 50000
+st CampaignName = "Testbed"
+st FinalVideo = ""
+
+[Group0]
+
+l NumberToComplete = 1
+l MissionCount = 1
+st OperationFile = "MCL_CM_op1_1"
+st Video = ""
+l Tune = 22
+
+[Group0Mission0]
+
+st FileName = "tb_01"
+b Mandatory = TRUE
+st PurchaseFile = "purchase_tb01"
+b PlayLogistics = 1
+b PlaySalvage = 1
+b PlayPilotPromotion = 1
+b PlayPurchasing = 1
+b PlaySelection = 0
+
+FITend
