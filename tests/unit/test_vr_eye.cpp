@@ -503,3 +503,49 @@ TEST_CASE("the tabletop's table stays clear of the interface on the game's scree
 	// no screen yet
 	CHECK(vr_eye::clearRadius(0, 600, nothing, nullptr) == 0.0f);
 }
+
+namespace {
+
+// a camera 100 above the origin looking straight down, 500 pixels per unit
+// of tan across a 1000 x 1000 screen, over ground that rises 0.2 for each
+// unit of x: where a point of that ground shows on the screen
+bool slopeOnScreen(float x, float y, void*, float screen[2])
+{
+	const float z = 0.2f * x;
+	const float depth = 100.0f - z;
+	if (depth <= 0.0f)
+		return false;
+	screen[0] = 500.0f + 500.0f * x / depth;
+	screen[1] = 500.0f + 500.0f * y / depth;
+	return true;
+}
+
+bool nowhere(float, float, void*, float*)
+{
+	return false;
+}
+
+}
+
+TEST_CASE("the drag box finds the ground a screen point shows, by the camera's own projection")
+{
+	// from a guess some way off, the point on the slope that shows at the
+	// target pixel: projecting it back lands within half a pixel
+	float x = 0.0f, y = 0.0f;
+	REQUIRE(vr_eye::groundForScreen(slopeOnScreen, nullptr, 800.0f, 350.0f, x, y, 1.0f));
+	float screen[2];
+	REQUIRE(slopeOnScreen(x, y, nullptr, screen));
+	CHECK(screen[0] == doctest::Approx(800.0f).epsilon(0.001));
+	CHECK(screen[1] == doctest::Approx(350.0f).epsilon(0.001));
+	// the exact answer: x / (100 - 0.2 x) = 0.6
+	CHECK(x == doctest::Approx(60.0f / 1.12f).epsilon(0.001));
+	// already there: unchanged
+	float x2 = x, y2 = y;
+	CHECK(vr_eye::groundForScreen(slopeOnScreen, nullptr, 800.0f, 350.0f, x2, y2, 1.0f));
+	CHECK(x2 == doctest::Approx(x));
+	// nothing projects: false, the guess left as it was
+	float x3 = 5.0f, y3 = 6.0f;
+	CHECK_FALSE(vr_eye::groundForScreen(nowhere, nullptr, 800.0f, 350.0f, x3, y3, 1.0f));
+	CHECK(x3 == 5.0f);
+	CHECK(y3 == 6.0f);
+}

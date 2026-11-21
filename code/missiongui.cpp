@@ -103,6 +103,7 @@
 #include"gvehicl.h" // remove
 #include "forcegroupcycle.h"
 #include"mc2xunits.h"
+#include"utils/vr_eye.h"
 
 	static const char* terrainStr[NUM_TERRAIN_TYPES] = {
 			"Blue Water",	//MC_BLUEWATER_TYPE
@@ -3905,6 +3906,45 @@ void MissionInterfaceManager::doDrag(bool bGui)
 	updateVRDragOutline();
 }
 
+//VR: where the ground at x, y shows on the game camera's screen, at the
+//ground's height there (vr_eye::groundForScreen)
+static bool vrGroundOnScreen (float x, float y, void *, float screen[2])
+{
+	Stuff::Vector3D ground( x, y, 0.0f );
+	if ( Terrain::IsValidTerrainPosition( ground ) )
+		ground.z = land->getTerrainElevation( ground );
+	Stuff::Vector4D onScreen;
+	eye->projectZ( ground, onScreen );		//off the screen too: it fills it in
+	screen[0] = onScreen.x;
+	screen[1] = onScreen.y;
+	return true;
+}
+
+//VR: the ground that shows at sx, sy on the game camera's screen, found by
+//the projection the selection goes by, from the guess x, y (moved to the
+//answer); where that fails, the ground the camera's rays meet instead
+static Stuff::Vector3D vrGroundForScreen (float sx, float sy, float &x, float &y)
+{
+	Stuff::Vector3D ground;
+	if ( vr_eye::groundForScreen( vrGroundOnScreen, NULL, sx, sy, x, y, 8.0f ) )
+	{
+		ground.x = x;
+		ground.y = y;
+	}
+	else
+	{
+		Stuff::Vector4D screen;
+		screen.x = sx;
+		screen.y = sy;
+		screen.z = screen.w = 0.0f;
+		eye->inverseProjectZ( screen, ground );
+	}
+	ground.z = 0.0f;
+	if ( Terrain::IsValidTerrainPosition( ground ) )
+		ground.z = land->getTerrainElevation( ground );
+	return ground;
+}
+
 //VR: the drag box selects the units whose place on the game camera's screen
 //is inside it; the headset and the phone's tabletop do not show that screen,
 //so the box is drawn where those units stand: the ground under its edges
@@ -3918,31 +3958,22 @@ void MissionInterfaceManager::updateVRDragOutline (void)
 	eye->projectZ( dragStart, start );
 	const float corners[5][2] = { {start.x, start.y}, {dragEnd.x, start.y}, {dragEnd.x, dragEnd.y},
 		{start.x, dragEnd.y}, {start.x, start.y} };
+	//each point from the last, round from the corner pressed on, whose
+	//place on the ground is known
+	float x = dragStart.x, y = dragStart.y;
 	for (int edge = 0; edge < 4; edge++)
 	{
 		for (int step = 0; step < kVRDragSteps; step++)
 		{
 			const float t = (float)step / (float)kVRDragSteps;
-			Stuff::Vector4D screen;
-			screen.x = corners[edge][0] + t * (corners[edge + 1][0] - corners[edge][0]);
-			screen.y = corners[edge][1] + t * (corners[edge + 1][1] - corners[edge][1]);
-			screen.z = screen.w = 0.0f;
-			Stuff::Vector3D ground;
-			eye->inverseProjectZ( screen, ground );
-			if ( Terrain::IsValidTerrainPosition( ground ) )
-				ground.z = land->getTerrainElevation( ground );
-			vrDragOutline[vrDragPoints++] = ground;
+			const float sx = corners[edge][0] + t * (corners[edge + 1][0] - corners[edge][0]);
+			const float sy = corners[edge][1] + t * (corners[edge + 1][1] - corners[edge][1]);
+			vrDragOutline[vrDragPoints++] = vrGroundForScreen( sx, sy, x, y );
 		}
 	}
 	vrDragOutline[vrDragPoints++] = vrDragOutline[0];
 	//the middle, for the fill
-	Stuff::Vector4D middle;
-	middle.x = 0.5f * (start.x + dragEnd.x);
-	middle.y = 0.5f * (start.y + dragEnd.y);
-	middle.z = middle.w = 0.0f;
-	eye->inverseProjectZ( middle, vrDragCentre );
-	if ( Terrain::IsValidTerrainPosition( vrDragCentre ) )
-		vrDragCentre.z = land->getTerrainElevation( vrDragCentre );
+	vrDragCentre = vrGroundForScreen( 0.5f * (start.x + dragEnd.x), 0.5f * (start.y + dragEnd.y), x, y );
 }
 
 //VR: the drag box on the ground for the eye being drawn: a faint fill and a

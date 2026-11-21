@@ -224,6 +224,39 @@ float clearRadius(int width, int height, ScreenCovered covered, void* context)
     return best;
 }
 
+bool groundForScreen(GroundOnScreen onScreen, void* context, float targetX, float targetY,
+        float& x, float& y, float step)
+{
+    if(!onScreen || step <= 0.0f)
+        return false;
+    float px = x, py = y;
+    // the ground is smooth where the camera looks: a few steps do
+    for(int i = 0; i < 8; ++i) {
+        float s[2];
+        if(!onScreen(px, py, context, s))
+            return false;
+        const float ex = targetX - s[0], ey = targetY - s[1];
+        if(ex * ex + ey * ey < 0.25f) {
+            x = px;
+            y = py;
+            return true;
+        }
+        float sx[2], sy[2];
+        if(!onScreen(px + step, py, context, sx) || !onScreen(px, py + step, context, sy))
+            return false;
+        // the screen's change for a world unit each way, and the step that
+        // undoes the error
+        const float a = (sx[0] - s[0]) / step, c = (sx[1] - s[1]) / step;
+        const float b = (sy[0] - s[0]) / step, d = (sy[1] - s[1]) / step;
+        const float det = a * d - b * c;
+        if(std::fabs(det) < 1e-12f)
+            return false;
+        px += (d * ex - b * ey) / det;
+        py += (a * ey - c * ex) / det;
+    }
+    return false;
+}
+
 float parseGameFov(const char* text)
 {
     char* end = nullptr;

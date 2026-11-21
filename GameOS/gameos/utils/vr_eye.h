@@ -99,6 +99,16 @@ float tableCameraAltitude(float windowRadius, float horizontalFov, float heightO
 // centre; 0 when the centre itself is covered or there is no screen.
 typedef bool (*ScreenCovered)(int x, int y, void* context);
 float clearRadius(int width, int height, ScreenCovered covered, void* context);
+// VR: the point of the ground (x, y; its height is the ground's there) that
+// shows at (targetX, targetY) on the game camera's screen, found through the
+// projection the game picks by, so the drag box drawn on the ground holds
+// what it selects. onScreen(x, y, context, screen) puts the ground at x, y on
+// the screen (false: it cannot). Newton's method from the guess in x, y,
+// slopes measured step world units apart; true, with x, y moved, once it is
+// within half a pixel, else false with x, y as they were.
+typedef bool (*GroundOnScreen)(float x, float y, void* context, float screen[2]);
+bool groundForScreen(GroundOnScreen onScreen, void* context, float targetX, float targetY,
+        float& x, float& y, float step);
 
 // A field of view given as text (MC2_XR_FOV): its degrees when in the range
 // above, 0 for "0" (keep the game's own), -1 for anything else.
