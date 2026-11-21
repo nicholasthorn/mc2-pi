@@ -2293,7 +2293,7 @@ static vr_eye::Basis basisOf (const Stuff::LinearMatrix4D &origin)
 vr_eye::Basis Camera::vrBaseFor (const Stuff::LinearMatrix4D &origin)
 {
 	vr_eye::Basis basis = basisOf(origin);
-	if (gos_GetVRTabletop())
+	if (vrTable && gos_GetVRTabletop())
 	{
 		basis.position[0] = -cameraShift.x;
 		basis.position[1] = cameraShiftZ;
@@ -2342,10 +2342,11 @@ void Camera::setCameraOrigin (void)
 		bool isOKView = false;
 		float localAltitude = cameraAltitude;
 		float localAngle = projectionAngle;
-		//VR on the tabletop: straight down, high enough to see the whole round
+		//VR on the tabletop (the game camera only: a briefing's or the mech
+		//lab's model view stays as it is): straight down, high enough to see the whole round
 		//window, so every point on the table can be picked through this
 		//camera's screen (vrPickWorld) and every unit on it is in view
-		if (gos_GetVRTabletop())
+		if (vrTable && gos_GetVRTabletop())
 		{
 			const float heightOverWidth = (Environment.screenWidth > 0) ?
 				(float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
@@ -2381,7 +2382,7 @@ void Camera::setCameraOrigin (void)
 				vrTableHazeRaisedTo = reach;
 			}
 		}
-		else if (vrTableHazeRaisedTo >= 0.0f)
+		else if (vrTable && (vrTableHazeRaisedTo >= 0.0f))
 		{
 			if (MinHazeDistance == vrTableHazeRaisedTo)
 			{
