@@ -487,6 +487,9 @@ Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
       panel, and the units inside it are selected. Done on a Quest 2 on the
       table, 2026-11-21 (mc2_21): the corner follows the pointer. Normal VR
       not yet seen with the fix.
+- [ ] **Model views on the tabletop**: with the tabletop on, the mission
+      briefing's mech and objective views and the mech lab's mech turn as
+      usual, seen from the side, not from straight above.
 - [x] **"Tabletop view" in the graphics options** (Quest only, under the
       hardware rasterizer box): tick it, Accept, and the battle goes onto a
       table ahead of you with the room round it (`[XR] tabletop on`); untick
