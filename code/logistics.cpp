@@ -209,8 +209,15 @@ void Logistics::start (long startMode)
 				}
 				else if ( LogisticsData::instance->isSingleMission() && !MPlayer )
 				{
-					missionBegin->beginSplash();
-					logisticsState = log_SPLASH;
+					// a -mission launch has no menus and no campaign to go back to:
+					// end the game, as a lost one does below
+					if ( justStartMission )
+						quitGame = true;
+					else
+					{
+						missionBegin->beginSplash();
+						logisticsState = log_SPLASH;
+					}
 				}
 				else
 				{
