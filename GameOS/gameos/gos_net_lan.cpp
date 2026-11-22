@@ -19,6 +19,7 @@ typedef const void* send_data_type;
 typedef void* receive_data_type;
 #endif
 
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 
@@ -178,6 +179,61 @@ std::string LanSocket::addressText(uint32_t ip)
 	char text[32];
 	std::snprintf(text, sizeof(text), "%u.%u.%u.%u", (ip >> 24) & 0xFFu, (ip >> 16) & 0xFFu, (ip >> 8) & 0xFFu, ip & 0xFFu);
 	return text;
+}
+
+bool LanSocket::parseAddress(const char* text, uint32_t& ip)
+{
+	if (!text || !startSockets())
+		return false;
+	in_addr address;
+	if (inet_pton(AF_INET, text, &address) != 1)
+		return false;
+	ip = ntohl(address.s_addr);
+	return true;
+}
+
+uint32_t LanSocket::localAddress()
+{
+	if (!startSockets())
+		return 0;
+	// A connected UDP socket sends nothing, but has the address the system would send from.
+	// Any address beyond the local network will do: this is a public DNS server's.
+#ifdef PLATFORM_WINDOWS
+	const SOCKET made = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (made == INVALID_SOCKET)
+		return 0;
+#else
+	const int made = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (made < 0)
+		return 0;
+#endif
+	sockaddr_in address = toSockaddr(0x08080808u, 53);
+	socklen_type length = sizeof(address);
+	uint32_t ip = 0;
+	if (connect(made, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0
+		&& getsockname(made, reinterpret_cast<sockaddr*>(&address), &length) == 0)
+		ip = ntohl(address.sin_addr.s_addr);
+	closeSocket(static_cast<intptr_t>(made));
+	return ip;
+}
+
+bool runningInWsl()
+{
+#ifdef PLATFORM_WINDOWS
+	return false;
+#else
+	FILE* file = std::fopen("/proc/sys/kernel/osrelease", "r");
+	if (!file)
+		return false;
+	char text[256] = {};
+	const bool read = std::fgets(text, sizeof(text), file) != nullptr;
+	std::fclose(file);
+	if (!read)
+		return false;
+	for (char* c = text; *c; c++)
+		*c = static_cast<char>(std::tolower(static_cast<unsigned char>(*c)));
+	return std::strstr(text, "microsoft") != nullptr;
+#endif
 }
 
 }

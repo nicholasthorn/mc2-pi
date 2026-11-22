@@ -36,8 +36,16 @@ void Browser::update(double now, uint16_t discoveryPort)
 	if (now >= nextQuery_) {
 		nextQuery_ = now + QUERY_SECONDS;
 		std::vector<uint8_t> query;
-		if (netwire::encode(netwire::LanQuery(), query))
-			socket_.broadcast(discoveryPort, query.data(), query.size());
+		if (netwire::encode(netwire::LanQuery(), query)) {
+			if (only_) {
+				gos_net::LanAddress to;
+				to.ip = only_;
+				to.port = discoveryPort;
+				socket_.sendTo(to, query.data(), query.size());
+			}
+			else
+				socket_.broadcast(discoveryPort, query.data(), query.size());
+		}
 	}
 
 	uint8_t buffer[BUFFER_SIZE];

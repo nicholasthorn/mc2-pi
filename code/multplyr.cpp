@@ -708,6 +708,26 @@ static void netStartBeacon (unsigned short port, long maxPlayers, const char* mi
 	fflush(stdout);
 }
 
+// What the parameters screen shows as the host's address: this machine's for a host, else the
+// one joined. A host in WSL says in the log why nobody else will find it.
+static void netSetSessionAddress (MultiPlayer* player, const char* joined) {
+
+	std::string text;
+	if (joined)
+		text = joined;
+	else {
+		const uint32_t ip = gos_net::LanSocket::localAddress();
+		if (ip)
+			text = gos_net::LanSocket::addressText(ip);
+		printf("[NET] this machine's address on the network: %s\n", ip ? text.c_str() : "none");
+		if (gos_net::runningInWsl())
+			printf("[NET] this is WSL: unless its networking is mirrored, other machines can neither find this game nor reach this address; host on the other machine and join it by address from here\n");
+		fflush(stdout);
+	}
+	strncpy(player->sessionIPAddress, text.c_str(), sizeof(player->sessionIPAddress) - 1);
+	player->sessionIPAddress[sizeof(player->sessionIPAddress) - 1] = 0;
+}
+
 // The first game of this mission with room in it, on the version this build speaks. With no
 // mission, the first with room in it of any: a lobby's client takes the map it finds.
 static bool netFindOnLan (const char* missionName, std::string& address, unsigned short& port) {
@@ -768,6 +788,8 @@ void MultiPlayer::hostNetGame (long numPlayers, unsigned short port, const char*
 	initUpdateFrequencies();
 	printf("[NET] hosting %s on port %d for %ld players\n", missionName, (int)port, numPlayers);
 	fflush(stdout);
+	if (!dialAddress)
+		netSetSessionAddress(this, NULL);
 	// not one who dials: nobody could reach this end in any case
 	if (port && !dialAddress)
 		netStartBeacon(port, numPlayers, missionName);
@@ -987,6 +1009,8 @@ void MultiPlayer::hostNetLobby (long maxPlayers, unsigned short port, const char
 	netFillColors();
 	printf("[NET] lobby for %s on port %d, for %ld players\n", missionName, (int)port, maxPlayers);
 	fflush(stdout);
+	if (!dialAddress)
+		netSetSessionAddress(this, NULL);
 	// not one who dials: nobody could reach this end in any case
 	netAnnounce.lobby = true;
 	if (port && !dialAddress)
@@ -1690,13 +1714,28 @@ static void netCloseAll (void) {
 	netClose();
 }
 
+// With an address (the TCP/IP screen), asks that machine alone, as a broadcast cannot reach
+// one on another subnet, behind a router that keeps its clients apart, or from WSL.
 long MultiPlayer::beginSessionScan (char* ipAddress, bool persistent) {
 
+	uint32_t only = 0;
+	if (ipAddress && ipAddress[0] && !gos_net::LanSocket::parseAddress(ipAddress, only)) {
+		printf("[NET] not an IP address: %s\n", ipAddress);
+		fflush(stdout);
+		netBrowser.reset();
+		return(MPLAYER_ERR_HOST_NOT_FOUND);
+	}
 	netBrowser.reset(new netlan::Browser);
 	if (!netBrowser->open()) {
 		printf("[NET] cannot look for games on the local network\n");
 		fflush(stdout);
 		netBrowser.reset();
+		return(MPLAYER_ERR_NO_CONNECTION);
+	}
+	if (only) {
+		netBrowser->askOnly(only);
+		printf("[NET] asking %s for its game\n", ipAddress);
+		fflush(stdout);
 	}
 	return(MPLAYER_NO_ERR);
 }
@@ -1797,6 +1836,7 @@ bool MultiPlayer::hostSession (char* newSessionName, char* playerName, long mxPl
 	sessionName[MAXLEN_SESSION_NAME - 1] = 0;
 	printf("[NET] lobby %s on port %d, for up to %ld players\n", sessionName, (int)port, mxPlayers);
 	fflush(stdout);
+	netSetSessionAddress(this, NULL);
 	netAnnounce.lobby = true;
 	netStartBeacon(port, mxPlayers, "", sessionName);
 	netShowLobbyPlayers(this, netRules->state());
@@ -1899,6 +1939,7 @@ long MultiPlayer::joinSession (MC2Session* session, char* playerName) {
 		return(result);
 	}
 	netEnterLobby(this, false, netSession->commander());
+	netSetSessionAddress(this, address.c_str());
 	strncpy(sessionName, session->name, MAXLEN_SESSION_NAME - 1);
 	sessionName[MAXLEN_SESSION_NAME - 1] = 0;
 	netLobbyTickClient(this);
@@ -1928,6 +1969,7 @@ long MultiPlayer::closeSession (void) {
 	iAmHost = false;
 	commanderID = -1;
 	sessionName[0] = 0;
+	sessionIPAddress[0] = 0;
 	missionSettings.map[0] = 0;
 	missionSettings.name[0] = 0;
 	for (long i = 0; i < MAX_MC_PLAYERS; i++)

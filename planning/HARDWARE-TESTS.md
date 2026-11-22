@@ -39,6 +39,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       the other. It should find and join within a few seconds. A Quest as each end, as its Wi-Fi drops
       broadcasts without the lock in `MC2Activity`. Then a router with client isolation, which should
       fail to find it, and joining by address is the way round. WSL cannot host for this (NAT).
+- [ ] **Join by address from the screens** (TCP/IP tab). Host from the menu on a Quest (Multiplayer,
+      Host): its parameters screen shows "Host IP address" with the headset's Wi-Fi address. On a PC,
+      WSL included: Multiplayer, TCP/IP, type that address, Join. It should reach the Quest's lobby in
+      a few seconds and play. Also a PC host from the menu, in Windows or with WSL's networking
+      mirrored: its screen shows its LAN address, and the Quest finds it on Local Network. A WSL host
+      in NAT shows "(WSL)" after its address.
 - [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on

@@ -140,7 +140,7 @@ void MPConnectionType::init(FitIniFile* file)
 		tcpipPanel.init(&PNfile);
 	}
 
-	// the local network: the Gaming Zone is long gone, and joining by address is not connected yet
+	// the local network: the Gaming Zone is long gone. TCP/IP joins a game by its address.
 	connectionType = 1;
 
 	buttons[indexOfButtonWithID(FIRST_BUTTON_ID+1)].press(!((1 == connectionType) || (2 == connectionType) || (3 == connectionType)));
@@ -186,7 +186,7 @@ void MPConnectionType::begin()
 		}
 	}
 	getButton( FIRST_BUTTON_ID+1 )->disable( true );
-	getButton( FIRST_BUTTON_ID+3 )->disable( true );
+	getButton( FIRST_BUTTON_ID+3 )->disable( false );
 
 	tcpipPanel.begin();
 }
@@ -641,6 +641,8 @@ void aTcpipPanel::update()
 						retVal = MPlayer->joinSession( &pSessions[0], prefs.playerName[0] );
 						if ( !retVal )
 						{
+							// as the game browser does on a join
+							MPlayer->setMode(MULTIPLAYER_MODE_PARAMETERS);
 							pParentScreen->handleMessage( 1, TCPIP_PANEL_FIRST_BUTTON_ID );
 							MPlayer->endSessionScan();
 							EString ipAddress;

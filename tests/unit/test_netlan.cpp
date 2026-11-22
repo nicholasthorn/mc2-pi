@@ -160,6 +160,59 @@ TEST_CASE("A browser finds a beacon on this machine, and forgets it when it stop
 	CHECK(browser.found().empty());
 }
 
+TEST_CASE("A browser asked for one address asks that one alone")
+{
+	netlan::Beacon beacon;
+	REQUIRE(beacon.open(0));
+
+	// another address (TEST-NET-1, which nobody has): the beacon on this machine hears nothing,
+	// so there was no broadcast and no loopback
+	netlan::Browser elsewhere;
+	REQUIRE(elsewhere.open());
+	uint32_t ip = 0;
+	REQUIRE(gos_net::LanSocket::parseAddress("192.0.2.1", ip));
+	elsewhere.askOnly(ip);
+	double now = 1.0;
+	for (int i = 0; i < 200; i++) {
+		elsewhere.update(now, beacon.port());
+		beacon.update(someGame());
+		now += 0.001;
+		aMoment();
+	}
+	CHECK(elsewhere.found().empty());
+
+	// this machine's: found, as by a broadcast
+	netlan::Browser here;
+	REQUIRE(here.open());
+	REQUIRE(gos_net::LanSocket::parseAddress("127.0.0.1", ip));
+	here.askOnly(ip);
+	for (int i = 0; (i < 2000) && here.found().empty(); i++) {
+		here.update(now, beacon.port());
+		beacon.update(someGame());
+		now += 0.001;
+		aMoment();
+	}
+	REQUIRE(here.found().size() == 1);
+	CHECK(here.found()[0].address == "127.0.0.1");
+	CHECK(here.found()[0].announce.instance == someGame().instance);
+}
+
+TEST_CASE("LanSocket: addresses as text, and this machine's")
+{
+	uint32_t ip = 0;
+	CHECK(gos_net::LanSocket::parseAddress("192.168.86.76", ip));
+	CHECK(ip == 0xC0A8564Cu);
+	CHECK(gos_net::LanSocket::addressText(ip) == "192.168.86.76");
+	for (const char* text : { "", "192.168.86", "192.168.86.256", "192.168.86.76.1", "a.b.c.d", " 10.0.0.1", "localhost" })
+		CHECK_FALSE(gos_net::LanSocket::parseAddress(text, ip));
+	CHECK_FALSE(gos_net::LanSocket::parseAddress(nullptr, ip));
+
+	// none with no network; with one, not the loopback, which nobody else could use
+	const uint32_t mine = gos_net::LanSocket::localAddress();
+	if (mine)
+		CHECK((mine >> 24) != 127u);
+}
+
 TEST_CASE("A beacon ignores what is not a query")
 {
 	netlan::Beacon beacon;

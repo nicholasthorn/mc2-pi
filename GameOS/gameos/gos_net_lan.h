@@ -41,12 +41,23 @@ public:
 	bool receive(void* out, size_t capacity, size_t& size, LanAddress& from);
 
 	static std::string addressText(uint32_t ip);
+	// Dotted text such as "192.168.1.20" to an address. False if it is not one.
+	static bool parseAddress(const char* text, uint32_t& ip);
+	// This machine's address on the network it would reach others through (the interface
+	// with the default route), for a host to show those who would join it. Sends nothing.
+	// 0 with no network.
+	static uint32_t localAddress();
 
 private:
 	intptr_t socket_ = -1;
 	bool open_ = false;
 	uint16_t port_ = 0;
 };
+
+// True in WSL (Windows Subsystem for Linux). Its usual (NAT) networking hides the game from
+// other machines: they cannot reach it, its broadcasts do not reach them, and its address
+// works only from Windows on the same PC. Mirrored networking (.wslconfig) shares Windows'.
+bool runningInWsl();
 
 }
 
