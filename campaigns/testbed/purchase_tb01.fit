@@ -1,0 +1,32 @@
+FITini
+
+[Components]
+
+b AllComponents = False
+
+l Component0 = 7
+l Component1 = 10
+l Component2 = 25
+l Component3 = 156
+l Component4 = 145
+l Component5 = 140
+l Component6 = 155
+l Component7 = 100
+l Component8 = 101
+l Component9 = 102
+l Component10 = 114
+l Component11 = 125
+l Component12 = 120
+
+[Mechs]
+
+st Mech0 = "werewolf"
+st Mech1 = "bushwacker"
+
+[Pilots]
+
+st Pilot0 = "PMWFlash"
+st Pilot1 = "PMWHacksaw"
+st Pilot2 = "PMWChopper"
+
+FITend

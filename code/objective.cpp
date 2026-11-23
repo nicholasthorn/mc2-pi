@@ -446,7 +446,6 @@ bool CSpecificEnemyUnitObjectiveCondition::Read( FitIniFile* missionFile )
 				if (pMover && /*(pMover->getTeamId() != Alignment()) &&*/ close_x && close_y) {
 					break;
 				}
-				printf("i=%ld\n", i);
 			}
 			if (!(i < numMovers)) { assert(false); return false; }
 		}
@@ -1234,8 +1233,23 @@ EString CDisplayTextMessage::InstanceDescription() {
 	return tmpEStr;
 }
 
+// For smoke runs and mission authoring: the objective chain in the log, one
+// line each. Line breaks in the text become spaces, so mission text cannot
+// start a line that scripts/smoke.sh would read as an error.
+static void logObjective (const char* what, const char* text)
+{
+	char line[512];
+	snprintf(line, sizeof(line), "%s", text ? text : "");
+	for (char* c = line; *c; c++)
+		if (*c == '\r' || *c == '\n')
+			*c = ' ';
+	printf("[OBJECTIVE] %.1fs %s: %s\n", scenarioTime, what, line);
+	fflush(stdout);
+}
+
 int CDisplayTextMessage::Execute()
 {
+	logObjective("message", m_message.Data());
 	ControlGui::instance->setChatText("", m_message.Data(), 0xf0000000, 0);
 	return true;
 }
@@ -1938,6 +1952,7 @@ objective_status_type CObjective::Status() {
 			m_resolved = true;
 			m_changedStatus = true;
 			m_resolvedStatus = OS_FAILED;
+			logObjective("failed", LocalizedTitle().Data());
 			if (!IsHiddenTrigger()) {
 				soundSystem->playBettySample(BETTY_CANNOT_COMP_OBJ);
 			}
@@ -1951,6 +1966,7 @@ objective_status_type CObjective::Status() {
 			m_resolved = true;
 			m_changedStatus = true;
 			m_resolvedStatus = OS_SUCCESSFUL;
+			logObjective("successful", LocalizedTitle().Data());
 			if (!IsHiddenTrigger()) {
 				soundSystem->playBettySample(BETTY_OBJECTIVE_COMPLETE);
 			}

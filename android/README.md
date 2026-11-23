@@ -15,7 +15,7 @@ bundled `jbr` works).
 
 ```bash
 export JAVA_HOME="/c/Program Files/Android/Android Studio1/jbr"   # Windows example
-scripts/android/fetch_deps.sh     # SDL2 2.30.11 and SDL2_mixer 2.8.0 sources, checked by SHA-256
+scripts/android/fetch_deps.sh     # SDL2 2.30.11 and SDL2_mixer 2.8.0 sources, the OpenXR loader and ARCore, checked by SHA-256
 scripts/android/build.sh          # deps, game (libmain.so), APK
 ```
 
@@ -96,7 +96,7 @@ MC2_ANDROID_FLAVOUR=phone scripts/android/build.sh
 ```
 
 It differs from the Quest build only in its build: no OpenXR (`MC2_OPENXR=OFF`,
-no loader in the APK), its own manifest (`android/phone/AndroidManifest.xml`:
+no loader in the APK) but ARCore (`MC2_ARCORE=ON`, for the tabletop below), its own manifest (`android/phone/AndroidManifest.xml`:
 no headset features, a normal launcher entry, either landscape way up) and its
 own package, `com.nicholasthorn.mc2.phone`, so the two can be installed side
 by side. The game builds in `android/build/game-phone`; the result is
@@ -145,6 +145,31 @@ What to expect so far:
   not saved, as the pause menu cannot save them either. If the GL context did not
   survive, the game quits (an `[APP] FATAL` line in `mc2.log`), since it
   cannot reload its textures.
+
+### The tabletop through ARCore
+
+`MC2_AR_TABLE=1` in `mc2args.txt` puts the battle on a real table, seen
+through the phone's camera (`planning/future-features/AR-TABLETOP.md`; on the
+Quest it is "Tabletop view" in the graphics options, or `MC2_XR_TABLE=1` until
+that is saved). The app asks for the camera at start and needs
+Google Play Services for AR (ARCore), which most recent phones have; without
+either it plays flat, and `[AR]` lines in `mc2.log` say why.
+
+- Point the phone at a table and move it a little: the battle stands on the
+  first level surface found in the middle of the screen (until then, ahead
+  of and below the phone), facing the way the phone faced
+  (`[AR] table placed` in the log).
+- Walk round it or lean in: the view follows the phone. `MC2_TABLE_SCALE`
+  sets the scale (default 1:600).
+- A tap on the battle selects or orders where the finger is, through a ray
+  from the phone, as the Quest's controllers do; the interface is drawn over
+  the camera image and taps on it work as in a flat game. Two fingers scroll
+  the map across the table.
+
+The build takes ARCore 1.57 (`android/deps/arcore-1.57.0`, from
+`fetch_deps.sh`): its C library in the APK, its Java classes in the dex,
+and the resources of its install dialog. The camera image is drawn with a
+GLES-only shader inside `GameOS/gameos/gos_ar.cpp`, not one of `shaders/`.
 
 ### A full APK, with the game data inside
 

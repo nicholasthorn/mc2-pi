@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include "utils/graphics.h"
 #include "utils/logging.h"
+#include "gos_ar.h"
 #include "gos_xr.h"
 
 #ifndef PLATFORM_WINDOWS
@@ -426,6 +427,8 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     rc->render_window_ = render_window;
 
 	gos_xr::init();
+	// a phone's tabletop (MC2_AR_TABLE=1)
+	gos_ar::init();
 
 	return rc;
 }

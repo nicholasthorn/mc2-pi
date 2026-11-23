@@ -1,0 +1,39 @@
+//*********************************************************************************
+//
+//		tb_01: testbed mission script.
+//		Win and loss come from the objectives and from the engine (all player
+//		units down), so the script only keeps the mission running.
+//
+//*********************************************************************************
+
+module tb_01 : integer;
+
+	const
+
+		#include_ "misconst.abi"
+
+	var
+
+		static integer		ScenarioResult;
+
+//------------------------------------------------------------------
+//     Init Function    (automatically run first time through)
+//------------------------------------------------------------------
+
+function init;
+
+	code
+
+		ScenarioResult = PLAYING;
+
+endfunction;
+
+//------------------------------------------------------------------
+//     Main Code
+//------------------------------------------------------------------
+
+	code
+
+		return (ScenarioResult);
+
+endmodule.

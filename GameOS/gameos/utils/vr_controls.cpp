@@ -151,10 +151,15 @@ bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(vo
     auto above = [&](float t) {
         return origin[2] + t * dir[2] - height(context, origin[0] + t * dir[0], origin[1] + t * dir[1]);
     };
+    // starts under the ground (on the tabletop the hand can be inside a
+    // hill): from where it comes out
     float tNear = 0.0f;
-    if(above(tNear) <= 0.0f)
-        return false;       // starts under the ground
-    for(float tFar = step; tNear < maxDistance; tFar += step) {
+    while(above(tNear) <= 0.0f) {
+        tNear += step;
+        if(tNear >= maxDistance)
+            return false;
+    }
+    for(float tFar = tNear + step; tNear < maxDistance; tFar += step) {
         tFar = std::min(tFar, maxDistance);
         if(above(tFar) <= 0.0f) {
             // the crossing is between tNear and tFar

@@ -1,5 +1,6 @@
 #include "gameos.hpp"
 #include "gos_render.h"
+#include "gos_ar.h"
 #include "gos_xr.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -437,6 +438,7 @@ static void process_events( bool sample, bool reset ) {
             printf("[APP] going into the background\n");
             fflush(stdout);
             gos_touch::cancel();
+            gos_ar::pause();         // lets go of the camera
             if(!gos_IsAutomatedRun() && Environment.AppSuspending)
                 Environment.AppSuspending();
             g_in_background = true;
@@ -444,6 +446,7 @@ static void process_events( bool sample, bool reset ) {
         case SDL_APP_DIDENTERFOREGROUND:
             printf("[APP] back in the foreground\n");
             g_in_background = false;
+            gos_ar::resume();
             if(!gos_IsAutomatedRun() && Environment.AppResumed)
                 Environment.AppResumed();
             break;
@@ -555,8 +558,10 @@ static void draw_screen( void )
     if(!hudResting)
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-    // VR: wait for the headset's frame and find the eyes before drawing
+    // VR: wait for the headset's frame and find the eyes before drawing; a
+    // phone's tabletop: the newest camera image and where the phone is
     gos_xr::beginFrame();
+    gos_ar::beginFrame();
     gos_RendererBeginFrame();
     Environment.UpdateRenderers();
     gos_RendererEndFrame();
@@ -888,6 +893,13 @@ int main(int argc, char** argv)
             fflush(stdout);
             g_exit = true;
         }
+    }
+
+    // A game that quit before -autoexit's frames (a won -mission run) still
+    // reports its end state, for smoke.sh --deterministic
+    if(autoexit_frames > 0 && frame_count < autoexit_frames && g_fixed_step && g_have_state) {
+        printf("[STATEHASH] %08x\n", (unsigned)g_last_state);
+        fflush(stdout);
     }
 
     // stop sampling before the CSV write and shutdown

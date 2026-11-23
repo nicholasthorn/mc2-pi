@@ -1,0 +1,127 @@
+//****************************************************************************************//
+//
+//		tb_01_guard
+//		Testbed: guards its start position and engages any enemy mover within
+//		400 m, then returns to guarding. Same shape as the stock fsm brains
+//		(DredAttack01, mc2_11_EC1_GrpWAV).
+//
+//****************************************************************************************//
+
+fsm tb_01_guard;
+
+	var
+
+		static WorldPosition		startPosition;
+		static integer			AttackStateHandle;
+		static integer			numFunctionalWeapons;
+		static integer[20]		weaponList;
+
+//****************************************************************************************
+
+function init;
+
+	code
+
+		getObjectPosition(-1, startPosition);
+		setTargetPriority(0, TARGET_PRIORITY_CURTARGET, -1, 600, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		setTargetPriority(1, TARGET_PRIORITY_MOVER, 0, 400, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		setTargetPriority(2, TARGET_PRIORITY_NONE, 0, 0, 0);
+		AttackStateHandle = getStateHandle("attack");
+
+endfunction;
+
+//----------------------------------------------------------------------------------------
+
+function update : integer;
+
+	var
+
+		boolean		processingPilotEvents;
+		integer		pilotEventID;
+		integer[20]		pilotEventParams;
+		integer		curTarget;
+		integer		curStateHandle;
+
+	code
+
+		curStateHandle = getCurrentStateHandle;
+		numFunctionalWeapons = getWeapons(weaponList, 1);
+		if (numFunctionalWeapons == 0) then
+			trans noWeapons;
+		endif;
+
+		processingPilotEvents = TRUE;
+		while (processingPilotEvents) do
+			pilotEventID = getNextPilotEvent(pilotEventParams);
+			if (pilotEventID == PILOT_EVENT_NONE) then
+				processingPilotEvents = FALSE;
+			else
+				switch (pilotEventID)
+					case PILOT_EVENT_TARGETED:
+						curTarget = getTarget(-1);
+						if (curStateHandle <> AttackStateHandle) then
+							if ((numFunctionalWeapons > 0) and (curTarget == 0)) then
+								coreAttack(pilotEventParams[0], TACORDER_PARAM_PURSUE);
+								setState(AttackStateHandle);
+							endif;
+						endif;
+						endcase;
+					case PILOT_EVENT_ATTACK_ORDER:
+						curTarget = getTarget(-1);
+						if (curStateHandle <> AttackStateHandle) then
+							if ((numFunctionalWeapons > 0) and (curTarget == 0)) then
+								coreAttack(pilotEventParams[0], TACORDER_PARAM_PURSUE);
+								setState(AttackStateHandle);
+							endif;
+						endif;
+						endcase;
+				endswitch;
+			endif;
+		endwhile;
+
+		return(0);
+
+endfunction;
+
+//----------------------------------------------------------------------------------------
+
+state noWeapons;
+
+	code
+
+		if (objectClass(-1) == 2) then
+			coreEject;
+		else
+			corePower(false);
+		endif;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state attack;
+
+	code
+
+		update;
+		coreAttack(0, TACORDER_PARAM_PURSUE);
+		resetOrders(1);
+		transBack;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state start;
+
+	code
+
+		update;
+		coreGuard(startPosition, -1, AttackStateHandle);
+		resetOrders(1);
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+endfsm.

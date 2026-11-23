@@ -1756,7 +1756,9 @@ void Camera::renderWorld (void)
 	// floating text set during the update (HUD text) stays full-window;
 	// what an eye's pass adds is drawn in that eye's half, then dropped
 	const DWORD helpsBeforeEyes = FloatHelp::count();
-	for (int eyeIndex=0;eyeIndex<2;eyeIndex++)
+	// a phone's tabletop (gos_ar) has one eye, the headset and -stereo two
+	const int eyeCount = vrEyes ? vrEyes : 2;
+	for (int eyeIndex=0;eyeIndex<eyeCount;eyeIndex++)
 	{
 		setEye(eyeIndex);
 		render();
@@ -2284,6 +2286,35 @@ static vr_eye::Basis basisOf (const Stuff::LinearMatrix4D &origin)
 }
 
 //------------------------------------------------------------
+// VR on the tabletop (gos_GetVRTabletop, AR-TABLETOP.md): the eyes and the
+// pointer are in the table's frame, whose centre is the point the camera looks
+// at, on the ground, and whose forward is the camera's heading. The basis the
+// head is put on is the game camera's, moved there.
+vr_eye::Basis Camera::vrBaseFor (const Stuff::LinearMatrix4D &origin)
+{
+	vr_eye::Basis basis = basisOf(origin);
+	if (vrTable && gos_GetVRTabletop())
+	{
+		basis.position[0] = -cameraShift.x;
+		basis.position[1] = cameraShiftZ;
+		basis.position[2] = cameraShift.y;
+	}
+	return basis;
+}
+
+//------------------------------------------------------------
+//VR on the tabletop: the radius, in the game's screen pixels, of the circle
+//about the screen's centre that the interface leaves clear (0: not known);
+//the mission measures it (vr_eye::clearRadius)
+float vrTableClearRadius = 0.0f;
+
+//VR on the tabletop: the haze distance it raised, and the haze and far clip
+//from before, put back when the tabletop is turned off (the graphics
+//options) unless something set them since (-1: not raised)
+static float vrTableHazeRaisedTo = -1.0f;
+static float vrTableHazeBefore = 0.0f;
+static float vrTableFarBefore = 0.0f;
+
 void Camera::setCameraOrigin (void)
 {
 	if (!usePerspective)
@@ -2311,6 +2342,55 @@ void Camera::setCameraOrigin (void)
 		bool isOKView = false;
 		float localAltitude = cameraAltitude;
 		float localAngle = projectionAngle;
+		//VR on the tabletop (the game camera only: a briefing's or the mech
+		//lab's model view stays as it is): straight down, high enough to see the whole round
+		//window, so every point on the table can be picked through this
+		//camera's screen (vrPickWorld) and every unit on it is in view
+		if (vrTable && gos_GetVRTabletop())
+		{
+			const float heightOverWidth = (Environment.screenWidth > 0) ?
+				(float)Environment.screenHeight / (float)Environment.screenWidth : 0.0f;
+			const float radius = 0.5f * (float)Terrain::visibleVerticesPerSide * Terrain::worldUnitsPerVertex;
+			//...kept off the interface on this camera's screen too: a point on the
+			//table there would click the panel (vrTableClearRadius, measured by
+			//the mission), though no higher than two and a half times
+			float shape = heightOverWidth;
+			if (vrTableClearRadius > 0.0f && Environment.screenWidth > 0)
+			{
+				const float clear = 2.0f * vrTableClearRadius / (float)Environment.screenWidth;
+				if (clear < shape)
+					shape = (clear > 0.4f * shape) ? clear : 0.4f * shape;
+			}
+			const float altitude = vr_eye::tableCameraAltitude(radius, camera_fov, shape);
+			if (altitude > localAltitude)
+				localAltitude = altitude;
+			localAngle = vr_eye::kTableCameraAngle;
+			//...and nothing on the table hazed or culled for being far from this
+			//camera: the haze and the far clip measure from it, and it can be
+			//further than they reach (a phone's narrow view puts it four times
+			//as high as the Quest's, and the world was all haze)
+			const float reach = localAltitude + 2.0f * radius;
+			if (MinHazeDistance < reach)
+			{
+				if (MinHazeDistance != vrTableHazeRaisedTo)
+				{
+					vrTableHazeBefore = MinHazeDistance;
+					vrTableFarBefore = MaxClipDistance;
+				}
+				MinHazeDistance = reach;
+				setFarClipDistance(reach + 1.0f);
+				vrTableHazeRaisedTo = reach;
+			}
+		}
+		else if (vrTable && (vrTableHazeRaisedTo >= 0.0f))
+		{
+			if (MinHazeDistance == vrTableHazeRaisedTo)
+			{
+				MinHazeDistance = vrTableHazeBefore;
+				setFarClipDistance(vrTableFarBefore);
+			}
+			vrTableHazeRaisedTo = -1.0f;
+		}
 		while (!isOKView)
 		{
 			cameraDirection.range = localAltitude;
@@ -2383,7 +2463,7 @@ void Camera::setCameraOrigin (void)
 	// the head (vr_eye::eyeBasis). World up is y.
 	if (vrEye)
 	{
-		const vr_eye::Basis game = basisOf(cameraOrigin);
+		const vr_eye::Basis game = vrBaseFor(cameraOrigin);
 		float headPosition[3], headOrientation[4];
 		vr_eye::fromXr(vrEye->position, vrEye->orientation, headPosition, headOrientation);
 		const float worldUp[3] = {0.0f, 1.0f, 0.0f};
@@ -2446,7 +2526,7 @@ bool Camera::vrRayToWorld (const float xrPosition[3], const float xrOrientation[
 {
 	if (vrEye)
 		return false;
-	const vr_eye::Basis game = basisOf(vrFollowsHead ? vrGameOrigin : cameraOrigin);
+	const vr_eye::Basis game = vrBaseFor(vrFollowsHead ? vrGameOrigin : cameraOrigin);
 
 	float position[3], orientation[4];
 	vr_eye::fromXr(xrPosition, xrOrientation, position, orientation);
