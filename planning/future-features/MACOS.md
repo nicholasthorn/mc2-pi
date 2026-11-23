@@ -11,7 +11,24 @@ runs on one.
   `alloca`), `GL_SILENCE_DEPRECATION`, the resource library keeps its `.so` name
   (the game `dlopen`s `./libmc2res_64.so`), and `MC2_GLES` is refused.
 - **CI:** a `macos-15` arm64 job in `ci.yml` builds everything with Homebrew's
-  SDL2 and GLEW and runs the unit tests.
+  SDL2 and GLEW, runs the unit tests, and builds the stock game data with the
+  data tools (`build_gamedata.sh --no-movies`, about a minute), uploading
+  sha256 lists of the files and of the files inside each `.fst`
+  (`scripts/fst_manifest.py`).
+- **Game data built on a Mac, against Linux** (mc2srcdata `643a676f`), compared
+  file by file and, for the models, field by field:
+  - identical: every file outside `tgl.fst`, except 12 font bitmaps that
+    `text_tool` renders through FreeType (a different build on each machine);
+  - animations (`.agl`): same structure and positions; quaternions within
+    0.0012 (under 0.14 degrees), float rounding;
+  - models (`.tgl`): positions, UVs and face normals identical, vertex normals
+    within 1.8e-7. Vertex colours differed in 1192 vertices of 91 models: 222
+    stock models hold colours far outside 0..1, whose conversion was undefined
+    (x86 wraps, arm64 clamps). `aseColourToChannel()` (`mclib/asecolour.h`) now
+    gives the x86 result everywhere, so the shipped look is unchanged;
+  - `tgl.fst` never matches byte for byte, even between two Linux runs:
+    `aseconv` writes uninitialised bytes (struct padding, past a name's
+    terminator) that the game never reads.
 - **GL 4.1:** a forward-compatible core context on macOS (`gos_render.cpp`); the
   debug-output callback only where `GL_ARB_debug_output` exists; and
   `buildShaderHeader()` now accepts GLSL 3.30+ without 420pack, emitting the

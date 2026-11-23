@@ -262,14 +262,6 @@ jobs:
           name: gamedata-macos-sha256
           path: gamedata-macos*.sha256
           retention-days: 14
-      # TEMPORARY: the converted models, to compare with a Linux build
-      - uses: actions/upload-artifact@v7
-        with:
-          name: tgl-macos
-          path: |
-            srcdata/tgl/*.agl
-            srcdata/tgl/*.tgl
-          retention-days: 3
 
   windows:
     name: Windows x64 MSVC (desktop GL)
