@@ -334,7 +334,9 @@ The interface only rests in a headset session, so no desktop run covers it.
       encyclopedia, load and save) and push the right stick up and down: a step at
       once, then a steady scroll after a moment, the right way round, and the camera
       does not move. Say if a step (an item, at most a third of the list) or the
-      speed needs tuning. Pointing at the battle, the stick still turns and zooms.
+      speed needs tuning. The pause menu's options (hot keys) scroll too. In a
+      battle, pointing at the panel or the battle, the stick still turns and
+      zooms smoothly.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.

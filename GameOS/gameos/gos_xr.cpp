@@ -1800,10 +1800,12 @@ void pollInput()
         if(g.buttonDown[BUTTON_A] && g.hudAdjusted)
             printf("[XR] interface placed: MC2_XR_HUD=%.2f,%.0f,%.2f\n", g.hudDistance,
                     g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
-        // pointing at the interface: the right stick up and down is a mouse
-        // wheel, which scrolls the list under the pointer (aListBox), and
-        // turns and zooms nothing while it does
-        if(g.target == TARGET_HUD) {
+        // pointing at the interface in a menu: the right stick up and down
+        // is a mouse wheel, which scrolls the list under the pointer
+        // (aListBox), and turns and zooms nothing while it does. Not while a
+        // mission takes orders: its panel has no lists, and there the wheel
+        // would zoom in steps where the stick zooms smoothly.
+        if(g.target == TARGET_HUD && g.ordersAge >= kOrdersFrames) {
             const int steps = vr_controls::scrollSteps(g.stickScroll, right[1],
                     (double)g.frame.predictedDisplayTime * 1e-9);
             if(steps != 0)
