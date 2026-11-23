@@ -200,6 +200,9 @@ if(APPLE)
     include_directories(BEFORE SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/GameOS/compat/macos")
     # Apple marks OpenGL deprecated, which would warn on every GL call
     add_definitions(-DGL_SILENCE_DEPRECATION)
+    # and sprintf, used throughout the legacy code
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 add_subdirectory("./mclib/" "./out/mclib")

@@ -229,8 +229,9 @@ jobs:
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
           -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+      # -k 0: list every compile error in one run while the port is young
       - name: Build
-        run: cmake --build build
+        run: cmake --build build -- -k 0
       - name: Unit tests
         run: ctest --test-dir build --output-on-failure
 
