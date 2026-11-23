@@ -33,7 +33,10 @@
 	inline void glPolygonMode(GLenum, GLenum) {}
 #else
 	#include <GL/glew.h>
+#ifndef __APPLE__
+	// macOS has no GL/gl.h (it is OpenGL/gl3.h there); glew.h declares everything we use
 	#include <GL/gl.h>
+#endif
 #endif
 
 #ifndef PLATFORM_WINDOWS

@@ -2631,8 +2631,16 @@ static bool buildShaderHeader(const char* glsl_version)
         snprintf(buf, sizeof(buf), "#version %d\n", ver);
         g_shader_header = buf;
         g_shader_header += "#extension GL_ARB_shading_language_420pack : require\n";
+    } else if(ver >= 330) {
+        // macOS (GL 4.1, no 420pack): no layout(binding=); the shaders drop
+        // it under this define and the engine binds the uniform blocks by
+        // name (gos_SetRenderMaterialUniformBlockBindingPoint)
+        char buf[64];
+        snprintf(buf, sizeof(buf), "#version %d\n", ver);
+        g_shader_header = buf;
+        g_shader_header += "#define MC2_NO_LAYOUT_BINDING 1\n";
     } else {
-        SPEW(("GRAPHICS", "Need GLSL 4.20 or GL_ARB_shading_language_420pack, current: %s\n", glsl_version));
+        SPEW(("GRAPHICS", "Need GLSL 3.30 or later, current: %s\n", glsl_version));
         return false;
     }
 #endif
@@ -2668,11 +2676,14 @@ bool gos_CreateRenderer(HGOSWINDOW win, int w, int h) {
     // does not report it against unrelated code.
     while(glGetError() != GL_NO_ERROR) {}
 
-	glEnable(GL_DEBUG_OUTPUT);
-	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-	//glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 76, 1, "My debug group");
-	glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
-	glDebugMessageCallbackARB((GLDEBUGPROC)&OpenGLDebugLog, NULL);
+	// macOS (GL 4.1) has no debug output: these entry points are NULL there
+	if(GLEW_ARB_debug_output) {
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		//glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 76, 1, "My debug group");
+		glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
+		glDebugMessageCallbackARB((GLDEBUGPROC)&OpenGLDebugLog, NULL);
+	}
 
     SPEW(("GRAPHICS", "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION)));
     //if ((!GLEW_ARB_vertex_program || !GLEW_ARB_fragment_program))

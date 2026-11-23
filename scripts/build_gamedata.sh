@@ -17,11 +17,13 @@
 #                    stored in Git LFS, so a clone with GIT_LFS_SKIP_SMUDGE=1
 #                    plus --no-movies needs no LFS download at all. Missions
 #                    run without movies.
-#   -j N             parallel make jobs (default: nproc)
+#   -j N             parallel make jobs (default: the number of CPUs)
 
 set -eu
 
-SRC_DATA=""; BUILD_DIR=""; TOOLS_DIR=""; OUT=""; NO_MOVIES=0; JOBS=$(nproc)
+# macOS has no nproc (and set -e would stop on it): sysctl there
+SRC_DATA=""; BUILD_DIR=""; TOOLS_DIR=""; OUT=""; NO_MOVIES=0
+JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 while [ $# -gt 0 ]; do
     case "$1" in
         --src-data)  SRC_DATA="$2"; shift 2 ;;
