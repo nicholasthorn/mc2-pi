@@ -15,6 +15,16 @@ runs on one.
   data tools (`build_gamedata.sh --no-movies`, about a minute), uploading
   sha256 lists of the files and of the files inside each `.fst`
   (`scripts/fst_manifest.py`).
+- **A mission in CI on Apple's GL** (#184): the runner has no GPU, and the game
+  now retries context creation with software GL when no accelerated pixel
+  format exists, which gets "Apple Software Renderer" (GL 4.1 core, about 27
+  fps). `mc2_01` runs 600 frames under `lldb`, with `smoke.sh`'s failure rules.
+- **First real-Mac run** (issue #183, M2, macOS 15.5): found two bugs Linux
+  never showed, both fixed in #184. Apple's GL refuses to link a shader pair whose
+  fragment input is never written (Mesa allows it), which left the lit-texture
+  shader unlinked; `validate_shaders.py` now checks that rule. And Apple Clang
+  traps on deleting an abstract class through a non-virtual destructor
+  (`GOSImagePool`), which crashed shutdown with exit status 133.
 - **Game data built on a Mac, against Linux** (mc2srcdata `643a676f`), compared
   file by file and, for the models, field by field:
   - identical: every file outside `tgl.fst`, except 12 font bitmaps that

@@ -582,6 +582,11 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
       should look as on Linux (they come from the `SceneData` block that macOS binds by name).
       Then a few minutes played by hand: mouse, right click (two-finger tap), keyboard, sound.
       Note the macOS version and the chip.
+      First run 2026-11-23 (issue #183: M2, macOS 15.5, `4.1 Metal - 89.4`): the mission ran, but
+      the lit-texture shader failed to link and the game exited with status 133; both fixed in
+      #184, which CI now checks on Apple's software GL. Still to do on a Mac: rerun after #184 for a
+      clean exit and no shader errors, look at the 3D models (they had no shader in that run), the
+      by-hand checks above, and `MC2_VSYNC=0 ... -bench` for a frame rate (the 59.4 fps was vsync).
 
 ## Releases (`RELEASES.md`)
 
