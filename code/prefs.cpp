@@ -644,7 +644,8 @@ void CPrefs::setNewIP( const char* pNewIP )
 	if ( !pNewIP )
 		return;
 	// check and see if this name is already in here
-	for ( int i = 0; i < 10; i++ )
+	int i = 0;
+	for ( ; i < 10; i++ )
 	{
 		if ( !S_stricmp( pNewIP, ipAddresses[i] ) )
 		{
@@ -668,6 +669,13 @@ void CPrefs::setNewIP( const char* pNewIP )
 
 			break;
 		}
+	}
+
+	// a full list: the oldest goes, as setNewName does
+	if ( i == 10 )
+	{
+		memmove( ipAddresses[1], ipAddresses[0], sizeof( char ) * 9 * 24 );
+		strcpy( ipAddresses[0], pNewIP );
 	}
 }
 

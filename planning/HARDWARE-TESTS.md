@@ -39,6 +39,18 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       the other. It should find and join within a few seconds. A Quest as each end, as its Wi-Fi drops
       broadcasts without the lock in `MC2Activity`. Then a router with client isolation, which should
       fail to find it, and joining by address is the way round. WSL cannot host for this (NAT).
+- [x] **Join by address from the screens** (TCP/IP tab; 2026-11-23, Quest 2 hosting from the menu,
+      PC in WSL with NAT joining, home Wi-Fi). The PC asked 192.168.86.76, joined the Quest's lobby
+      as commander 2 and played `mc2_m02a` (2400 turns, weapon fire both ways); same data hash on
+      both. The Quest ran a build without this branch, so its own "Host IP address" was still empty.
+- [x] **The host's address on a Quest** (#179; 2026-11-23, Quest 2, a build of `ar-tabletop` with
+      #179 and #181 merged in): hosting from the menu, its parameters screen shows the headset's
+      Wi-Fi address.
+- [ ] **The host's address on a PC** (#179). A PC host from
+      the menu, in Windows or with WSL's networking mirrored: its screen shows its LAN address, with
+      no "(WSL)", and the Quest finds it on Local Network. A WSL host in NAT shows "(WSL)" after its
+      address (seen in WSL's log on 2026-11-23, not looked at on screen). A host's firewall must let
+      in UDP 27816, where it answers the search, as well as the game's port (27815 and up).
 - [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on
@@ -81,6 +93,23 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [x] **Mouse after Alt+Tab, WSLg** (#179, GL; 2026-11-23, Windows 11, WSLg, full screen
+      800x600). Under WSLg each grab made the window lose focus at once (`[INPUT]` lines: focus
+      gained, then lost, with no Alt+Tab between), so after Alt+Tab back or a click the game had
+      no focus, ignored input and showed the cursor; and a grab never held the pointer in a
+      window there. With no grab (then `MC2_NO_MOUSE_GRAB=1`, now `MC2_MOUSE_GRAB=0`), Alt+Tab
+      away and back worked, focus following only the person's own switches. With the game never
+      grabbing in WSL (92187fa5, no switch) Alt+Tab away and back worked too. Since then only
+      WSLg's own display skips the grab; run it once more there.
+- [ ] **Mouse grab unchanged off WSLg** (#179, GL). On Windows and on native Linux (an X11
+      session): in a mission, the mouse is held in the window, and after Alt+Tab away and back it
+      is held again. The log has no `the mouse is not grabbed from now on` line.
+- [ ] **An X11 game on another Wayland desktop** (#179, GL or GLES). A Linux Wayland session
+      (GNOME, KDE) and the Pi's desktop (bookworm: Wayfire or labwc) run the game through
+      XWayland, as WSLg does. Alt+Tab away and back in a mission, then `grep -a INPUT
+      last-run.log`: if focus went the moment the game grabbed, the log says `the mouse is not
+      grabbed from now on`, and after one more click the game should work. Either way, note
+      which it was here.
 - [ ] **Play the testbed mission** (`mission-testbed`). Install it into a copy of
       the game directory (`campaigns/testbed/README.md`), then New Campaign: buy
       and launch, and play tb_01 by hand. The three text messages show in the

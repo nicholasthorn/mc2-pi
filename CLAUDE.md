@@ -151,8 +151,8 @@ detailed conventions.
   `buildShaderHeader()`; shader files never contain `#version`.
 - **The whole engine builds with `-DLINUX_BUILD`, on Windows too.** `PLATFORM_WINDOWS`
   is the real "this is MSVC" flag. `PATH_SEPARATOR` is therefore `/` everywhere.
-- **Networking has the original screens for a game on the local network** (main menu, Multiplayer: host or browse,
-  then the parameters screen, with the map's own units or, with Quickstart off, the mech bay; chat through the 2001 chat window), and flags:
+- **Networking has the original screens for a game on the local network** (main menu, Multiplayer: host, browse, or TCP/IP to join
+  by address, which a PC in WSL needs as its NAT hides it from the network; then the parameters screen, with the map's own units or, with Quickstart off, the mech bay; chat through the 2001 chat window), and flags:
   `-nethost <players> -netlisten [port]`
   and `-netjoin <address>[:port]` play a mission between processes (or, for a host that cannot
   be reached, as in WSL, `-netcall <address>` and `-netjoin wait`; to find a host on the local
