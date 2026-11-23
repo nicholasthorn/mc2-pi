@@ -11,6 +11,7 @@
 #include "gos_touch.h"
 #include "android_data.h"
 #include "gos_logfile.h"
+#include "gos_wsl.h"
 
 #include "utils/camera.h"
 #include "utils/shader_builder.h"
@@ -275,16 +276,28 @@ static void handle_key_down( SDL_Keysym* keysym ) {
     }
 }
 
-// MC2_NO_MOUSE_GRAB=1: never grab or capture the mouse (the cursor is still
-// hidden while the window has focus), to tell whether a grab is what takes the
-// focus away again under WSLg
+// Whether the window grabs the mouse while it has focus. Not in WSL: under WSLg
+// a grab never holds the Windows pointer in the window, and each one makes the
+// window lose focus again at once, so after Alt+Tab back (or a click) the game
+// had no focus, ignored input and showed the cursor (seen on 2026-11-23; with no
+// grab, focus stayed). The cursor is still hidden there, and a full screen
+// window covers the screen. MC2_NO_MOUSE_GRAB=1 turns the grab off anywhere,
+// =0 on even in WSL.
 static bool mouse_grab_allowed()
 {
     static const bool allowed = []() {
         const char* no = getenv("MC2_NO_MOUSE_GRAB");
-        const bool off = no && no[0] && strcmp(no, "0") != 0;
+        bool off;
+        const char* why;
+        if(no && no[0]) {
+            off = strcmp(no, "0") != 0;
+            why = "MC2_NO_MOUSE_GRAB";
+        } else {
+            off = gos_RunningInWsl();
+            why = "WSL, where a grab takes the focus away";
+        }
         if(off) {
-            printf("[INPUT] MC2_NO_MOUSE_GRAB: the mouse is never grabbed\n");
+            printf("[INPUT] the mouse is never grabbed: %s\n", why);
             fflush(stdout);
         }
         return !off;
@@ -303,9 +316,9 @@ static void set_mouse_capture(bool enabled)
     SDL_ShowCursor(enabled ? SDL_DISABLE : SDL_ENABLE);
 }
 
-// The window events that decide who has the mouse, with the state after each,
-// for when the mouse is not taken back (seen under WSLg). Rare: a line per
-// Alt+Tab or pointer crossing, none per frame.
+// The window events that decide who has the mouse, with the state after each:
+// how the WSLg grab trouble was found, and how the next one will be. Rare: a
+// line per Alt+Tab or pointer crossing, none per frame.
 static void log_window_event(const SDL_Event& event)
 {
     if(event.type != SDL_WINDOWEVENT)
@@ -440,27 +453,6 @@ static void process_events( bool sample, bool reset ) {
                     g_focus_lost = false;
                     set_mouse_capture(true);
                     break;
-                // The pointer came over the window: if it has focus, take the
-                // mouse again. Probably needed under WSLg (X11 through XWayland,
-                // not confirmed), where the grab at focus can fail after Alt+Tab
-                // back with the pointer elsewhere, and nothing tried again. Where a
-                // grab held the pointer cannot leave, so this comes only after one
-                // failed, or before the first. Focus from SDL itself: g_focus_lost
-                // is false too before the window has ever had it.
-                case SDL_WINDOWEVENT_ENTER:
-                {
-                    SDL_Window* entered = SDL_GetWindowFromID(event.window.windowID);
-                    if(!entered || !(SDL_GetWindowFlags(entered) & SDL_WINDOW_INPUT_FOCUS))
-                        break;
-                    printf("[INPUT] %u ms: the pointer came over the window: taking the mouse again\n", (unsigned)SDL_GetTicks());
-                    fflush(stdout);
-                    // SDL marks a window grabbed before it tries, and keeps the mark
-                    // when the grab fails; asking again with the mark set does
-                    // nothing, so let go first
-                    graphics::grab_window(gos_GetWindow(), false);
-                    set_mouse_capture(true);
-                    break;
-                }
             }
             break;
         case SDL_MOUSEMOTION:

@@ -88,17 +88,15 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
-- [ ] **Mouse taken back after Alt+Tab, WSLg** (#179, GL). In a mission from a WSL desktop
-      shortcut: Alt+Tab to another window, Alt+Tab back with the pointer outside the game's
-      window, then move it in. The game should take the mouse again (cursor hidden, held in
-      the window, edge scrolling works). Before, it stayed free until a restart. Then in
-      `~/play/mc2/last-run.log`: `[INPUT] the pointer came over the window` says the retry ran,
-      and SDL's "The X server refused to let us grab the mouse" (if its warnings reach the log)
-      says a grab failed. After one such failure SDL 2 does not try to grab again for the rest
-      of the run, and the game stalls up to 5 s while it tries, so if that line is there and
-      the mouse stays free, the way on is to keep the pointer in without a grab
-      (`SDL_SetWindowMouseRect`, pointer barriers). Also on Windows and native Linux: Alt+Tab
-      away and back still behaves as before, and no window grabs the mouse without focus.
+- [x] **Mouse after Alt+Tab, WSLg** (#179, GL; 2026-11-23, Windows 11, WSLg, full screen
+      800x600). Under WSLg each grab made the window lose focus at once (`[INPUT]` lines: focus
+      gained, then lost, with no Alt+Tab between), so after Alt+Tab back or a click the game had
+      no focus, ignored input and showed the cursor; and a grab never held the pointer in a
+      window there. With no grab (`MC2_NO_MOUSE_GRAB=1`), Alt+Tab away and back worked, focus
+      following only the person's own switches. The game now never grabs in WSL.
+- [ ] **Mouse grab unchanged off WSL** (#179, GL). On Windows and on native Linux: in a mission,
+      the mouse is held in the window, and after Alt+Tab away and back it is held again. The log
+      has no "the mouse is never grabbed" line.
 
 - [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
       `--no-movies` (the Windows `-full` package), play `mc2_01` until the first

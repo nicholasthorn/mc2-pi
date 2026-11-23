@@ -55,8 +55,6 @@ private:
 	uint16_t port_ = 0;
 };
 
-// True in WSL (Windows Subsystem for Linux).
-bool runningInWsl();
 // True in WSL with its usual NAT networking, which hides the game from other machines: they
 // cannot reach it, its broadcasts do not reach them, and its address works only from Windows
 // on the same PC. Not with mirrored networking (.wslconfig), which shares Windows' addresses.

@@ -21,6 +21,8 @@ typedef const void* send_data_type;
 typedef void* receive_data_type;
 #endif
 
+#include "gos_wsl.h"
+
 #include <cctype>
 #include <cstdio>
 #include <cstring>
@@ -277,31 +279,12 @@ uint32_t LanSocket::localAddress()
 	return ip;
 }
 
-bool runningInWsl()
-{
-#ifdef PLATFORM_WINDOWS
-	return false;
-#else
-	FILE* file = std::fopen("/proc/sys/kernel/osrelease", "r");
-	if (!file)
-		return false;
-	char text[256] = {};
-	const bool read = std::fgets(text, sizeof(text), file) != nullptr;
-	std::fclose(file);
-	if (!read)
-		return false;
-	for (char* c = text; *c; c++)
-		*c = static_cast<char>(std::tolower(static_cast<unsigned char>(*c)));
-	return std::strstr(text, "microsoft") != nullptr;
-#endif
-}
-
 bool wslBehindNat()
 {
 #ifdef PLATFORM_WINDOWS
 	return false;
 #else
-	if (!runningInWsl())
+	if (!gos_RunningInWsl())
 		return false;
 	// WSL's own tool says which; one too old to know is NAT, the only kind it had
 	FILE* tool = popen("wslinfo --networking-mode 2>/dev/null", "r");
