@@ -12,7 +12,9 @@
 // z, for where an eye or a pointer points (a pointer taking z went up when
 // the hand pointed down; found in the headset, VR plan Phase 3). Eye bases
 // are unaffected: they are whole matrices. OpenXR view axes: x right, y up,
-// z back. The two differ by a point reflection.
+// z back. In world space the game camera's rows point the same ways (its
+// UP_AXIS row points up, measured on the tabletop on 2026-11-16), so poses
+// pass between them unchanged; the screen's flips are projectZ's.
 namespace vr_eye {
 
 // A camera's axes and position in world space.
@@ -80,6 +82,33 @@ const float kMaxGameFov = 120.0f;
 // width alone). In the range above, and its minimum for a field of view that
 // is no use.
 float gameFieldOfView(const float leftFov[4], const float rightFov[4], float heightOverWidth);
+
+// The tabletop's game camera (AR-TABLETOP.md): it looks straight down
+// (kTableCameraAngle degrees below the horizon) from at least this height, so
+// the whole round terrain window, windowRadius from the point it looks at, is
+// on its screen: every point on the table can then be picked through it, and
+// every unit on the table is in its view. horizontalFov in degrees,
+// heightOverWidth the screen's (0: square). 0 when either is unusable.
+const float kTableCameraAngle = 89.0f;
+float tableCameraAltitude(float windowRadius, float horizontalFov, float heightOverWidth);
+// The tabletop: the radius, in screen pixels, of the largest circle about the
+// screen's centre that stays on the screen and off the interface
+// (covered(x, y, context): the game's panel and buttons there), so the game
+// camera can keep the table clear of it: a point on the table that showed
+// under the panel would click the panel. Looked for along rays from the
+// centre; 0 when the centre itself is covered or there is no screen.
+typedef bool (*ScreenCovered)(int x, int y, void* context);
+float clearRadius(int width, int height, ScreenCovered covered, void* context);
+// VR: the point of the ground (x, y; its height is the ground's there) that
+// shows at (targetX, targetY) on the game camera's screen, found through the
+// projection the game picks by, so the drag box drawn on the ground holds
+// what it selects. onScreen(x, y, context, screen) puts the ground at x, y on
+// the screen (false: it cannot). Newton's method from the guess in x, y,
+// slopes measured step world units apart; true, with x, y moved, once it is
+// within half a pixel, else false with x, y as they were.
+typedef bool (*GroundOnScreen)(float x, float y, void* context, float screen[2]);
+bool groundForScreen(GroundOnScreen onScreen, void* context, float targetX, float targetY,
+        float& x, float& y, float step);
 
 // A field of view given as text (MC2_XR_FOV): its degrees when in the range
 // above, 0 for "0" (keep the game's own), -1 for anything else.

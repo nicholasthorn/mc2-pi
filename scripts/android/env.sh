@@ -19,14 +19,15 @@ BAT=""; [ $WIN = 1 ] && BAT=".bat"   # d8 and apksigner are .bat scripts on Wind
 SDL2_DIR=SDL2-2.30.11
 SDL2_MIXER_DIR=SDL2_mixer-2.8.0
 OPENXR_DIR=openxr_loader-1.1.65   # the Khronos loader AAR, unpacked
+ARCORE_DIR=arcore-1.57.0          # ARCore: the AAR unpacked, plus its C header
 
 # MC2_ANDROID_FLAVOUR picks the app:
 #   quest  Meta Quest, in VR through OpenXR (the default)
 #   phone  phones and tablets: flat, no OpenXR, its own package name, so both
 #          can be installed on one device (planning/future-features/MOBILE.md)
 # Per flavour: the package, its manifest, the game's build folder (one each,
-# as MC2_OPENXR differs), the game's OpenXR options and the OpenXR libraries
-# that go in the APK.
+# as MC2_OPENXR differs), the game's OpenXR or ARCore options, and the
+# libraries, Java classes and resources of those that go in the APK.
 FLAVOUR=${MC2_ANDROID_FLAVOUR:-quest}
 OPENXR_DEPS="$ROOT/android/deps/$OPENXR_DIR"
 case "$FLAVOUR" in
@@ -34,12 +35,19 @@ case "$FLAVOUR" in
            MANIFEST="$ROOT/android/AndroidManifest.xml"
            GAME_BUILD="$ROOT/android/build/game"
            XR_CMAKE=(-DMC2_OPENXR=ON "-DOPENXR_PREFAB=$OPENXR_DEPS/prefab/modules")
-           XR_LIBS=("$OPENXR_DEPS/jni/arm64-v8a/libopenxr_loader.so") ;;
+           XR_LIBS=("$OPENXR_DEPS/jni/arm64-v8a/libopenxr_loader.so")
+           JAVA_JARS=()
+           JAVA_RES=() ;;
     phone) PKG=com.nicholasthorn.mc2.phone
            MANIFEST="$ROOT/android/phone/AndroidManifest.xml"
            GAME_BUILD="$ROOT/android/build/game-phone"
-           XR_CMAKE=(-DMC2_OPENXR=OFF)
-           XR_LIBS=() ;;
+           # the tabletop through ARCore (MC2_AR_TABLE=1): its C library, the
+           # Java classes and resources it calls on
+           AR_DEPS="$ROOT/android/deps/$ARCORE_DIR"
+           XR_CMAKE=(-DMC2_OPENXR=OFF -DMC2_ARCORE=ON "-DARCORE_DIR=$AR_DEPS")
+           XR_LIBS=("$AR_DEPS/jni/arm64-v8a/libarcore_sdk_c.so" "$AR_DEPS/jni/arm64-v8a/libarcore_sdk_jni.so")
+           JAVA_JARS=("$AR_DEPS/classes.jar")
+           JAVA_RES=("$AR_DEPS/res") ;;
     *) echo "android: MC2_ANDROID_FLAVOUR is quest or phone, not '$FLAVOUR'" >&2; exit 2 ;;
 esac
 APK="$ROOT/android/mc2-$FLAVOUR-test.apk"

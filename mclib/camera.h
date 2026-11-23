@@ -34,6 +34,7 @@
 #include<stuff/stuff.hpp>
 
 struct gosVREyeView;
+namespace vr_eye { struct Basis; }
 
 inline signed short int float2short(float _in)
 {
@@ -243,6 +244,7 @@ class Camera
 		Stuff::Matrix4D			gameToEyeClip;			//VR: game camera clip space to the eye's (overlayToEye)
 		float					gameClipX, gameClipY;	//VR: the game camera's cameraToClip scale on x and y (overlayToEye)
 		bool					vrFollowsHead;			//VR: the game camera looks where the head does (setVRHead)
+		bool					vrTable;				//VR: the camera the tabletop places over the table (GameCamera), not a model view
 		float					vrHead[4];				//VR: the head's orientation it follows, one game step's worth
 		Stuff::LinearMatrix4D	vrGameOrigin;			//VR: cameraOrigin before following the head, what the eyes and rays start from
 
@@ -320,6 +322,7 @@ class Camera
 			toInterface = false;
 			gameClipX = gameClipY = 1.0f;
 			vrFollowsHead = false;
+			vrTable = false;
 			vrHead[0] = vrHead[1] = vrHead[2] = 0.0f;
 			vrHead[3] = 1.0f;
 	
@@ -497,6 +500,10 @@ class Camera
 
 		bool vrRayToWorld (const float xrPosition[3], const float xrOrientation[4],
 			Stuff::Vector3D &origin, Stuff::Vector3D &direction, float &unitsPerMetre);
+
+		//VR: the basis the head is put on (the game camera's; on the tabletop,
+		//moved to the point it looks at)
+		vr_eye::Basis vrBaseFor (const Stuff::LinearMatrix4D &origin);
 
 		//VR: the orientation the game camera follows from its next update on
 		//(gos_GetVRHead), or NULL for the game's own view. It holds for the
