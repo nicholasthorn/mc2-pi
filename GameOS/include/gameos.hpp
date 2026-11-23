@@ -2078,6 +2078,10 @@ void __stdcall gos_TouchTextInput( bool focused );
 // height (0 at the top), before gos_TouchTextInput( true ): the screen
 // keyboard keeps clear of it.
 void __stdcall gos_TouchTextInputField( float top, float bottom );
+// A field with the focus, each time it updates: the screen keyboard goes
+// away when its field stops updating without letting go of the focus (its
+// dialog closed with Escape, say).
+void __stdcall gos_TouchTextInputActive();
 // GameOS's screen keyboard, for the game to draw over everything else: its
 // panel and its keys as shares of the screen (0 to 1), each with its label
 // and state (0 a key, 1 under the pointer, 2 on: Shift, or just pressed).

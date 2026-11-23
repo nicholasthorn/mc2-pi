@@ -32,6 +32,13 @@ bool g_hidePending = false;
 // the field taking the focus is in the screen's lower half: the keyboard
 // goes along the top
 bool g_top = false;
+// the focused field's updates since the keyboard showed: once one has come
+// (a dialog's field starts updating only after its opening animation), this
+// many samples in a row without one hide it
+const int kMissedSamples = 4;
+bool g_fieldSeen = false;
+bool g_fieldActive = false;
+int g_fieldMissed = 0;
 // keys pressed at the last sample, to go up at this one (0: none)
 int g_down[2] = {0, 0};
 // a pressed key shows lit for a few samples
@@ -114,9 +121,18 @@ void show(bool on)
     // again too: a field clicked while it has the focus brings the
     // keyboard back after Close or Enter
     g_keyboard.layout(g_top);
-    if(!g_shown)
+    if(!g_shown) {
         printf("[KEYBOARD] shown\n");
+        g_fieldSeen = false;
+        g_fieldActive = false;
+        g_fieldMissed = 0;
+    }
     g_shown = true;
+}
+
+void fieldActive()
+{
+    g_fieldActive = true;
 }
 
 void sample()
@@ -125,6 +141,16 @@ void sample()
         g_hidePending = false;
         hide();
     }
+    if(g_shown) {
+        if(g_fieldActive) {
+            g_fieldSeen = true;
+            g_fieldMissed = 0;
+        } else if(g_fieldSeen && ++g_fieldMissed >= kMissedSamples) {
+            printf("[KEYBOARD] its field stopped updating\n");
+            hide();
+        }
+    }
+    g_fieldActive = false;
     for(int& key : g_down) {
         if(key) {
             input::setVirtualKey(key, false);

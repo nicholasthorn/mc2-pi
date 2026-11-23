@@ -273,6 +273,11 @@ void __stdcall gos_TouchTextInputField(float top, float bottom)
     gos_screen_keyboard::fieldArea(top, bottom);
 }
 
+void __stdcall gos_TouchTextInputActive()
+{
+    gos_screen_keyboard::fieldActive();
+}
+
 int __stdcall gos_GetTouchBar(gosTouchBarButton* buttons, int maxButtons)
 {
     if(!barShown() || !buttons)

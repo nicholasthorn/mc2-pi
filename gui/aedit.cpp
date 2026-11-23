@@ -119,6 +119,11 @@ aEdit::~aEdit()
 
 void aEdit::update()
 {
+	// keeps a screen keyboard up (gos_touch): it goes when a focused field
+	// stops updating
+	if ( bFocus )
+		gos_TouchTextInputActive();
+
 	cursorTime += frameLength;
 	if ( cursorTime > .5 )
 	{
