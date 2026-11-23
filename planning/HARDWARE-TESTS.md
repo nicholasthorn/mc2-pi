@@ -93,6 +93,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **Mouse wheel on lists** (branch `ui-wheel-scroll`, GL): the wheel over a list
+      with a scroll bar (mech lab, pilots, briefing text, encyclopedia, load and save,
+      the options' hot keys) scrolls it the right way, an item at a time, and the
+      scroll bar's thumb follows; over anything else nothing changes.
 - [x] **Mouse after Alt+Tab, WSLg** (#179, GL; 2026-11-23, Windows 11, WSLg, full screen
       800x600). Under WSLg each grab made the window lose focus at once (`[INPUT]` lines: focus
       gained, then lost, with no Alt+Tab between), so after Alt+Tab back or a click the game had
@@ -325,6 +329,12 @@ The interface only rests in a headset session, so no desktop run covers it.
       be a common miss: say if 0.3 s and 0.5 s need tuning. Double click
       while pushing the right stick sideways: still the next group (the camera
       pauses for a moment), not the previous one.
+- [ ] **Scrolling lists with the right stick** (branch `ui-wheel-scroll`): point at a
+      list with a scroll bar (mech lab components, pilots, a briefing's text, the
+      encyclopedia, load and save) and push the right stick up and down: a step at
+      once, then a steady scroll after a moment, the right way round, and the camera
+      does not move. Say if a step (an item, at most a third of the list) or the
+      speed needs tuning. Pointing at the battle, the stick still turns and zooms.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.
