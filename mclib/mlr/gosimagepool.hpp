@@ -21,7 +21,10 @@ namespace MidLevelRenderer {
 	//
 	public:
 		GOSImagePool();
-		~GOSImagePool();
+		// virtual: MLRTexturePool deletes a TGAFilePool through this abstract
+		// class, which is undefined otherwise; Apple Clang traps there (exit
+		// status 133 at shutdown on macOS, issue #183)
+		virtual ~GOSImagePool();
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Image handling
