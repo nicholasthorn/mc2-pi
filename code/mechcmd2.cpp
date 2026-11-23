@@ -704,6 +704,46 @@ DWORD startTime;
 DWORD endTime;
 
 //---------------------------------------------------------------------------
+// GameOS's screen keyboard for a text field (gos_GetScreenKeyboard; the VR
+// headset has no other): GameOS takes the pointer's presses on it, the game
+// only draws it, over everything else. The font is never freed: a static
+// aFont would be destroyed after GameOS.
+static void drawScreenKeyboard()
+{
+	gosScreenKey panel;
+	gosScreenKey keys[64];
+	const int count = gos_GetScreenKeyboard( &panel, keys, 64 );
+	if ( !count )
+		return;
+	static aFont* font = NULL;
+	if ( !font )
+	{
+		font = new aFont;
+		font->init( IDS_MP_LANBROW_HEADER_FONT );
+	}
+	const float w = (float)Environment.screenWidth;
+	const float h = (float)Environment.screenHeight;
+	GUI_RECT rect;
+	rect.left = (long)(panel.x * w);
+	rect.top = (long)(panel.y * h);
+	rect.right = (long)((panel.x + panel.w) * w);
+	rect.bottom = (long)((panel.y + panel.h) * h);
+	drawRect( rect, 0xe0101418 );
+	drawEmptyRect( rect, 0xff808080, 0xff808080 );
+	for ( int i = 0; i < count; i++ )
+	{
+		rect.left = (long)(keys[i].x * w);
+		rect.top = (long)(keys[i].y * h);
+		rect.right = (long)((keys[i].x + keys[i].w) * w);
+		rect.bottom = (long)((keys[i].y + keys[i].h) * h);
+		const DWORD fill = keys[i].state == 2 ? 0xffa06000 : ( keys[i].state == 1 ? 0xff506070 : 0xff283038 );
+		drawRect( rect, fill );
+		drawEmptyRect( rect, 0xffc0c0c0, 0xffc0c0c0 );
+		font->render( keys[i].label, rect.left, rect.top, rect.right - rect.left,
+			rect.bottom - rect.top, 0xffffffff, 0, 3 );
+	}
+}
+
 void __stdcall UpdateRenderers()
 {
 	if (!SnifferMode)
@@ -763,6 +803,8 @@ void __stdcall UpdateRenderers()
 		// the interface's image in the headset stays as it is (gos_VRHudResting)
 		if (!gos_VRHudResting())
 		{
+			drawScreenKeyboard();
+
 			userInput->render();
 
 			DEBUGWINS_render();

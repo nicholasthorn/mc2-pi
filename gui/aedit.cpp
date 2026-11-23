@@ -119,6 +119,11 @@ aEdit::~aEdit()
 
 void aEdit::update()
 {
+	// keeps a screen keyboard up (gos_touch): it goes when a focused field
+	// stops updating
+	if ( bFocus )
+		gos_TouchTextInputActive();
+
 	cursorTime += frameLength;
 	if ( cursorTime > .5 )
 	{
@@ -447,7 +452,11 @@ void aEdit::setFocus(bool bHasFocus)
 	bFocus = bHasFocus;
 	gos_KeyboardFlush();
 
-	// a touch screen's keyboard (gos_touch), for any field, IME or not
+	// a touch screen's keyboard (gos_touch), for any field, IME or not; a
+	// screen keyboard (VR) keeps clear of the field
+	if ( bHasFocus && Environment.screenHeight > 0 )
+		gos_TouchTextInputField( (float)globalY() / Environment.screenHeight,
+			( globalY() + height() ) / Environment.screenHeight );
 	if ( bHasFocus || bFocusSave )
 		gos_TouchTextInput( bHasFocus );
 

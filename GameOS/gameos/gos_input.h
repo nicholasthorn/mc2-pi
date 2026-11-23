@@ -60,6 +60,10 @@ bool moveVirtualPointer(float x, float y);
 // the pointer is off the interface: the cursor stays, the buttons go up
 void clearVirtualPointer();
 void setVirtualKey(int scancode, bool down);
+// the screen keyboard (gos_screen_keyboard) took this sample's press of a
+// mouse button: the game sees the button up. Called after updateMouseState,
+// on every sample until the button is let go.
+void hideButton(int index);
 // virtual wheel steps, added to the mouse's own at the next
 // updateMouseState: positive is the wheel turned up
 void addVirtualWheel(float steps);
