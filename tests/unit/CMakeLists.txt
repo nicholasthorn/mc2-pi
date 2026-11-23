@@ -60,6 +60,7 @@ add_executable(mc2_tests
     test_screen_fit.cpp
     test_log_file.cpp
     test_csvfield.cpp
+    test_asecolour.cpp
     test_estring.cpp
     test_wave_parse.cpp
     test_pqueue.cpp

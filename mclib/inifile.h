@@ -154,6 +154,17 @@ class FitIniFile : public File
 		long readIdULong (const char *varName, uint64_t &value);
         // sebi
 		long readIdULong (const char *varName, DWORD &value);
+#ifdef __APPLE__
+		// uint64_t is unsigned long long on macOS, not unsigned long as on
+		// Linux, so legacy callers passing unsigned long need their own overload
+		long readIdULong (const char *varName, unsigned long &value)
+		{
+			uint64_t v = value;
+			long result = readIdULong(varName, v);
+			value = (unsigned long)v;
+			return result;
+		}
+#endif
 		
 		long readIdShort (const char *varName, short &value);
 		long readIdUShort (const char *varName, unsigned short &value);

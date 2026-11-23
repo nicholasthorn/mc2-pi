@@ -536,6 +536,17 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
 - [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera
       prompt).
 
+## On a Mac (`future-features/MACOS.md`, branch `macos-port`)
+
+- [ ] **A mission on an M-series Mac** (GL, macOS GL 4.1). Homebrew `sdl2 sdl2_mixer sdl2_ttf glew
+      ninja cmake`, then the Linux desktop GL build commands with
+      `-DCMAKE_PREFIX_PATH="$(brew --prefix)"`; game data built on any machine and copied over.
+      `./mc2 -mission mc2_01 -autoexit 3000` from the game directory: it should reach `[AUTOEXIT]`
+      with no `OpenGL Error` or shader compile errors in the output, and the fog and mech lighting
+      should look as on Linux (they come from the `SceneData` block that macOS binds by name).
+      Then a few minutes played by hand: mouse, right click (two-finger tap), keyboard, sound.
+      Note the macOS version and the chip.
+
 ## Releases (`RELEASES.md`)
 
 - [ ] **Windows full zip** (`release-full`). On a Windows PC with nothing

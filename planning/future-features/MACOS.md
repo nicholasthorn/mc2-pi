@@ -1,7 +1,48 @@
 # macOS on Apple silicon (M-series)
 
-Status: proposed, nothing built, not tried on a Mac. Everything about how the
-game runs there is a prediction until a first build runs.
+Status: steps 1 and 2 started (branch `macos-port`), not yet tried on a Mac.
+Everything about how the game runs there is a prediction until a first build
+runs on one.
+
+## Done so far
+
+- **Build:** `if(APPLE)` in the top-level `CMakeLists.txt`: a stand-in
+  `<malloc.h>` (`GameOS/compat/macos/`, for the legacy files that include it for
+  `alloca`), `GL_SILENCE_DEPRECATION`, the resource library keeps its `.so` name
+  (the game `dlopen`s `./libmc2res_64.so`), and `MC2_GLES` is refused.
+- **CI:** a `macos-15` arm64 job in `ci.yml` builds everything with Homebrew's
+  SDL2 and GLEW, runs the unit tests, and builds the stock game data with the
+  data tools (`build_gamedata.sh --no-movies`, about a minute), uploading
+  sha256 lists of the files and of the files inside each `.fst`
+  (`scripts/fst_manifest.py`).
+- **Game data built on a Mac, against Linux** (mc2srcdata `643a676f`), compared
+  file by file and, for the models, field by field:
+  - identical: every file outside `tgl.fst`, except 12 font bitmaps that
+    `text_tool` renders through FreeType (a different build on each machine);
+  - animations (`.agl`): same structure and positions; quaternions within
+    0.0012 (under 0.14 degrees), float rounding;
+  - models (`.tgl`): positions, UVs and face normals identical, vertex normals
+    within 1.8e-7. Vertex colours differed in 1192 vertices of 91 models: 222
+    stock models hold colours far outside 0..1, whose conversion was undefined
+    (x86 wraps, arm64 clamps). `aseColourToChannel()` (`mclib/asecolour.h`) now
+    gives the x86 result everywhere, so the shipped look is unchanged;
+  - `tgl.fst` never matches byte for byte, even between two Linux runs:
+    `aseconv` writes uninitialised bytes (struct padding, past a name's
+    terminator) that the game never reads.
+- The comparison with Linux was done by hand for PR #180; CI only checks the
+  macOS data build runs and keeps the lists. Comparing automatically would need
+  smoke.yml's Linux lists (skipping `.tgl`); not done.
+- **GL 4.1:** a forward-compatible core context on macOS (`gos_render.cpp`); the
+  debug-output callback only where `GL_ARB_debug_output` exists; and
+  `buildShaderHeader()` now accepts GLSL 3.30+ without 420pack, emitting the
+  driver's `#version` plus `#define MC2_NO_LAYOUT_BINDING 1`. Under that define
+  the two uniform blocks drop `binding=`: `SceneData` is already bound by name
+  (`gos_SetRenderMaterialUniformBlockBindingPoint` in `mclib/txmmgr.cpp`), and
+  `mesh_data` is never read. No sampler uses `binding=`.
+  `validate_shaders.py` checks GLSL 3.30 and 4.10 in this form.
+- **Tried without a Mac:** Mesa told to look like macOS
+  (`MESA_GL_VERSION_OVERRIDE=4.1`, `MESA_GLSL_VERSION_OVERRIDE=410`, 420pack and
+  debug output switched off) takes the new path on Linux; see the PR for the run.
 
 ## Problem
 
@@ -84,12 +125,13 @@ Homebrew casks are a later option, and do not avoid this.
 | Step | What | Done when |
 |---|---|---|
 | 1 | Build on macOS: fix what the compiler finds, behind `__APPLE__` or in GameOS | CI job green, unit tests pass |
-| 2 | OpenGL 4.1: context, `#version 410`, bindings in C++, validator | A mission runs on an M-series Mac, and GL and GLES are unchanged on Linux |
+| 2 | OpenGL 4.1: context, `#version 410`, bindings without `binding=`, validator (code done, Mac run outstanding) | A mission runs on an M-series Mac, and GL and GLES are unchanged on Linux |
 | 3 | `.app`: bundled libraries, data, Application Support step | Runs from `/Applications` on a Mac with no Homebrew; saves survive an update |
 | 4 | DMG in `release.yml`, ad-hoc signed; `INSTALL.md` | A downloaded DMG opens through Open Anyway |
 | 5 | Optional: notarization | No Gatekeeper dialog |
 
-**Steps 2 to 5 need an M-series Mac by hand.** Without one, only step 1 can be done
+**Steps 2 to 5 need an M-series Mac by hand.** A brief for an agent on a Mac,
+including where to get game data, is in `MACOS-FIRST-RUN.md`. Without one, only step 1 can be done
 with confidence.
 
 ## Open questions

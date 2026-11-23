@@ -5,7 +5,8 @@ Mirrors how gameos builds them at runtime: #include lines are expanded
 relative to the including file, then the header buildShaderHeader() picks
 (gameos_graphics.cpp) and each material-variant #define are prepended.
 Every *.vert / *.frag is checked as GLSL ES 3.10 (the MC2_GLES / Raspberry Pi
-path) and desktop GLSL 4.20, with glslangValidator.
+path), desktop GLSL 4.20, GLSL 3.30 with 420pack, and GLSL 3.30 / 4.10
+without it (macOS), with glslangValidator.
 
 usage: scripts/validate_shaders.py [shaders_dir]     (exit 1 on any failure)
 """
@@ -25,6 +26,10 @@ HEADERS = {
     # emits the driver's own version; 330 is the lowest it accepts.
     "gl330_420pack": "#version 330\n"
                      "#extension GL_ARB_shading_language_420pack : require\n",
+    # GLSL 3.30+ without 420pack (macOS GL 4.1 reports 410): no
+    # layout(binding=); again the driver's own version, 330 the lowest.
+    "gl330": "#version 330\n#define MC2_NO_LAYOUT_BINDING 1\n",
+    "gl410": "#version 410\n#define MC2_NO_LAYOUT_BINDING 1\n",
 }
 # material variants compiled by gosRenderer::init()
 VARIANTS = [[], ["ALPHA_TEST"]]
