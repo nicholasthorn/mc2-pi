@@ -93,7 +93,8 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       gained, then lost, with no Alt+Tab between), so after Alt+Tab back or a click the game had
       no focus, ignored input and showed the cursor; and a grab never held the pointer in a
       window there. With no grab (`MC2_NO_MOUSE_GRAB=1`), Alt+Tab away and back worked, focus
-      following only the person's own switches. The game now never grabs in WSL.
+      following only the person's own switches. The game now never grabs in WSL, and with that
+      build (92187fa5, no switch) Alt+Tab away and back worked too.
 - [ ] **Mouse grab unchanged off WSL** (#179, GL). On Windows and on native Linux: in a mission,
       the mouse is held in the window, and after Alt+Tab away and back it is held again. The log
       has no "the mouse is never grabbed" line.
