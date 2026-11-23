@@ -190,6 +190,18 @@ if(MC2_NET)
     add_definitions(-DMC2_NET)
 endif()
 
+# macOS, Apple Silicon first (planning/future-features/MACOS.md)
+if(APPLE)
+    if(MC2_GLES)
+        message(FATAL_ERROR "MC2_GLES is not wired for macOS: use desktop GL (GL 4.1 core)")
+    endif()
+    # macOS has no <malloc.h>, which legacy files include for alloca(): a
+    # stand-in, so those files stay untouched
+    include_directories(BEFORE SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/GameOS/compat/macos")
+    # Apple marks OpenGL deprecated, which would warn on every GL call
+    add_definitions(-DGL_SILENCE_DEPRECATION)
+endif()
+
 add_subdirectory("./mclib/" "./out/mclib")
 add_subdirectory("./mclib/mlr" "./out/mclib/mlr")
 add_subdirectory("./mclib/gosfx" "./out/mclib/gosfx")
@@ -374,6 +386,11 @@ if(MC2_NET)
 endif()
 
 add_subdirectory("./res" "./out/res")
+if(APPLE)
+    # the game dlopen()s "./libmc2res_64.so" (code/mechcmd2.cpp); keep that
+    # name rather than macOS's .dylib
+    set_target_properties(mc2res_64 PROPERTIES SUFFIX ".so")
+endif()
 # Android builds the game only; the data is built on a PC and pushed
 if(NOT ANDROID)
     add_subdirectory("./data_tools" "./out/data_tools")

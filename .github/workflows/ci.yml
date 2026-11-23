@@ -207,6 +207,33 @@ jobs:
           path: dist
           retention-days: 14
 
+  # Apple Silicon, desktop GL 4.1 (planning/future-features/MACOS.md).
+  # Build and unit tests only: the hosted runners have no GPU for missions.
+  macos:
+    name: macOS arm64 Apple Clang (desktop GL)
+    needs: changes
+    if: needs.changes.outputs.skip != 'true'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install dependencies
+        run: brew install ninja ccache sdl2 sdl2_mixer sdl2_ttf glew
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: macos-15-arm64
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+      - name: Build
+        run: cmake --build build
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+
   windows:
     name: Windows x64 MSVC (desktop GL)
     needs: changes
