@@ -140,6 +140,20 @@ void aListBox::update()
 			::helpTextID = helpID;
 		}
 
+		//the mouse wheel (on the Quest, the right stick: gos_xr) scrolls the
+		//list under the mouse, an item's height a step, at most a third of
+		//the list; the scroll bar moves the items (aMSG_SCROLLTO)
+		const long wheelSteps = userInput->getMouseWheelDelta() / 100;
+		if ( bInside && wheelSteps && scrollBar && scrollBar->GetScrollMax() > 0 )
+		{
+			float step = height() / 3.f;
+			if ( itemCount && items[0]->height() > 0 && items[0]->height() < step )
+				step = items[0]->height();
+			if ( step < 1.f )
+				step = 1.f;
+			scrollBar->SetScroll( (long)(scrollBar->GetScrollPos() + wheelSteps * step) );
+		}
+
 		for ( int i = 0; i < itemCount; i++ )
 		{
 			if ( bInside &&

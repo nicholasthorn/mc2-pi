@@ -297,6 +297,30 @@ uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint3
     return actions;
 }
 
+int scrollSteps(StickScroll& scroll, float stickY, double seconds)
+{
+    const int direction = axisDirection(stickY, scroll.direction > 0, scroll.direction < 0);
+    if(direction == 0) {
+        scroll.direction = 0;
+        return 0;
+    }
+    // a new push, or straight over to the other way: a step at once
+    if(direction != scroll.direction) {
+        scroll.direction = direction;
+        scroll.next = seconds + kScrollDelay;
+        return direction;
+    }
+    int steps = 0;
+    while(seconds >= scroll.next && steps < kScrollMaxSteps) {
+        ++steps;
+        scroll.next += 1.0 / kScrollRate;
+    }
+    // a long frame: carry on at the rate from now, not with a backlog
+    if(seconds >= scroll.next)
+        scroll.next = seconds + 1.0 / kScrollRate;
+    return direction * steps;
+}
+
 uint32_t pressEvents(PressPattern& press, bool down, double seconds, bool hasLong)
 {
     uint32_t events = 0;

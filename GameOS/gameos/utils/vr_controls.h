@@ -115,6 +115,21 @@ enum : uint32_t {
 };
 uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint32_t previous);
 
+// A list scrolled with a stick (the right one, pointing at the interface):
+// held up or down it gives mouse wheel steps, positive up, as a wheel turned
+// away from you. One step as it passes the camera's threshold (above), then
+// after kScrollDelay seconds kScrollRate a second while it is held; a long
+// frame gives at most kScrollMaxSteps.
+const double kScrollDelay = 0.4;
+const double kScrollRate = 8.0;
+const int kScrollMaxSteps = 3;
+struct StickScroll {
+    int direction = 0;      // 1 up, -1 down, 0 not scrolling
+    double next = 0.0;      // when the next repeat is due
+};
+// The wheel steps for this frame, given the stick's y and the time in seconds.
+int scrollSteps(StickScroll& scroll, float stickY, double seconds);
+
 // Press patterns on a tap button (one with no job while held): a click, a
 // double click (a second press within kDoubleClick seconds of a click's
 // release) and a long press (held kLongPress seconds). A button without a
