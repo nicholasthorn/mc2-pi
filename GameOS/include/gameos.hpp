@@ -2082,6 +2082,10 @@ void __stdcall gos_TouchTextInputField( float top, float bottom );
 // away when its field stops updating without letting go of the focus (its
 // dialog closed with Escape, say).
 void __stdcall gos_TouchTextInputActive();
+// Puts the screen keyboard away, as its Close key does: the field keeps the
+// focus, and a click on it brings the keyboard back. For a field focused
+// where nothing need be typed. Android's keyboard is left as it is.
+void __stdcall gos_TouchTextInputClose();
 // GameOS's screen keyboard, for the game to draw over everything else: its
 // panel and its keys as shares of the screen (0 to 1), each with its label
 // and state (0 a key, 1 under the pointer, 2 on: Shift, or just pressed).

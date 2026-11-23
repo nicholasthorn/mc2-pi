@@ -181,6 +181,7 @@ struct State {
     // group); see the controls in planning/future-features/VR-TABLETOP.md
     vr_controls::PressPattern rightStickPress;
     vr_controls::Chord groupChord;
+    vr_controls::Chord chatChord;     // Y + right stick click: chat (Return)
     vr_controls::TapQueue taps;     // the keys those press, held until the game reads them
     uint32_t stickActions = 0;
     bool pointerHeld = false;       // a button went down with the pointer on a target
@@ -623,11 +624,12 @@ void setKeys(uint32_t camera, const bool buttons[BUTTON_COUNT], const vr_control
     const bool orders = g.ordersAge < kOrdersFrames;
     // X stays up while it is the modifier of a chord
     input::setVirtualKey(SDL_SCANCODE_SPACE, orders && buttons[BUTTON_X] && !g.groupChord.modifierUsed);
-    input::setVirtualKey(SDL_SCANCODE_J, orders && buttons[BUTTON_Y]);
+    input::setVirtualKey(SDL_SCANCODE_J, orders && buttons[BUTTON_Y] && !g.chatChord.modifierUsed);
     input::setVirtualKey(SDL_SCANCODE_F, orders && buttons[BUTTON_LEFT_STICK]);
     // taps are queued only while a mission takes orders
     input::setVirtualKey(SDL_SCANCODE_E, tap && tap->key == SDL_SCANCODE_E);
     input::setVirtualKey(SDL_SCANCODE_GRAVE, tap && tap->key == SDL_SCANCODE_GRAVE);
+    input::setVirtualKey(SDL_SCANCODE_RETURN, tap && tap->key == SDL_SCANCODE_RETURN);
     input::setVirtualKey(SDL_SCANCODE_ESCAPE, buttons[BUTTON_MENU]);
 }
 
@@ -651,6 +653,7 @@ void releaseInput()
     setKeys(0, none, nullptr);
     g.rightStickPress = vr_controls::PressPattern();
     g.groupChord = vr_controls::Chord();
+    g.chatChord = vr_controls::Chord();
     g.taps = vr_controls::TapQueue();
     parkPointer();
     g.stickActions = 0;
@@ -1504,13 +1507,16 @@ void pollInput()
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)
         ++g.ordersAge;
-    // the right stick click: X held makes it a chord; otherwise its patterns.
-    // Click: select visible (E); double click: next force group (`); long
-    // press: new group (ctrl + `); with X: previous group (shift + `).
+    // the right stick click: X or Y held makes it a chord; otherwise its
+    // patterns. Click: select visible (E); double click: next force group
+    // (`); long press: new group (ctrl + `); with X: previous group
+    // (shift + `); with Y: chat (Return, in multiplayer: the screen keyboard
+    // shows for the message, and its Enter sends it).
     const double now = (double)g.frame.predictedDisplayTime * 1e-9;
     const bool previousGroup = vr_controls::chordPress(g.groupChord, buttons[BUTTON_X], buttons[BUTTON_RIGHT_STICK]);
+    const bool chat = vr_controls::chordPress(g.chatChord, buttons[BUTTON_Y], buttons[BUTTON_RIGHT_STICK]);
     const uint32_t press = vr_controls::pressEvents(g.rightStickPress,
-            buttons[BUTTON_RIGHT_STICK] && !g.groupChord.buttonInChord, now, true);
+            buttons[BUTTON_RIGHT_STICK] && !g.groupChord.buttonInChord && !g.chatChord.buttonInChord, now, true);
     if(g.ordersAge < kOrdersFrames) {
         auto push = [](int key, bool shift, bool ctrl) {
             vr_controls::KeyTap tap;
@@ -1527,6 +1533,8 @@ void pollInput()
             push(SDL_SCANCODE_GRAVE, true, false);      // previous group
         if(press & vr_controls::PRESS_LONG)
             push(SDL_SCANCODE_GRAVE, false, true);      // new group
+        if(chat)
+            push(SDL_SCANCODE_RETURN, false, false);    // chat
     }
     setKeys(g.stickActions, buttons, vr_controls::currentTap(g.taps, input::keyboardSamples()));
     g.pointerVisible = true;

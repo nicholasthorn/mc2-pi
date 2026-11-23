@@ -58,16 +58,22 @@ static_assert(12 + 10 + 10 + 9 + 2 == Keyboard::kKeys, "every key in a row");
 // shares of the screen
 const float kLeft = 0.08f;
 const float kWidth = 0.84f;
-const float kHeight = 0.40f;
+const float kHeight = 0.38f;
 const float kEdge = 0.02f;      // from the top or bottom of the screen
+const float kFieldGap = 0.015f; // from the field
 const float kPad = 0.012f;      // inside the panel, round the keys
 const float kGap = 0.004f;      // between keys, each side
 
 } // namespace
 
-void Keyboard::layout(bool top)
+void Keyboard::layout(float fieldTop, float fieldBottom)
 {
-	panel_ = Rect{kLeft, top ? kEdge : 1.0f - kEdge - kHeight, kWidth, kHeight};
+	float y = 0.5f * (fieldTop + fieldBottom) > 0.5f ? fieldTop - kFieldGap - kHeight : fieldBottom + kFieldGap;
+	if(y > 1.0f - kEdge - kHeight)
+		y = 1.0f - kEdge - kHeight;
+	if(y < kEdge)
+		y = kEdge;
+	panel_ = Rect{kLeft, y, kWidth, kHeight};
 
 	// the widest row fills the panel; the others are centred
 	float widest = 0.0f;
@@ -145,6 +151,64 @@ Press Keyboard::press(int key)
 		break;
 	}
 	return p;
+}
+
+Visibility::Change Visibility::focus(bool on)
+{
+	if(!on) {
+		pending_ = true;
+		pendingSamples_ = 0;
+		return None;
+	}
+	pending_ = false;
+	if(shown_)
+		return None;
+	shown_ = true;
+	seen_ = false;
+	updated_ = false;
+	missed_ = 0;
+	return Shown;
+}
+
+void Visibility::close()
+{
+	shown_ = false;
+	pending_ = false;
+}
+
+Visibility::Change Visibility::sample()
+{
+	Change change = None;
+	if(pending_ && !shown_) {
+		pending_ = false;
+	} else if(pending_ && pendingSamples_++ > 0) {
+		// a field updated with the focus since the first sample: another
+		// field took it, in the same frame as this one let go
+		pending_ = false;
+		if(!updated_) {
+			shown_ = false;
+			change = Hidden;
+		}
+	}
+	if(shown_) {
+		if(updated_) {
+			seen_ = true;
+			missed_ = 0;
+		} else if(seen_ && ++missed_ >= kMissedSamples) {
+			shown_ = false;
+			change = FieldGone;
+		}
+	}
+	updated_ = false;
+	return change;
+}
+
+uint32_t ButtonTaker::sample(uint32_t pressed, uint32_t down, bool onKeyboard, bool& leftPress)
+{
+	const uint32_t taking = onKeyboard ? (pressed & down & ~taken_) : 0u;
+	leftPress = (taking & 1u) != 0;
+	taken_ = (taken_ | taking) & down;
+	return taken_;
 }
 
 } // namespace screen_kb

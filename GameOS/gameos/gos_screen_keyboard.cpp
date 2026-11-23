@@ -25,29 +25,17 @@ static_assert(screen_kb::kScanLShift == SDL_SCANCODE_LSHIFT, "screen keyboard sc
 namespace {
 
 screen_kb::Keyboard g_keyboard;
-bool g_shown = false;
-// a field let go of the focus: hidden at the next sample unless another
-// field takes it first (one frame's fields update in no set order)
-bool g_hidePending = false;
-// the field taking the focus is in the screen's lower half: the keyboard
-// goes along the top
-bool g_top = false;
-// the focused field's updates since the keyboard showed: once one has come
-// (a dialog's field starts updating only after its opening animation), this
-// many samples in a row without one hide it
-const int kMissedSamples = 4;
-bool g_fieldSeen = false;
-bool g_fieldActive = false;
-int g_fieldMissed = 0;
+screen_kb::Visibility g_visibility;
+screen_kb::ButtonTaker g_buttons;
+// the field taking the focus, as shares of the screen's height
+float g_fieldTop = 0.0f;
+float g_fieldBottom = 0.0f;
 // keys pressed at the last sample, to go up at this one (0: none)
 int g_down[2] = {0, 0};
 // a pressed key shows lit for a few samples
 const int kFlashSamples = 5;
 int g_flashKey = -1;
 int g_flashSamples = 0;
-// mouse buttons whose press began on the keyboard: hidden from the game
-// until they are let go, even if the keyboard went away meanwhile
-uint32_t g_taken = 0;
 
 bool forced()
 {
@@ -60,11 +48,9 @@ void pointer(float& x, float& y)
     gos_GetMouseInfo(&x, &y, nullptr, nullptr, nullptr, nullptr);
 }
 
-void hide()
+void hidden(const char* why)
 {
-    if(g_shown)
-        printf("[KEYBOARD] hidden\n");
-    g_shown = false;
+    printf("[KEYBOARD] hidden (%s)\n", why);
     g_keyboard.reset();
 }
 
@@ -85,8 +71,10 @@ void press(int key)
             g_down[1] = screen_kb::kScanLShift;
         }
     }
-    if(p.close)
-        hide();
+    if(p.close && g_visibility.shown()) {
+        g_visibility.close();
+        hidden(p.scancode ? "Enter" : "Close");
+    }
 }
 
 void fill(gosScreenKey& out, const screen_kb::Rect& r, const char* label, int state)
@@ -110,47 +98,45 @@ bool wanted()
 
 void fieldArea(float top, float bottom)
 {
-    g_top = 0.5f * (top + bottom) > 0.5f;
+    g_fieldTop = top;
+    g_fieldBottom = bottom;
 }
 
 void show(bool on)
 {
-    g_hidePending = !on;
-    if(!on)
-        return;
     // again too: a field clicked while it has the focus brings the
-    // keyboard back after Close or Enter
-    g_keyboard.layout(g_top);
-    if(!g_shown) {
+    // keyboard back after Close or Enter, next to wherever it is
+    if(on)
+        g_keyboard.layout(g_fieldTop, g_fieldBottom);
+    if(g_visibility.focus(on) == screen_kb::Visibility::Shown)
         printf("[KEYBOARD] shown\n");
-        g_fieldSeen = false;
-        g_fieldActive = false;
-        g_fieldMissed = 0;
-    }
-    g_shown = true;
 }
 
 void fieldActive()
 {
-    g_fieldActive = true;
+    g_visibility.fieldUpdated();
+}
+
+void close()
+{
+    if(g_visibility.shown()) {
+        g_visibility.close();
+        hidden("closed by the game");
+    }
 }
 
 void sample()
 {
-    if(g_hidePending) {
-        g_hidePending = false;
-        hide();
+    switch(g_visibility.sample()) {
+    case screen_kb::Visibility::Hidden:
+        hidden("focus lost");
+        break;
+    case screen_kb::Visibility::FieldGone:
+        hidden("its field stopped updating");
+        break;
+    default:
+        break;
     }
-    if(g_shown) {
-        if(g_fieldActive) {
-            g_fieldSeen = true;
-            g_fieldMissed = 0;
-        } else if(g_fieldSeen && ++g_fieldMissed >= kMissedSamples) {
-            printf("[KEYBOARD] its field stopped updating\n");
-            hide();
-        }
-    }
-    g_fieldActive = false;
     for(int& key : g_down) {
         if(key) {
             input::setVirtualKey(key, false);
@@ -161,32 +147,33 @@ void sample()
         --g_flashSamples;
 
     const input::MouseInfo* mi = input::getMouseInfo();
+    uint32_t pressed = 0, down = 0;
+    for(int b = 0; b < input::MouseInfo::NUM_BUTTONS; ++b) {
+        const input::KeyState state = mi->button_state_[b];
+        if(state == input::KS_PRESSED)
+            pressed |= 1u << b;
+        if(state == input::KS_PRESSED || state == input::KS_HELD)
+            down |= 1u << b;
+    }
     float x = 0.0f, y = 0.0f;
     pointer(x, y);
-    for(int b = 0; b < input::MouseInfo::NUM_BUTTONS; ++b) {
-        const uint32_t bit = 1u << b;
-        const input::KeyState state = mi->button_state_[b];
-        if(!(g_taken & bit) && g_shown && state == input::KS_PRESSED && g_keyboard.contains(x, y)) {
-            g_taken |= bit;
-            if(b == 0)
-                press(g_keyboard.hit(x, y));
-        }
-        if(g_taken & bit) {
-            // hidden, the button reads as just pressed each sample it is
-            // held, and as free once it is let go
-            if(state == input::KS_FREE || state == input::KS_RELEASED)
-                g_taken &= ~bit;
-            else
-                input::hideButton(b);
-        }
-    }
+    bool leftPress = false;
+    const bool onKeyboard = g_visibility.shown() && g_keyboard.contains(x, y);
+    const uint32_t hide = g_buttons.sample(pressed, down, onKeyboard, leftPress);
+    if(leftPress)
+        press(g_keyboard.hit(x, y));
+    // hidden, a held button reads as just pressed at each sample, and as
+    // free once it is let go
+    for(int b = 0; b < input::MouseInfo::NUM_BUTTONS; ++b)
+        if(hide & (1u << b))
+            input::hideButton(b);
 }
 
 } // namespace gos_screen_keyboard
 
 int __stdcall gos_GetScreenKeyboard(gosScreenKey* panel, gosScreenKey* keys, int maxKeys)
 {
-    if(!g_shown)
+    if(!g_visibility.shown())
         return 0;
     float x = 0.0f, y = 0.0f;
     pointer(x, y);

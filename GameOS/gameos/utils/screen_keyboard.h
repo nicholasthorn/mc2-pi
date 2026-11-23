@@ -11,8 +11,12 @@
 // Letters, digits, space, '-', '.', Backspace and Enter; Shift capitalises
 // the next letter (one shot, as on a phone). Enter and Close put it away;
 // the field keeps its focus, and a click on it brings the keyboard back.
+// (A field lets go of the focus on Return, and a dialog then takes Return as
+// its OK, so Enter also confirms a dialog.)
 //
 // Positions are shares of the game's screen (0 to 1), y down.
+
+#include <cstdint>
 
 namespace screen_kb {
 
@@ -47,9 +51,11 @@ class Keyboard {
 public:
 	static const int kKeys = 43;
 
-	// along the bottom of the screen, or along the top when the field being
-	// typed in would be under it
-	void layout(bool top);
+	// next to the field being typed in (top and bottom as shares of the
+	// screen's height): below it when it is in the upper half of the screen,
+	// above it otherwise, so the rest of a dialog (its buttons) stays clear
+	// where it can
+	void layout(float fieldTop, float fieldBottom);
 	Rect panel() const { return panel_; }
 	Rect rect(int key) const { return rects_[key]; }
 	// as it reads now: letters in capitals while Shift is on
@@ -68,6 +74,55 @@ private:
 	Rect panel_ = {};
 	Rect rects_[kKeys] = {};
 	bool shift_ = false;
+};
+
+// Whether the keyboard shows. A field taking the focus shows it. A field
+// letting go hides it one sample later, unless a field takes the focus
+// meanwhile or a focused field updates after the first sample: one frame's
+// fields update in no set order, so the field clicked can take the focus
+// before the one it replaces lets go of it. A focused field
+// that stops updating without letting go (its dialog closed with Escape)
+// hides it too: once the field has updated (a dialog's fields start after
+// its opening animation), kMissedSamples samples in a row without an update.
+class Visibility {
+public:
+	static const int kMissedSamples = 4;
+	enum Change { None, Shown, Hidden, FieldGone };
+
+	// a field took (true) or lost (false) the focus: Shown when it was hidden
+	Change focus(bool on);
+	// the focused field updated
+	void fieldUpdated() { updated_ = true; }
+	// Close or Enter on the keyboard: hidden at once; the field keeps the focus
+	void close();
+	bool shown() const { return shown_; }
+	// at each input sample: Hidden or FieldGone when it goes now
+	Change sample();
+
+private:
+	bool shown_ = false;
+	bool pending_ = false;  // the focus was let go
+	int pendingSamples_ = 0;
+	bool seen_ = false;     // the field has updated since it showed
+	bool updated_ = false;  // ... since the last sample
+	int missed_ = 0;
+};
+
+// The pointer's buttons over the keyboard. A press that starts on the shown
+// keyboard is the keyboard's, not the game's, until it is let go, even if
+// the keyboard goes away meanwhile (Close, Enter): the game sees the button
+// up all along. Buttons as bits (0 left, 1 middle, 2 right).
+class ButtonTaker {
+public:
+	// at each input sample: the buttons that went down at this sample and
+	// those down (just pressed or held), and whether the pointer is on the
+	// shown keyboard. Returns the buttons to hide from the game; leftPress
+	// says this sample's left press is the keyboard's (a key, if one is under
+	// the pointer).
+	uint32_t sample(uint32_t pressed, uint32_t down, bool onKeyboard, bool& leftPress);
+
+private:
+	uint32_t taken_ = 0;
 };
 
 } // namespace screen_kb

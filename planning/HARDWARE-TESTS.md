@@ -323,19 +323,16 @@ The interface only rests in a headset session, so no desktop run covers it.
 
 - [x] **Keyboard for text fields** (branch `quest-keyboard`, PR 181). 2026-11-23, Quest 2:
       "works well". The log shows it shown and hidden twice in the menus, then a LAN game hosted and
-      mc2_m02a launched, with no errors. Not yet checked one by one: the TCP/IP address (#179), mech
-      lab variant names, save names, chat in a mission. Click into a text field: the
-      host dialog's game name (Multiplayer, Local network, Host), the TCP/IP tab's address,
-      the player name on the prefs screen, a mech variant name in the mech lab, a save game
-      name, and chat in a mission. A keyboard shows over the interface (`[KEYBOARD] shown` in
-      `mc2.log`), along the bottom, or along the top when the field is in the lower half.
-      The trigger on a key types it into the field. Shift capitalises one letter, and Back
-      deletes. Enter presses Return and closes the keyboard, and Close only closes it.
-      Clicking the field brings the keyboard back, and clicking outside the field hides it.
-      Clicks on the keyboard must never reach the screen behind it: no button pressed, and
-      the field keeps its focus. Are the keys big enough to hit with the beam, and are the
-      labels readable? In a mission, does the keyboard redraw at the game's step rate
-      without flicker?
+      mc2_m02a launched, with no errors.
+- [ ] **Keyboard, after review** (PR 181, later commits; not yet in a headset). Fields: the TCP/IP
+      address (#179), a mech lab variant name, a save name. The keyboard now sits right next to
+      the field (below it in the top half of the screen, above it in the bottom half): is the
+      dialog's Cancel button still in view, and does Enter save or confirm the dialog? The Load Game
+      dialog opens without the keyboard; clicking its name field brings it up. Open a dialog with a
+      field, then close it with the left menu button (Escape): the keyboard goes with it
+      (`[KEYBOARD] hidden (its field stopped updating)`). Clicking from one field to another
+      keeps it up. In a multiplayer mission, Y + right stick click opens chat (Y alone still jumps),
+      the keyboard shows, and Enter sends the message.
 
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 

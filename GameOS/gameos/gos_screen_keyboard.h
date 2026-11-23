@@ -20,6 +20,8 @@ void show(bool on);
 // the field with the focus updated: while the keyboard is up, a field that
 // stops updating (its screen went away) takes the keyboard with it
 void fieldActive();
+// put away, the field keeping the focus (gos_TouchTextInputClose)
+void close();
 // at each input sample, after the mouse's update and before the keyboard's:
 // takes a press on the keyboard from the game and presses its key
 void sample();

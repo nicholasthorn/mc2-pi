@@ -766,7 +766,9 @@ mouse and keyboard inside GameOS, so the game's input code is unchanged:
   double clicked it selects the next force group, held 0.5 s it makes the
   selection a new group, and with X held it selects the previous group
   (2026-11-13, `vr_controls::pressEvents` / `chordPress`, sending grave with
-  Shift or Ctrl; X's Space is held back once it is a chord's modifier). Each
+  Shift or Ctrl; X's Space is held back once it is a chord's modifier). With Y
+  held it opens multiplayer chat (Return, 2026-11-23; Y's J is held back the
+  same way), and the screen keyboard shows for the message. Each
   such key is held, with its own Shift, until the game reads the keyboard
   (`vr_controls::TapQueue`), and the camera keys pause meanwhile. The Quest sends the default
   keys (grave with Shift or Ctrl), so rebinding those commands in the
