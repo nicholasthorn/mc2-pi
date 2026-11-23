@@ -808,9 +808,9 @@ void MPParameterScreen::update()
 	cLoadString( IDS_MP_PARAM_HOST_IP, str, 255 );
 	char IPAddressStr[256];
 	snprintf(IPAddressStr,sizeof(IPAddressStr), str, MPlayer->sessionIPAddress );
-	// a host in WSL: only this PC can use that address (the log says more)
-	static const bool inWsl = gos_net::runningInWsl();
-	if ( inWsl && MPlayer->isHost() && MPlayer->sessionIPAddress[0] )
+	// a host in WSL behind NAT: only this PC can use that address (the log says more)
+	static const bool behindNat = gos_net::wslBehindNat();
+	if ( behindNat && MPlayer->isHost() && MPlayer->sessionIPAddress[0] )
 		strncat( IPAddressStr, " (WSL)", sizeof(IPAddressStr) - strlen(IPAddressStr) - 1 );
 	textObjects[11].setText( IPAddressStr );
 

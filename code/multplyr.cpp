@@ -720,8 +720,8 @@ static void netSetSessionAddress (MultiPlayer* player, const char* joined) {
 		if (ip)
 			text = gos_net::LanSocket::addressText(ip);
 		printf("[NET] this machine's address on the network: %s\n", ip ? text.c_str() : "none");
-		if (gos_net::runningInWsl())
-			printf("[NET] this is WSL: unless its networking is mirrored, other machines can neither find this game nor reach this address; host on the other machine and join it by address from here\n");
+		if (gos_net::wslBehindNat())
+			printf("[NET] this is WSL with NAT networking: other machines can neither find this game nor reach this address; host on the other machine and join it by address (TCP/IP) from here, or turn on WSL's mirrored networking\n");
 		fflush(stdout);
 	}
 	strncpy(player->sessionIPAddress, text.c_str(), sizeof(player->sessionIPAddress) - 1);

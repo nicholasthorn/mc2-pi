@@ -42,9 +42,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Join by address from the screens** (TCP/IP tab). Host from the menu on a Quest (Multiplayer,
       Host): its parameters screen shows "Host IP address" with the headset's Wi-Fi address. On a PC,
       WSL included: Multiplayer, TCP/IP, type that address, Join. It should reach the Quest's lobby in
-      a few seconds and play. Also a PC host from the menu, in Windows or with WSL's networking
-      mirrored: its screen shows its LAN address, and the Quest finds it on Local Network. A WSL host
-      in NAT shows "(WSL)" after its address.
+      a few seconds and play (Join, or the Next arrow). A host's firewall must let in UDP 27816,
+      where it answers the search, as well as the game's port (27815 and up). Also a PC host from the menu, in Windows or with WSL's networking
+      mirrored: its screen shows its LAN address, with no "(WSL)", and the Quest finds it on Local
+      Network. A WSL host in NAT shows "(WSL)" after its address.
 - [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on
