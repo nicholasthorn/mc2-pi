@@ -110,7 +110,8 @@ Homebrew casks are a later option, and do not avoid this.
 | 4 | DMG in `release.yml`, ad-hoc signed; `INSTALL.md` | A downloaded DMG opens through Open Anyway |
 | 5 | Optional: notarization | No Gatekeeper dialog |
 
-**Steps 2 to 5 need an M-series Mac by hand.** Without one, only step 1 can be done
+**Steps 2 to 5 need an M-series Mac by hand.** A brief for an agent on a Mac,
+including where to get game data, is in `MACOS-FIRST-RUN.md`. Without one, only step 1 can be done
 with confidence.
 
 ## Open questions
