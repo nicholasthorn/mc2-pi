@@ -5,7 +5,8 @@ Mirrors how gameos builds them at runtime: #include lines are expanded
 relative to the including file, then the header buildShaderHeader() picks
 (gameos_graphics.cpp) and each material-variant #define are prepended.
 Every *.vert / *.frag is checked as GLSL ES 3.10 (the MC2_GLES / Raspberry Pi
-path) and desktop GLSL 4.20, with glslangValidator.
+path), desktop GLSL 4.20, GLSL 3.30 with 420pack, and GLSL 3.30 / 4.10
+without it (macOS), with glslangValidator.
 
 usage: scripts/validate_shaders.py [shaders_dir]     (exit 1 on any failure)
 """
