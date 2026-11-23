@@ -56,6 +56,7 @@ public:
 	bool	useNonWeaponEffects;
 	bool	useLocalShadows;
 	bool	asyncMouse;
+	bool	vrTabletop;	// the Quest's tabletop view (gos_SetVRTabletop)
 	long	fogPos;
 	char	bitDepth; // 0 == 16, 1 == 32
 

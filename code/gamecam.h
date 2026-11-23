@@ -42,6 +42,7 @@ class GameCamera : public Camera
 		virtual void init (void)
 		{
 			Camera::init();
+			vrTable = true;		//the tabletop's camera, not the briefing's or mech lab's
 			targetObject = NULL;
 			compass = NULL;
 			lastShadowLightPitch = 0.0f;

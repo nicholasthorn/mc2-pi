@@ -4,9 +4,11 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <vector>
 
 #include "gameos.hpp"
 #include "gos_input.h"
+#include "gos_ar.h"
 #include "gos_xr.h"
 #include "utils/str_bounded.h"
 #include "utils/touch_bar.h"
@@ -31,8 +33,14 @@ int g_ordersAge = kOrdersFrames;
 touch::Bar g_bar;
 bool g_barFingerDown = false;
 SDL_FingerID g_barFinger = 0;
-// the left button as the gestures last set it, to see an order end
+// the left button as the gestures last set it, to see an order end, and the
+// right, to see a press
 bool g_pointerLeft = false;
+bool g_pointerRight = false;
+// pointer events not yet given to the game: on a phone's tabletop, from a
+// press or release on, until the game has found the battle under it
+// (gos_ar::pointerFor)
+std::vector<touch::PointerEvent> g_waiting;
 // the touch screen started text input for a text field (gos_TouchTextInput),
 // which was off before, so it stops it when the field lets go
 bool g_textInput = false;
@@ -181,6 +189,8 @@ void mouseUsed(const SDL_Event* event)
         return;
     g_owns = false;
     g_pointerLeft = false;
+    g_pointerRight = false;
+    g_waiting.clear();
     input::clearVirtualPointer();
     g_bar.clear();
     setKeys(0, 0, touch::BarKeys());
@@ -191,6 +201,7 @@ void cancel()
     if(!g_enabled)
         return;
     g_gestures.cancel();
+    g_waiting.clear();
     g_bar.clear();
     g_barFingerDown = false;
 }
@@ -217,13 +228,30 @@ void poll()
     }
 
     g_gestures.update(now());
-    for(const touch::PointerEvent& e : g_gestures.takePointerEvents()) {
+    // a phone's tabletop, in a mission (only a mission picks the world): the
+    // pointer goes where the game found the battle under the finger
+    // (gos_ar::pointerFor), and a press or a release waits for that: a drag's
+    // box starts and ends under the finger
+    const std::vector<touch::PointerEvent> events = g_gestures.takePointerEvents();
+    g_waiting.insert(g_waiting.end(), events.begin(), events.end());
+    size_t done = 0;
+    for(; done < g_waiting.size(); ++done) {
+        const touch::PointerEvent& e = g_waiting[done];
+        float x = e.x, y = e.y;
+        const bool ready = !inMission() || gos_ar::pointerFor(e.x, e.y, x, y);
+        const bool buttons = e.left != g_pointerLeft || e.right != g_pointerRight;
+        if(buttons && !ready) {
+            input::moveVirtualPointer(x, y);
+            break;
+        }
         // bit 0 left, bit 2 right, as gos_GetMouseInfo reports them
-        input::setVirtualPointer(e.x, e.y, (e.left ? 1u : 0u) | (e.right ? 4u : 0u));
+        input::setVirtualPointer(x, y, (e.left ? 1u : 0u) | (e.right ? 4u : 0u));
         if(g_pointerLeft && !e.left)    // a click or a drag ended: an order
             g_bar.ordered();
         g_pointerLeft = e.left;
+        g_pointerRight = e.right;
     }
+    g_waiting.erase(g_waiting.begin(), g_waiting.begin() + (std::ptrdiff_t)done);
     const int step = g_gestures.takeWheelStep();
     if(step != 0)
         input::addVirtualWheel((float)step);

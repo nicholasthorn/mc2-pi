@@ -130,6 +130,10 @@ private:
     char            **resolutionModesStr;
     int             numResolutionModes;
 
+	//the Quest: "Tabletop view", a check box the layout has no place for
+	aAnimButton		tabletopButton;
+	bool			hasTabletopButton;
+
 };
 
 class OptionsAudio : public LogisticsScreen

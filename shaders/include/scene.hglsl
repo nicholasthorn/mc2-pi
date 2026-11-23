@@ -14,7 +14,12 @@ struct SceneData_t {
    vec4 vrEdge; // VR, mclib/vr_edge_fade.h: centre x, z, start, 1 / width; 0 otherwise
 };
 
+#ifdef MC2_NO_LAYOUT_BINDING
+// GLSL without layout(binding=) (macOS GL 4.1): mclib/txmmgr.cpp binds it by name
+layout (std140) uniform SceneData
+#else
 layout (binding = SCENE_DATA_ATTACHMENT_SLOT, std140) uniform SceneData
+#endif
 {
     SceneData_t g_scene;
 };

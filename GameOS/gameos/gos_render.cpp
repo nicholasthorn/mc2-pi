@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include "utils/graphics.h"
 #include "utils/logging.h"
+#include "gos_ar.h"
 #include "gos_xr.h"
 
 // FIXME: think how to make it better when different parts need window
@@ -119,7 +120,12 @@ RenderWindow* create_window(
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
+#ifdef __APPLE__
+    // macOS gives a core profile (GL 4.1) only to forward-compatible requests
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
 #endif
 	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, GL_CONTEXT_FLAG_DEBUG_BIT);
 
@@ -410,6 +416,8 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     rc->render_window_ = render_window;
 
 	gos_xr::init();
+	// a phone's tabletop (MC2_AR_TABLE=1)
+	gos_ar::init();
 
 	return rc;
 }
