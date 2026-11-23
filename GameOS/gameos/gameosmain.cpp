@@ -392,6 +392,15 @@ static void process_events( bool sample, bool reset ) {
                     g_focus_lost = false;
                     set_mouse_capture(true);
                     break;
+                // The pointer came over the window, which has focus (events are
+                // dropped above while it has not): take the mouse again. Under
+                // WSLg (X11 through XWayland) a grab is refused while the pointer
+                // is elsewhere, so the one at focus fails after Alt+Tab back and
+                // the mouse stayed free. Where a grab held, the pointer cannot
+                // leave, so this comes only after one failed; again is harmless.
+                case SDL_WINDOWEVENT_ENTER:
+                    set_mouse_capture(true);
+                    break;
             }
             break;
         case SDL_MOUSEMOTION:

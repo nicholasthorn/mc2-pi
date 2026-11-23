@@ -88,6 +88,12 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **Mouse taken back after Alt+Tab, WSLg** (#179, GL). In a mission from a WSL desktop
+      shortcut: Alt+Tab to another window, Alt+Tab back with the pointer outside the game's
+      window, then move it in. The game should take the mouse again (cursor hidden, held in
+      the window, edge scrolling works). Before, it stayed free until a restart. Also on
+      Windows and native Linux: Alt+Tab away and back still behaves as before.
+
 - [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
       `--no-movies` (the Windows `-full` package), play `mc2_01` until the first
       pilot message: no "insert the CD" box, and the video box beside the pilot
