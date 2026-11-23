@@ -29,6 +29,9 @@ runs on one.
   - `tgl.fst` never matches byte for byte, even between two Linux runs:
     `aseconv` writes uninitialised bytes (struct padding, past a name's
     terminator) that the game never reads.
+- The comparison with Linux was done by hand for PR #180; CI only checks the
+  macOS data build runs and keeps the lists. Comparing automatically would need
+  smoke.yml's Linux lists (skipping `.tgl`); not done.
 - **GL 4.1:** a forward-compatible core context on macOS (`gos_render.cpp`); the
   debug-output callback only where `GL_ARB_debug_output` exists; and
   `buildShaderHeader()` now accepts GLSL 3.30+ without 420pack, emitting the

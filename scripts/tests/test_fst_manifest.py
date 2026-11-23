@@ -64,6 +64,16 @@ class FstManifest(unittest.TestCase):
         with self.assertRaises(ValueError):
             list(fm.entries(self.path('cut.fst')))
 
+    def test_rejects_a_cut_header_or_table(self):
+        with open(self.path('empty.fst'), 'wb') as f:
+            f.write(bytes(1))
+        with self.assertRaises(ValueError):
+            list(fm.entries(self.path('empty.fst')))
+        with open(self.path('table.fst'), 'wb') as f:
+            f.write(struct.pack('<II', 0xCADDECAF, 3))
+        with self.assertRaises(ValueError):
+            list(fm.entries(self.path('table.fst')))
+
 
 if __name__ == '__main__':
     unittest.main()

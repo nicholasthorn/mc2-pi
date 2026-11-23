@@ -20,9 +20,13 @@ ENTRY = struct.Struct("<IIII250s")    # offset, size, realSize, hash, name
 def entries(path):
     with open(path, "rb") as f:
         data = f.read()
+    if len(data) < 8:
+        raise ValueError("%s: too short for an FST archive" % path)
     version, count = struct.unpack_from("<II", data, 0)
     if version not in VERSIONS:
         raise ValueError("%s: not an FST archive (version %#x)" % (path, version))
+    if len(data) < 8 + count * ENTRY.size:
+        raise ValueError("%s: entry table for %d files runs past the end" % (path, count))
     for i in range(count):
         offset, size, _real, _hash, name = ENTRY.unpack_from(data, 8 + i * ENTRY.size)
         name = name.split(b"\0", 1)[0].decode("latin-1")
