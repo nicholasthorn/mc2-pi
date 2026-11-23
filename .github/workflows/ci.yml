@@ -262,6 +262,32 @@ jobs:
           name: gamedata-macos-sha256
           path: gamedata-macos*.sha256
           retention-days: 14
+      # Trial (issue #183): can the runner's GL (Apple's, maybe software) run a
+      # mission? Under lldb, so a crash prints every thread's stack. Not
+      # blocking until it is known to work here.
+      - name: Mission under lldb (trial)
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          SDL_AUDIODRIVER: dummy
+          MC2_STOP_EXITS: "1"
+        run: |
+          cp build/mc2 build/out/res/libmc2res_64.so gamedata/
+          cp -R shaders gamedata/
+          cp gamedata/minprefs.cfg gamedata/options.cfg
+          cd gamedata
+          lldb --batch -o run -k "thread backtrace all" -k "quit 1" \
+               -- ./mc2 -mission mc2_01 -autoexit 600 2>&1 | tee ../mac-run.log
+          cd ..
+          grep -E "Version *:|Renderer *:|\[MISSION\]|\[AUTOEXIT\]|exited with status|stop reason" mac-run.log || true
+          grep -qE "exited with status = 0 " mac-run.log && grep -q "\[AUTOEXIT\]" mac-run.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mac-run-log
+          path: mac-run.log
+          if-no-files-found: ignore
+          retention-days: 14
 
   windows:
     name: Windows x64 MSVC (desktop GL)
