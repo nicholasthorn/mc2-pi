@@ -72,11 +72,11 @@ scripts/build_gamedata.sh --src-data ../mc2srcdata --build-dir build \
 cp ../mc2game/minprefs.cfg ../mc2game/options.cfg
 ```
 
-Known macOS traps in B: the script's default `-j` uses `nproc`, which macOS
-lacks (so always pass `-j`); Apple's `make` is GNU make 3.81 and the upstream
-makefile may need a newer one (`brew install make`, then put
-`$(brew --prefix)/opt/make/libexec/gnubin` first in `PATH`). Report anything
-else that breaks; fix this repo's script if it is ours, not the upstream data.
+Not yet tried on macOS. The upstream makefile uses only `cp`, `mkdir` and
+`rm` and nothing newer than Apple's GNU make 3.81; the data tools (`makefst`,
+`pak`, `aseconv`, `makersp`, `text_tool`) build on macOS in CI but have never
+run there. Report anything that breaks; fix this repo's script or tools, not
+the upstream data.
 
 Without `options.cfg` the first launch only runs the hardware sniffer and
 exits.
