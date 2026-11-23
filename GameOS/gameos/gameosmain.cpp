@@ -392,15 +392,27 @@ static void process_events( bool sample, bool reset ) {
                     g_focus_lost = false;
                     set_mouse_capture(true);
                     break;
-                // The pointer came over the window, which has focus (events are
-                // dropped above while it has not): take the mouse again. Under
-                // WSLg (X11 through XWayland) a grab is refused while the pointer
-                // is elsewhere, so the one at focus fails after Alt+Tab back and
-                // the mouse stayed free. Where a grab held, the pointer cannot
-                // leave, so this comes only after one failed; again is harmless.
+                // The pointer came over the window: if it has focus, take the
+                // mouse again. Probably needed under WSLg (X11 through XWayland,
+                // not confirmed), where the grab at focus can fail after Alt+Tab
+                // back with the pointer elsewhere, and nothing tried again. Where a
+                // grab held the pointer cannot leave, so this comes only after one
+                // failed, or before the first. Focus from SDL itself: g_focus_lost
+                // is false too before the window has ever had it.
                 case SDL_WINDOWEVENT_ENTER:
+                {
+                    SDL_Window* entered = SDL_GetWindowFromID(event.window.windowID);
+                    if(!entered || !(SDL_GetWindowFlags(entered) & SDL_WINDOW_INPUT_FOCUS))
+                        break;
+                    printf("[INPUT] the pointer came over the window: taking the mouse again\n");
+                    fflush(stdout);
+                    // SDL marks a window grabbed before it tries, and keeps the mark
+                    // when the grab fails; asking again with the mark set does
+                    // nothing, so let go first
+                    graphics::grab_window(gos_GetWindow(), false);
                     set_mouse_capture(true);
                     break;
+                }
             }
             break;
         case SDL_MOUSEMOTION:

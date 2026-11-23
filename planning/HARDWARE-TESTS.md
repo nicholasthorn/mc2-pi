@@ -91,8 +91,14 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 - [ ] **Mouse taken back after Alt+Tab, WSLg** (#179, GL). In a mission from a WSL desktop
       shortcut: Alt+Tab to another window, Alt+Tab back with the pointer outside the game's
       window, then move it in. The game should take the mouse again (cursor hidden, held in
-      the window, edge scrolling works). Before, it stayed free until a restart. Also on
-      Windows and native Linux: Alt+Tab away and back still behaves as before.
+      the window, edge scrolling works). Before, it stayed free until a restart. Then in
+      `~/play/mc2/last-run.log`: `[INPUT] the pointer came over the window` says the retry ran,
+      and SDL's "The X server refused to let us grab the mouse" (if its warnings reach the log)
+      says a grab failed. After one such failure SDL 2 does not try to grab again for the rest
+      of the run, and the game stalls up to 5 s while it tries, so if that line is there and
+      the mouse stays free, the way on is to keep the pointer in without a grab
+      (`SDL_SetWindowMouseRect`, pointer barriers). Also on Windows and native Linux: Alt+Tab
+      away and back still behaves as before, and no window grabs the mouse without focus.
 
 - [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
       `--no-movies` (the Windows `-full` package), play `mc2_01` until the first
