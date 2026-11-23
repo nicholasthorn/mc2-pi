@@ -321,8 +321,10 @@ The interface only rests in a headset session, so no desktop run covers it.
       watch a fly-in. No gap, no flicker at the bottom of the view, no stretched or torn ground
       near the feet, and water near the camera clips cleanly too.
 
-- [ ] **Keyboard for text fields** (branch `quest-keyboard`). Not seen in a headset yet; tried
-      on the desktop only, with `MC2_SCREEN_KEYBOARD=1`. Click into a text field: the
+- [x] **Keyboard for text fields** (branch `quest-keyboard`, PR 181). 2026-11-23, Quest 2:
+      "works well". The log shows it shown and hidden twice in the menus, then a LAN game hosted and
+      mc2_m02a launched, with no errors. Not yet checked one by one: the TCP/IP address (#179), mech
+      lab variant names, save names, chat in a mission. Click into a text field: the
       host dialog's game name (Multiplayer, Local network, Host), the TCP/IP tab's address,
       the player name on the prefs screen, a mech variant name in the mech lab, a save game
       name, and chat in a mission. A keyboard shows over the interface (`[KEYBOARD] shown` in
