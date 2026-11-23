@@ -43,8 +43,10 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       PC in WSL with NAT joining, home Wi-Fi). The PC asked 192.168.86.76, joined the Quest's lobby
       as commander 2 and played `mc2_m02a` (2400 turns, weapon fire both ways); same data hash on
       both. The Quest ran a build without this branch, so its own "Host IP address" was still empty.
-- [ ] **The host's address on screen** (#179). Host from the menu on a Quest with this branch: its
-      parameters screen shows "Host IP address" with the headset's Wi-Fi address. Also a PC host from
+- [x] **The host's address on a Quest** (#179; 2026-11-23, Quest 2, a build of `ar-tabletop` with
+      #179 and #181 merged in): hosting from the menu, its parameters screen shows the headset's
+      Wi-Fi address.
+- [ ] **The host's address on a PC** (#179). A PC host from
       the menu, in Windows or with WSL's networking mirrored: its screen shows its LAN address, with
       no "(WSL)", and the Quest finds it on Local Network. A WSL host in NAT shows "(WSL)" after its
       address (seen in WSL's log on 2026-11-23, not looked at on screen). A host's firewall must let
