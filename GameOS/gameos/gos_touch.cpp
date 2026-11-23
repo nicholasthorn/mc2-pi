@@ -9,6 +9,7 @@
 #include "gameos.hpp"
 #include "gos_input.h"
 #include "gos_ar.h"
+#include "gos_screen_keyboard.h"
 #include "gos_xr.h"
 #include "utils/str_bounded.h"
 #include "utils/touch_bar.h"
@@ -277,6 +278,11 @@ void __stdcall gos_TouchMissionTakesOrders()
 
 void __stdcall gos_TouchTextInput(bool focused)
 {
+    // the VR headset shows no Android keyboard: GameOS draws its own
+    if(gos_screen_keyboard::wanted()) {
+        gos_screen_keyboard::show(focused);
+        return;
+    }
     // started only for the touch screen, and stopped only if it was off
     // before: desktop SDL has text input on from the start (the IME), and
     // stopping it there would leave it off for good
@@ -288,6 +294,21 @@ void __stdcall gos_TouchTextInput(bool focused)
         SDL_StopTextInput();
         g_textInput = false;
     }
+}
+
+void __stdcall gos_TouchTextInputField(float top, float bottom)
+{
+    gos_screen_keyboard::fieldArea(top, bottom);
+}
+
+void __stdcall gos_TouchTextInputActive()
+{
+    gos_screen_keyboard::fieldActive();
+}
+
+void __stdcall gos_TouchTextInputClose()
+{
+    gos_screen_keyboard::close();
 }
 
 int __stdcall gos_GetTouchBar(gosTouchBarButton* buttons, int maxButtons)

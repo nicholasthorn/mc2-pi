@@ -227,6 +227,11 @@ void clearVirtualPointer() {
     g_virtual_mouse.buttons.set(0);
 }
 
+void hideButton(int index) {
+    if(index >= 0 && index < MouseInfo::NUM_BUTTONS)
+        g_mouse_info.button_state_[index] = KS_FREE;
+}
+
 uint32_t keyboardSamples() {
     return g_keyboard_samples;
 }

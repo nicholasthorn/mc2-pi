@@ -530,6 +530,9 @@ void LogisticsSaveDialog::beginLoad(bool bSkipSaveScan)
 {
 	beginFadeIn( 0 );
 	edits[0].setFocus(true);
+	// a game is picked from the list: no screen keyboard (VR) until the name
+	// field is clicked
+	gos_TouchTextInputClose();
 	status = RUNNING;
 	bPromptOverwrite = 0;
 	bDeletePrompt = 0;
