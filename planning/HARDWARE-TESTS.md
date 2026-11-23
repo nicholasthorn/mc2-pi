@@ -369,6 +369,21 @@ The interface only rests in a headset session, so no desktop run covers it.
       watch a fly-in. No gap, no flicker at the bottom of the view, no stretched or torn ground
       near the feet, and water near the camera clips cleanly too.
 
+- [x] **Keyboard for text fields** (branch `quest-keyboard`, PR 181). 2026-11-23, Quest 2:
+      "works well". The log shows it shown and hidden twice in the menus, then a LAN game hosted and
+      mc2_m02a launched, with no errors.
+- [ ] **Keyboard, after review** (PR 181, later commits; not yet in a headset). Fields: the TCP/IP
+      address (#179), a mech lab variant name, a save name. The keyboard now sits right next to
+      the field (below it in the top half of the screen, above it in the bottom half): is the
+      dialog's Cancel button still in view, and does Enter save or confirm the dialog? The Load Game
+      dialog opens without the keyboard; clicking its name field brings it up. Open a dialog with a
+      field, then close it with the left menu button (Escape): the keyboard goes with it
+      (`[KEYBOARD] hidden (its field stopped updating)`). Clicking from one field to another
+      keeps it up. In a multiplayer mission, Y + right stick click opens chat (Y alone still jumps),
+      the keyboard shows, and Enter sends the message. Open the system menu while typing and come
+      back: the keyboard is still there. Known: an overwrite or delete prompt in the save dialog
+      hides the keyboard, and clicking the name field afterwards brings it back.
+
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 
 Checked on the flat desktop on GL and GLES, and with `MC2_VR_PATHS=1` (the VR
