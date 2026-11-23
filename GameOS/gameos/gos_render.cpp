@@ -255,8 +255,13 @@ RenderWindow* create_window(
     float dpi = 96.0f;
     if (SDL_GetDisplayDPI(display_index, &dpi, nullptr, nullptr) == 0) {
         fprintf(stdout, "Display%d DPI: %f\n", display_index, dpi);
+#ifndef __APPLE__
         preferred_mode.w = preferred_mode.w * (dpi / 96);
         preferred_mode.h = preferred_mode.h * (dpi / 96);
+#endif
+        // macOS sizes windows in points, Retina scaling already below them:
+        // the multiply made an 800x600 game ask for 1888x1416 on an M2 (226 DPI),
+        // which the screen then clamped (issue #185)
     }
 
     {
@@ -331,7 +336,15 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     if (SDL_GL_MakeCurrent(rw->window_, glcontext) < 0) {
         SDL_GL_DeleteContext(glcontext);
         return NULL;
-    } 
+    }
+
+    {
+        // differ on a high-DPI window; the mouse is mapped from one to the other
+        int ww = 0, wh = 0, dw = 0, dh = 0;
+        SDL_GetWindowSize(rw->window_, &ww, &wh);
+        SDL_GL_GetDrawableSize(rw->window_, &dw, &dh);
+        fprintf(stderr, "window: %dx%d points, %dx%d pixels drawn\n", ww, wh, dw, dh);
+    }
 
     // MC2_VSYNC=0 turns vsync off, e.g. to measure frame rate past the
     // display refresh rate

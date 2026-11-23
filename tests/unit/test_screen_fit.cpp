@@ -97,4 +97,25 @@ TEST_CASE("a drawable pixel to 0..1 across the viewport, clamped") {
     CHECK(screen_fit::acrossViewport(5.0f, 0, 0) == doctest::Approx(0.0f));
 }
 
+// SDL's mouse is in window points, the game's pointer in drawable pixels:
+// twice as many on a Retina display (issue #185)
+TEST_CASE("window points to drawable pixels and back") {
+    // a 1440-point-wide window, 2880 pixels drawn on a Retina Mac
+    CHECK(screen_fit::windowToDrawable(720.0f, 1440, 2880) == doctest::Approx(1440.0f));
+    CHECK(screen_fit::windowToDrawable(1439.0f, 1440, 2880) == doctest::Approx(2878.0f));
+    CHECK(screen_fit::drawableToWindow(1440.0f, 1440, 2880) == doctest::Approx(720.0f));
+    // the same size (Linux, Windows, a non-Retina screen): unchanged
+    CHECK(screen_fit::windowToDrawable(333.0f, 800, 800) == doctest::Approx(333.0f));
+    CHECK(screen_fit::drawableToWindow(333.0f, 800, 800) == doctest::Approx(333.0f));
+    // a delta scales the same way
+    CHECK(screen_fit::windowToDrawable(-3.0f, 1440, 2880) == doctest::Approx(-6.0f));
+}
+
+TEST_CASE("a size not known yet leaves the coordinate as it is") {
+    CHECK(screen_fit::windowToDrawable(100.0f, 0, 2880) == doctest::Approx(100.0f));
+    CHECK(screen_fit::windowToDrawable(100.0f, 1440, 0) == doctest::Approx(100.0f));
+    CHECK(screen_fit::drawableToWindow(100.0f, 1440, 0) == doctest::Approx(100.0f));
+    CHECK(screen_fit::drawableToWindow(100.0f, 0, 2880) == doctest::Approx(100.0f));
+}
+
 }

@@ -26,6 +26,13 @@ void fitViewport(int drawableWidth, int drawableHeight, int gameWidth, int gameH
 // finger in a bar is at the nearest edge).
 float acrossViewport(float pixel, int start, int size);
 
+// SDL gives mouse positions in window points; the game's pointer, touch and
+// viewport are in drawable pixels. They differ on a high-DPI window (a Retina
+// Mac draws 2 pixels per point). One axis at a time; a size of 0 or less (not
+// known yet) leaves the value as it is.
+float windowToDrawable(float points, int windowSize, int drawableSize);
+float drawableToWindow(float pixels, int windowSize, int drawableSize);
+
 }
 
 #endif // SCREEN_FIT_H

@@ -67,4 +67,18 @@ float acrossViewport(float pixel, int start, int size)
     return t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
 }
 
+float windowToDrawable(float points, int windowSize, int drawableSize)
+{
+    if(windowSize <= 0 || drawableSize <= 0)
+        return points;
+    return points * (float)drawableSize / (float)windowSize;
+}
+
+float drawableToWindow(float pixels, int windowSize, int drawableSize)
+{
+    if(windowSize <= 0 || drawableSize <= 0)
+        return pixels;
+    return pixels * (float)windowSize / (float)drawableSize;
+}
+
 }
