@@ -112,9 +112,10 @@ Then ask the person to look at the screen during a second run: are the terrain
 fog and the mechs' lighting as on Linux? (They come from the `SceneData`
 uniform block, which macOS binds by name instead of `layout(binding=)`.)
 
-Frame rate, if wanted:
-`./mc2 -mission mc2_01 -autoexit 3000 -bench frames.csv` prints a `[BENCH]`
-summary.
+Frame rate, if wanted: vsync is on by default, so a plain run reports the
+display's refresh rate (59.4 fps on the first M2 run, issue #183). Turn it off:
+`MC2_VSYNC=0 ./mc2 -mission mc2_01 -autoexit 3000 -bench frames.csv` prints a
+`[BENCH]` summary.
 
 ### 6. Play by hand (the person, not you)
 
