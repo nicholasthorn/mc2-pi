@@ -315,6 +315,14 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     assert(rw && rw->window_);
 
     SDL_GLContext glcontext = SDL_GL_CreateContext(rw->window_);
+    if (!glcontext) {
+        // No accelerated pixel format, e.g. a CI virtual machine without a
+        // GPU: ask for the system's software GL instead (on macOS, Apple's,
+        // GL 4.1 core), which can still run the game
+        fprintf(stderr, "SDL_GL_CreateContext(): %s; trying a non-accelerated context\n", SDL_GetError());
+        SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 0);
+        glcontext = SDL_GL_CreateContext(rw->window_);
+    }
     if (!glcontext ) {
         fprintf(stderr, "SDL_GL_CreateContext(): %s\n", SDL_GetError());
         return NULL;

@@ -208,8 +208,8 @@ jobs:
           retention-days: 14
 
   # Apple Silicon, desktop GL 4.1 (planning/future-features/MACOS.md).
-  # Build, unit tests, and the game data built by the data tools on macOS (about
-  # a minute); no missions: the hosted runners have no GPU.
+  # Build, unit tests, the game data built by the data tools on macOS (about a
+  # minute), and one mission on Apple's software GL (the runner has no GPU).
   macos:
     name: macOS arm64 Apple Clang (desktop GL)
     needs: changes
@@ -261,6 +261,36 @@ jobs:
         with:
           name: gamedata-macos-sha256
           path: gamedata-macos*.sha256
+          retention-days: 14
+      # One mission on Apple's GL: the runner has no GPU, so the game's retry
+      # gets "Apple Software Renderer" (GL 4.1 core, about 28 fps). Apple's GL
+      # links shaders more strictly than Mesa, and Apple Clang traps on some
+      # undefined behaviour GCC lets pass (issue #183). Under lldb, so a crash
+      # prints every thread's stack. Same failure rules as scripts/smoke.sh.
+      - name: Mission (Apple GL, under lldb)
+        timeout-minutes: 10
+        env:
+          SDL_AUDIODRIVER: dummy
+          MC2_STOP_EXITS: "1"
+        run: |
+          cp build/mc2 build/out/res/libmc2res_64.so gamedata/
+          cp -R shaders gamedata/
+          cp gamedata/minprefs.cfg gamedata/options.cfg
+          cd gamedata
+          lldb --batch -o run -k "thread backtrace all" -k "quit 1" \
+               -- ./mc2 -mission mc2_01 -autoexit 600 2>&1 | tee ../mac-run.log
+          cd ..
+          grep -E "Version *:|Renderer *:|\[MISSION\]|\[AUTOEXIT\]|exited with status|stop reason" mac-run.log || true
+          BAD='OpenGL Error|: ERROR: |STOP: |FATAL'
+          if grep -v '^\[OBJECTIVE\]' mac-run.log | grep -E "$BAD"; then exit 1; fi
+          grep -q "\[MISSION\]" mac-run.log && grep -q "\[AUTOEXIT\]" mac-run.log
+          grep -qE "exited with status = 0 " mac-run.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mac-run-log
+          path: mac-run.log
+          if-no-files-found: ignore
           retention-days: 14
 
   windows:
