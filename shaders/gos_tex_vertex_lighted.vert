@@ -9,7 +9,12 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in vec4 aRGBLight;
 layout(location = 3) in vec2 texcoord;
 
+#ifdef MC2_NO_LAYOUT_BINDING
+// GLSL without layout(binding=) (macOS GL 4.1); the block is not read
+layout (std140) uniform mesh_data
+#else
 layout (binding = 1, std140) uniform mesh_data
+#endif
 { 
   vec4 ambient;
   vec4 diffuse;
