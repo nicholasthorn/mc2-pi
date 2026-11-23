@@ -4014,6 +4014,9 @@ void MissionInterfaceManager::drawVRDragBox (void)
 		v[0].argb = v[1].argb = 0xffffffff;
 		gos_DrawLines( v, 2 );
 	}
+	//the depth test back on for what is drawn after it
+	gos_SetRenderState( gos_State_ZCompare, 1 );
+	gos_SetRenderState( gos_State_ZWrite, 1 );
 }
 
 bool MissionInterfaceManager::canAddVehicle( const Stuff::Vector3D& pos )

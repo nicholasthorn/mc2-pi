@@ -530,6 +530,9 @@ void OptionsGraphics::init(long xOffset, long yOffset)
 			tabletopButton = buttons[i];
 			tabletopButton.setID( MSG_VR_TABLETOP );
 			tabletopButton.setText( (int)addRuntimeString( "Tabletop view (the battle on a table in the room)", "options:vr-tabletop" ) );
+			//its own help, not the rasterizer's it was copied with
+			tabletopButton.setHelpID( (int)addRuntimeString( "Shows the battle on a real table in the room, "
+				"seen through the headset's cameras, instead of all round you.", "options:vr-tabletop-help" ) );
 			tabletopButton.move( 0, 30 );
 			hasTabletopButton = true;
 			break;

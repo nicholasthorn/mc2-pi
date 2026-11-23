@@ -527,6 +527,9 @@ int CPrefs::applyPrefs(bool applyRes) {
             ::resolutionX = this->resolutionX;
             ::resolutionY = this->resolutionY;
         }
+        // ...and the saved tabletop view, which the call above could not
+        // switch before the session
+        gos_SetVRTabletop( this->vrTabletop );
 
         if (renderer == 3)
             gos_SetScreenMode(this->resolutionX, this->resolutionY, bitDepth,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
