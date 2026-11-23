@@ -144,6 +144,20 @@ void MPHostGame::begin()
 	status = RUNNING;
 	LogisticsDialog::begin();
 	bShowDlg = 0;
+
+	// A name to start from, as Host stays greyed out while the box is empty and a
+	// headset has no keyboard to fill it: the player's own, or just "Game".
+	EString name;
+	edits[0].getEntry(name);
+	if ( !name.Length() )
+	{
+		char text[64];
+		if ( prefs.playerName[0][0] )
+			snprintf( text, sizeof(text), "%.16s's game", prefs.playerName[0] );
+		else
+			snprintf( text, sizeof(text), "Game" );
+		edits[0].setEntry( EString(text) );
+	}
 }
 
 
