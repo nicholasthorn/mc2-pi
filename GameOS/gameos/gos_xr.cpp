@@ -194,6 +194,7 @@ struct State {
     vr_controls::Chord chatChord;     // Y + right stick click: chat (Return)
     vr_controls::TapQueue taps;     // the keys those press, held until the game reads them
     uint32_t stickActions = 0;
+    vr_controls::StickScroll stickScroll;   // the right stick scrolling a list on the interface
     bool pointerHeld = false;       // a button went down with the pointer on a target
     uint32_t heldButtons = 0;       // the pointing hand's, as mouse button bits
     uint32_t ignoredButtons = 0;    // pressed with no target, not yet let go
@@ -1407,7 +1408,8 @@ bool init()
             if(!g.pointerImagesReady)
                 printf("[XR] no pointer beam\n");
             printf("[XR] controllers: trigger selects, grip is the right mouse button, "
-                   "left stick pans, right stick turns and zooms, A places the interface\n");
+                   "left stick pans, right stick turns and zooms (on the interface it scrolls lists), "
+                   "A places the interface\n");
         } else {
             printf("[XR] no controllers\n");
             if(g.actionSet != XR_NULL_HANDLE)
@@ -1801,7 +1803,22 @@ void pollInput()
         if(g.buttonDown[BUTTON_A] && g.hudAdjusted)
             printf("[XR] interface placed: MC2_XR_HUD=%.2f,%.0f,%.2f\n", g.hudDistance,
                     g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
-        g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
+        // pointing at the interface in a menu: the right stick up and down
+        // is a mouse wheel, which scrolls the list under the pointer
+        // (aListBox), and turns and zooms nothing while it does. Not while a
+        // mission takes orders: its panel has no lists, and there the wheel
+        // would zoom in steps where the stick zooms smoothly.
+        if(g.target == TARGET_HUD && g.ordersAge >= kOrdersFrames) {
+            const int steps = vr_controls::scrollSteps(g.stickScroll, right[1],
+                    (double)g.frame.predictedDisplayTime * 1e-9);
+            if(steps != 0)
+                input::addVirtualWheel((float)steps);
+        } else {
+            g.stickScroll = vr_controls::StickScroll();
+        }
+        const float noStick[2] = {0.0f, 0.0f};
+        g.stickActions = vr_controls::stickActions(left, g.stickScroll.direction != 0 ? noStick : right,
+                g.stickActions);
         // the tabletop: zooming makes the battle larger or smaller on the
         // table, as the game camera's height means nothing there
         if(g.tabletop) {

@@ -57,6 +57,7 @@ repository.
 | Head-tracked view, with the game camera covering the headset's field of view and following where you look | Done |
 | Touch controllers: point, click and order units, pan, turn and zoom, a button map for run, jump and the other modifier keys | Done |
 | Selection groups without number keys (stick clicks and X + stick) | Done |
+| Lists on the panel scroll with the right stick (and with the mouse wheel on every platform) | Built, not yet tried in a headset |
 | The 2D interface on a floating panel, sharp at the headset's resolution, movable and resizable | Done |
 | Frame rate | About 70 fps at the headset's 72 Hz on the `mc2_19` battle bench |
 | Mods in the headset | MechCommander Omnitech, and MC2X as its own app beside the stock one |
