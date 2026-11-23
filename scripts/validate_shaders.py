@@ -66,7 +66,7 @@ def check(name, ext, src):
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 FRAG_INPUT = re.compile(
-    r'^\s*(?:(?:flat|smooth|noperspective|centroid)\s+)*in\s+[^;(]*?\b(\w+)\s*(?:\[[^\]]*\])?\s*;',
+    r'^\s*(?:layout\s*\([^)]*\)\s*)?(?:(?:flat|smooth|noperspective|centroid)\s+)*in\s+[^;(]*?\b(\w+)\s*(?:\[[^\]]*\])?\s*;',
     re.M)
 
 

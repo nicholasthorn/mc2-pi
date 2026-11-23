@@ -42,6 +42,11 @@ class UnwrittenInputs(unittest.TestCase):
         vert = "void main() { if (Normal == n) {} Kind = 1; Uv[0] = a; }"
         self.assertEqual(vs.unwritten_inputs(vert, FRAG), ['Normal'])
 
+    def test_layout_qualified_input_is_checked(self):
+        frag = "layout(location = 1) in vec3 Tangent;\nvoid main() {}"
+        self.assertEqual(vs.unwritten_inputs("void main() {}", frag), ['Tangent'])
+        self.assertEqual(vs.unwritten_inputs("void main() { Tangent = t; }", frag), [])
+
     def test_vertex_attributes_are_not_fragment_inputs(self):
         # a vertex shader's own "in" lines are attributes, not checked here
         frag = "layout (location=0) out vec4 FragColor;\nvoid main() {}"
