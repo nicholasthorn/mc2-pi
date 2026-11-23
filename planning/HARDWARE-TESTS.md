@@ -321,6 +321,20 @@ The interface only rests in a headset session, so no desktop run covers it.
       watch a fly-in. No gap, no flicker at the bottom of the view, no stretched or torn ground
       near the feet, and water near the camera clips cleanly too.
 
+- [ ] **Keyboard for text fields** (branch `quest-keyboard`). Not seen in a headset yet; tried
+      on the desktop only, with `MC2_SCREEN_KEYBOARD=1`. Click into a text field: the
+      host dialog's game name (Multiplayer, Local network, Host), the TCP/IP tab's address,
+      the player name on the prefs screen, a mech variant name in the mech lab, a save game
+      name, and chat in a mission. A keyboard shows over the interface (`[KEYBOARD] shown` in
+      `mc2.log`), along the bottom, or along the top when the field is in the lower half.
+      The trigger on a key types it into the field. Shift capitalises one letter, and Back
+      deletes. Enter presses Return and closes the keyboard, and Close only closes it.
+      Clicking the field brings the keyboard back, and clicking outside the field hides it.
+      Clicks on the keyboard must never reach the screen behind it: no button pressed, and
+      the field keeps its focus. Are the keys big enough to hit with the beam, and are the
+      labels readable? In a mission, does the keyboard redraw at the game's step rate
+      without flicker?
+
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 
 Checked on the flat desktop on GL and GLES, and with `MC2_VR_PATHS=1` (the VR

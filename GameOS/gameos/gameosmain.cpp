@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include "gos_input.h"
 #include "gos_touch.h"
+#include "gos_screen_keyboard.h"
 #include "android_data.h"
 #include "gos_logfile.h"
 
@@ -430,6 +431,8 @@ static void process_events( bool sample, bool reset ) {
 
     if(sample) {
         input::updateMouseState();
+        // a press on the screen keyboard is its key, not a click
+        gos_screen_keyboard::sample();
         input::updateKeyboardState();
     }
 }

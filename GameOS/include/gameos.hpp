@@ -2070,8 +2070,26 @@ struct gosTouchBarButton {
 int __stdcall gos_GetTouchBar( gosTouchBarButton* buttons, int maxButtons );
 // A text field took (true) or lost (false) the focus: while the cursor is the
 // touch screen's, its keyboard shows (Android's on-screen keyboard), and what
-// is typed arrives as key presses, as from a real keyboard.
+// is typed arrives as key presses, as from a real keyboard. In the VR headset
+// (or with MC2_SCREEN_KEYBOARD=1) GameOS's own screen keyboard shows instead
+// (gos_GetScreenKeyboard).
 void __stdcall gos_TouchTextInput( bool focused );
+// Where the field about to take the focus is, as shares of the screen's
+// height (0 at the top), before gos_TouchTextInput( true ): the screen
+// keyboard keeps clear of it.
+void __stdcall gos_TouchTextInputField( float top, float bottom );
+// GameOS's screen keyboard, for the game to draw over everything else: its
+// panel and its keys as shares of the screen (0 to 1), each with its label
+// and state (0 a key, 1 under the pointer, 2 on: Shift, or just pressed).
+// GameOS takes the pointer's presses on it; the game only draws.
+struct gosScreenKey {
+	float x, y, w, h;
+	const char* label;
+	int state;
+};
+// Fills the panel and up to maxKeys keys and returns how many; 0 while it is
+// hidden.
+int __stdcall gos_GetScreenKeyboard( gosScreenKey* panel, gosScreenKey* keys, int maxKeys );
 // For a mission, before it draws its interface: whether to this frame. In VR
 // that interface is a layer of its own, which can rest between game steps;
 // otherwise always true.

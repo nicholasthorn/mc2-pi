@@ -447,7 +447,11 @@ void aEdit::setFocus(bool bHasFocus)
 	bFocus = bHasFocus;
 	gos_KeyboardFlush();
 
-	// a touch screen's keyboard (gos_touch), for any field, IME or not
+	// a touch screen's keyboard (gos_touch), for any field, IME or not; a
+	// screen keyboard (VR) keeps clear of the field
+	if ( bHasFocus && Environment.screenHeight > 0 )
+		gos_TouchTextInputField( (float)globalY() / Environment.screenHeight,
+			( globalY() + height() ) / Environment.screenHeight );
 	if ( bHasFocus || bFocusSave )
 		gos_TouchTextInput( bHasFocus );
 
