@@ -81,6 +81,13 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
 
 ## In the game (any PC with a display)
 
+- [ ] **Play the testbed mission** (`mission-testbed`). Install it into a copy of
+      the game directory (`campaigns/testbed/README.md`), then New Campaign: buy
+      and launch, and play tb_01 by hand. The three text messages show in the
+      chat area at the right moments, the relief lance only comes once the
+      hangar falls, and it feels like a mission rather than a test. Only an
+      autoplay run has finished it so far.
+
 - [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
       `--no-movies` (the Windows `-full` package), play `mc2_01` until the first
       pilot message: no "insert the CD" box, and the video box beside the pilot
