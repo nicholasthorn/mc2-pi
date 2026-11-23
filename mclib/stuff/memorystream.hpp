@@ -216,6 +216,19 @@ namespace MemoryStreamIO {
 			Stuff::MemoryStream* stream,
 			int64_t *output
 		);
+#ifdef __APPLE__
+	// declared here as well: the operators below call these by qualified name
+	inline Stuff::MemoryStream&
+		Read(
+			Stuff::MemoryStream* stream,
+			long *output
+		);
+	inline Stuff::MemoryStream&
+		Read(
+			Stuff::MemoryStream* stream,
+			unsigned long *output
+		);
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 	inline Stuff::MemoryStream&
@@ -263,6 +276,19 @@ namespace MemoryStreamIO {
 			Stuff::MemoryStream* stream,
 			const int64_t *input
 		);
+#ifdef __APPLE__
+	// declared here as well: the operators below call these by qualified name
+	inline Stuff::MemoryStream&
+		Write(
+			Stuff::MemoryStream* stream,
+			const long *input
+		);
+	inline Stuff::MemoryStream&
+		Write(
+			Stuff::MemoryStream* stream,
+			const unsigned long *input
+		);
+#endif
 	inline Stuff::MemoryStream&
 		Write(
 			Stuff::MemoryStream* stream,
