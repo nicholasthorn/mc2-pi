@@ -237,8 +237,11 @@ jobs:
         run: ctest --test-dir build --output-on-failure
       # Runs the data tools on macOS, as a player building their own data
       # would (smoke.yml does the same on Linux). No LFS: only movies/ is in it.
-      # The checksum list can be compared with a Linux build of the same
-      # mc2srcdata commit, written into it as the first line.
+      # The checksum lists can be compared with a Linux build of the same
+      # mc2srcdata commit, written into them as the first line. Expected to
+      # differ: the font bitmaps (FreeType rasterises them) and .tgl files
+      # (aseconv writes uninitialised bytes, so they differ run to run on any
+      # platform); hence the second list, of the files inside each .fst.
       - name: Build game data
         run: |
           GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/alariq/mc2srcdata.git srcdata
@@ -249,11 +252,15 @@ jobs:
           { echo "alariq/mc2srcdata $(git -C srcdata rev-parse HEAD)"
             (cd gamedata && find . -type f | LC_ALL=C sort | xargs shasum -a 256)
           } > gamedata-macos.sha256
-          echo "$(($(wc -l < gamedata-macos.sha256) - 1)) files, $(du -sh gamedata | cut -f1)"
+          { echo "alariq/mc2srcdata $(git -C srcdata rev-parse HEAD)"
+            python3 scripts/fst_manifest.py gamedata/*.fst
+          } > gamedata-macos-fst.sha256
+          echo "$(($(wc -l < gamedata-macos.sha256) - 1)) files," \
+               "$(($(wc -l < gamedata-macos-fst.sha256) - 1)) in archives, $(du -sh gamedata | cut -f1)"
       - uses: actions/upload-artifact@v7
         with:
           name: gamedata-macos-sha256
-          path: gamedata-macos.sha256
+          path: gamedata-macos*.sha256
           retention-days: 14
 
   windows:
