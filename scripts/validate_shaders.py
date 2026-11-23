@@ -64,6 +64,43 @@ def check(name, ext, src):
     return False
 
 
+COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
+FRAG_INPUT = re.compile(
+    r'^\s*(?:(?:flat|smooth|noperspective|centroid)\s+)*in\s+[^;(]*?\b(\w+)\s*(?:\[[^\]]*\])?\s*;',
+    re.M)
+
+
+def unwritten_inputs(vert_src, frag_src):
+    """Fragment inputs the vertex shader never assigns. Mesa (Linux, the Pi)
+    links such a pair; Apple's GL (macOS) refuses: "Input of fragment shader
+    'X' not written by vertex shader" (issue #183). Text based: an assignment
+    in any #if branch counts as written."""
+    vert = COMMENT.sub('', vert_src)
+    missing = []
+    for name in FRAG_INPUT.findall(COMMENT.sub('', frag_src)):
+        written = re.compile(r'\b%s\b(?:\s*\[[^\]]*\])?(?:\.\w+)?\s*[-+*/]?=(?!=)' % re.escape(name))
+        if not written.search(vert):
+            missing.append(name)
+    return missing
+
+
+def check_interfaces(sdir):
+    """Each .vert/.frag pair: every fragment input is written. Returns the
+    number of failing pairs."""
+    failed = 0
+    for name in sorted(os.listdir(sdir)):
+        base, ext = os.path.splitext(name)
+        frag = os.path.join(sdir, base + ".frag")
+        if ext != ".vert" or not os.path.exists(frag):
+            continue
+        missing = unwritten_inputs(expand(os.path.join(sdir, name)), expand(frag))
+        if missing:
+            failed += 1
+            print("FAIL %s: fragment input(s) %s never written by the vertex shader"
+                  " (Apple's GL refuses to link)" % (base, ", ".join(missing)))
+    return failed
+
+
 def main():
     sdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "shaders")
@@ -87,7 +124,8 @@ def main():
                     failed += 1
                     print("FAIL %s [%s] %s" % (name, profile, " ".join(defs)))
     print("%d shader variants checked, %d failed" % (checked, failed))
-    return 1 if failed else 0
+    bad_pairs = check_interfaces(sdir)
+    return 1 if failed or bad_pairs else 0
 
 
 if __name__ == "__main__":

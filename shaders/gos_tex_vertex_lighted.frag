@@ -16,7 +16,6 @@ in PREC vec2 Texcoord;
 in PREC vec4 VertexColor;
 in PREC vec3 VertexLight;
 in PREC vec3 WorldPos;
-in PREC vec3 CameraPos;
 
 layout (location=0) out PREC vec4 FragColor;
 
@@ -56,7 +55,7 @@ void main(void)
     if(mesh_params_.y == 0.0)
     {
         c.xyz = c.xyz * lighting;
-        c.xyz = apply_fog(c.xyz, WorldPos.xyz, CameraPos);
+        c.xyz = apply_fog(c.xyz, WorldPos.xyz, g_scene.cameraPos.xyz);
         if(mesh_params_.z > 0.0)
         {
             PREC float sky_fade = max(smoothstep(SKY_TOP_FADE_START, SKY_TOP, ModelHeight),
