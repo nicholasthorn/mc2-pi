@@ -614,6 +614,11 @@ Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
       #184, which CI now checks on Apple's software GL. Still to do on a Mac: rerun after #184 for a
       clean exit and no shader errors, look at the 3D models (they had no shader in that run), the
       by-hand checks above, and `MC2_VSYNC=0 ... -bench` for a frame rate (the 59.4 fps was vsync).
+      Second run (issue #185, after #184, played by hand): keyboard fine, but the mouse reached only
+      the top-left quarter and clicks landed there, on the Retina display. Fixed in the PR for #185
+      (mouse points to drawable pixels). To check: the cursor reaches every edge and clicks act
+      where it is, on the built-in Retina screen and on a non-Retina external one, after resizing
+      the window, and with Universal Control off; the log's `window:` line should show 2x on Retina.
 
 ## Releases (`RELEASES.md`)
 

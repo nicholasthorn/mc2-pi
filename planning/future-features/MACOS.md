@@ -102,8 +102,12 @@ Macs are not a target.
   `assets`, `shaders` and `*.fst` from the bundle. No second copy of the data, and
   an update takes effect by itself. This needs checking against the game's own
   file handling.
-- **HiDPI:** leave SDL's high-DPI flag off at first, so macOS scales the window and
-  mouse coordinates stay as they are.
+- **HiDPI:** the window is created with SDL's high-DPI flag (for every
+  platform), so a Retina Mac draws at full resolution: 2 pixels per point. SDL's
+  mouse is in points and the game's pointer in pixels; since #185's fix, mouse
+  motion and the warp convert between them (`screen_fit::windowToDrawable`), and
+  macOS skips the DPI/96 multiply of the window size. The log's `window:` line
+  gives both sizes.
 
 ### Signing
 
