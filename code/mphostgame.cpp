@@ -145,15 +145,25 @@ void MPHostGame::begin()
 	LogisticsDialog::begin();
 	bShowDlg = 0;
 
-	// A name to start from, as Host stays greyed out while the box is empty and a
-	// headset has no keyboard to fill it: the player's own, or just "Game".
+	// A name to start from, as Host stays greyed out while the box is empty: the
+	// player's own, or just "Game". Only what a game's name can carry (printable
+	// ASCII, no '%'), so the box shows what the others will see. In English: the
+	// port ships no other language.
 	EString name;
 	edits[0].getEntry(name);
 	if ( !name.Length() )
 	{
+		char player[17];
+		int length = 0;
+		for ( const char* c = prefs.playerName[0]; *c && length < 16; c++ )
+		{
+			if ( *c >= 0x20 && *c <= 0x7E && *c != '%' )
+				player[length++] = *c;
+		}
+		player[length] = 0;
 		char text[64];
-		if ( prefs.playerName[0][0] )
-			snprintf( text, sizeof(text), "%.16s's game", prefs.playerName[0] );
+		if ( length )
+			snprintf( text, sizeof(text), "%s's game", player );
 		else
 			snprintf( text, sizeof(text), "Game" );
 		edits[0].setEntry( EString(text) );
