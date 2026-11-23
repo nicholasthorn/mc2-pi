@@ -5,6 +5,13 @@
 #include <sys/stat.h>
 #include <string.h>
 
+#ifdef __APPLE__
+// macOS names struct stat's timespec fields st_atimespec etc.
+#define st_atim st_atimespec
+#define st_mtim st_mtimespec
+#define st_ctim st_ctimespec
+#endif
+
 namespace filesystem {
 
 #ifdef LINUX_BUILD

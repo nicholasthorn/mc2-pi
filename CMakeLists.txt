@@ -161,6 +161,23 @@ if(MC2_OPENXR)
     message("Presenting through OpenXR")
 endif()
 
+# MC2_ARCORE: the tabletop on a phone through ARCore (AR-TABLETOP.md). The
+# phone build (scripts/android, MC2_ANDROID_FLAVOUR=phone) passes ARCORE_DIR,
+# the AAR as fetch_deps.sh unpacks it, with the C header in include/
+option(MC2_ARCORE "The phone's tabletop through ARCore (Android phones)" OFF)
+if(MC2_ARCORE)
+    if(NOT ANDROID OR NOT MC2_GLES OR MC2_OPENXR OR NOT ARCORE_DIR)
+        message(FATAL_ERROR "MC2_ARCORE is for the Android phone build (GLES, no OpenXR) and needs ARCORE_DIR (scripts/android/build.sh sets both)")
+    endif()
+    add_library(arcore_sdk_c SHARED IMPORTED)
+    set_target_properties(arcore_sdk_c PROPERTIES
+        IMPORTED_LOCATION "${ARCORE_DIR}/jni/arm64-v8a/libarcore_sdk_c.so")
+    set(ARCORE_INCLUDE_DIR "${ARCORE_DIR}/include")
+    add_definitions(-DMC2_ARCORE)
+    list(APPEND MC2_GL_LIBS arcore_sdk_c)
+    message("The phone's tabletop through ARCore")
+endif()
+
 message("Found SDL2 package ${SDL2_LIBRARIES}" )
 message("SDL2 prefix: ${SDL2_PREFIX}")
 message("OPENGL library found in ${OPENGL}")
@@ -188,6 +205,21 @@ option(MC2_NET "Build the network transport (downloads GameNetworkingSockets)" O
 if(MC2_NET)
     include(mc2_gns)
     add_definitions(-DMC2_NET)
+endif()
+
+# macOS, Apple Silicon first (planning/future-features/MACOS.md)
+if(APPLE)
+    if(MC2_GLES)
+        message(FATAL_ERROR "MC2_GLES is not wired for macOS: use desktop GL (GL 4.1 core)")
+    endif()
+    # macOS has no <malloc.h>, which legacy files include for alloca(): a
+    # stand-in, so those files stay untouched
+    include_directories(BEFORE SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/GameOS/compat/macos")
+    # Apple marks OpenGL deprecated, which would warn on every GL call
+    add_definitions(-DGL_SILENCE_DEPRECATION)
+    # and sprintf, used throughout the legacy code
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 add_subdirectory("./mclib/" "./out/mclib")
@@ -374,6 +406,11 @@ if(MC2_NET)
 endif()
 
 add_subdirectory("./res" "./out/res")
+if(APPLE)
+    # the game dlopen()s "./libmc2res_64.so" (code/mechcmd2.cpp); keep that
+    # name rather than macOS's .dylib
+    set_target_properties(mc2res_64 PROPERTIES SUFFIX ".so")
+endif()
 # Android builds the game only; the data is built on a PC and pushed
 if(NOT ANDROID)
     add_subdirectory("./data_tools" "./out/data_tools")
