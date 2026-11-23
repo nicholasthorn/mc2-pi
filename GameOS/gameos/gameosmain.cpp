@@ -53,6 +53,9 @@ static bool g_focus_lost = false;
 // between SDL_APP_WILLENTERBACKGROUND and SDL_APP_DIDENTERFOREGROUND: Android
 // may have taken the window's surface, so nothing is drawn
 static bool g_in_background = false;
+// the game's logic ran since the last input sample (the screen keyboard
+// counts a field's missed updates only then)
+static bool g_logic_since_sample = true;
 static bool g_gameplay_started = false;
 
 // -bench <csv>: fixed game step, fixed seed, no player input, per-frame
@@ -432,7 +435,8 @@ static void process_events( bool sample, bool reset ) {
     if(sample) {
         input::updateMouseState();
         // a press on the screen keyboard is its key, not a click
-        gos_screen_keyboard::sample();
+        gos_screen_keyboard::sample(g_logic_since_sample);
+        g_logic_since_sample = false;
         input::updateKeyboardState();
     }
 }
@@ -709,6 +713,7 @@ int main(int argc, char** argv)
                 gos_RenderUpdateDebugInput();
             } else {
                 Environment.DoGameLogic();
+                g_logic_since_sample = true;
             }
         }
 

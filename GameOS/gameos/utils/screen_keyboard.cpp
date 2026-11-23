@@ -176,8 +176,10 @@ void Visibility::close()
 	pending_ = false;
 }
 
-Visibility::Change Visibility::sample()
+Visibility::Change Visibility::sample(bool gameUpdated)
 {
+	if(!gameUpdated)
+		return None;
 	Change change = None;
 	if(pending_ && !shown_) {
 		pending_ = false;

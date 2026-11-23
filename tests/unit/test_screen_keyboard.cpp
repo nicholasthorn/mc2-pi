@@ -308,4 +308,22 @@ TEST_CASE("a press that starts off the keyboard stays the game's") {
 	CHECK(t.sample(0u, 0u, true, left) == 0u);
 }
 
+TEST_CASE("samples without the game's logic change nothing") {
+	Visibility v;
+	v.focus(true);
+	v.fieldUpdated();
+	v.sample();
+	// the app in the background: samples, but no game update
+	for(int i = 0; i < 3 * Visibility::kMissedSamples; ++i)
+		CHECK(v.sample(false) == Visibility::None);
+	CHECK(v.shown());
+	// a lost focus waits for samples with the game running, too
+	v.focus(false);
+	CHECK(v.sample(false) == Visibility::None);
+	CHECK(v.sample(false) == Visibility::None);
+	CHECK(v.shown());
+	CHECK(v.sample() == Visibility::None);
+	CHECK(v.sample() == Visibility::Hidden);
+}
+
 } // TEST_SUITE

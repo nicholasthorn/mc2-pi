@@ -332,7 +332,9 @@ The interface only rests in a headset session, so no desktop run covers it.
       field, then close it with the left menu button (Escape): the keyboard goes with it
       (`[KEYBOARD] hidden (its field stopped updating)`). Clicking from one field to another
       keeps it up. In a multiplayer mission, Y + right stick click opens chat (Y alone still jumps),
-      the keyboard shows, and Enter sends the message.
+      the keyboard shows, and Enter sends the message. Open the system menu while typing and come
+      back: the keyboard is still there. Known: an overwrite or delete prompt in the save dialog
+      hides the keyboard, and clicking the name field afterwards brings it back.
 
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 

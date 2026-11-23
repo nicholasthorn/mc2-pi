@@ -1514,7 +1514,8 @@ void pollInput()
     // shows for the message, and its Enter sends it).
     const double now = (double)g.frame.predictedDisplayTime * 1e-9;
     const bool previousGroup = vr_controls::chordPress(g.groupChord, buttons[BUTTON_X], buttons[BUTTON_RIGHT_STICK]);
-    const bool chat = vr_controls::chordPress(g.chatChord, buttons[BUTTON_Y], buttons[BUTTON_RIGHT_STICK]);
+    // X wins when both are held: a click is one command, not two
+    const bool chat = vr_controls::chordPress(g.chatChord, buttons[BUTTON_Y] && !buttons[BUTTON_X], buttons[BUTTON_RIGHT_STICK]);
     const uint32_t press = vr_controls::pressEvents(g.rightStickPress,
             buttons[BUTTON_RIGHT_STICK] && !g.groupChord.buttonInChord && !g.chatChord.buttonInChord, now, true);
     if(g.ordersAge < kOrdersFrames) {

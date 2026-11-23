@@ -96,8 +96,10 @@ public:
 	// Close or Enter on the keyboard: hidden at once; the field keeps the focus
 	void close();
 	bool shown() const { return shown_; }
-	// at each input sample: Hidden or FieldGone when it goes now
-	Change sample();
+	// at each input sample: Hidden or FieldGone when it goes now. Without
+	// gameUpdated (the game's logic did not run since the last sample, so no
+	// field could update) nothing changes.
+	Change sample(bool gameUpdated = true);
 
 private:
 	bool shown_ = false;

@@ -23,8 +23,10 @@ void fieldActive();
 // put away, the field keeping the focus (gos_TouchTextInputClose)
 void close();
 // at each input sample, after the mouse's update and before the keyboard's:
-// takes a press on the keyboard from the game and presses its key
-void sample();
+// takes a press on the keyboard from the game and presses its key.
+// gameUpdated: the game's logic ran since the last sample (not, say, while
+// the app was in the background), so its fields had their chance to update
+void sample(bool gameUpdated);
 
 } // namespace gos_screen_keyboard
 

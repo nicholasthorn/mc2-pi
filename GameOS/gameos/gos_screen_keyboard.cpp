@@ -125,9 +125,9 @@ void close()
     }
 }
 
-void sample()
+void sample(bool gameUpdated)
 {
-    switch(g_visibility.sample()) {
+    switch(g_visibility.sample(gameUpdated)) {
     case screen_kb::Visibility::Hidden:
         hidden("focus lost");
         break;
