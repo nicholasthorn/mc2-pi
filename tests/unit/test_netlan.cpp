@@ -141,8 +141,10 @@ TEST_CASE("A browser finds a beacon on this machine, and forgets it when it stop
 	other.instance = 0x9ABCDEF0u;
 	now += netlan::QUERY_SECONDS + 0.1;
 	browser.update(now, beacon.port());
-	beacon.update(other);
+	// the beacon keeps listening, as the game's does every frame: the query
+	// may not have arrived yet (loopback is not instant on macOS)
 	for (int i = 0; (i < 2000) && (browser.found().size() < 2); i++) {
+		beacon.update(other);
 		browser.update(now, beacon.port());
 		aMoment();
 	}
