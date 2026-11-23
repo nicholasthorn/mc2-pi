@@ -1189,7 +1189,7 @@ void MC_TextureManager::renderLists (void)
     sceneData_->fog_color[2] = fc.x;
     sceneData_->fog_color[3] = fc.w;
     sceneData_->baseVertexColor = uint32_to_vec4(BaseVertexColor).zyxw();
-    if (gos_IsVR() && land)
+    if (gos_IsVR() && land && !gos_GetVRTabletop())     // the tabletop: no fade (Terrain::geometry)
     {
         const vr_edge_fade::Range edgeRange = vr_edge_fade::rangeFor(Terrain::visibleVerticesPerSide, Terrain::worldUnitsPerVertex);
         const Stuff::Vector3D edgeCentre = eye->getPosition();

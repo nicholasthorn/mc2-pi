@@ -27,6 +27,8 @@ set(SOURCES ${SOURCES}
     utils/stereo.cpp
     utils/vr_eye.cpp
     utils/vr_controls.cpp
+    utils/table_anchor.cpp
+    utils/ar_view.cpp
     utils/args_file.cpp
     utils/screen_fit.cpp
     utils/gl_render_constants.cpp
@@ -42,6 +44,10 @@ set(SOURCES ${SOURCES}
 if(MC2_OPENXR)
     list(APPEND SOURCES gos_xr.cpp)
     set_source_files_properties(gos_xr.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+endif()
+if(MC2_ARCORE)
+    list(APPEND SOURCES gos_ar.cpp)
+    set_source_files_properties(gos_ar.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 endif()
 
 # frame_stats, tga_writer, log_file, the touch screen (gos_touch,
@@ -61,6 +67,9 @@ include_directories(${THIRDPARTY_INCLUDE_DIRS})
 if(MC2_OPENXR)
     include_directories(SYSTEM "${OPENXR_INCLUDE_DIR}")
 endif()
+if(MC2_ARCORE)
+    include_directories(SYSTEM "${ARCORE_INCLUDE_DIR}")
+endif()
 
 if(MC2_NET)
     list(APPEND SOURCES gos_net_gns.cpp)
@@ -76,7 +85,7 @@ add_library(gameos_main ${MAIN_SRC})
 
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
-    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/touch_gestures.cpp utils/touch_bar.cpp utils/args_file.cpp utils/data_manifest.cpp utils/screen_fit.cpp
+    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/table_anchor.cpp utils/ar_view.cpp utils/touch_gestures.cpp utils/touch_bar.cpp utils/args_file.cpp utils/data_manifest.cpp utils/screen_fit.cpp
     utils/log_file.cpp android_data.cpp gos_logfile.cpp gos_net.cpp gos_net_lan.cpp gos_touch.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 if(MC2_NET)

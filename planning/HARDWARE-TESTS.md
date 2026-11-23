@@ -461,6 +461,81 @@ push the data as in `android/README.md`, "Phones and tablets".
 - [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one
       and runs as a flat window in the headset's home.
 
+## AR tabletop (`future-features/AR-TABLETOP.md`, branch `ar-tabletop`)
+
+Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
+
+- [x] **The battle stands on the table**, the room round it through passthrough,
+      and walking round it or leaning in moves the view. Done on a Quest 2,
+      2026-11-16 (after the head position fix: it was on the ceiling).
+- [ ] **The interface panel reads easily**: above the table (20 degrees over the
+      horizon, 1.5 m away, 1.6 m wide) with no need to cross the eyes. Hold A
+      and push the left stick to move it; the log prints the `MC2_XR_HUD` value
+      to keep. Placed by hand at 17 degrees and 1.54 m on a Quest 2, 2026-11-16,
+      where the old limit stopped it; the new default is not yet seen.
+- [x] **Clicks on the table** select and order units where the pointer meets the
+      ground (the ray is in the table's frame). Done on a Quest 2, 2026-11-16.
+- [x] **A puts the table at the right controller**, laid on a real table, the
+      right stick zooms it (the log prints `MC2_TABLE_SCALE`), and the left
+      stick scrolls the map across it. Done on a Quest 2, 2026-11-16 (mc2_05,
+      zoomed between 1:285 and 1:1673).
+- [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
+      moved the eye the wrong way before the fix, by centimetres.
+- [x] **A drag box on the ground** (Quest, in normal VR and on the table):
+      drag the trigger across some units; the box lies on the terrain round
+      them, a white edge and a faint fill, in both eyes, not on the interface
+      panel, and the units inside it are selected. Done on a Quest 2 on the
+      table, 2026-11-21 (mc2_21): the corner follows the pointer. Normal VR
+      not yet seen with the fix.
+- [ ] **Model views on the tabletop**: with the tabletop on, the mission
+      briefing's mech and objective views and the mech lab's mech turn as
+      usual, seen from the side, not from straight above.
+- [x] **"Tabletop view" in the graphics options** (Quest only, under the
+      hardware rasterizer box): tick it, Accept, and the battle goes onto a
+      table ahead of you with the room round it (`[XR] tabletop on`); untick
+      it and the battle is all round again, with the haze back where the fog
+      setting puts it (`[XR] tabletop off`). Both in a mission and from the
+      main menu; it is still set after a restart (`VRTabletop` in the
+      options file). Cancel puts the old setting back. With no saved setting
+      `MC2_XR_TABLE=1` still starts it on. Not on desktop or the phone.
+      Done on a Quest 2, 2026-11-20: off and on again in mc2_23, the table
+      back ahead at the zoom set before (1:391), saved as `VRTabletop`, no
+      errors in `mc2.log`.
+
+Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
+`mc2args.txt`, on a phone with ARCore (Pixel 9). GLES.
+
+- [x] **The camera asks and ARCore starts**: the permission prompt on the
+      first start, then the camera image fills the screen behind the game;
+      `[AR] tracking` in `mc2.log`. Done on a Pixel 9, 2026-11-16. Still to
+      see: turning the phone over (the other landscape way) keeps the image
+      upright and unstretched.
+- [x] **The battle stands on the table**: pointed at a table and moved a
+      little, `[AR] table placed on a surface` and the battle on it, staying
+      put as the phone walks round it and leans in, at a sensible size. Done
+      on a Pixel 9, 2026-11-16 (mc2_01 on a desk; at first all haze, fixed).
+- [x] **Taps on the table** select and order units where the finger is; taps
+      on the interface work as in a flat game. Two fingers scroll the map.
+      Done on a Pixel 9, 2026-11-16.
+- [ ] **A drag box on the table**: drag one finger across some units; the box
+      follows the finger without jumping, and selects the units inside where
+      the finger lifted. (It jumped and ended in the wrong place before the
+      fix that keeps the pointer put while a point waits.) The box lies on
+      the ground of the battle, a white edge and a faint fill, and the units
+      selected are the ones inside it.
+- [ ] **The table stays put after placement**: once `[AR] table placed`
+      is logged, ARCore stops looking for surfaces; walk round the table and
+      come back: the battle has not drifted off the desk.
+- [ ] **Units near the table's edge**: tap a unit at the edge nearest the
+      phone, and ground there: it selects and orders, the panel is not
+      pressed. The same on a Quest 2 by pointing (it could not pick there:
+      the game camera now keeps the table off the interface on its screen,
+      `vr_eye::clearRadius`). `MC2_XR_PICK_LOG=1` logs the clear radius.
+- [ ] **Switching away and back** (Home, then the app): the camera comes back
+      and the battle is where it was.
+- [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera
+      prompt).
+
 ## On a Mac (`future-features/MACOS.md`, branch `macos-port`)
 
 - [ ] **A mission on an M-series Mac** (GL, macOS GL 4.1). Homebrew `sdl2 sdl2_mixer sdl2_ttf glew

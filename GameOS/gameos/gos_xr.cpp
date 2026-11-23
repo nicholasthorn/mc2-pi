@@ -19,6 +19,7 @@
 #include "gameos.hpp"
 #include "utils/graphics.h"
 #include "utils/gl_utils.h"
+#include "utils/table_anchor.h"
 #include "utils/tga_writer.h"
 #include "utils/vr_controls.h"
 #include "utils/vr_eye.h"
@@ -53,6 +54,15 @@ const float kScreenWidth = 2.0f;
 const float kHudDistance = 1.5f;
 const float kHudDown = 0.52f;           // radians below the horizon (30 degrees)
 const float kHudWidth = 2.0f;
+// the tabletop's: 20 degrees above the horizon and narrower (placed by hand
+// in a Quest 2 on 2026-11-16 at 17 degrees, twice, both times stopped by the
+// old 17 degree limit, and 1.54 m wide)
+const float kTableHudDown = -0.35f;
+const float kTableHudWidth = 1.6f;
+// how far above the horizon the quad may be moved (45 degrees)
+const float kHudHighest = -0.79f;
+// a controller's aim pose lying on a table is about this far above it (m)
+const float kTableControllerHeight = 0.03f;
 
 // the pointer stays this many of the game's screen pixels inside its edges,
 // where the game would scroll the map (the sticks do that)
@@ -211,6 +221,20 @@ struct State {
     bool pointerImagesReady = false;
     bool pointerVisible = false;
     float pointerX = 0.0f, pointerY = 0.0f;
+    // tabletop (MC2_XR_TABLE=1, AR-TABLETOP.md): the battle on a table in the
+    // room, the eyes and the pointer handed to the game in the table's frame,
+    // the room shown round it by passthrough where the headset has it
+    bool tabletop = false;
+    table_anchor::Settings tableSettings = {table_anchor::kDefaultScale,
+            table_anchor::kDefaultDistance, table_anchor::kDefaultDrop};
+    table_anchor::Table table = {{0.0f, -table_anchor::kDefaultDrop, -table_anchor::kDefaultDistance}, 0.0f};
+    bool tableZooming = false;              // the right stick is changing the scale
+    bool passthroughAvailable = false;      // the runtime has XR_FB_passthrough
+    XrPassthroughFB passthrough = XR_NULL_HANDLE;
+    XrPassthroughLayerFB passthroughLayer = XR_NULL_HANDLE;
+    // the eyes' alpha made 1 wherever the world drew, 0 elsewhere (fillAlpha)
+    GLuint alphaProgram = 0;
+    GLuint alphaVao = 0;
 };
 State g;
 
@@ -252,18 +276,28 @@ bool createInstance(JavaVM* vm, jobject activity)
         XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME,
         XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME,
     };
-    // optional: when the headset goes on a head (see alignToHead)
+    // optional: when the headset goes on a head (see alignToHead), and for
+    // the tabletop, the room through the cameras
+    bool presence = false;
     uint32_t available = 0;
     if(XR_SUCCEEDED(xrEnumerateInstanceExtensionProperties(nullptr, 0, &available, nullptr))) {
         std::vector<XrExtensionProperties> properties(available, xrStruct<XrExtensionProperties>(XR_TYPE_EXTENSION_PROPERTIES));
         if(XR_SUCCEEDED(xrEnumerateInstanceExtensionProperties(nullptr, available, &available, properties.data()))) {
             for(const XrExtensionProperties& property : properties) {
-                if(strcmp(property.extensionName, XR_EXT_USER_PRESENCE_EXTENSION_NAME) == 0)
+                if(strcmp(property.extensionName, XR_EXT_USER_PRESENCE_EXTENSION_NAME) == 0) {
                     extensions.push_back(XR_EXT_USER_PRESENCE_EXTENSION_NAME);
+                    presence = true;
+                }
+                // for the tabletop, which the options can turn on later
+                if(strcmp(property.extensionName, XR_FB_PASSTHROUGH_EXTENSION_NAME) == 0) {
+                    extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
+                    g.passthroughAvailable = true;
+                }
             }
         }
     }
-    printf("[XR] user presence: %s\n", extensions.size() > 2 ? "available" : "not available");
+    printf("[XR] user presence: %s\n", presence ? "available" : "not available");
+    printf("[XR] passthrough: %s\n", g.passthroughAvailable ? "available" : "not available");
     XrInstanceCreateInfoAndroidKHR android = xrStruct<XrInstanceCreateInfoAndroidKHR>(XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR);
     android.applicationVM = vm;
     android.applicationActivity = activity;
@@ -331,6 +365,173 @@ bool createSession()
         return false;
     spaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
     return ok(xrCreateReferenceSpace(g.session, &spaceInfo, &g.viewSpace), "xrCreateReferenceSpace(VIEW)");
+}
+
+// The tabletop's room: the headset's cameras as a layer under the eyes, which
+// are then see-through where the world did not draw (fillAlpha). Without it
+// the table floats in the fog colour as before.
+bool createPassthrough()
+{
+    PFN_xrCreatePassthroughFB createPassthrough = nullptr;
+    PFN_xrCreatePassthroughLayerFB createLayer = nullptr;
+    if(!ok(xrGetInstanceProcAddr(g.instance, "xrCreatePassthroughFB", (PFN_xrVoidFunction*)&createPassthrough),
+            "xrGetInstanceProcAddr(xrCreatePassthroughFB)")
+            || !ok(xrGetInstanceProcAddr(g.instance, "xrCreatePassthroughLayerFB", (PFN_xrVoidFunction*)&createLayer),
+            "xrGetInstanceProcAddr(xrCreatePassthroughLayerFB)"))
+        return false;
+    XrPassthroughCreateInfoFB info = xrStruct<XrPassthroughCreateInfoFB>(XR_TYPE_PASSTHROUGH_CREATE_INFO_FB);
+    info.flags = XR_PASSTHROUGH_IS_RUNNING_AT_CREATION_BIT_FB;
+    if(!ok(createPassthrough(g.session, &info, &g.passthrough), "xrCreatePassthroughFB"))
+        return false;
+    XrPassthroughLayerCreateInfoFB layer = xrStruct<XrPassthroughLayerCreateInfoFB>(XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB);
+    layer.passthrough = g.passthrough;
+    layer.flags = XR_PASSTHROUGH_IS_RUNNING_AT_CREATION_BIT_FB;
+    layer.purpose = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB;
+    return ok(createLayer(g.session, &layer, &g.passthroughLayer), "xrCreatePassthroughLayerFB");
+}
+
+void destroyPassthrough()
+{
+    PFN_xrDestroyPassthroughLayerFB destroyLayer = nullptr;
+    PFN_xrDestroyPassthroughFB destroy = nullptr;
+    if(g.passthroughLayer != XR_NULL_HANDLE
+            && XR_SUCCEEDED(xrGetInstanceProcAddr(g.instance, "xrDestroyPassthroughLayerFB", (PFN_xrVoidFunction*)&destroyLayer)))
+        destroyLayer(g.passthroughLayer);
+    if(g.passthrough != XR_NULL_HANDLE
+            && XR_SUCCEEDED(xrGetInstanceProcAddr(g.instance, "xrDestroyPassthroughFB", (PFN_xrVoidFunction*)&destroy)))
+        destroy(g.passthrough);
+    g.passthroughLayer = XR_NULL_HANDLE;
+    g.passthrough = XR_NULL_HANDLE;
+}
+
+bool passthroughOn()
+{
+    return g.tabletop && g.passthroughLayer != XR_NULL_HANDLE;
+}
+
+GLuint compileShader(GLenum type, const char* source)
+{
+    const GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, nullptr);
+    glCompileShader(shader);
+    GLint compiled = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if(!compiled) {
+        char log[512] = {};
+        glGetShaderInfoLog(shader, sizeof(log) - 1, nullptr, log);
+        printf("[XR] alpha shader: %s\n", log);
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+// A triangle over the whole image at the far plane, drawn where something is
+// nearer (GL_GREATER against the depth the world left): alpha 1 there, so the
+// compositor shows the world over the room and the room everywhere else.
+bool createAlphaFill()
+{
+    // GLES 3 only, like the rest of this file: not a game shader
+    const char* vertex =
+        "#version 300 es\n"
+        "void main() {\n"
+        "    vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);\n"
+        "    gl_Position = vec4(p, 1.0, 1.0);\n"
+        "}\n";
+    const char* fragment =
+        "#version 300 es\n"
+        "precision mediump float;\n"
+        "out vec4 colour;\n"
+        "void main() { colour = vec4(0.0, 0.0, 0.0, 1.0); }\n";
+    const GLuint vs = compileShader(GL_VERTEX_SHADER, vertex);
+    const GLuint fs = compileShader(GL_FRAGMENT_SHADER, fragment);
+    if(!vs || !fs)
+        return false;
+    g.alphaProgram = glCreateProgram();
+    glAttachShader(g.alphaProgram, vs);
+    glAttachShader(g.alphaProgram, fs);
+    glLinkProgram(g.alphaProgram);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    GLint linked = 0;
+    glGetProgramiv(g.alphaProgram, GL_LINK_STATUS, &linked);
+    if(!linked) {
+        printf("[XR] alpha shader did not link\n");
+        glDeleteProgram(g.alphaProgram);
+        g.alphaProgram = 0;
+        return false;
+    }
+    glGenVertexArrays(1, &g.alphaVao);
+    return true;
+}
+
+// The eye bound now: alpha 1 wherever the world drew. The renderer caches
+// GL state, so whatever this changes is put back.
+// the room round the table through passthrough, where the headset has it
+bool startRoom()
+{
+    const bool room = g.passthroughAvailable && createPassthrough() && (g.alphaProgram || createAlphaFill());
+    if(!room)
+        destroyPassthrough();
+    return room;
+}
+
+void fillAlpha()
+{
+    if(!g.alphaProgram)
+        return;
+    GLint program = 0, vao = 0, depthFunc = GL_LESS;
+    GLboolean depthMask = GL_TRUE, colourMask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
+    glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
+    glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+    glGetBooleanv(GL_COLOR_WRITEMASK, colourMask);
+    const GLboolean depthTest = glIsEnabled(GL_DEPTH_TEST);
+    const GLboolean blend = glIsEnabled(GL_BLEND);
+    const GLboolean cull = glIsEnabled(GL_CULL_FACE);
+    const GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_GREATER);
+    glDepthMask(GL_FALSE);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_SCISSOR_TEST);
+    glUseProgram(g.alphaProgram);
+    glBindVertexArray(g.alphaVao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindVertexArray((GLuint)vao);
+    glUseProgram((GLuint)program);
+    glColorMask(colourMask[0], colourMask[1], colourMask[2], colourMask[3]);
+    glDepthMask(depthMask);
+    glDepthFunc((GLenum)depthFunc);
+    if(!depthTest) glDisable(GL_DEPTH_TEST);
+    if(blend) glEnable(GL_BLEND);
+    if(cull) glEnable(GL_CULL_FACE);
+    if(scissor) glEnable(GL_SCISSOR_TEST);
+}
+
+// the table ahead of a head at position, facing yaw (MC2_TABLE_PLACE)
+void placeTable(const float position[3], float yaw)
+{
+    g.table = table_anchor::inFront(position, yaw, g.tableSettings.distance, g.tableSettings.drop);
+    printf("[XR] table placed %.2f m ahead, %.2f m below the head, at 1:%.0f\n",
+            g.tableSettings.distance, g.tableSettings.drop, g.tableSettings.scale);
+}
+
+// a pose in the space everything is in, handed to the game: on the tabletop,
+// in the table's frame
+void forGame(const float position[3], const float orientation[4], float outPosition[3], float outOrientation[4])
+{
+    if(g.tabletop) {
+        table_anchor::toTable(g.table, position, orientation, outPosition, outOrientation);
+        return;
+    }
+    memcpy(outPosition, position, 3 * sizeof(float));
+    memcpy(outOrientation, orientation, 4 * sizeof(float));
 }
 
 XrPath toPath(const char* name)
@@ -549,6 +750,11 @@ void alignToHead()
     g.hudOrigin[0] = g.hudOrigin[1] = g.hudOrigin[2] = 0.0f;
     g.hudYaw = 0.0f;
     placeHud();
+    // and the table ahead of it (the origin is the head now)
+    if(g.tabletop) {
+        const float origin[3] = {0.0f, 0.0f, 0.0f};
+        placeTable(origin, 0.0f);
+    }
     printf("[XR] straight ahead is where the head faces: %.0f degrees from LOCAL, %.2f m away\n",
             vr_controls::yawOf(head.orientation) * 180.0f / 3.14159265f,
             std::sqrt(head.position[0] * head.position[0] + head.position[1] * head.position[1] + head.position[2] * head.position[2]));
@@ -564,6 +770,21 @@ void recentreHud()
     memcpy(g.hudOrigin, head.position, sizeof(g.hudOrigin));
     g.hudYaw = vr_controls::yawOf(head.orientation);
     placeHud();
+    if(!g.tabletop)
+        return;
+    // the battle's centre where the right controller is (set it on the real
+    // table), facing the way the head does; without it, ahead of the head
+    vr_controls::Pose hand;
+    if(g.actionSet != XR_NULL_HANDLE && locateIn(g.aimSpaces[1], g.space, hand, true)) {
+        g.table.position[0] = hand.position[0];
+        g.table.position[1] = hand.position[1] - kTableControllerHeight;
+        g.table.position[2] = hand.position[2];
+        g.table.yaw = g.hudYaw;
+        printf("[XR] table placed at the right controller, %.2f m below the head, at 1:%.0f\n",
+                head.position[1] - g.table.position[1], g.tableSettings.scale);
+    } else {
+        placeTable(head.position, g.hudYaw);
+    }
 }
 
 // MC2_XR_HUD=distance,degrees,width: the quad's distance (metres), angle
@@ -573,6 +794,14 @@ void readHudSettings()
     g.hudDistance = g.useEyes ? kHudDistance : kScreenDistance;
     g.hudDown = g.useEyes ? kHudDown : 0.0f;
     g.hudWidth = g.useEyes ? kHudWidth : kScreenWidth;
+    // the tabletop: above the table, like a board behind it (unless
+    // MC2_XR_HUD says otherwise, below). Below the
+    // horizon it lay over the table while 1.5 m away, further than the
+    // table it covered, and the eyes had to cross to read it.
+    if(g.tabletop) {
+        g.hudDown = kTableHudDown;
+        g.hudWidth = kTableHudWidth;
+    }
     const char* env = getenv("MC2_XR_HUD");
     float distance = 0.0f, degrees = 0.0f, width = 0.0f;
     const int count = env ? sscanf(env, "%f,%f,%f", &distance, &degrees, &width) : 0;
@@ -594,7 +823,7 @@ void adjustHud(const float left[2])
     const float dt = g.frame.predictedDisplayPeriod > 0 ? (float)g.frame.predictedDisplayPeriod * 1e-9f : 1.0f / 72.0f;
     const float deadZone = 0.2f;
     auto rate = [deadZone](float v) { return std::fabs(v) < deadZone ? 0.0f : v; };
-    g.hudDown = std::min(1.2f, std::max(-0.3f, g.hudDown - 0.5f * rate(left[1]) * dt));
+    g.hudDown = std::min(1.2f, std::max(kHudHighest, g.hudDown - 0.5f * rate(left[1]) * dt));
     g.hudWidth = std::min(4.0f, std::max(0.5f, g.hudWidth + 0.5f * rate(left[0]) * dt));
     if(rate(left[0]) != 0.0f || rate(left[1]) != 0.0f) {
         g.hudAdjusted = true;
@@ -1141,6 +1370,10 @@ bool init()
     readDebugSettings();
     const char* eyesEnv = getenv("MC2_XR_EYES");
     g.useEyes = !(eyesEnv && eyesEnv[0] == '0');
+    // the tabletop needs the eyes
+    const char* tableEnv = getenv("MC2_XR_TABLE");
+    g.tabletop = g.useEyes && tableEnv && tableEnv[0] == '1';
+    g.tableSettings = table_anchor::settingsFrom(getenv("MC2_TABLE_SCALE"), getenv("MC2_TABLE_PLACE"));
     const char* hudEnv = getenv("MC2_XR_HUD_EVERY_FRAME");
     g.hudEveryFrame = hudEnv && hudEnv[0] == '1';
     const char* msaaEnv = getenv("MC2_XR_MSAA");
@@ -1161,6 +1394,11 @@ bool init()
     if(initLoader(vm, activityRef) && createInstance(vm, activityRef) && createSession()
             && createImage(g.quad, width, height, false, "screen", false, quadMips) && (!g.useEyes || createEyes())) {
         readHudSettings();
+        if(g.tabletop) {
+            const bool room = startRoom();
+            printf("[XR] tabletop at 1:%.0f, %s; A puts the battle at your right controller (set it on the table), the right stick zooms it\n", g.tableSettings.scale,
+                    room ? "the room through passthrough" : "no passthrough: the table in the fog");
+        }
         if(createActions()) {
             g.pointerImagesReady = createPointerImages();
             if(!g.pointerImagesReady)
@@ -1247,13 +1485,9 @@ int eyeViews(gosVREyeView views[2])
         return 0;
     for(int eye = 0; eye < 2; ++eye) {
         const XrPosef& pose = g.views[eye].pose;
-        views[eye].position[0] = pose.position.x;
-        views[eye].position[1] = pose.position.y;
-        views[eye].position[2] = pose.position.z;
-        views[eye].orientation[0] = pose.orientation.x;
-        views[eye].orientation[1] = pose.orientation.y;
-        views[eye].orientation[2] = pose.orientation.z;
-        views[eye].orientation[3] = pose.orientation.w;
+        const float position[3] = {pose.position.x, pose.position.y, pose.position.z};
+        const float orientation[4] = {pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w};
+        forGame(position, orientation, views[eye].position, views[eye].orientation);
         views[eye].fov[0] = g.views[eye].fov.angleLeft;
         views[eye].fov[1] = g.views[eye].fov.angleRight;
         views[eye].fov[2] = g.views[eye].fov.angleUp;
@@ -1291,7 +1525,11 @@ bool bindEye(int eye)
     glBindFramebuffer(GL_FRAMEBUFFER, image.fbo);
     glViewport(0, 0, image.width, image.height);
     glDepthMask(GL_TRUE);
-    glClearColor(g_eyeClear[0], g_eyeClear[1], g_eyeClear[2], 1.0f);
+    // through passthrough: see-through until the world draws (fillAlpha)
+    if(passthroughOn())
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    else
+        glClearColor(g_eyeClear[0], g_eyeClear[1], g_eyeClear[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // back to transparent black: the clear colour is global state, and the
     // window's clear (draw_screen) must leave the HUD's background see-through
@@ -1333,6 +1571,13 @@ bool present(int width, int height)
         saveImage(g.eyes[0].fbo, g.eyes[0].width, g.eyes[0].height, "xr_left_eye.tga");
         saveImage(0, width, height, "xr_window.tga");
     }
+    if(eyesDrawn && passthroughOn()) {
+        for(Image& eye : g.eyes) {
+            glBindFramebuffer(GL_FRAMEBUFFER, eye.fbo);
+            glViewport(0, 0, eye.width, eye.height);
+            fillAlpha();
+        }
+    }
     release(g.eyes[0]);
     release(g.eyes[1]);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1347,8 +1592,17 @@ bool present(int width, int height)
     XrCompositionLayerProjection projection = xrStruct<XrCompositionLayerProjection>(XR_TYPE_COMPOSITION_LAYER_PROJECTION);
     XrCompositionLayerQuad quad = xrStruct<XrCompositionLayerQuad>(XR_TYPE_COMPOSITION_LAYER_QUAD);
     XrCompositionLayerQuad pointer[2];
-    const XrCompositionLayerBaseHeader* layers[4];
+    XrCompositionLayerPassthroughFB room = xrStruct<XrCompositionLayerPassthroughFB>(XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB);
+    const XrCompositionLayerBaseHeader* layers[5];
     uint32_t layerCount = 0;
+
+    // the tabletop's room, under everything
+    if(passthroughOn()) {
+        room.flags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+        room.space = XR_NULL_HANDLE;
+        room.layerHandle = g.passthroughLayer;
+        layers[layerCount++] = (XrCompositionLayerBaseHeader*)&room;
+    }
 
     if(g.frame.shouldRender && eyesDrawn && g.viewsValid) {
         for(int eye = 0; eye < 2; ++eye) {
@@ -1359,6 +1613,9 @@ bool present(int width, int height)
             projViews[eye].subImage.imageRect.extent = {g.eyes[eye].width, g.eyes[eye].height};
         }
         projection.space = g.space;
+        if(passthroughOn())     // the world over the room, by its alpha
+            projection.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT
+                    | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
         projection.viewCount = 2;
         projection.views = projViews;
         layers[layerCount++] = (XrCompositionLayerBaseHeader*)&projection;
@@ -1421,6 +1678,48 @@ bool hudResting()
 bool exitRequested()
 {
     return g.exit;
+}
+
+bool tabletop()
+{
+    return g.session != XR_NULL_HANDLE && g.tabletop;
+}
+
+bool tabletopAvailable()
+{
+    return g.session != XR_NULL_HANDLE && g.useEyes;
+}
+
+void setTabletop(bool on)
+{
+    if(!tabletopAvailable() || on == g.tabletop)
+        return;
+    g.tabletop = on;
+    g.tableZooming = false;
+    // the interface panel where the view puts it (above the table, or below
+    // the horizon), in front of the head
+    readHudSettings();
+    vr_controls::Pose head;
+    if(locate(g.viewSpace, head)) {
+        memcpy(g.hudOrigin, head.position, sizeof(g.hudOrigin));
+        g.hudYaw = vr_controls::yawOf(head.orientation);
+        if(on)
+            placeTable(head.position, g.hudYaw);
+    }
+    placeHud();
+    bool room = false;
+    if(on)
+        room = startRoom();
+    else
+        destroyPassthrough();       // lets go of the cameras
+    printf("[XR] tabletop %s%s\n", on ? "on" : "off",
+            on ? (room ? ": the room through passthrough; A puts the battle at your right controller"
+                       : ": no passthrough, the table in the fog") : "");
+}
+
+float tableScale()
+{
+    return g.tableSettings.scale;
 }
 
 bool active()
@@ -1500,6 +1799,19 @@ void pollInput()
             printf("[XR] interface placed: MC2_XR_HUD=%.2f,%.0f,%.2f\n", g.hudDistance,
                     g.hudDown * 180.0f / 3.14159265f, g.hudWidth);
         g.stickActions = vr_controls::stickActions(left, right, g.stickActions);
+        // the tabletop: zooming makes the battle larger or smaller on the
+        // table, as the game camera's height means nothing there
+        if(g.tabletop) {
+            const uint32_t zoom = vr_controls::ZOOM_IN | vr_controls::ZOOM_OUT;
+            const bool zooming = (g.stickActions & zoom) != 0;
+            if(zooming)
+                g.tableSettings.scale = table_anchor::zoomScale(g.tableSettings.scale, right[1],
+                        (float)g.frame.predictedDisplayPeriod * 1e-9f);
+            else if(g.tableZooming)
+                printf("[XR] table at 1:%.0f (MC2_TABLE_SCALE=%.0f)\n", g.tableSettings.scale, g.tableSettings.scale);
+            g.tableZooming = zooming;
+            g.stickActions &= ~zoom;
+        }
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)
@@ -1623,8 +1935,7 @@ bool pointerRay(float position[3], float orientation[4])
     vr_controls::Pose aim;
     if(g.target != TARGET_WORLD || !locate(g.aimSpaces[g.pointingHand], aim))
         return false;
-    memcpy(position, aim.position, sizeof(aim.position));
-    memcpy(orientation, aim.orientation, sizeof(aim.orientation));
+    forGame(aim.position, aim.orientation, position, orientation);
     return true;
 }
 
@@ -1659,6 +1970,12 @@ void shutdown()
             glDeleteSync(fence);
     if(g.probe.pbo[0])
         glDeleteBuffers(AlphaProbe::kSlots, g.probe.pbo);
+    if(g.alphaProgram)
+        glDeleteProgram(g.alphaProgram);
+    if(g.alphaVao)
+        glDeleteVertexArrays(1, &g.alphaVao);
+    if(g.instance != XR_NULL_HANDLE)
+        destroyPassthrough();
     for(XrSpace space : g.aimSpaces)
         if(space != XR_NULL_HANDLE)
             xrDestroySpace(space);
