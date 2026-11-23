@@ -286,6 +286,34 @@ static void set_mouse_capture(bool enabled)
     SDL_ShowCursor(enabled ? SDL_DISABLE : SDL_ENABLE);
 }
 
+// The window events that decide who has the mouse, with the state after each,
+// for when the mouse is not taken back (seen under WSLg). Rare: a line per
+// Alt+Tab or pointer crossing, none per frame.
+static void log_window_event(const SDL_Event& event)
+{
+    if(event.type != SDL_WINDOWEVENT)
+        return;
+    const char* name = NULL;
+    switch(event.window.event) {
+        case SDL_WINDOWEVENT_FOCUS_GAINED: name = "focus gained"; break;
+        case SDL_WINDOWEVENT_FOCUS_LOST:   name = "focus lost"; break;
+        case SDL_WINDOWEVENT_ENTER:        name = "pointer entered"; break;
+        case SDL_WINDOWEVENT_LEAVE:        name = "pointer left"; break;
+        case SDL_WINDOWEVENT_MINIMIZED:    name = "minimized"; break;
+        case SDL_WINDOWEVENT_RESTORED:     name = "restored"; break;
+        case SDL_WINDOWEVENT_SHOWN:        name = "shown"; break;
+        case SDL_WINDOWEVENT_HIDDEN:       name = "hidden"; break;
+        default: return;
+    }
+    SDL_Window* window = SDL_GetWindowFromID(event.window.windowID);
+    const Uint32 flags = window ? SDL_GetWindowFlags(window) : 0;
+    printf("[INPUT] window %s: input focus %d, mouse focus %d, grabbed %d, ignored %d\n", name,
+        (flags & SDL_WINDOW_INPUT_FOCUS) ? 1 : 0, (flags & SDL_WINDOW_MOUSE_FOCUS) ? 1 : 0,
+        (window && SDL_GetWindowGrab(window)) ? 1 : 0,
+        (g_focus_lost && event.window.event != SDL_WINDOWEVENT_FOCUS_GAINED) ? 1 : 0);
+    fflush(stdout);
+}
+
 // sample: the game steps this frame, so read the keys and buttons now. In VR
 // it steps at 30 Hz but frames come at 72: sampling on frames it skips would
 // turn a press into "held" before the game saw it, and the click is lost.
@@ -297,6 +325,8 @@ static void process_events( bool sample, bool reset ) {
 
     SDL_Event event;
     while( SDL_PollEvent( &event ) ) {
+
+        log_window_event(event);
 
         // the app's own events come whether or not the window has focus
         // (Android takes it away before the app goes into the background)
