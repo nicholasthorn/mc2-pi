@@ -275,11 +275,28 @@ static void handle_key_down( SDL_Keysym* keysym ) {
     }
 }
 
+// MC2_NO_MOUSE_GRAB=1: never grab or capture the mouse (the cursor is still
+// hidden while the window has focus), to tell whether a grab is what takes the
+// focus away again under WSLg
+static bool mouse_grab_allowed()
+{
+    static const bool allowed = []() {
+        const char* no = getenv("MC2_NO_MOUSE_GRAB");
+        const bool off = no && no[0] && strcmp(no, "0") != 0;
+        if(off) {
+            printf("[INPUT] MC2_NO_MOUSE_GRAB: the mouse is never grabbed\n");
+            fflush(stdout);
+        }
+        return !off;
+    }();
+    return allowed;
+}
+
 static void set_mouse_capture(bool enabled)
 {
     graphics::RenderWindowHandle win = gos_GetWindow();
     bool fullscreen = graphics::is_window_fullscreen(win);
-    SDL_bool capture = (enabled /*&& fullscreen*/) ? SDL_TRUE : SDL_FALSE;
+    SDL_bool capture = (enabled /*&& fullscreen*/ && mouse_grab_allowed()) ? SDL_TRUE : SDL_FALSE;
     graphics::grab_window(win, (bool)capture);
 
     SDL_CaptureMouse(capture);
@@ -307,7 +324,8 @@ static void log_window_event(const SDL_Event& event)
     }
     SDL_Window* window = SDL_GetWindowFromID(event.window.windowID);
     const Uint32 flags = window ? SDL_GetWindowFlags(window) : 0;
-    printf("[INPUT] window %s: input focus %d, mouse focus %d, grabbed %d, ignored %d\n", name,
+    printf("[INPUT] %u ms: window %s: input focus %d, mouse focus %d, grabbed %d, ignored %d\n",
+        (unsigned)SDL_GetTicks(), name,
         (flags & SDL_WINDOW_INPUT_FOCUS) ? 1 : 0, (flags & SDL_WINDOW_MOUSE_FOCUS) ? 1 : 0,
         (window && SDL_GetWindowGrab(window)) ? 1 : 0,
         (g_focus_lost && event.window.event != SDL_WINDOWEVENT_FOCUS_GAINED) ? 1 : 0);
@@ -434,7 +452,7 @@ static void process_events( bool sample, bool reset ) {
                     SDL_Window* entered = SDL_GetWindowFromID(event.window.windowID);
                     if(!entered || !(SDL_GetWindowFlags(entered) & SDL_WINDOW_INPUT_FOCUS))
                         break;
-                    printf("[INPUT] the pointer came over the window: taking the mouse again\n");
+                    printf("[INPUT] %u ms: the pointer came over the window: taking the mouse again\n", (unsigned)SDL_GetTicks());
                     fflush(stdout);
                     // SDL marks a window grabbed before it tries, and keeps the mark
                     // when the grab fails; asking again with the mark set does
