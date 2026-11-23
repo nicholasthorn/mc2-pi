@@ -687,4 +687,48 @@ TEST_CASE("chords: the modifier let go first keeps the button out of its own pat
 	CHECK_FALSE(c.buttonInChord);
 }
 
+TEST_CASE("stick scroll: a step as the stick goes up or down, then repeats after a pause")
+{
+	vr_controls::StickScroll s;
+	CHECK(vr_controls::scrollSteps(s, 0.0f, 0.0) == 0);
+	CHECK(vr_controls::scrollSteps(s, 0.2f, 0.0) == 0);       // under the threshold
+	// up is a wheel step up, at once
+	CHECK(vr_controls::scrollSteps(s, 0.6f, 1.0) == 1);
+	CHECK(vr_controls::scrollSteps(s, 0.9f, 1.1) == 0);
+	// held past the pause: kScrollRate a second
+	const double first = 1.0 + vr_controls::kScrollDelay;
+	CHECK(vr_controls::scrollSteps(s, 0.9f, first) == 1);
+	CHECK(vr_controls::scrollSteps(s, 0.9f, first + 0.5 / vr_controls::kScrollRate) == 0);
+	CHECK(vr_controls::scrollSteps(s, 0.9f, first + 1.0 / vr_controls::kScrollRate) == 1);
+	// let go, then down: a step down at once
+	CHECK(vr_controls::scrollSteps(s, 0.0f, 2.0) == 0);
+	CHECK(vr_controls::scrollSteps(s, -0.7f, 2.1) == -1);
+	CHECK(vr_controls::scrollSteps(s, -0.7f, 2.2) == 0);
+}
+
+TEST_CASE("stick scroll: the threshold does not flicker, and a reversal steps at once")
+{
+	vr_controls::StickScroll s;
+	CHECK(vr_controls::scrollSteps(s, 0.6f, 0.0) == 1);
+	// sagging to 0.4 still holds it (stops below 0.3, as the camera's sticks)
+	CHECK(vr_controls::scrollSteps(s, 0.4f, 0.1) == 0);
+	CHECK(vr_controls::scrollSteps(s, 0.4f, vr_controls::kScrollDelay) == 1);
+	// straight over to down
+	CHECK(vr_controls::scrollSteps(s, -0.6f, vr_controls::kScrollDelay + 0.01) == -1);
+	CHECK(vr_controls::scrollSteps(s, 0.2f, 1.0) == 0);
+	CHECK(s.direction == 0);
+}
+
+TEST_CASE("stick scroll: a long frame gives a few steps, not a jump")
+{
+	vr_controls::StickScroll s;
+	CHECK(vr_controls::scrollSteps(s, 1.0f, 0.0) == 1);
+	const int steps = vr_controls::scrollSteps(s, 1.0f, 10.0);
+	CHECK(steps >= 1);
+	CHECK(steps <= vr_controls::kScrollMaxSteps);
+	// and it carries on at the rate from there
+	CHECK(vr_controls::scrollSteps(s, 1.0f, 10.0 + 0.5 / vr_controls::kScrollRate) == 0);
+	CHECK(vr_controls::scrollSteps(s, 1.0f, 10.0 + 1.0 / vr_controls::kScrollRate) == 1);
+}
+
 }
