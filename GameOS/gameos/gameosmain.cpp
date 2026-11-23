@@ -276,33 +276,65 @@ static void handle_key_down( SDL_Keysym* keysym ) {
     }
 }
 
-// Whether the window grabs the mouse while it has focus. Not in WSL: under WSLg
-// a grab never holds the Windows pointer in the window, and each one makes the
-// window lose focus again at once, so after Alt+Tab back (or a click) the game
-// had no focus, ignored input and showed the cursor (seen on 2026-11-23; with no
-// grab, focus stayed). The cursor is still hidden there, and a full screen
-// window covers the screen. MC2_NO_MOUSE_GRAB=1 turns the grab off anywhere,
-// =0 on even in WSL.
+// Whether the window grabs the mouse while it has focus.
+//
+// Under WSLg a grab never holds the Windows pointer in the window, and each one
+// makes the window lose focus again at once, so after Alt+Tab back (or a click)
+// the game had no focus, ignored input and showed the cursor (seen on
+// 2026-11-23; with no grab, focus stayed). So there it never grabs: the cursor
+// is still hidden, and a full screen window covers the screen. Only WSLg's own
+// display: Xvfb (smoke runs) or another X server in WSL grab as anywhere else.
+//
+// Anywhere else with the same trouble (an X11 game on another Wayland desktop,
+// say) is caught as it happens: focus lost within GRAB_FOCUS_LOSS_MS of a grab
+// turns the grab off for the rest of the run, with a line in the log. That one
+// loss still happens; a click or Alt+Tab gives the focus back.
+//
+// MC2_MOUSE_GRAB=0 never grabs, =1 always grabs (neither of the above).
+static const Uint32 GRAB_FOCUS_LOSS_MS = 250;
+static bool g_grab_off = false;     // no grab for the rest of the run
+static bool g_grab_forced = false;  // MC2_MOUSE_GRAB=1
+static Uint32 g_grabbed_at = 0;     // SDL_GetTicks() of the grab in place, 0 for none
+
+static void stop_mouse_grab(const char* why)
+{
+    g_grab_off = true;
+    printf("[INPUT] the mouse is not grabbed from now on: %s\n", why);
+    fflush(stdout);
+}
+
 static bool mouse_grab_allowed()
 {
-    static const bool allowed = []() {
-        const char* no = getenv("MC2_NO_MOUSE_GRAB");
-        bool off;
-        const char* why;
-        if(no && no[0]) {
-            off = strcmp(no, "0") != 0;
-            why = "MC2_NO_MOUSE_GRAB";
-        } else {
-            off = gos_RunningInWsl();
-            why = "WSL, where a grab takes the focus away";
+    static bool decided = false;
+    if(!decided) {
+        decided = true;
+        const char* setting = getenv("MC2_MOUSE_GRAB");
+        if(setting && setting[0])
+        {
+            if(strcmp(setting, "0") == 0)
+                stop_mouse_grab("MC2_MOUSE_GRAB=0");
+            else
+                g_grab_forced = true;
         }
-        if(off) {
-            printf("[INPUT] the mouse is never grabbed: %s\n", why);
-            fflush(stdout);
-        }
-        return !off;
-    }();
-    return allowed;
+        else if(gos_RunningInWslg())
+            stop_mouse_grab("WSLg, where a grab takes the focus away");
+    }
+    return !g_grab_off;
+}
+
+// Focus lost: if a grab took it away, grab no more (see mouse_grab_allowed).
+static void check_grab_on_focus_lost()
+{
+    const Uint32 grabbedAt = g_grabbed_at;
+    g_grabbed_at = 0;
+    if(!grabbedAt || g_grab_off || g_grab_forced)
+        return;
+    const Uint32 after = SDL_GetTicks() - grabbedAt;
+    if(after < GRAB_FOCUS_LOSS_MS) {
+        char why[96];
+        snprintf(why, sizeof(why), "focus lost %u ms after a grab, which this display does not take", (unsigned)after);
+        stop_mouse_grab(why);
+    }
 }
 
 static void set_mouse_capture(bool enabled)
@@ -312,13 +344,18 @@ static void set_mouse_capture(bool enabled)
     SDL_bool capture = (enabled /*&& fullscreen*/ && mouse_grab_allowed()) ? SDL_TRUE : SDL_FALSE;
     graphics::grab_window(win, (bool)capture);
 
+    // With no grab there is no capture either: on X11 a capture is a pointer
+    // grab too, with the same trouble. So in a window, a drag that ends
+    // outside it never sees its button go up, and ends at the next click.
     SDL_CaptureMouse(capture);
     SDL_ShowCursor(enabled ? SDL_DISABLE : SDL_ENABLE);
+    g_grabbed_at = capture ? (SDL_GetTicks() | 1u) : 0;
 }
 
 // The window events that decide who has the mouse, with the state after each:
 // how the WSLg grab trouble was found, and how the next one will be. Rare: a
-// line per Alt+Tab or pointer crossing, none per frame.
+// line per Alt+Tab, minimize or restore, none per frame. (Not the pointer
+// crossing the window's edge, which with no grab can be hundreds a game.)
 static void log_window_event(const SDL_Event& event)
 {
     if(event.type != SDL_WINDOWEVENT)
@@ -327,8 +364,6 @@ static void log_window_event(const SDL_Event& event)
     switch(event.window.event) {
         case SDL_WINDOWEVENT_FOCUS_GAINED: name = "focus gained"; break;
         case SDL_WINDOWEVENT_FOCUS_LOST:   name = "focus lost"; break;
-        case SDL_WINDOWEVENT_ENTER:        name = "pointer entered"; break;
-        case SDL_WINDOWEVENT_LEAVE:        name = "pointer left"; break;
         case SDL_WINDOWEVENT_MINIMIZED:    name = "minimized"; break;
         case SDL_WINDOWEVENT_RESTORED:     name = "restored"; break;
         case SDL_WINDOWEVENT_SHOWN:        name = "shown"; break;
@@ -444,6 +479,7 @@ static void process_events( bool sample, bool reset ) {
 #endif
                     g_focus_lost = true;
                     gos_touch::cancel();
+                    check_grab_on_focus_lost();
                     set_mouse_capture(false);
                     break;
                 case SDL_WINDOWEVENT_FOCUS_GAINED:

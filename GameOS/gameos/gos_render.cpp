@@ -11,6 +11,11 @@
 #include "utils/logging.h"
 #include "gos_xr.h"
 
+#ifndef PLATFORM_WINDOWS
+#define __stdcall
+#endif
+bool __stdcall gos_IsAutomatedRun();	// gameos.cpp
+
 // FIXME: think how to make it better when different parts need window
 SDL_Window* g_sdl_window = NULL;
 
@@ -69,8 +74,10 @@ RenderWindow* create_window(
     }
 
     // SDL's own video warnings (such as an X server refusing to grab the mouse)
-    // are off by default: let them reach the log
-    SDL_LogSetPriority(SDL_LOG_CATEGORY_VIDEO, SDL_LOG_PRIORITY_WARN);
+    // are off by default: let them reach the log, but not in smoke and bench
+    // runs, whose logs are scanned for error lines that SDL's would add to
+    if (!gos_IsAutomatedRun())
+        SDL_LogSetPriority(SDL_LOG_CATEGORY_VIDEO, SDL_LOG_PRIORITY_WARN);
 
     // initialize using 0 videodriver
     if (SDL_VideoInit(nullptr) < 0) {

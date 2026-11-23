@@ -92,12 +92,19 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       800x600). Under WSLg each grab made the window lose focus at once (`[INPUT]` lines: focus
       gained, then lost, with no Alt+Tab between), so after Alt+Tab back or a click the game had
       no focus, ignored input and showed the cursor; and a grab never held the pointer in a
-      window there. With no grab (`MC2_NO_MOUSE_GRAB=1`), Alt+Tab away and back worked, focus
-      following only the person's own switches. The game now never grabs in WSL, and with that
-      build (92187fa5, no switch) Alt+Tab away and back worked too.
-- [ ] **Mouse grab unchanged off WSL** (#179, GL). On Windows and on native Linux: in a mission,
-      the mouse is held in the window, and after Alt+Tab away and back it is held again. The log
-      has no "the mouse is never grabbed" line.
+      window there. With no grab (then `MC2_NO_MOUSE_GRAB=1`, now `MC2_MOUSE_GRAB=0`), Alt+Tab
+      away and back worked, focus following only the person's own switches. With the game never
+      grabbing in WSL (92187fa5, no switch) Alt+Tab away and back worked too. Since then only
+      WSLg's own display skips the grab; run it once more there.
+- [ ] **Mouse grab unchanged off WSLg** (#179, GL). On Windows and on native Linux (an X11
+      session): in a mission, the mouse is held in the window, and after Alt+Tab away and back it
+      is held again. The log has no `the mouse is not grabbed from now on` line.
+- [ ] **An X11 game on another Wayland desktop** (#179, GL or GLES). A Linux Wayland session
+      (GNOME, KDE) and the Pi's desktop (bookworm: Wayfire or labwc) run the game through
+      XWayland, as WSLg does. Alt+Tab away and back in a mission, then `grep -a INPUT
+      last-run.log`: if focus went the moment the game grabbed, the log says `the mouse is not
+      grabbed from now on`, and after one more click the game should work. Either way, note
+      which it was here.
 
 - [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
       `--no-movies` (the Windows `-full` package), play `mc2_01` until the first
