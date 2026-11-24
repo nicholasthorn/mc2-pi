@@ -71,8 +71,8 @@ relief lance 101.0 s, won.
    instead of the block. `install.sh` strips `//` lines.
 3. **A map is reused by copying its `.pak`** under the new mission's name (it
    is found by name; 171 KB here). The map's own blocks are `[Cameras]`,
-   `[Water]`, `[Terrain]`, `[ForestN]`, `[Weather]` and `[TheSky]`; everything
-   else is the mission's.
+   `[Water]`, `[Terrain]`, `[ForestN]`, `[Weather]`, `[TheSky]` and
+   `[ColorMap]` (see 13); everything else is the mission's.
 4. **Objectives find units and buildings by exact start position.** `Group`,
    `Mate` and `CellX`/`CellY` are not used. A building condition whose
    position matches nothing fails to read, and its `Status()` would then
@@ -109,3 +109,12 @@ relief lance 101.0 s, won.
 12. **The operation screen comes with its marker position** (`OperationFile`,
     reused from stock here); a new campaign needs its own, or the stock
     marker sits wherever the stock mission was.
+13. **The ground and water textures are found by the map's name too**
+    (`textures/<name>.tga`, `<name>.detail`, `<name>.water`, in
+    `Terrain::init` and `TerrainColorMap::init`), so tb_01's terrain drew
+    bright pink, on the PC and on a Quest 3, until `install.sh` added
+    `[ColorMap] ColorMapName = "mc2_01"`. Nothing reported it: no log line, and
+    every smoke, autoplay and UI run passed. Found by playing it on the Quest;
+    the PC screenshots had only been of front-end screens. The validator must
+    check that the color map's textures exist, and a review of a new mission
+    needs an in-game screenshot (`-bench` with `MC2_SHOT_FRAME`).
