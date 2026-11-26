@@ -108,7 +108,10 @@ void gos_SetLogFlush(void (*flush)())
     if (g_log_flush)
         g_log_flush();
     show_error_box(text);
-    SDL_Quit();
+    // Android in the background: there is no display mode to put back, and
+    // tearing down video and sound can wait on the paused activity
+    if (!gos_IsInBackground())
+        SDL_Quit();
     _Exit(EXIT_FAILURE);
 }
 
