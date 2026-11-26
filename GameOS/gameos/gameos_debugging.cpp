@@ -13,6 +13,7 @@
 #include <SDL2/SDL.h>
 #include "utils/string_utils.h"
 #include "utils/str_bounded.h"
+#include "gos_xr.h"
 
 #ifdef _DEBUG
 static int enter_debugger = 1;
@@ -68,6 +69,11 @@ static void logmsgf(char* out, const char* header, const char* fmt, ...)
 static void show_error_box(const char* text)
 {
     if (gos_IsAutomatedRun() || !SDL_GetCurrentVideoDriver())
+        return;
+    // A headset shows only the XR session, not a 2D dialog, and an app in the
+    // background shows nothing: the box would wait for an OK that never
+    // comes, and the game would hang instead of ending. The log has the text.
+    if (gos_xr::active() || gos_IsInBackground())
         return;
     char message[MAX_LOG_LINE];
     snprintf(message, sizeof(message), "%s", logLineMessage(text, "STOP"));

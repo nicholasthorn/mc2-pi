@@ -52,9 +52,6 @@ extern void gos_DestroyAudio();
 
 static bool g_exit = false;
 static bool g_focus_lost = false;
-// between SDL_APP_WILLENTERBACKGROUND and SDL_APP_DIDENTERFOREGROUND: Android
-// may have taken the window's surface, so nothing is drawn
-static bool g_in_background = false;
 // the game's logic ran since the last input sample (the screen keyboard
 // counts a field's missed updates only then)
 static bool g_logic_since_sample = true;
@@ -71,6 +68,9 @@ static bool g_fixed_step = false;
 
 void gos_SetFixedFrameLength(float seconds);	// gameos.cpp
 void gos_SetAutomatedRun(bool automated);	// gameos.cpp
+// between SDL_APP_WILLENTERBACKGROUND and SDL_APP_DIDENTERFOREGROUND: Android
+// may have taken the window's surface, so nothing is drawn (gos_IsInBackground)
+void gos_SetInBackground(bool background);	// gameos.cpp
 // gameos.cpp: -bench named stages (gos_BenchStageId) and -benchfov
 void gos_EnableBenchStages();
 void gos_SetBenchFOV(float fov);
@@ -443,13 +443,15 @@ static void process_events( bool sample, bool reset ) {
             fflush(stdout);
             gos_touch::cancel();
             gos_ar::pause();         // lets go of the camera
+            // set first: a STOP in the suspend save must not wait on a
+            // message box nobody can see (gameos_debugging.cpp)
+            gos_SetInBackground(true);
             if(!gos_IsAutomatedRun() && Environment.AppSuspending)
                 Environment.AppSuspending();
-            g_in_background = true;
             break;
         case SDL_APP_DIDENTERFOREGROUND:
             printf("[APP] back in the foreground\n");
-            g_in_background = false;
+            gos_SetInBackground(false);
             gos_ar::resume();
             if(!gos_IsAutomatedRun() && Environment.AppResumed)
                 Environment.AppResumed();
@@ -802,7 +804,7 @@ int main(int argc, char** argv)
         // a frame drawn now would go to a surface Android has taken away
         // (GL_OUT_OF_MEMORY on a Pixel 9); the next event poll blocks until
         // the app is back
-        if(g_in_background) {
+        if(gos_IsInBackground()) {
             input_used = false;
             continue;
         }
