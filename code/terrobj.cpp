@@ -1031,11 +1031,20 @@ void TerrainObject::setCellsCoveredOnly (Stuff::Vector3D& pos) {
 	const long maxCells = (long)(sizeof(TerrainObjectData::cellsCovered) / (2 * sizeof(short)));
 	long numCells = 0;
 	for (long i = 0; (i + 1 < numCoords) && (numCells < maxCells); i += 2)
-		if (GameMap->inBounds(cellList[i], cellList[i + 1]) && !GameMap->getPassable(cellList[i], cellList[i + 1])) {
-			cellList[numCells * 2] = cellList[i];
-			cellList[numCells * 2 + 1] = cellList[i + 1];
-			numCells++;
-		}
+	{
+		const short r = cellList[i], c = cellList[i + 1];
+		if (!GameMap->inBounds(r, c) || GameMap->getPassable(r, c))
+			continue;
+		// a cell comes once for each of the shape's vertices over it
+		bool listed = false;
+		for (long j = 0; j < numCells && !listed; j++)
+			listed = (cellList[j * 2] == r) && (cellList[j * 2 + 1] == c);
+		if (listed)
+			continue;
+		cellList[numCells * 2] = r;
+		cellList[numCells * 2 + 1] = c;
+		numCells++;
+	}
 	if (numCells <= 0 || cellsCovered)
 		return;
 	cellsCovered = (short*)systemHeap->Malloc(sizeof(short) * 2 * numCells);
