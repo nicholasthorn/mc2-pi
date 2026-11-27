@@ -131,3 +131,9 @@ Go to your `mc2exe` folder and execute `./mc2`, your game should hopefully run! 
   pkg-config (kept for other distros too).
 - Under WSLg, `scripts/smoke.sh` still runs headless (Xvfb); pass
   `--display` to watch a run.
+- Under WSLg the game does not grab the mouse: there a grab makes the window
+  lose focus at once, so after Alt+Tab the game would ignore input. The cursor
+  is still hidden while the game has focus. On any other display where focus
+  goes the moment the game grabs, it stops grabbing for the rest of the run and
+  says so in the log (`[INPUT] the mouse is not grabbed from now on`).
+  `MC2_MOUSE_GRAB=0` never grabs, `MC2_MOUSE_GRAB=1` always does.

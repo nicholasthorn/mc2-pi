@@ -140,7 +140,7 @@ void MPConnectionType::init(FitIniFile* file)
 		tcpipPanel.init(&PNfile);
 	}
 
-	// the local network: the Gaming Zone is long gone, and joining by address is not connected yet
+	// the local network: the Gaming Zone is long gone. TCP/IP joins a game by its address.
 	connectionType = 1;
 
 	buttons[indexOfButtonWithID(FIRST_BUTTON_ID+1)].press(!((1 == connectionType) || (2 == connectionType) || (3 == connectionType)));
@@ -186,7 +186,7 @@ void MPConnectionType::begin()
 		}
 	}
 	getButton( FIRST_BUTTON_ID+1 )->disable( true );
-	getButton( FIRST_BUTTON_ID+3 )->disable( true );
+	getButton( FIRST_BUTTON_ID+3 )->disable( false );
 
 	tcpipPanel.begin();
 }
@@ -253,7 +253,11 @@ int	MPConnectionType::handleMessage( unsigned long message, unsigned long who)
 					break;
 				case 2/*direct tcp/ip*/:
 					{
-						(*ppConnectionScreen) = pDirectTcpipScreen;
+						// joins the address typed, as the panel's own button does: the
+						// browser it went to only looks on the local network
+						getButton( 50/*MB_MSG_NEXT*/ )->press( 0 );
+						tcpipPanel.join();
+						return 1;
 					}
 					break;
 				case 3/*modem2modem*/:
@@ -641,6 +645,8 @@ void aTcpipPanel::update()
 						retVal = MPlayer->joinSession( &pSessions[0], prefs.playerName[0] );
 						if ( !retVal )
 						{
+							// as the game browser does on a join
+							MPlayer->setMode(MULTIPLAYER_MODE_PARAMETERS);
 							pParentScreen->handleMessage( 1, TCPIP_PANEL_FIRST_BUTTON_ID );
 							MPlayer->endSessionScan();
 							EString ipAddress;
@@ -868,11 +874,11 @@ int	aTcpipPanel::handleMessage( unsigned long message, unsigned long who)
 		LogisticsOneButtonDialog::instance()->setText( Display );
 		LogisticsOneButtonDialog::instance()->begin();
 
+		// no search at all: past the wait, so the next update says so at once
 		if ( MPlayer->beginSessionScan ( (char*)(const char*)str) )
-		{
-			LogisticsOneButtonDialog::instance()->setText( IDS_MP_CONNECT_ERROR_NO_CONNECTION, IDS_DIALOG_OK, IDS_DIALOG_OK );
-		}
-		connectingTime = 0.f;
+			connectingTime = 1000.f;
+		else
+			connectingTime = 0.f;
 
 		break;
 		}
@@ -884,6 +890,12 @@ int	aTcpipPanel::handleMessage( unsigned long message, unsigned long who)
 		break;
 	}
 	return 0;
+}
+
+void aTcpipPanel::join()
+{
+	if ( !bConnectingDlg && !bErrorDlg && button0.isEnabled() )
+		handleMessage( TCPIP_PANEL_FIRST_BUTTON_ID, TCPIP_PANEL_FIRST_BUTTON_ID );
 }
 //////////////////////////////////////////////
 

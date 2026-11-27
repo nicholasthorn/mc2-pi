@@ -9,7 +9,12 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in vec4 aRGBLight;
 layout(location = 3) in vec2 texcoord;
 
+#ifdef MC2_NO_LAYOUT_BINDING
+// GLSL without layout(binding=) (macOS GL 4.1); the block is not read
+layout (std140) uniform mesh_data
+#else
 layout (binding = 1, std140) uniform mesh_data
+#endif
 { 
   vec4 ambient;
   vec4 diffuse;
@@ -33,7 +38,6 @@ out vec2 Texcoord;
 out vec4 VertexColor;
 out vec3 VertexLight;
 out vec3 WorldPos;
-out vec3 CameraPos;
 out float ModelHeight;
 
 void main(void)
@@ -53,9 +57,6 @@ void main(void)
 
     WorldPos = (world_ * vec4(pos.xyz, 1.0)).xyz;
     ModelHeight = pos.y;
-
-    // something is wrong with this: check later
-    //CameraPos = (inverse(view_) * vec4(0,0,0,1)).xyz;
 
     vec4 p2 = projection_ * vec4(p.xyz,1);
 

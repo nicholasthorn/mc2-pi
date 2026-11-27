@@ -373,6 +373,24 @@ TEST_CASE("world pick: a ray up, or one that runs out, meets nothing") {
 	CHECK_FALSE(vr_controls::rayHitsGround(origin, level, testGround, nullptr, 25.0f, 400.0f, distance));
 }
 
+TEST_CASE("world pick: a ray from inside the ground comes out and meets it further on") {
+	// the tabletop: the hand can be inside a hill on the table. From (0, 0, 5),
+	// under the ground at 10, a ray rising at 45 degrees comes out and never
+	// meets the ground again
+	const float s = std::sqrt(0.5f);
+	const float origin[3] = {0.0f, 0.0f, 5.0f};
+	const float out[3] = {s, 0.0f, s};
+	float distance = 0.0f;
+	CHECK_FALSE(vr_controls::rayHitsGround(origin, out, testGround, nullptr, 25.0f, 5000.0f, distance));
+	// from inside the wall (x > 500, ground at 50), down along -x at 45
+	// degrees: out of the wall's face at x = 500 (z 25), then down onto the
+	// low ground (10) at x = 485
+	const float inWall[3] = {520.0f, 0.0f, 45.0f};
+	const float downOut[3] = {-s, 0.0f, -s};
+	REQUIRE(vr_controls::rayHitsGround(inWall, downOut, testGround, nullptr, 5.0f, 5000.0f, distance));
+	CHECK(distance * s == doctest::Approx(35.0f).epsilon(0.01));
+}
+
 TEST_CASE("world pick: spheres are hit on their near side, missed beside, ignored behind") {
 	const float origin[3] = {0.0f, 0.0f, 0.0f};
 	const float dir[3] = {1.0f, 0.0f, 0.0f};
@@ -428,6 +446,34 @@ TEST_CASE("rayHitsBox: where a ray first meets a box") {
 	// from inside: not a hit, as rayHitsSphere
 	const float inside[3] = {100.0f, 0.0f, 0.0f};
 	CHECK_FALSE(vr_controls::rayHitsBox(inside, along, boxMin, boxMax, distance));
+}
+
+TEST_CASE("boxPickSphere: centred on a unit's box, sized by it") {
+	// a mech-sized box: 60 tall, the sphere 1.2 times its largest half extent
+	const float mechMin[3] = {-10.0f, -8.0f, 0.0f};
+	const float mechMax[3] = {10.0f, 8.0f, 60.0f};
+	float centre[3] = {0.0f, 0.0f, 0.0f};
+	float radius = 0.0f;
+	vr_controls::boxPickSphere(mechMin, mechMax, 10.0f, centre, radius);
+	CHECK(centre[0] == doctest::Approx(0.0f));
+	CHECK(centre[1] == doctest::Approx(0.0f));
+	CHECK(centre[2] == doctest::Approx(30.0f));
+	CHECK(radius == doctest::Approx(36.0f));
+
+	// power armour: a small box low down, so the centre is on it, not 6 m up;
+	// the sphere is no smaller than minRadius
+	const float paMin[3] = {102.0f, 48.0f, 5.0f};
+	const float paMax[3] = {106.0f, 52.0f, 15.0f};
+	vr_controls::boxPickSphere(paMin, paMax, 10.0f, centre, radius);
+	CHECK(centre[0] == doctest::Approx(104.0f));
+	CHECK(centre[1] == doctest::Approx(50.0f));
+	CHECK(centre[2] == doctest::Approx(10.0f));
+	CHECK(radius == doctest::Approx(10.0f));
+
+	// corners given either way round (rotated or mirrored boxes)
+	vr_controls::boxPickSphere(paMax, paMin, 1.0f, centre, radius);
+	CHECK(centre[2] == doctest::Approx(10.0f));
+	CHECK(radius == doctest::Approx(6.0f));
 }
 
 TEST_CASE("sticks: small deflections do nothing, full ones give their direction") {
@@ -673,6 +719,50 @@ TEST_CASE("chords: the modifier let go first keeps the button out of its own pat
 	// pressed alone, it is no chord
 	CHECK_FALSE(vr_controls::chordPress(c, false, true));
 	CHECK_FALSE(c.buttonInChord);
+}
+
+TEST_CASE("stick scroll: a step as the stick goes up or down, then repeats after a pause")
+{
+	vr_controls::StickScroll s;
+	CHECK(vr_controls::scrollSteps(s, 0.0f, 0.0) == 0);
+	CHECK(vr_controls::scrollSteps(s, 0.2f, 0.0) == 0);       // under the threshold
+	// up is a wheel step up, at once
+	CHECK(vr_controls::scrollSteps(s, 0.6f, 1.0) == 1);
+	CHECK(vr_controls::scrollSteps(s, 0.9f, 1.1) == 0);
+	// held past the pause: kScrollRate a second
+	const double first = 1.0 + vr_controls::kScrollDelay;
+	CHECK(vr_controls::scrollSteps(s, 0.9f, first) == 1);
+	CHECK(vr_controls::scrollSteps(s, 0.9f, first + 0.5 / vr_controls::kScrollRate) == 0);
+	CHECK(vr_controls::scrollSteps(s, 0.9f, first + 1.0 / vr_controls::kScrollRate) == 1);
+	// let go, then down: a step down at once
+	CHECK(vr_controls::scrollSteps(s, 0.0f, 2.0) == 0);
+	CHECK(vr_controls::scrollSteps(s, -0.7f, 2.1) == -1);
+	CHECK(vr_controls::scrollSteps(s, -0.7f, 2.2) == 0);
+}
+
+TEST_CASE("stick scroll: the threshold does not flicker, and a reversal steps at once")
+{
+	vr_controls::StickScroll s;
+	CHECK(vr_controls::scrollSteps(s, 0.6f, 0.0) == 1);
+	// sagging to 0.4 still holds it (stops below 0.3, as the camera's sticks)
+	CHECK(vr_controls::scrollSteps(s, 0.4f, 0.1) == 0);
+	CHECK(vr_controls::scrollSteps(s, 0.4f, vr_controls::kScrollDelay) == 1);
+	// straight over to down
+	CHECK(vr_controls::scrollSteps(s, -0.6f, vr_controls::kScrollDelay + 0.01) == -1);
+	CHECK(vr_controls::scrollSteps(s, 0.2f, 1.0) == 0);
+	CHECK(s.direction == 0);
+}
+
+TEST_CASE("stick scroll: a long frame gives a few steps, not a jump")
+{
+	vr_controls::StickScroll s;
+	CHECK(vr_controls::scrollSteps(s, 1.0f, 0.0) == 1);
+	const int steps = vr_controls::scrollSteps(s, 1.0f, 10.0);
+	CHECK(steps >= 1);
+	CHECK(steps <= vr_controls::kScrollMaxSteps);
+	// and it carries on at the rate from there
+	CHECK(vr_controls::scrollSteps(s, 1.0f, 10.0 + 0.5 / vr_controls::kScrollRate) == 0);
+	CHECK(vr_controls::scrollSteps(s, 1.0f, 10.0 + 1.0 / vr_controls::kScrollRate) == 1);
 }
 
 }

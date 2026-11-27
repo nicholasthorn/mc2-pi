@@ -671,7 +671,15 @@ In slices, as it is large: finding a game and the data check first, then the lob
   show under the other number's name. There is no limit on how often a client may send.
 - **C-Bills per player:** the host's spinners on a player's row give that player another amount (`LobbyPlayer::cBills`), and a new amount for everyone
   replaces them all, as the 2001 screen did. The host checks each force against its own player's amount.
-- **Off for now on the parameters screen:** locking a game, booting a player and adding an AI. The Zone and direct IP tabs are off: the Local Network one is what opens. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
+- **Off for now on the parameters screen:** locking a game, booting a player and adding an AI. The Zone tab is off: the Local Network one is what opens, and TCP/IP joins by address. The prefs screen sets a name and colours, which go through `LobbyChoice`; a player's unit name and insignia stay on their own machine.
+- **Join by address, and the host's address:** the TCP/IP tab is on. It sends the LAN query to the typed address alone (UDP 27816), lists what answers
+  there and joins it, for where a broadcast cannot reach: another subnet, a router that keeps its clients apart, or a PC in WSL. The parameters screen's
+  "Host IP address" shows the host's own address (that of the interface with the default route, else the first one up that is not loopback or
+  link-local) and, on a client, the one it joined; it was always empty. A host in WSL with NAT networking (`wslinfo --networking-mode`) adds
+  "(WSL)" there and says in the log that nobody else can reach it: the game has an address on a virtual subnet only Windows reaches, and neither
+  another machine's broadcast nor its connection gets in. So with a PC in WSL the Quest (or any other machine) hosts, and the PC joins it by
+  address; or WSL's networking is mirrored (`.wslconfig`), which no run has tried. Joining by address still asks the beacon, so a host's firewall
+  must let in UDP 27816 as well as its game port. The Next arrow on the TCP/IP tab joins too.
 - **Left:** the Quest's multicast lock is held for the app's whole life, single player included, where it should only be held while finding or hosting a game.
 - **Not run yet:** two players on one team (a client with no screen cannot choose it, and smoke has two players), and the colours a lobby gives as they
   look on the units. A client with another copy of a map stops with a message naming it, which no run has reached, as a game directory's maps are in its FST.

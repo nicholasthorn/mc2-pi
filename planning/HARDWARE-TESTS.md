@@ -39,6 +39,18 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       the other. It should find and join within a few seconds. A Quest as each end, as its Wi-Fi drops
       broadcasts without the lock in `MC2Activity`. Then a router with client isolation, which should
       fail to find it, and joining by address is the way round. WSL cannot host for this (NAT).
+- [x] **Join by address from the screens** (TCP/IP tab; 2026-11-23, Quest 2 hosting from the menu,
+      PC in WSL with NAT joining, home Wi-Fi). The PC asked 192.168.86.76, joined the Quest's lobby
+      as commander 2 and played `mc2_m02a` (2400 turns, weapon fire both ways); same data hash on
+      both. The Quest ran a build without this branch, so its own "Host IP address" was still empty.
+- [x] **The host's address on a Quest** (#179; 2026-11-23, Quest 2, a build of `ar-tabletop` with
+      #179 and #181 merged in): hosting from the menu, its parameters screen shows the headset's
+      Wi-Fi address.
+- [ ] **The host's address on a PC** (#179). A PC host from
+      the menu, in Windows or with WSL's networking mirrored: its screen shows its LAN address, with
+      no "(WSL)", and the Quest finds it on Local Network. A WSL host in NAT shows "(WSL)" after its
+      address (seen in WSL's log on 2026-11-23, not looked at on screen). A host's firewall must let
+      in UDP 27816, where it answers the search, as well as the game's port (27815 and up).
 - [ ] **Support and results, seen** (phase 3). In windows, each side: press a support button and
       click (repair truck, scout, minelayer, guard tower), watch the VTOL and the vehicle arrive on
       both screens; order the truck to repair; down a mech and call the Karnov; check the points on
@@ -80,6 +92,34 @@ Renderers: **GL** is a desktop GL build (`MC2_GLES=OFF`), **GLES** a GLES build
       off and on leave the game running? Also whether the app quits by itself at the end.
 
 ## In the game (any PC with a display)
+
+- [ ] **Mouse wheel on lists** (branch `ui-wheel-scroll`, GL): the wheel over a list
+      with a scroll bar (mech lab, pilots, briefing text, encyclopedia, load and save,
+      the options' hot keys) scrolls it the right way, an item at a time, and the
+      scroll bar's thumb follows; over anything else nothing changes.
+- [x] **Mouse after Alt+Tab, WSLg** (#179, GL; 2026-11-23, Windows 11, WSLg, full screen
+      800x600). Under WSLg each grab made the window lose focus at once (`[INPUT]` lines: focus
+      gained, then lost, with no Alt+Tab between), so after Alt+Tab back or a click the game had
+      no focus, ignored input and showed the cursor; and a grab never held the pointer in a
+      window there. With no grab (then `MC2_NO_MOUSE_GRAB=1`, now `MC2_MOUSE_GRAB=0`), Alt+Tab
+      away and back worked, focus following only the person's own switches. With the game never
+      grabbing in WSL (92187fa5, no switch) Alt+Tab away and back worked too. Since then only
+      WSLg's own display skips the grab; run it once more there.
+- [ ] **Mouse grab unchanged off WSLg** (#179, GL). On Windows and on native Linux (an X11
+      session): in a mission, the mouse is held in the window, and after Alt+Tab away and back it
+      is held again. The log has no `the mouse is not grabbed from now on` line.
+- [ ] **An X11 game on another Wayland desktop** (#179, GL or GLES). A Linux Wayland session
+      (GNOME, KDE) and the Pi's desktop (bookworm: Wayfire or labwc) run the game through
+      XWayland, as WSLg does. Alt+Tab away and back in a mission, then `grep -a INPUT
+      last-run.log`: if focus went the moment the game grabbed, the log says `the mouse is not
+      grabbed from now on`, and after one more click the game should work. Either way, note
+      which it was here.
+- [ ] **Play the testbed mission** (`mission-testbed`). Install it into a copy of
+      the game directory (`campaigns/testbed/README.md`), then New Campaign: buy
+      and launch, and play tb_01 by hand. The three text messages show in the
+      chat area at the right moments, the relief lance only comes once the
+      hangar falls, and it feels like a mission rather than a test. Only an
+      autoplay run has finished it so far.
 
 - [ ] **No CD dialog when a pilot talks, Windows** (#136). With data built
       `--no-movies` (the Windows `-full` package), play `mc2_01` until the first
@@ -293,6 +333,14 @@ The interface only rests in a headset session, so no desktop run covers it.
       be a common miss: say if 0.3 s and 0.5 s need tuning. Double click
       while pushing the right stick sideways: still the next group (the camera
       pauses for a moment), not the previous one.
+- [ ] **Scrolling lists with the right stick** (branch `ui-wheel-scroll`): point at a
+      list with a scroll bar (mech lab components, pilots, a briefing's text, the
+      encyclopedia, load and save) and push the right stick up and down: a step at
+      once, then a steady scroll after a moment, the right way round, and the camera
+      does not move. Say if a step (an item, at most a third of the list) or the
+      speed needs tuning. The pause menu's options (hot keys) scroll too. In a
+      battle, pointing at the panel or the battle, the stick still turns and
+      zooms smoothly.
 - [ ] **A real fade in the headset**: an enemy mech fading in or out of sight
       looks translucent, without parts drawing badly over each other. Forced
       on the desktop only so far.
@@ -324,6 +372,21 @@ The interface only rests in a headset session, so no desktop run covers it.
       level, fog 75). Wearing it: look straight down and behind, zoom in and out, and
       watch a fly-in. No gap, no flicker at the bottom of the view, no stretched or torn ground
       near the feet, and water near the camera clips cleanly too.
+
+- [x] **Keyboard for text fields** (branch `quest-keyboard`, PR 181). 2026-11-23, Quest 2:
+      "works well". The log shows it shown and hidden twice in the menus, then a LAN game hosted and
+      mc2_m02a launched, with no errors.
+- [ ] **Keyboard, after review** (PR 181, later commits; not yet in a headset). Fields: the TCP/IP
+      address (#179), a mech lab variant name, a save name. The keyboard now sits right next to
+      the field (below it in the top half of the screen, above it in the bottom half): is the
+      dialog's Cancel button still in view, and does Enter save or confirm the dialog? The Load Game
+      dialog opens without the keyboard; clicking its name field brings it up. Open a dialog with a
+      field, then close it with the left menu button (Escape): the keyboard goes with it
+      (`[KEYBOARD] hidden (its field stopped updating)`). Clicking from one field to another
+      keeps it up. In a multiplayer mission, Y + right stick click opens chat (Y alone still jumps),
+      the keyboard shows, and Enter sends the message. Open the system menu while typing and come
+      back: the keyboard is still there. Known: an overwrite or delete prompt in the save dialog
+      hides the keyboard, and clicking the name field afterwards brings it back.
 
 ## Omnitech front end on the Quest (`omnitech-frontend-labels-mech`)
 
@@ -464,6 +527,102 @@ push the data as in `android/README.md`, "Phones and tablets".
       and the app closes.
 - [ ] **Beside the Quest app:** on a Quest, the phone APK installs next to the VR one
       and runs as a flat window in the headset's home.
+
+## AR tabletop (`future-features/AR-TABLETOP.md`, branch `ar-tabletop`)
+
+Quest: the Quest build with `MC2_XR_TABLE=1 -mission mc2_01` in `mc2args.txt`.
+
+- [x] **The battle stands on the table**, the room round it through passthrough,
+      and walking round it or leaning in moves the view. Done on a Quest 2,
+      2026-11-16 (after the head position fix: it was on the ceiling).
+- [ ] **The interface panel reads easily**: above the table (20 degrees over the
+      horizon, 1.5 m away, 1.6 m wide) with no need to cross the eyes. Hold A
+      and push the left stick to move it; the log prints the `MC2_XR_HUD` value
+      to keep. Placed by hand at 17 degrees and 1.54 m on a Quest 2, 2026-11-16,
+      where the old limit stopped it; the new default is not yet seen.
+- [x] **Clicks on the table** select and order units where the pointer meets the
+      ground (the ray is in the table's frame). Done on a Quest 2, 2026-11-16.
+- [x] **A puts the table at the right controller**, laid on a real table, the
+      right stick zooms it (the log prints `MC2_TABLE_SCALE`), and the left
+      stick scrolls the map across it. Done on a Quest 2, 2026-11-16 (mc2_05,
+      zoomed between 1:285 and 1:1673).
+- [ ] **Normal VR (no `MC2_XR_TABLE`)** still feels right: leaning and rising
+      moved the eye the wrong way before the fix, by centimetres.
+- [x] **A drag box on the ground** (Quest, in normal VR and on the table):
+      drag the trigger across some units; the box lies on the terrain round
+      them, a white edge and a faint fill, in both eyes, not on the interface
+      panel, and the units inside it are selected. Done on a Quest 2 on the
+      table, 2026-11-21 (mc2_21): the corner follows the pointer. Normal VR
+      not yet seen with the fix.
+- [ ] **Model views on the tabletop**: with the tabletop on, the mission
+      briefing's mech and objective views and the mech lab's mech turn as
+      usual, seen from the side, not from straight above.
+- [x] **"Tabletop view" in the graphics options** (Quest only, under the
+      hardware rasterizer box): tick it, Accept, and the battle goes onto a
+      table ahead of you with the room round it (`[XR] tabletop on`); untick
+      it and the battle is all round again, with the haze back where the fog
+      setting puts it (`[XR] tabletop off`). Both in a mission and from the
+      main menu; it is still set after a restart (`VRTabletop` in the
+      options file). Cancel puts the old setting back. With no saved setting
+      `MC2_XR_TABLE=1` still starts it on. Not on desktop or the phone.
+      Done on a Quest 2, 2026-11-20: off and on again in mc2_23, the table
+      back ahead at the zoom set before (1:391), saved as `VRTabletop`, no
+      errors in `mc2.log`.
+
+Phone: the phone build (`MC2_ANDROID_FLAVOUR=phone`) with `MC2_AR_TABLE=1` in
+`mc2args.txt`, on a phone with ARCore (Pixel 9). GLES.
+
+- [x] **The camera asks and ARCore starts**: the permission prompt on the
+      first start, then the camera image fills the screen behind the game;
+      `[AR] tracking` in `mc2.log`. Done on a Pixel 9, 2026-11-16. Still to
+      see: turning the phone over (the other landscape way) keeps the image
+      upright and unstretched.
+- [x] **The battle stands on the table**: pointed at a table and moved a
+      little, `[AR] table placed on a surface` and the battle on it, staying
+      put as the phone walks round it and leans in, at a sensible size. Done
+      on a Pixel 9, 2026-11-16 (mc2_01 on a desk; at first all haze, fixed).
+- [x] **Taps on the table** select and order units where the finger is; taps
+      on the interface work as in a flat game. Two fingers scroll the map.
+      Done on a Pixel 9, 2026-11-16.
+- [ ] **A drag box on the table**: drag one finger across some units; the box
+      follows the finger without jumping, and selects the units inside where
+      the finger lifted. (It jumped and ended in the wrong place before the
+      fix that keeps the pointer put while a point waits.) The box lies on
+      the ground of the battle, a white edge and a faint fill, and the units
+      selected are the ones inside it.
+- [ ] **The table stays put after placement**: once `[AR] table placed`
+      is logged, ARCore stops looking for surfaces; walk round the table and
+      come back: the battle has not drifted off the desk.
+- [ ] **Units near the table's edge**: tap a unit at the edge nearest the
+      phone, and ground there: it selects and orders, the panel is not
+      pressed. The same on a Quest 2 by pointing (it could not pick there:
+      the game camera now keeps the table off the interface on its screen,
+      `vr_eye::clearRadius`). `MC2_XR_PICK_LOG=1` logs the clear radius.
+- [ ] **Switching away and back** (Home, then the app): the camera comes back
+      and the battle is where it was.
+- [ ] **Without `MC2_AR_TABLE`** the phone plays flat as before (no camera
+      prompt).
+
+## On a Mac (`future-features/MACOS.md`, branch `macos-port`)
+
+- [ ] **A mission on an M-series Mac** (GL, macOS GL 4.1). Homebrew `sdl2 sdl2_mixer sdl2_ttf glew
+      ninja cmake`, then the Linux desktop GL build commands with
+      `-DCMAKE_PREFIX_PATH="$(brew --prefix)"`; game data built on any machine and copied over.
+      `./mc2 -mission mc2_01 -autoexit 3000` from the game directory: it should reach `[AUTOEXIT]`
+      with no `OpenGL Error` or shader compile errors in the output, and the fog and mech lighting
+      should look as on Linux (they come from the `SceneData` block that macOS binds by name).
+      Then a few minutes played by hand: mouse, right click (two-finger tap), keyboard, sound.
+      Note the macOS version and the chip.
+      First run 2026-11-23 (issue #183: M2, macOS 15.5, `4.1 Metal - 89.4`): the mission ran, but
+      the lit-texture shader failed to link and the game exited with status 133; both fixed in
+      #184, which CI now checks on Apple's software GL. Still to do on a Mac: rerun after #184 for a
+      clean exit and no shader errors, look at the 3D models (they had no shader in that run), the
+      by-hand checks above, and `MC2_VSYNC=0 ... -bench` for a frame rate (the 59.4 fps was vsync).
+      Second run (issue #185, after #184, played by hand): keyboard fine, but the mouse reached only
+      the top-left quarter and clicks landed there, on the Retina display. Fixed in the PR for #185
+      (mouse points to drawable pixels). To check: the cursor reaches every edge and clicks act
+      where it is, on the built-in Retina screen and on a non-Retina external one, after resizing
+      the window, and with Universal Control off; the log's `window:` line should show 2x on Retina.
 
 ## Releases (`RELEASES.md`)
 

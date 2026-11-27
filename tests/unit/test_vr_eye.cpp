@@ -61,21 +61,24 @@ vr_eye::Basis eyeFor(const vr_eye::Basis& game, const float xrPos[3], const floa
 TEST_SUITE("VrEye")
 {
 
-TEST_CASE("OpenXR axes turn into the engine camera's: right, up and back all flip")
+TEST_CASE("OpenXR poses keep their axes in the engine camera's")
 {
+	// the game camera's rows are x right, y up, z back in world space, as
+	// OpenXR's (measured on the tabletop: positions once flipped here put the
+	// eye under the ground)
 	float pos[3], quat[4];
 	const float xrForward[3] = {0.0f, 0.0f, -1.0f};
 	vr_eye::fromXr(xrForward, kIdentity, pos, quat);
-	CHECK(near3(pos, 0.0f, 0.0f, 1.0f));
+	CHECK(near3(pos, 0.0f, 0.0f, -1.0f));
 	CHECK(quat[3] == doctest::Approx(1.0f));
 
-	const float xrRight[3] = {1.0f, 0.0f, 0.0f};     // engine x is screen left
+	const float xrRight[3] = {1.0f, 0.0f, 0.0f};
 	vr_eye::fromXr(xrRight, kIdentity, pos, quat);
-	CHECK(near3(pos, -1.0f, 0.0f, 0.0f));
+	CHECK(near3(pos, 1.0f, 0.0f, 0.0f));
 
-	const float xrUp[3] = {0.0f, 1.0f, 0.0f};        // engine y is screen down
+	const float xrUp[3] = {0.0f, 1.0f, 0.0f};
 	vr_eye::fromXr(xrUp, kIdentity, pos, quat);
-	CHECK(near3(pos, 0.0f, -1.0f, 0.0f));
+	CHECK(near3(pos, 0.0f, 1.0f, 0.0f));
 }
 
 TEST_CASE("an unmoved head sees exactly the game camera")
@@ -126,14 +129,31 @@ TEST_CASE("turning the head keeps the horizon level and the game's pitch")
 
 TEST_CASE("leaning and rising move the eye level with the ground, in world units")
 {
+	// a game camera as the engine's really is (its rows logged in the headset,
+	// 2026-11-16): at (10, 20, 30), looking along world +z pitched down by
+	// 0.6 radians; rows x right (world -x), y up and forward, z back and up
+	const float p = 0.6f;
+	vr_eye::Basis engine;
+	engine.x[0] = -1.0f; engine.x[1] = 0.0f; engine.x[2] = 0.0f;
+	engine.y[0] = 0.0f; engine.y[1] = std::cos(p); engine.y[2] = std::sin(p);
+	engine.z[0] = 0.0f; engine.z[1] = std::sin(p); engine.z[2] = -std::cos(p);
+	engine.position[0] = 10.0f; engine.position[1] = 20.0f; engine.position[2] = 30.0f;
+	float view[3];
+	vr_eye::viewDirection(engine, view);
+	CHECK(view[1] < 0.0f);      // it looks down, as the logged camera did
+	CHECK(view[2] > 0.0f);
+
+	// the head half a metre forward: the eye goes along the level view
 	const float forwardHalfMetre[3] = {0.0f, 0.0f, -0.5f};
-	const vr_eye::Basis lean = eyeFor(gameCamera(0.6f), forwardHalfMetre, kIdentity, 4.0f);
+	const vr_eye::Basis lean = eyeFor(engine, forwardHalfMetre, kIdentity, 4.0f);
 	CHECK(near3(lean.position, 10.0f, 20.0f, 32.0f));
+	// a metre up: up (the tabletop put the eye under the ground before)
 	const float upOneMetre[3] = {0.0f, 1.0f, 0.0f};
-	const vr_eye::Basis rise = eyeFor(gameCamera(0.6f), upOneMetre, kIdentity, 4.0f);
+	const vr_eye::Basis rise = eyeFor(engine, upOneMetre, kIdentity, 4.0f);
 	CHECK(near3(rise.position, 10.0f, 24.0f, 30.0f));
+	// a metre right: the screen's right, world -x
 	const float rightOneMetre[3] = {1.0f, 0.0f, 0.0f};
-	const vr_eye::Basis step = eyeFor(gameCamera(0.6f), rightOneMetre, kIdentity, 4.0f);
+	const vr_eye::Basis step = eyeFor(engine, rightOneMetre, kIdentity, 4.0f);
 	CHECK(near3(step.position, 6.0f, 20.0f, 30.0f));
 }
 
@@ -426,4 +446,106 @@ TEST_CASE("the panel's width: one layout pixel the same size on any screen")
 	// no size known yet: the width as set
 	CHECK(vr_eye::panelWidth(2.0f, 0) == doctest::Approx(2.0f));
 	CHECK(vr_eye::panelWidth(2.0f, -5) == doctest::Approx(2.0f));
+}
+
+TEST_CASE("the tabletop's game camera is high enough to see the whole table")
+{
+	// 90 degrees across a square screen: half the view reaches as far as the
+	// camera is high, so the height is the window's radius, and a tenth more
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 90.0f, 1.0f) == doctest::Approx(2200.0f).epsilon(1e-3));
+	// a 4:3 screen: the shorter way decides, so it goes higher
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 90.0f, 0.75f) == doctest::Approx(2200.0f / 0.75f).epsilon(1e-3));
+	// a wider view needs less height
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 115.6f, 0.75f) < vr_eye::tableCameraAltitude(2000.0f, 90.0f, 0.75f));
+	// nothing usable: 0, and the caller keeps its own height
+	CHECK(vr_eye::tableCameraAltitude(0.0f, 90.0f, 0.75f) == 0.0f);
+	CHECK(vr_eye::tableCameraAltitude(2000.0f, 0.0f, 0.75f) == 0.0f);
+}
+
+namespace {
+
+// a control panel along the bottom of a 1000 x 600 screen, from y 450 down
+bool bottomPanel(int, int y, void*)
+{
+	return y >= 450;
+}
+
+// a button of the size given (x0, y0, x1, y1), anywhere on the screen
+bool button(int x, int y, void* context)
+{
+	const int* r = (const int*)context;
+	return x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3];
+}
+
+bool nothing(int, int, void*)
+{
+	return false;
+}
+
+}
+
+TEST_CASE("the tabletop's table stays clear of the interface on the game's screen")
+{
+	// no interface: the screen's shorter half decides
+	CHECK(vr_eye::clearRadius(1000, 600, nothing, nullptr) == doctest::Approx(300.0f).epsilon(0.02));
+	// a panel 150 pixels below the centre: the table stops above it
+	CHECK(vr_eye::clearRadius(1000, 600, bottomPanel, nullptr) == doctest::Approx(150.0f).epsilon(0.03));
+	// a button off to the side, 200 pixels right of the centre at its height,
+	// 40 pixels square: the rays find it
+	const int side[4] = {700, 280, 740, 320};
+	CHECK(vr_eye::clearRadius(1000, 600, button, (void*)side) == doctest::Approx(200.0f).epsilon(0.03));
+	// a button in a corner, beyond the screen's half height: no effect
+	const int corner[4] = {0, 0, 60, 60};
+	CHECK(vr_eye::clearRadius(1000, 600, button, (void*)corner) == doctest::Approx(300.0f).epsilon(0.02));
+	// the interface over the centre (a menu): nothing clear
+	const int middle[4] = {400, 200, 600, 400};
+	CHECK(vr_eye::clearRadius(1000, 600, button, (void*)middle) == 0.0f);
+	// no screen yet
+	CHECK(vr_eye::clearRadius(0, 600, nothing, nullptr) == 0.0f);
+}
+
+namespace {
+
+// a camera 100 above the origin looking straight down, 500 pixels per unit
+// of tan across a 1000 x 1000 screen, over ground that rises 0.2 for each
+// unit of x: where a point of that ground shows on the screen
+bool slopeOnScreen(float x, float y, void*, float screen[2])
+{
+	const float z = 0.2f * x;
+	const float depth = 100.0f - z;
+	if (depth <= 0.0f)
+		return false;
+	screen[0] = 500.0f + 500.0f * x / depth;
+	screen[1] = 500.0f + 500.0f * y / depth;
+	return true;
+}
+
+bool nowhere(float, float, void*, float*)
+{
+	return false;
+}
+
+}
+
+TEST_CASE("the drag box finds the ground a screen point shows, by the camera's own projection")
+{
+	// from a guess some way off, the point on the slope that shows at the
+	// target pixel: projecting it back lands within half a pixel
+	float x = 0.0f, y = 0.0f;
+	REQUIRE(vr_eye::groundForScreen(slopeOnScreen, nullptr, 800.0f, 350.0f, x, y, 1.0f));
+	float screen[2];
+	REQUIRE(slopeOnScreen(x, y, nullptr, screen));
+	CHECK(screen[0] == doctest::Approx(800.0f).epsilon(0.001));
+	CHECK(screen[1] == doctest::Approx(350.0f).epsilon(0.001));
+	// the exact answer: x / (100 - 0.2 x) = 0.6
+	CHECK(x == doctest::Approx(60.0f / 1.12f).epsilon(0.001));
+	// already there: unchanged
+	float x2 = x, y2 = y;
+	CHECK(vr_eye::groundForScreen(slopeOnScreen, nullptr, 800.0f, 350.0f, x2, y2, 1.0f));
+	CHECK(x2 == doctest::Approx(x));
+	// nothing projects: false, the guess left as it was
+	float x3 = 5.0f, y3 = 6.0f;
+	CHECK_FALSE(vr_eye::groundForScreen(nowhere, nullptr, 800.0f, 350.0f, x3, y3, 1.0f));
+	CHECK(x3 == 5.0f);
+	CHECK(y3 == 6.0f);
 }

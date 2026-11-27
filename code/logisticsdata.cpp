@@ -7,6 +7,7 @@ LogisticsData.cpp			: Implementation of the LogisticsData component.
 \*************************************************************************************************/
 
 #include"logisticsdata.h"
+#include"campaignstart.h"
 #include"file.h"
 #include"logisticserrors.h"
 #include"cmponent.h"
@@ -2456,8 +2457,26 @@ const char*				LogisticsData::getMissionFriendlyName( const char* missionName )
 }*/
 
 
-void				LogisticsData::startNewCampaign( const char* fileName )
+bool				LogisticsData::startNewCampaign( const char* fileName )
 {
+	// check the campaign before ending the one being played: a missing file, or
+	// a first group with no mission (the mission name below was read unset), is
+	// bad data to log, not a crash
+	FitIniFile file;
+
+	FullPathFileName path;
+	path.init( campaignPath, fileName, ".fit" );
+	if ( NO_ERR != file.open( path ) )
+	{
+		PAUSE(("Campaign %s not found", (const char*)path));
+		return false;
+	}
+	if ( !campaignstart::hasFirstMission( file ) )
+	{
+		PAUSE(("Campaign %s has no mission in its first group", (const char*)path));
+		return false;
+	}
+
 #ifndef VIEWER
 	if ( MPlayer )
 	{
@@ -2473,14 +2492,6 @@ void				LogisticsData::startNewCampaign( const char* fileName )
 	hiredPilots.Clear();
 	initPilots();
 
-	FitIniFile file;
-
-	FullPathFileName path;
-	path.init( campaignPath, fileName, ".fit" );
-	if ( NO_ERR != file.open( path ) )
-	{
-		STOP(("COuld not find file %s to load campaign",path));
-	}
 	missionInfo->init( file );
 
 	// temporary, just so we can test
@@ -2492,6 +2503,7 @@ void				LogisticsData::startNewCampaign( const char* fileName )
 
 	soundSystem->setMusicVolume( prefs.MusicVolume );
 	soundSystem->playDigitalMusic(missionInfo->getCurrentLogisticsTuneId());
+	return true;
 }
 
 void LogisticsData::startMultiPlayer()

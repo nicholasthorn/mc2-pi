@@ -49,6 +49,10 @@ class Browser {
 public:
 	bool open() { return socket_.open(0); }
 
+	// Ask this one address, not the whole network: joining by address, where a broadcast
+	// cannot reach (another subnet, a router that keeps its clients apart, a PC in WSL).
+	void askOnly(uint32_t ip) { only_ = ip; }
+
 	// The time is the caller's, in seconds: it asks, listens, and forgets by it.
 	void update(double now, uint16_t discoveryPort = DISCOVERY_PORT);
 
@@ -58,6 +62,7 @@ private:
 	gos_net::LanSocket socket_;
 	std::vector<Found> found_;
 	double nextQuery_ = 0.0;
+	uint32_t only_ = 0;
 };
 
 }

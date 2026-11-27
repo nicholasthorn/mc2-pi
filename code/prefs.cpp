@@ -83,6 +83,7 @@ CPrefs::CPrefs() {
 	this->useLocalShadows = true;
 	this->useNonWeaponEffects = false;
 	asyncMouse = false;
+	vrTabletop = false;
 	fogPos = 50;
 	saveTranscripts = false;
 	tutorials = true;
@@ -302,6 +303,10 @@ int CPrefs::load( const char* pFileName ) {
 			result = prefsFile->readIdBoolean( "AsyncMouse",	asyncMouse );
 			if ( result != NO_ERR )
 				asyncMouse = 0;
+			//not saved yet: as the headset was started (MC2_XR_TABLE=1)
+			result = prefsFile->readIdBoolean( "VRTabletop",	vrTabletop );
+			if ( result != NO_ERR )
+				vrTabletop = gos_VRTabletopByDefault();
 
 			result = prefsFile->readIdLong( "FogPos",	fogPos );
 			if ( result != NO_ERR )
@@ -413,6 +418,7 @@ int CPrefs::save() {
 			result = prefsFile->writeIdBoolean( "UseLocalShadows",	useLocalShadows );
 			result = prefsFile->writeIdBoolean( "UseNonWeaponEffects",	useNonWeaponEffects );
 			result = prefsFile->writeIdBoolean( "AsyncMouse",	asyncMouse );
+			result = prefsFile->writeIdBoolean( "VRTabletop",	vrTabletop );
 			result = prefsFile->writeIdLong( "FogPos",	fogPos );
 			result = prefsFile->writeIdChar( "BitDepth",	bitDepth );
 
@@ -465,6 +471,9 @@ int CPrefs::applyPrefs(bool applyRes) {
 	::displayNumber = this->displayNumber;
 	::gammaLevel = this->gammaLevel;
 	mc2UseAsyncMouse = this->asyncMouse;
+	//the Quest: the battle on a table in the room, or all round (nothing
+	//elsewhere, nor before the headset's session exists)
+	gos_SetVRTabletop( this->vrTabletop );
 	::useLeftRightMouseProfile = this->useLeftRightMouseProfile;
 	::useNonWeaponEffects = this->useNonWeaponEffects;
 	::useHighObjectDetail = this->useHighObjectDetail;
@@ -518,6 +527,9 @@ int CPrefs::applyPrefs(bool applyRes) {
             ::resolutionX = this->resolutionX;
             ::resolutionY = this->resolutionY;
         }
+        // ...and the saved tabletop view, which the call above could not
+        // switch before the session
+        gos_SetVRTabletop( this->vrTabletop );
 
         if (renderer == 3)
             gos_SetScreenMode(this->resolutionX, this->resolutionY, bitDepth,0,0,0,true,localFullScreen,0,localWindow,0,localRenderer);
@@ -632,7 +644,8 @@ void CPrefs::setNewIP( const char* pNewIP )
 	if ( !pNewIP )
 		return;
 	// check and see if this name is already in here
-	for ( int i = 0; i < 10; i++ )
+	int i = 0;
+	for ( ; i < 10; i++ )
 	{
 		if ( !S_stricmp( pNewIP, ipAddresses[i] ) )
 		{
@@ -656,6 +669,13 @@ void CPrefs::setNewIP( const char* pNewIP )
 
 			break;
 		}
+	}
+
+	// a full list: the oldest goes, as setNewName does
+	if ( i == 10 )
+	{
+		memmove( ipAddresses[1], ipAddresses[0], sizeof( char ) * 9 * 24 );
+		strcpy( ipAddresses[0], pNewIP );
 	}
 }
 

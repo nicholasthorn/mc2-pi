@@ -9,7 +9,13 @@
 #include <SDL2/SDL.h>
 #include "utils/graphics.h"
 #include "utils/logging.h"
+#include "gos_ar.h"
 #include "gos_xr.h"
+
+#ifndef PLATFORM_WINDOWS
+#define __stdcall
+#endif
+bool __stdcall gos_IsAutomatedRun();	// gameos.cpp
 
 // FIXME: think how to make it better when different parts need window
 SDL_Window* g_sdl_window = NULL;
@@ -68,6 +74,12 @@ RenderWindow* create_window(
         }
     }
 
+    // SDL's own video warnings (such as an X server refusing to grab the mouse)
+    // are off by default: let them reach the log, but not in smoke and bench
+    // runs, whose logs are scanned for error lines that SDL's would add to
+    if (!gos_IsAutomatedRun())
+        SDL_LogSetPriority(SDL_LOG_CATEGORY_VIDEO, SDL_LOG_PRIORITY_WARN);
+
     // initialize using 0 videodriver
     if (SDL_VideoInit(nullptr) < 0) {
         fprintf(stderr, "Couldn't initialize video driver: %s\n", SDL_GetError());
@@ -119,7 +131,12 @@ RenderWindow* create_window(
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
+#ifdef __APPLE__
+    // macOS gives a core profile (GL 4.1) only to forward-compatible requests
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
 #endif
 	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, GL_CONTEXT_FLAG_DEBUG_BIT);
 
@@ -238,8 +255,13 @@ RenderWindow* create_window(
     float dpi = 96.0f;
     if (SDL_GetDisplayDPI(display_index, &dpi, nullptr, nullptr) == 0) {
         fprintf(stdout, "Display%d DPI: %f\n", display_index, dpi);
+#ifndef __APPLE__
         preferred_mode.w = preferred_mode.w * (dpi / 96);
         preferred_mode.h = preferred_mode.h * (dpi / 96);
+#endif
+        // macOS sizes windows in points, Retina scaling already below them:
+        // the multiply made an 800x600 game ask for 1888x1416 on an M2 (226 DPI),
+        // which the screen then clamped (issue #185)
     }
 
     {
@@ -298,6 +320,14 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     assert(rw && rw->window_);
 
     SDL_GLContext glcontext = SDL_GL_CreateContext(rw->window_);
+    if (!glcontext) {
+        // No accelerated pixel format, e.g. a CI virtual machine without a
+        // GPU: ask for the system's software GL instead (on macOS, Apple's,
+        // GL 4.1 core), which can still run the game
+        fprintf(stderr, "SDL_GL_CreateContext(): %s; trying a non-accelerated context\n", SDL_GetError());
+        SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 0);
+        glcontext = SDL_GL_CreateContext(rw->window_);
+    }
     if (!glcontext ) {
         fprintf(stderr, "SDL_GL_CreateContext(): %s\n", SDL_GetError());
         return NULL;
@@ -306,7 +336,15 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     if (SDL_GL_MakeCurrent(rw->window_, glcontext) < 0) {
         SDL_GL_DeleteContext(glcontext);
         return NULL;
-    } 
+    }
+
+    {
+        // differ on a high-DPI window; the mouse is mapped from one to the other
+        int ww = 0, wh = 0, dw = 0, dh = 0;
+        SDL_GetWindowSize(rw->window_, &ww, &wh);
+        SDL_GL_GetDrawableSize(rw->window_, &dw, &dh);
+        fprintf(stderr, "window: %dx%d points, %dx%d pixels drawn\n", ww, wh, dw, dh);
+    }
 
     // MC2_VSYNC=0 turns vsync off, e.g. to measure frame rate past the
     // display refresh rate
@@ -410,6 +448,8 @@ RenderContextHandle init_render_context(RenderWindowHandle render_window)
     rc->render_window_ = render_window;
 
 	gos_xr::init();
+	// a phone's tabletop (MC2_AR_TABLE=1)
+	gos_ar::init();
 
 	return rc;
 }

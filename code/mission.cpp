@@ -121,6 +121,7 @@
 #include<gameos.hpp>
 #include "benchdirector.h"
 #include "utils/vr_controls.h"
+#include "utils/vr_eye.h"
 #include<utils/str_bounded.h>
 #include"mc2xunits.h"
 
@@ -865,11 +866,61 @@ static float vrGroundHeight (void*, float x, float y)
 	return land->getTerrainElevation(position);
 }
 
-static void vrPickWorld (void)
+//VR: the point in the world the controller's ray picked this frame, for the
+//orders (vrWorldPickPoint): the mouse goes where it shows on the game
+//camera's screen, but finding the ground under the mouse again goes through
+//the terrain's tiles and can land elsewhere, far off on the tabletop
+static bool vrPickValid = false;
+static Stuff::Vector3D vrPickPoint;
+
+bool vrWorldPickPoint (Stuff::Vector3D &point)
 {
+	if (!vrPickValid)
+		return false;
+	point = vrPickPoint;
+	return true;
+}
+
+//VR on the tabletop: how much of the game's screen about its centre the
+//interface leaves clear, which the game camera keeps the table inside
+//(Camera::setCameraOrigin), so no point on the table shows under the panel,
+//where picking it would click the panel; measured once a second, as buttons
+//come and go
+extern float vrTableClearRadius;
+
+static bool vrPanelAt (int x, int y, void *missionGui)
+{
+	return ((MissionInterfaceManager *)missionGui)->isOverPanel(x,y);
+}
+
+static void vrMeasureTableClear (MissionInterfaceManager *missionGui)
+{
+	static long framesToMeasure = 0;
+	if (!gos_GetVRTabletop() || !missionGui || --framesToMeasure > 0)
+		return;
+	framesToMeasure = 60;
+	const float radius = vr_eye::clearRadius(Environment.screenWidth,Environment.screenHeight,vrPanelAt,missionGui);
+	if (radius != vrTableClearRadius && gos_VRPickLog())
+		printf("[VR] the interface leaves %.0f pixels clear about the screen's centre\n",radius);
+	vrTableClearRadius = radius;
+}
+
+static void vrPickWorld (MissionInterfaceManager *missionGui)
+{
+	vrMeasureTableClear(missionGui);
+	vrPickValid = false;
 	float position[3], orientation[4];
 	if (!gos_GetVRPointerRay(position,orientation))
 		return;
+	//a phone's tabletop: a finger on the interface drawn over the battle
+	//picks nothing, and the mouse stays under it
+	float touchX = 0.0f, touchY = 0.0f;
+	if (gos_GetVRTouchPoint(&touchX,&touchY) && missionGui &&
+		missionGui->isOverInterface((long)(touchX * Environment.screenWidth),(long)(touchY * Environment.screenHeight)))
+	{
+		gos_SetVRWorldPointer(false,0.0f,0.0f,0.0f);
+		return;
+	}
 	Stuff::Vector3D origin, direction;
 	float unitsPerMetre = 1.0f;
 	if (!eye || !land || !eye->vrRayToWorld(position,orientation,origin,direction,unitsPerMetre))
@@ -888,17 +939,38 @@ static void vrPickWorld (void)
 		MoverPtr mover = ObjectManager->getMover(i);
 		if (!mover || !mover->getExists() || mover->isDestroyed())
 			continue;
-		// a mech is 10 to 12 m tall, a vehicle about 4 m (0.2 m a world unit)
-		const float halfHeight = mover->isMech() ? 30.0f : 12.0f;
-		Stuff::Vector3D centre = mover->getPosition();
-		centre.z += halfHeight;
-		const float c[3] = {centre.x, centre.y, centre.z};
+		// a sphere about the box the unit's selection box is projected from,
+		// so the point the game's picking gets is on the unit whatever its
+		// size or height: power armour, a copter in flight. Without a box: a
+		// mech is 10 to 12 m tall, a vehicle about 4 m (0.2 m a world unit).
+		float c[3] = {0.0f, 0.0f, 0.0f};
+		float radius = 0.0f;
+		AppearancePtr appearance = mover->getAppearance();
+		Stuff::Vector3D corner0, corner1;
+		// (an empty box, never filled from a shape, would aim at the feet)
+		if (appearance && appearance->worldSelectBox(corner0,corner1) && (corner0.z != corner1.z))
+		{
+			const float lo[3] = {corner0.x, corner0.y, corner0.z};
+			const float hi[3] = {corner1.x, corner1.y, corner1.z};
+			// no smaller than the old vehicle sphere (about 3 m): small units
+			// stay easy to point at, and the aim point is the box's centre
+			vr_controls::boxPickSphere(lo,hi,12.0f * 1.2f,c,radius);
+		}
+		else
+		{
+			const float halfHeight = mover->isMech() ? 30.0f : 12.0f;
+			const Stuff::Vector3D position = mover->getPosition();
+			c[0] = position.x;
+			c[1] = position.y;
+			c[2] = position.z + halfHeight;
+			radius = halfHeight * 1.2f;
+		}
 		float distance = 0.0f;
-		if (vr_controls::rayHitsSphere(o,d,c,halfHeight * 1.2f,distance) && (!hit || (distance < best)))
+		if (vr_controls::rayHitsSphere(o,d,c,radius,distance) && (!hit || (distance < best)))
 		{
 			hit = true;
 			best = distance;
-			target = centre;
+			target = Stuff::Vector3D(c[0],c[1],c[2]);
 		}
 	}
 	// buildings: a ray meeting a wall must stop there, or the point it picks is
@@ -944,6 +1016,8 @@ static void vrPickWorld (void)
 	}
 	gos_SetVRWorldPointer(true,screen.x / Environment.screenWidth,screen.y / Environment.screenHeight,
 		best / unitsPerMetre);
+	vrPickValid = true;
+	vrPickPoint = target;
 }
 
 //----------------------------------------------------------------------------------
@@ -962,7 +1036,7 @@ long Mission::render (void)
 			eye->ambientBlue = 0xFF;
 		}
 		BenchStage("world_render",eye->renderWorld());
-		vrPickWorld();
+		vrPickWorld(missionInterface);
 	
 		//-----------------------------------------------------
 		// FOG time.  Set Render state to FOG on!
@@ -1803,6 +1877,13 @@ bool IsGateDisabled (int objectWID) {
 	if (objectWID < 1)
 		return(false);
 	GameObjectPtr obj = ObjectManager->getByWatchID(objectWID);
+	// A destroyed gate is rubble, locked open with its cells clear
+	// (Gate::destroyGate, or GameObjectManager::load for one destroyed at the
+	// start); isDisabled() is also true for destroyed objects, so
+	// without this the long-route search closed its area for good and long
+	// orders never went through it (the 2001 code did the same).
+	if (obj && obj->isDestroyed())
+		return(false);
 	if (obj && obj->isDisabled())
 		return(true);
 	// isBuilding() is also true for gates and turrets: use the virtual

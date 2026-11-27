@@ -216,6 +216,19 @@ namespace MemoryStreamIO {
 			Stuff::MemoryStream* stream,
 			int64_t *output
 		);
+#ifdef __APPLE__
+	// declared here as well: the operators below call these by qualified name
+	inline Stuff::MemoryStream&
+		Read(
+			Stuff::MemoryStream* stream,
+			long *output
+		);
+	inline Stuff::MemoryStream&
+		Read(
+			Stuff::MemoryStream* stream,
+			unsigned long *output
+		);
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 	inline Stuff::MemoryStream&
@@ -263,6 +276,19 @@ namespace MemoryStreamIO {
 			Stuff::MemoryStream* stream,
 			const int64_t *input
 		);
+#ifdef __APPLE__
+	// declared here as well: the operators below call these by qualified name
+	inline Stuff::MemoryStream&
+		Write(
+			Stuff::MemoryStream* stream,
+			const long *input
+		);
+	inline Stuff::MemoryStream&
+		Write(
+			Stuff::MemoryStream* stream,
+			const unsigned long *input
+		);
+#endif
 	inline Stuff::MemoryStream&
 		Write(
 			Stuff::MemoryStream* stream,
@@ -754,6 +780,22 @@ namespace MemoryStreamIO {
 			int64_t *output
 		)
 			{return stream->ReadBytes(output, sizeof(*output));}
+#ifdef __APPLE__
+	// (u)int64_t is (unsigned) long long on macOS, not (unsigned) long as on
+	// Linux, so long and size_t need their own overloads
+	inline Stuff::MemoryStream&
+		Read(
+			Stuff::MemoryStream* stream,
+			long *output
+		)
+			{return stream->ReadBytes(output, sizeof(*output));}
+	inline Stuff::MemoryStream&
+		Read(
+			Stuff::MemoryStream* stream,
+			unsigned long *output
+		)
+			{return stream->ReadBytes(output, sizeof(*output));}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 	inline Stuff::MemoryStream&
@@ -811,6 +853,22 @@ namespace MemoryStreamIO {
 			const int64_t* input
 		)
 			{return stream->WriteBytes(input, sizeof(*input));}
+#ifdef __APPLE__
+	// (u)int64_t is (unsigned) long long on macOS, not (unsigned) long as on
+	// Linux, so long and size_t need their own overloads
+	inline Stuff::MemoryStream&
+		Write(
+			Stuff::MemoryStream* stream,
+			const long *input
+		)
+			{return stream->WriteBytes(input, sizeof(*input));}
+	inline Stuff::MemoryStream&
+		Write(
+			Stuff::MemoryStream* stream,
+			const unsigned long *input
+		)
+			{return stream->WriteBytes(input, sizeof(*input));}
+#endif
 
 	inline Stuff::MemoryStream&
 		Write(

@@ -1,0 +1,182 @@
+//****************************************************************************************//
+//
+//		tb_01_wave
+//		Testbed: a relief lance. Holds its start position (and fights back if
+//		attacked) until objective 1 (destroy the hangar) succeeds, then moves
+//		on the airfield and attacks any enemy mover within 800 m on the way.
+//		The trigger check in update follows mc2_17_a1_liaoson.
+//
+//****************************************************************************************//
+
+fsm tb_01_wave;
+
+	var
+
+		static WorldPosition		startPosition;
+		static PatrolState		attackPatrolState;
+		static PatrolPath			attackPatrolPath;
+		static boolean			released;
+		static integer			AttackStateHandle;
+		static integer			numFunctionalWeapons;
+		static integer[20]		weaponList;
+
+//****************************************************************************************
+
+function init;
+
+	code
+
+		getObjectPosition(-1, startPosition);
+		setTargetPriority(0, TARGET_PRIORITY_CURTARGET, -1, 300, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		setTargetPriority(1, TARGET_PRIORITY_MOVER, 0, 0, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+		setTargetPriority(2, TARGET_PRIORITY_NONE, 0, 0, 0);
+		AttackStateHandle = getStateHandle("attack");
+		released = false;
+
+		// One point: the airfield (objective 0's area).
+		attackPatrolState[0] = PATROL_TYPE_LINEAR;
+		attackPatrolState[1] = 1;    // num points
+		attackPatrolState[2] = 1;    // num cycles
+		attackPatrolState[3] = PATROL_DIRECTION_FORWARD;
+		attackPatrolState[4] = -1;   // reset cur point
+		attackPatrolState[5] = -1;   // reset cur cycle
+		attackPatrolState[6] = CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED;
+		attackPatrolPath[0, 0] = 3136.0;
+		attackPatrolPath[0, 1] = -789.3;
+
+endfunction;
+
+//----------------------------------------------------------------------------------------
+
+function update : integer;
+
+	var
+
+		boolean		processingPilotEvents;
+		integer		pilotEventID;
+		integer[20]		pilotEventParams;
+		integer		curTarget;
+		integer		curStateHandle;
+
+	code
+
+		curStateHandle = getCurrentStateHandle;
+		numFunctionalWeapons = getWeapons(weaponList, 1);
+		if (numFunctionalWeapons == 0) then
+			trans noWeapons;
+		endif;
+
+		// The trigger: objective 1 (destroy the hangar) succeeded.
+		if ((not released) and (checkObjectiveStatus(1) == 1)) then
+			released = true;
+			setTargetPriority(1, TARGET_PRIORITY_MOVER, 0, 800, CONTACT_CRITERIA_ENEMY + CONTACT_CRITERIA_VISUAL_OR_SENSOR + CONTACT_CRITERIA_NOT_DISABLED);
+			trans moveIn;
+		endif;
+
+		processingPilotEvents = TRUE;
+		while (processingPilotEvents) do
+			pilotEventID = getNextPilotEvent(pilotEventParams);
+			if (pilotEventID == PILOT_EVENT_NONE) then
+				processingPilotEvents = FALSE;
+			else
+				switch (pilotEventID)
+					case PILOT_EVENT_TARGETED:
+						curTarget = getTarget(-1);
+						if (curStateHandle <> AttackStateHandle) then
+							if ((numFunctionalWeapons > 0) and (curTarget == 0)) then
+								coreAttack(pilotEventParams[0], TACORDER_PARAM_PURSUE);
+								setState(AttackStateHandle);
+							endif;
+						endif;
+						endcase;
+					case PILOT_EVENT_ATTACK_ORDER:
+						curTarget = getTarget(-1);
+						if (curStateHandle <> AttackStateHandle) then
+							if ((numFunctionalWeapons > 0) and (curTarget == 0)) then
+								coreAttack(pilotEventParams[0], TACORDER_PARAM_PURSUE);
+								setState(AttackStateHandle);
+							endif;
+						endif;
+						endcase;
+				endswitch;
+			endif;
+		endwhile;
+
+		return(0);
+
+endfunction;
+
+//----------------------------------------------------------------------------------------
+
+state noWeapons;
+
+	code
+
+		if (objectClass(-1) == 2) then
+			coreEject;
+		else
+			corePower(false);
+		endif;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state attack;
+
+	code
+
+		update;
+		coreAttack(0, TACORDER_PARAM_PURSUE);
+		resetOrders(1);
+		transBack;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state moveIn;
+
+	code
+
+		update;
+		corePatrol(attackPatrolState, attackPatrolPath, AttackStateHandle);
+		resetOrders(1);
+		trans holdAirfield;
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state holdAirfield;
+
+	var
+
+		worldPosition		airfield;
+
+	code
+
+		airfield[0] = 3136.0;
+		airfield[1] = -789.3;
+		airfield[2] = 0;
+		update;
+		coreGuard(airfield, -1, AttackStateHandle);
+		resetOrders(1);
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+state start;
+
+	code
+
+		update;
+		coreGuard(startPosition, -1, AttackStateHandle);
+		resetOrders(1);
+
+endstate;
+
+//----------------------------------------------------------------------------------------
+
+endfsm.

@@ -207,6 +207,92 @@ jobs:
           path: dist
           retention-days: 14
 
+  # Apple Silicon, desktop GL 4.1 (planning/future-features/MACOS.md).
+  # Build, unit tests, the game data built by the data tools on macOS (about a
+  # minute), and one mission on Apple's software GL (the runner has no GPU).
+  macos:
+    name: macOS arm64 Apple Clang (desktop GL)
+    needs: changes
+    if: needs.changes.outputs.skip != 'true'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - name: Install dependencies
+        run: brew install ninja ccache sdl2 sdl2_mixer sdl2_ttf glew
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: macos-15-arm64
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+      # -k 0: list every compile error in one run while the port is young
+      - name: Build
+        run: cmake --build build -- -k 0
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+      # Runs the data tools on macOS, as a player building their own data
+      # would (smoke.yml does the same on Linux). No LFS: only movies/ is in it.
+      # The checksum lists can be compared with a Linux build of the same
+      # mc2srcdata commit, written into them as the first line. Expected to
+      # differ: the font bitmaps (FreeType rasterises them) and .tgl files
+      # (aseconv writes uninitialised bytes, so they differ run to run on any
+      # platform); hence the second list, of the files inside each .fst.
+      - name: Build game data
+        run: |
+          GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/alariq/mc2srcdata.git srcdata
+          scripts/build_gamedata.sh --src-data srcdata --build-dir build --out gamedata --no-movies
+          for f in data assets art.fst mission.fst minprefs.cfg; do
+            [ -e "gamedata/$f" ] || { echo "missing gamedata/$f"; exit 1; }
+          done
+          { echo "alariq/mc2srcdata $(git -C srcdata rev-parse HEAD)"
+            (cd gamedata && find . -type f | LC_ALL=C sort | xargs shasum -a 256)
+          } > gamedata-macos.sha256
+          { echo "alariq/mc2srcdata $(git -C srcdata rev-parse HEAD)"
+            python3 scripts/fst_manifest.py gamedata/*.fst
+          } > gamedata-macos-fst.sha256
+          echo "$(($(wc -l < gamedata-macos.sha256) - 1)) files," \
+               "$(($(wc -l < gamedata-macos-fst.sha256) - 1)) in archives, $(du -sh gamedata | cut -f1)"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gamedata-macos-sha256
+          path: gamedata-macos*.sha256
+          retention-days: 14
+      # One mission on Apple's GL: the runner has no GPU, so the game's retry
+      # gets "Apple Software Renderer" (GL 4.1 core, about 28 fps). Apple's GL
+      # links shaders more strictly than Mesa, and Apple Clang traps on some
+      # undefined behaviour GCC lets pass (issue #183). Under lldb, so a crash
+      # prints every thread's stack. Same failure rules as scripts/smoke.sh.
+      - name: Mission (Apple GL, under lldb)
+        timeout-minutes: 10
+        env:
+          SDL_AUDIODRIVER: dummy
+          MC2_STOP_EXITS: "1"
+        run: |
+          cp build/mc2 build/out/res/libmc2res_64.so gamedata/
+          cp -R shaders gamedata/
+          cp gamedata/minprefs.cfg gamedata/options.cfg
+          cd gamedata
+          lldb --batch -o run -k "thread backtrace all" -k "quit 1" \
+               -- ./mc2 -mission mc2_01 -autoexit 600 2>&1 | tee ../mac-run.log
+          cd ..
+          grep -E "Version *:|Renderer *:|\[MISSION\]|\[AUTOEXIT\]|exited with status|stop reason" mac-run.log || true
+          BAD='OpenGL Error|: ERROR: |STOP: |FATAL'
+          if grep -v '^\[OBJECTIVE\]' mac-run.log | grep -E "$BAD"; then exit 1; fi
+          grep -q "\[MISSION\]" mac-run.log && grep -q "\[AUTOEXIT\]" mac-run.log
+          grep -qE "exited with status = 0 " mac-run.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mac-run-log
+          path: mac-run.log
+          if-no-files-found: ignore
+          retention-days: 14
+
   windows:
     name: Windows x64 MSVC (desktop GL)
     needs: changes

@@ -171,6 +171,12 @@ void Logistics::start (long startMode)
 			}
 
 			lastMissionResult = scenarioResult;
+			// scripts/smoke.sh: a run may end in a won mission before -autoexit's frames
+			// "won" only for the result the code below treats as a win
+			printf( "[MISSION] ended: %s\n", scenarioResult == mis_PLAYER_WIN_BIG ? "won" :
+				(scenarioResult == mis_PLAYER_WIN_SMALL ? "small win" :
+				(scenarioResult == mis_PLAYER_DRAW ? "draw" : "lost")) );
+			fflush( stdout );
 			if ( !missionResults )
 			{
 				LogisticsData::instance->init();
@@ -209,8 +215,15 @@ void Logistics::start (long startMode)
 				}
 				else if ( LogisticsData::instance->isSingleMission() && !MPlayer )
 				{
-					missionBegin->beginSplash();
-					logisticsState = log_SPLASH;
+					// a -mission launch has no menus and no campaign to go back to:
+					// end the game, as a lost one does below
+					if ( justStartMission )
+						quitGame = true;
+					else
+					{
+						missionBegin->beginSplash();
+						logisticsState = log_SPLASH;
+					}
 				}
 				else
 				{

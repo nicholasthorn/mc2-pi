@@ -11,6 +11,8 @@ typedef char* receive_data_type;
 #else
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -19,6 +21,9 @@ typedef const void* send_data_type;
 typedef void* receive_data_type;
 #endif
 
+#include "gos_wsl.h"
+
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 
@@ -58,6 +63,12 @@ bool setNonBlocking(intptr_t s)
 	const int flags = fcntl(static_cast<int>(s), F_GETFL, 0);
 	return flags >= 0 && fcntl(static_cast<int>(s), F_SETFL, flags | O_NONBLOCK) == 0;
 #endif
+}
+
+// an address another machine could use: not none, the loopback or link-local (169.254)
+bool isUsable(uint32_t ip)
+{
+	return ip != 0 && (ip >> 24) != 127u && (ip >> 16) != 0xA9FEu;
 }
 
 sockaddr_in toSockaddr(uint32_t ip, uint16_t port)
@@ -178,6 +189,112 @@ std::string LanSocket::addressText(uint32_t ip)
 	char text[32];
 	std::snprintf(text, sizeof(text), "%u.%u.%u.%u", (ip >> 24) & 0xFFu, (ip >> 16) & 0xFFu, (ip >> 8) & 0xFFu, ip & 0xFFu);
 	return text;
+}
+
+bool LanSocket::parseAddress(const char* text, uint32_t& ip)
+{
+	// By hand, not inet_pton: the TCP/IP screen's box lets a player type spaces round the
+	// address and zeros in front of a number ("192.168.086.076"), which inet_pton refuses.
+	if (!text)
+		return false;
+	while (*text == ' ')
+		text++;
+	uint32_t result = 0;
+	for (int part = 0; part < 4; part++) {
+		if (part > 0 && *text++ != '.')
+			return false;
+		uint32_t number = 0;
+		int digits = 0;
+		for (; std::isdigit(static_cast<unsigned char>(*text)); text++) {
+			number = number * 10u + static_cast<uint32_t>(*text - '0');
+			if (++digits > 3)
+				return false;
+		}
+		if (digits == 0 || number > 255u)
+			return false;
+		result = (result << 8) | number;
+	}
+	while (*text == ' ')
+		text++;
+	if (*text)
+		return false;
+	ip = result;
+	return true;
+}
+
+uint32_t LanSocket::localAddress()
+{
+	if (!startSockets())
+		return 0;
+	// A connected UDP socket sends nothing, but has the address the system would send from.
+	// Any address beyond the local network will do: this is a public DNS server's.
+#ifdef PLATFORM_WINDOWS
+	const SOCKET made = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (made == INVALID_SOCKET)
+		return 0;
+#else
+	const int made = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (made < 0)
+		return 0;
+#endif
+	sockaddr_in address = toSockaddr(0x08080808u, 53);
+	socklen_type length = sizeof(address);
+	uint32_t ip = 0;
+	if (connect(made, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0
+		&& getsockname(made, reinterpret_cast<sockaddr*>(&address), &length) == 0)
+		ip = ntohl(address.sin_addr.s_addr);
+	closeSocket(static_cast<intptr_t>(made));
+	if (isUsable(ip))
+		return ip;
+	// No default route (a router with no internet behind it, two machines on a cable): the
+	// first address of an interface that is up, not the loopback or a link-local one.
+	ip = 0;
+#ifdef PLATFORM_WINDOWS
+	char name[256];
+	addrinfo hints;
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	addrinfo* found = nullptr;
+	if (gethostname(name, sizeof(name)) == 0 && getaddrinfo(name, nullptr, &hints, &found) == 0) {
+		for (const addrinfo* a = found; a && !ip; a = a->ai_next) {
+			const uint32_t candidate = ntohl(reinterpret_cast<const sockaddr_in*>(a->ai_addr)->sin_addr.s_addr);
+			if (isUsable(candidate))
+				ip = candidate;
+		}
+		freeaddrinfo(found);
+	}
+#else
+	ifaddrs* interfaces = nullptr;
+	if (getifaddrs(&interfaces) == 0) {
+		for (const ifaddrs* i = interfaces; i && !ip; i = i->ifa_next) {
+			if (!i->ifa_addr || i->ifa_addr->sa_family != AF_INET || !(i->ifa_flags & IFF_UP))
+				continue;
+			const uint32_t candidate = ntohl(reinterpret_cast<const sockaddr_in*>(i->ifa_addr)->sin_addr.s_addr);
+			if (isUsable(candidate))
+				ip = candidate;
+		}
+		freeifaddrs(interfaces);
+	}
+#endif
+	return ip;
+}
+
+bool wslBehindNat()
+{
+#ifdef PLATFORM_WINDOWS
+	return false;
+#else
+	if (!gos_RunningInWsl())
+		return false;
+	// WSL's own tool says which; one too old to know is NAT, the only kind it had
+	FILE* tool = popen("wslinfo --networking-mode 2>/dev/null", "r");
+	if (!tool)
+		return true;
+	char mode[64] = {};
+	const bool read = std::fgets(mode, sizeof(mode), tool) != nullptr;
+	pclose(tool);
+	return !read || std::strncmp(mode, "mirrored", 8) != 0;
+#endif
 }
 
 }

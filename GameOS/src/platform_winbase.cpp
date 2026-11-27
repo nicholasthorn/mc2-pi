@@ -21,6 +21,13 @@
 #include"platform_windows.h"
 #include"platform_str.h"
 
+#ifdef __APPLE__
+// macOS names struct stat's timespec fields st_atimespec etc.
+#define st_atim st_atimespec
+#define st_mtim st_mtimespec
+#define st_ctim st_ctimespec
+#endif
+
 static int gGetLastError = 0;
 
 DWORD GetTimeZoneInformation(LPTIME_ZONE_INFORMATION tzi)

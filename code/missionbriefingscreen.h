@@ -24,6 +24,8 @@
 #include"simplecamera.h"
 #endif
 
+#include"briefingpanes.h"
+
 #define MN_MSG_PLAY 80
 #define MN_MSG_STOP 82
 #define MN_MSG_PAUSE 81
@@ -64,9 +66,20 @@ class MissionBriefingScreen: public LogisticsScreen
 	float			modelScales[MAX_OBJECTIVES];
 	long			modelColors[MAX_OBJECTIVES][3];
 	aListBox		missionListBox; 
+	// MechCommander Omnitech's other briefing panes (briefingpanes.h); the
+	// briefing pane is missionListBox
+	aListBox		paneListBoxes[briefingpanes::kPanes - 1];
+	bool		bHasPanes;
+	bool		paneHasText[briefingpanes::kPanes];
+	long		currentPane;
 
+	aListBox&	paneListBox( long pane );
+	void		showPane( long pane );
+	void		updateScreenAndChat();
 	int			addLBItem( const char* itemName, unsigned long color, int ID);
 	int			addItem( int ID, unsigned long color, int LBid );
+	int			addLBItem( aListBox& listBox, const char* itemName, unsigned long color, int ID);
+	int			addItem( aListBox& listBox, int ID, unsigned long color, int LBid );
 	void		addObjectiveButton( float fMakerX, float fMarkerY, int count, int priority,
 											   float mapWidth, float mapHeight, bool display );
 	void		setupDropZone( float fX, float fY, float mapWidth, float mapHeight );

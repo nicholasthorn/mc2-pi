@@ -324,4 +324,28 @@ TEST_CASE("a call with no return value is the wrong type in an assignment or val
 	CHECK(AblCompiled(valParam).handle == -1);
 }
 
+TEST_CASE("a type used in its own definition is an error")
+{
+	// the type is entered before its definition is read, with no type yet:
+	// the definition then read that missing type through NULL (fuzzer,
+	// "type EST = est", names are not case sensitive)
+	const char* plain =
+		"module M : integer;\n"
+		"\ttype\n"
+		"\t\tSELF = self;\n"
+		"\tcode\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n";
+	CHECK(AblCompiled(plain).handle == -1);
+
+	const char* array =
+		"module M : integer;\n"
+		"\ttype\n"
+		"\t\tSELF = SELF[3];\n"
+		"\tcode\n"
+		"\t\treturn(0);\n"
+		"endmodule.\n";
+	CHECK(AblCompiled(array).handle == -1);
+}
+
 } // TEST_SUITE("AblScan")

@@ -92,11 +92,16 @@ TEST_CASE("File::open resolves Windows-style names from data files")
 
 	SUBCASE("doNotLower keeps the case as given")
 	{
-		// Only meaningful on a case-sensitive filesystem.
-#ifndef _WIN32
-		File f;
-		CHECK(f.open("MVH_Scratch_Paths/Entry.TXT", READ, 50, true) != NO_ERR);
-#endif
+		// Only meaningful on a case-sensitive filesystem: Windows and macOS
+		// (APFS by default) find the file whatever the case.
+		FILE* probe = fopen("MVH_Scratch_Paths/Entry.TXT", "rb");
+		if(probe)
+			fclose(probe);
+		else
+		{
+			File f;
+			CHECK(f.open("MVH_Scratch_Paths/Entry.TXT", READ, 50, true) != NO_ERR);
+		}
 	}
 
 	removeScratch();

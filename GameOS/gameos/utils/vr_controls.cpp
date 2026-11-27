@@ -151,10 +151,15 @@ bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(vo
     auto above = [&](float t) {
         return origin[2] + t * dir[2] - height(context, origin[0] + t * dir[0], origin[1] + t * dir[1]);
     };
+    // starts under the ground (on the tabletop the hand can be inside a
+    // hill): from where it comes out
     float tNear = 0.0f;
-    if(above(tNear) <= 0.0f)
-        return false;       // starts under the ground
-    for(float tFar = step; tNear < maxDistance; tFar += step) {
+    while(above(tNear) <= 0.0f) {
+        tNear += step;
+        if(tNear >= maxDistance)
+            return false;
+    }
+    for(float tFar = tNear + step; tNear < maxDistance; tFar += step) {
         tFar = std::min(tFar, maxDistance);
         if(above(tFar) <= 0.0f) {
             // the crossing is between tNear and tFar
@@ -210,6 +215,17 @@ bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3]
     if(leaving)
         *leaving = leave;
     return true;
+}
+
+void boxPickSphere(const float corner0[3], const float corner1[3], float minRadius, float centre[3],
+                   float& radius)
+{
+    float largest = 0.0f;
+    for(int i = 0; i < 3; ++i) {
+        centre[i] = (corner0[i] + corner1[i]) * 0.5f;
+        largest = std::max(largest, std::fabs(corner1[i] - corner0[i]) * 0.5f);
+    }
+    radius = std::max(minRadius, largest * 1.2f);
 }
 
 float yawOf(const float orientation[4])
@@ -279,6 +295,30 @@ uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint3
     else if(ahead < 0)
         actions |= PAN_DOWN;
     return actions;
+}
+
+int scrollSteps(StickScroll& scroll, float stickY, double seconds)
+{
+    const int direction = axisDirection(stickY, scroll.direction > 0, scroll.direction < 0);
+    if(direction == 0) {
+        scroll.direction = 0;
+        return 0;
+    }
+    // a new push, or straight over to the other way: a step at once
+    if(direction != scroll.direction) {
+        scroll.direction = direction;
+        scroll.next = seconds + kScrollDelay;
+        return direction;
+    }
+    int steps = 0;
+    while(seconds >= scroll.next && steps < kScrollMaxSteps) {
+        ++steps;
+        scroll.next += 1.0 / kScrollRate;
+    }
+    // a long frame: carry on at the rate from now, not with a backlog
+    if(seconds >= scroll.next)
+        scroll.next = seconds + 1.0 / kScrollRate;
+    return direction * steps;
 }
 
 void headRelativeStick(const float stick[2], float headYaw, float game[2])

@@ -85,6 +85,8 @@ public:
 	virtual void		update();
 	virtual void		render();
 	virtual void		begin();
+	// what its Join button does, if the address typed is one and nothing is under way
+	void		join();
 private:
 
 	long		getNum( char* pStr, long index1, long index2 );

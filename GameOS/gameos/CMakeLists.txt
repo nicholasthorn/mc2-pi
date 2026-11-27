@@ -27,6 +27,8 @@ set(SOURCES ${SOURCES}
     utils/stereo.cpp
     utils/vr_eye.cpp
     utils/vr_controls.cpp
+    utils/table_anchor.cpp
+    utils/ar_view.cpp
     utils/args_file.cpp
     utils/screen_fit.cpp
     utils/gl_render_constants.cpp
@@ -43,13 +45,18 @@ if(MC2_OPENXR)
     list(APPEND SOURCES gos_xr.cpp)
     set_source_files_properties(gos_xr.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 endif()
+if(MC2_ARCORE)
+    list(APPEND SOURCES gos_ar.cpp)
+    set_source_files_properties(gos_ar.cpp PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
+endif()
 
 # frame_stats, tga_writer, log_file, the touch screen (gos_touch,
-# touch_gestures) and the Android data install (android_data) are only used
-# by the main loop. The link line lists gameos
+# touch_gestures), the screen keyboard (gos_screen_keyboard) and the Android
+# data install (android_data) are only used by the main loop. The link line lists gameos
 # before gameos_main, so in gameos they would never be pulled in.
 set(MAIN_SRC gameosmain.cpp gos_logfile.cpp utils/log_file.cpp utils/frame_stats.cpp utils/tga_writer.cpp
-    gos_touch.cpp utils/touch_gestures.cpp utils/touch_bar.cpp android_data.cpp utils/data_manifest.cpp)
+    gos_touch.cpp utils/touch_gestures.cpp utils/touch_bar.cpp android_data.cpp utils/data_manifest.cpp
+    gos_screen_keyboard.cpp utils/screen_keyboard.cpp)
 
 #find_package(SDL2 REQUIRED PATHS "/opt" NO_DEFAULT_PATH)
 #include_directories("${SDL2_PREFIX}/include")
@@ -60,6 +67,9 @@ include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/thirdparty")
 include_directories(${THIRDPARTY_INCLUDE_DIRS})
 if(MC2_OPENXR)
     include_directories(SYSTEM "${OPENXR_INCLUDE_DIR}")
+endif()
+if(MC2_ARCORE)
+    include_directories(SYSTEM "${ARCORE_INCLUDE_DIR}")
 endif()
 
 if(MC2_NET)
@@ -76,8 +86,9 @@ add_library(gameos_main ${MAIN_SRC})
 
 # new, GL-free code: strict warnings (see MC2_STRICT_WARNINGS)
 set_source_files_properties(utils/pixel_repack.cpp utils/audio_pan.cpp utils/frame_stats.cpp utils/tga_writer.cpp
-    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/touch_gestures.cpp utils/touch_bar.cpp utils/args_file.cpp utils/data_manifest.cpp utils/screen_fit.cpp
+    utils/jpeg_decode.cpp utils/pe_strings.cpp utils/str_bounded.cpp utils/stereo.cpp utils/vr_eye.cpp utils/vr_controls.cpp utils/table_anchor.cpp utils/ar_view.cpp utils/touch_gestures.cpp utils/touch_bar.cpp utils/args_file.cpp utils/data_manifest.cpp utils/screen_fit.cpp
     utils/log_file.cpp android_data.cpp gos_logfile.cpp gos_net.cpp gos_net_lan.cpp gos_touch.cpp
+    gos_screen_keyboard.cpp utils/screen_keyboard.cpp
     PROPERTIES COMPILE_OPTIONS "${MC2_STRICT_WARNINGS}")
 if(MC2_NET)
     set_source_files_properties(gos_net_gns.cpp PROPERTIES COMPILE_OPTIONS "${MC2_GNS_CALLER_OPTIONS}")

@@ -36,6 +36,7 @@
 #include <stddef.h> // linux offsetof()
 #include <new> // for placement new
 #include "render_heuristics.h"
+#include "asecolour.h"
 
 //-------------------------------------------------------------------------------
 // Include Files
@@ -1281,9 +1282,10 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 			GetNumberData(faceData,numberData);
 			float blue = (float)atof(numberData);
 
-			DWORD redC = red * 0xff;
-			DWORD greenC = green * 0xff;
-			DWORD blueC = blue * 0xff;
+			// out-of-range ASE colours: the same result on every CPU (asecolour.h)
+			DWORD redC = aseColourToChannel(red);
+			DWORD greenC = aseColourToChannel(green);
+			DWORD blueC = aseColourToChannel(blue);
 
 			listOfTypeVertices[listOfTypeTriangles[i].Vertices[0]].aRGBLight = (0xffu << 24) + (redC << 16) + (greenC << 8) + blueC;
 
@@ -1313,9 +1315,9 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 			GetNumberData(faceData,numberData);
 			blue = (float)atof(numberData);
 
-			redC = red * 0xff;
-			greenC = green * 0xff;
-			blueC = blue * 0xff;
+			redC = aseColourToChannel(red);
+			greenC = aseColourToChannel(green);
+			blueC = aseColourToChannel(blue);
 
 			listOfTypeVertices[listOfTypeTriangles[i].Vertices[1]].aRGBLight = (0xffu << 24) + (redC << 16) + (greenC << 8) + blueC;
 
@@ -1345,9 +1347,9 @@ long TG_TypeShape::ParseASEFile (BYTE *aseBuffer, const char *fileName)
 			GetNumberData(faceData,numberData);
 			blue = (float)atof(numberData);
 
-			redC = red * 0xff;
-			greenC = green * 0xff;
-			blueC = blue * 0xff;
+			redC = aseColourToChannel(red);
+			greenC = aseColourToChannel(green);
+			blueC = aseColourToChannel(blue);
 
 			listOfTypeVertices[listOfTypeTriangles[i].Vertices[2]].aRGBLight = (0xffu << 24) + (redC << 16) + (greenC << 8) + blueC;
 		}

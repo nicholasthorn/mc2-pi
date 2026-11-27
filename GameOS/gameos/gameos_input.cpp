@@ -99,7 +99,12 @@ void __stdcall gos_SetMousePosition( float XPosition, float YPosition )
         // the cursor every frame left it with SDL's mouse at 0, 0 on a phone.
         if(input::moveVirtualPointer(x, y))
             return;
-        SDL_WarpMouseInWindow(g_sdl_window, (int)x, (int)y);
+        // x, y are drawable pixels; SDL warps in window points (issue #185)
+        int ww = 0, wh = 0, dw = 0, dh = 0;
+        SDL_GetWindowSize(g_sdl_window, &ww, &wh);
+        SDL_GL_GetDrawableSize(g_sdl_window, &dw, &dh);
+        SDL_WarpMouseInWindow(g_sdl_window, (int)screen_fit::drawableToWindow(x, ww, dw),
+                (int)screen_fit::drawableToWindow(y, wh, dh));
     }
 }
 

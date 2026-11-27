@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "gos_input.h"
 #include "utils/input_latch.h"
+#include "utils/screen_fit.h"
 
 static input::MouseInfo g_mouse_info;
 static input::KeyboardInfo g_keyboard_info;
@@ -65,11 +66,21 @@ static int sdl2idx(int button) {
 void handleMouseMotion(const SDL_Event* event) {
     assert(event);
 
+    // SDL's coordinates are window points; the game's pointer is in drawable
+    // pixels, as touch is (gos_touch.cpp). They differ on a high-DPI window:
+    // a Retina Mac kept the cursor to the top-left quarter (issue #185)
+    int ww = 0, wh = 0, dw = 0, dh = 0;
+    SDL_Window* window = SDL_GetWindowFromID(event->motion.windowID);
+    if(window) {
+        SDL_GetWindowSize(window, &ww, &wh);
+        SDL_GL_GetDrawableSize(window, &dw, &dh);
+    }
+
     MouseInfo* mi = &g_mouse_info;
-    mi->x_ = (float)event->motion.x;
-    mi->y_ = (float)event->motion.y;
-    mi->rel_x_ = (float)event->motion.xrel;
-    mi->rel_y_ = (float)event->motion.yrel;
+    mi->x_ = screen_fit::windowToDrawable((float)event->motion.x, ww, dw);
+    mi->y_ = screen_fit::windowToDrawable((float)event->motion.y, wh, dh);
+    mi->rel_x_ = screen_fit::windowToDrawable((float)event->motion.xrel, ww, dw);
+    mi->rel_y_ = screen_fit::windowToDrawable((float)event->motion.yrel, wh, dh);
 }
 
 void handleMouseButton(const SDL_Event* event) {
@@ -225,6 +236,11 @@ bool moveVirtualPointer(float x, float y) {
 void clearVirtualPointer() {
     g_virtual_mouse.active = false;
     g_virtual_mouse.buttons.set(0);
+}
+
+void hideButton(int index) {
+    if(index >= 0 && index < MouseInfo::NUM_BUTTONS)
+        g_mouse_info.button_state_[index] = KS_FREE;
 }
 
 uint32_t keyboardSamples() {

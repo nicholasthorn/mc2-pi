@@ -57,6 +57,7 @@ void holdForClick(ClickHold& hold, float pull, float& u, float& v, float dragDis
 // origin along the unit vector dir first meets the ground: height(context,
 // x, y) is the ground's height there. Marches in steps of 'step' up to
 // maxDistance, then narrows the crossing down. False when it meets nothing.
+// A ray that starts under the ground counts from where it comes out.
 bool rayHitsGround(const float origin[3], const float dir[3], float (*height)(void* context, float x, float y),
                    void* context, float step, float maxDistance, float& distance);
 
@@ -69,6 +70,13 @@ bool rayHitsSphere(const float origin[3], const float dir[3], const float centre
 // a sphere.
 bool rayHitsBox(const float origin[3], const float dir[3], const float boxMin[3], const float boxMax[3],
                 float& distance, float* leaving = nullptr);
+
+// A sphere to point at a unit by, from the world box its selection box is
+// projected from (corners either way round): centred on the box, so the game's
+// own picking aimed at the centre lands inside the selection box, with a
+// radius of 1.2 times the box's largest half extent and at least minRadius.
+void boxPickSphere(const float corner0[3], const float corner1[3], float minRadius, float centre[3],
+                   float& radius);
 
 // The heading of an orientation: the angle about +y of its -z axis, seen
 // from above. Looking up or down and tilting the head do not change it.
@@ -106,6 +114,21 @@ enum : uint32_t {
     ZOOM_OUT = 1u << 7,
 };
 uint32_t stickActions(const float leftStick[2], const float rightStick[2], uint32_t previous);
+
+// A list scrolled with a stick (the right one, pointing at the interface):
+// held up or down it gives mouse wheel steps, positive up, as a wheel turned
+// away from you. One step as it passes the camera's threshold (above), then
+// after kScrollDelay seconds kScrollRate a second while it is held; a long
+// frame gives at most kScrollMaxSteps.
+const double kScrollDelay = 0.4;
+const double kScrollRate = 8.0;
+const int kScrollMaxSteps = 3;
+struct StickScroll {
+    int direction = 0;      // 1 up, -1 down, 0 not scrolling
+    double next = 0.0;      // when the next repeat is due
+};
+// The wheel steps for this frame, given the stick's y and the time in seconds.
+int scrollSteps(StickScroll& scroll, float stickY, double seconds);
 
 // The left stick as the game's camera keys see it. The view turns with the
 // head, but the arrow keys pan along the game camera's own heading (straight

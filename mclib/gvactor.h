@@ -297,6 +297,8 @@ class GVAppearance : public ObjectAppearance
 		}
 
 		virtual bool isMouseOver (float px, float py);
+
+		virtual bool worldSelectBox (Stuff::Vector3D& corner0, Stuff::Vector3D& corner1);
 		
 		virtual void setObjectParameters (const Stuff::Vector3D &pos, float rot, long selected, long team, long homeRelations);
 

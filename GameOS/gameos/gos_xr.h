@@ -25,8 +25,8 @@
 // to where the head faces, vr_controls::headRelativeStick); right
 // stick: turn (shift + left / right) and zoom (keypad + / -). Held while
 // clicking: B waypoints (Ctrl), X run (Space), Y jump (J), left stick click
-// force fire (F). Right stick click selects the visible units (E); the left
-// menu button is Escape. A puts the quad in front
+// force fire (F). Right stick click selects the visible units (E); with Y
+// held it opens chat (Return). The left menu button is Escape. A puts the quad in front
 // of the head; holding A, the left stick raises it (up) or lowers it (down)
 // and makes it larger (right) or smaller (left), and letting go logs the
 // MC2_XR_HUD value to keep. MC2_XR_HUD=distance,
@@ -72,6 +72,20 @@ bool exitRequested();
 double logicStep();
 // An OpenXR session exists (gos_IsVR).
 bool active();
+// The tabletop (MC2_XR_TABLE=1, planning/future-features/AR-TABLETOP.md):
+// eyeViews and pointerRay are in the table's frame (utils/table_anchor.h),
+// with the room shown round it through passthrough where the headset has it.
+// A puts the table at the right controller (set it on the real table), with
+// the interface in front of the head; the right stick zooms the table.
+// MC2_TABLE_SCALE: world metres to a real one (default 600);
+// MC2_TABLE_PLACE=distance,drop: where it goes from the head, in metres.
+bool tabletop();
+float tableScale();
+// The tabletop can be turned on and off as the game runs (the graphics
+// options): a session with eyes. Turning it on puts the table ahead of the
+// head and the room round it, off brings back the battle all round.
+bool tabletopAvailable();
+void setTabletop(bool on);
 // Every frame, before the input is sampled: reads the controllers into
 // GameOS's virtual mouse and keys.
 void pollInput();
@@ -102,6 +116,10 @@ inline bool hudResting() { return false; }
 inline bool exitRequested() { return false; }
 inline double logicStep() { return 0.0; }
 inline bool active() { return false; }
+inline bool tabletop() { return false; }
+inline float tableScale() { return 1.0f; }
+inline bool tabletopAvailable() { return false; }
+inline void setTabletop(bool) {}
 inline void pollInput() {}
 inline bool pointerActive() { return false; }
 inline void missionTakesOrders() {}
