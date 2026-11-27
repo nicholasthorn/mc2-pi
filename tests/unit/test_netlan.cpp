@@ -128,12 +128,17 @@ TEST_CASE("A browser finds a beacon on this machine, and forgets it when it stop
 	CHECK_FALSE(browser.found()[0].address.empty());
 
 	// asked again: still one host, whichever way the answer came
+	// Each answer is waited for: four unanswered queries span more than
+	// FORGET_SECONDS, and loopback is not instant on macOS.
 	for (int i = 0; i < 4; i++) {
 		now += netlan::QUERY_SECONDS + 0.1;
 		browser.update(now, beacon.port());
-		beacon.update(someGame());
+		for (int j = 0; (j < 2000) && ((browser.found().size() != 1) || (browser.found()[0].lastSeen != now)); j++) {
+			beacon.update(someGame());
+			aMoment();
+			browser.update(now, beacon.port());
+		}
 	}
-	browser.update(now, beacon.port());
 	CHECK(browser.found().size() == 1);
 
 	// another game on this machine is another game
