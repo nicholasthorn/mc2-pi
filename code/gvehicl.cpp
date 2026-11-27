@@ -3176,6 +3176,7 @@ long GroundVehicle::update (void)
 	if (withdrawing && (pilot->getStatus() == WARRIOR_STATUS_WITHDRAWN)) 
 	{
 		setTangible(false);
+		releasePathLocks();
 		return(1);
 	}
 
