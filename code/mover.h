@@ -962,6 +962,7 @@ class Mover : public GameObject {
 
 
 		bool				pathLocks;						//For movers which can be stepped on.  They do NOT lock!
+		bool				pathLocksReleased;				//releasePathLocks has run
 		bool				isOnGui;						//For movers which start out on player team but not on gui.  Like raven in 0103
 
 		int32_t             conStat;						//Contact status stored for this frame, for this machine
@@ -1190,6 +1191,8 @@ class Mover : public GameObject {
 		virtual bool getAdjacentCellPathLocked (long level, long cellRow, long cellCol, long dir);
 
 		virtual void updatePathLock (bool set);
+
+		void releasePathLocks (void);
 
 		virtual bool getPathRangeLock (long range, bool* reachedEnd = NULL);
 
