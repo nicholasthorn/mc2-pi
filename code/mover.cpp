@@ -5294,6 +5294,9 @@ bool Mover::getAdjacentCellPathLocked (long level, long cellRow, long cellCol, l
 		return(false);
 	if (level > (NUM_MOVE_LEVELS - 1))
 		return(false);
+	// a mover on the map edge has neighbours off the map
+	if (!GameMap->inBounds(adjCellRow, adjCellCol))
+		return(false);
 	return(GameMap->getPathlock(level, adjCellRow, adjCellCol));
 }
 

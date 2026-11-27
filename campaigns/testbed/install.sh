@@ -45,9 +45,15 @@ cp "$SRC_DATA/missions/$MAP_MISSION.pak" "$MISSIONS/$NAME.pak"
 # syntax: it searches the raw text for block and key names).
 {
     tr -d '\r' < "$SRC_DATA/missions/$MAP_MISSION.fit" | awk '
-        /^\[/ { keep = ($0 ~ /^\[(Cameras|Water|Terrain|Weather|TheSky)\]$/ || $0 ~ /^\[Forest[0-9]+\]$/) }
+        /^\[/ { keep = ($0 ~ /^\[(Cameras|Water|Terrain|Weather|TheSky|ColorMap)\]$/ || $0 ~ /^\[Forest[0-9]+\]$/) }
         /^FITini/ && !started { print; started = 1; next }
         keep'
+    # The ground, detail and water textures (textures/<name>.tga, .detail,
+    # .water) are found by the .pak's name, tb_01, unless [ColorMap] names
+    # them: point it at the stock map's, or the terrain draws untextured (pink).
+    if ! tr -d '\r' < "$SRC_DATA/missions/$MAP_MISSION.fit" | grep -q '^\[ColorMap\]$'; then
+        printf '\n[ColorMap]\nst ColorMapName = "%s"\n' "$MAP_MISSION"
+    fi
     echo
     if [ "$AUTOPLAY" = 1 ]; then
         grep -v '^//' "$HERE/$NAME.mission.fit" | sed 's/^st Brain = "PBrain"$/st Brain = "tb_autoplay"/'
