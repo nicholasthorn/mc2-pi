@@ -199,13 +199,18 @@ The validator (`scripts/validate_campaign.py`, unit tested):
   position or a building's position exactly (that is how the engine finds
   them; an unmatched building leaves a null for `Status()`); every flag that
   activates an objective is set somewhere; no comment lines (the FIT reader
-  has none, and finds block names in them).
+  has none, and finds block names in them); a reused map's textures are
+  found: `[ColorMap] ColorMapName` (or else the `.pak`'s name) has a
+  `textures/<name>.tga`, `.burnin.tga` or `.burnin.jpg`. Without it the
+  terrain draws pink and nothing in the log or any run says so.
 - Purchase files: every component of every mech on sale is in the
   component list (else the mech is not offered on stock data).
 - Text: length limits per field (8 KB for a FIT string, less where the
   reading code's buffer is smaller).
 - Then: `scripts/smoke.sh --missions "<name>"` (loads, ABL compiles, runs
-  N frames without `STOP`), and a `-bench` scenario for screenshots.
+  N frames without `STOP`), and an in-game screenshot (`-bench` with
+  `MC2_SHOT_FRAME`) that a person or the reviewing agent looks at: front-end
+  screenshots alone missed the pink terrain.
 - Then an autoplay run: a test brain on the player's units plays the
   objectives, and the run must end `[MISSION] ended: won` with every
   primary objective's `[OBJECTIVE] ... successful` line in order. The
@@ -223,7 +228,7 @@ context in one pass).
    `mission-testbed`): tb_01 on mc2_01's map, three primaries chained by
    flags, a relief lance released by a trigger, a secondary, literal text, a
    one-group campaign. It loads, an autoplay run wins it, and the campaign
-   walks through logistics to launch. Twelve findings in
+   walks through logistics to launch. Thirteen findings in
    `campaigns/testbed/README.md`; the ones that change the plan are folded
    into the validator above. It also found and fixed a crash at the end of
    every won `-mission` run. Not yet played by a person.
