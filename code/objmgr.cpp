@@ -1262,12 +1262,17 @@ void GameObjectManager::addObject (ObjDataLoader *objData, long& curTerrainObjec
 				((TerrainObjectPtr)obj)->calcCellFootprint(pos);
 				if (obj->getObjectClass() == BUILDING) {
 					if (objType->getSubType() == BUILDING_SUBTYPE_WALL) {
+						bool recorded = false;
 						for (long i = 0; i < tempNumSpecialAreas; i++)
 							if (tempSpecialAreaFootPrints[i].cellPositionRow == cellRow)
 								if (tempSpecialAreaFootPrints[i].cellPositionCol == cellCol) {
 									((BuildingPtr)obj)->calcSubAreas(tempSpecialAreaFootPrints[i].numCells, tempSpecialAreaFootPrints[i].cells);
+									recorded = true;
 									break;
 								}
+						// no record: destroyed, it would open nothing
+						if (!recorded)
+							((BuildingPtr)obj)->setCellsCoveredOnly(pos);
 						((BuildingPtr)obj)->closeSubAreas();
 						}
 					else if (objType->getSubType() == BUILDING_SUBTYPE_LANDBRIDGE) {

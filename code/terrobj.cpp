@@ -1016,6 +1016,39 @@ long TerrainObject::getLineOfSightNodes (long eyeCellRow, long eyeCellCol, long*
 
 //---------------------------------------------------------------------------
 
+// A wall the map has no record for (Omnitech's maps have none for most of
+// theirs): the blocked cells its shape covers, and no sub-areas, so
+// markMoveMap, and openSubAreas with it when the wall is destroyed, opens
+// those cells. The long-route map has no wall area to open, so only moves
+// the cell map plans alone (SimpleMovePathRange) go through the gap. At most
+// what a save keeps.
+void TerrainObject::setCellsCoveredOnly (Stuff::Vector3D& pos) {
+
+	static short cellList[MAX_CELL_COORDS];
+	cellList[0] = MAX_CELL_COORDS;
+	const long numCoords = appearance->calcCellsCovered(pos, cellList);
+	// the blocked ones only: loading closes the wall, which must change nothing
+	const long maxCells = (long)(sizeof(TerrainObjectData::cellsCovered) / (2 * sizeof(short)));
+	long numCells = 0;
+	for (long i = 0; (i + 1 < numCoords) && (numCells < maxCells); i += 2)
+		if (GameMap->inBounds(cellList[i], cellList[i + 1]) && !GameMap->getPassable(cellList[i], cellList[i + 1])) {
+			cellList[numCells * 2] = cellList[i];
+			cellList[numCells * 2 + 1] = cellList[i + 1];
+			numCells++;
+		}
+	if (numCells <= 0 || cellsCovered)
+		return;
+	cellsCovered = (short*)systemHeap->Malloc(sizeof(short) * 2 * numCells);
+	if (!cellsCovered)
+		return;
+	memcpy(cellsCovered, cellList, sizeof(short) * 2 * numCells);
+	numCellsCovered = (unsigned char)numCells;
+	numSubAreas0 = 0;
+	numSubAreas1 = 0;
+}
+
+//---------------------------------------------------------------------------
+
 void TerrainObject::calcSubAreas (long numCells, short cells[MAX_GAME_OBJECT_CELLS][2]) {
 
 	numCellsCovered = numCells;
