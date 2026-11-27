@@ -134,7 +134,8 @@ int scrollSteps(StickScroll& scroll, float stickY, double seconds);
 // head, but the arrow keys pan along the game camera's own heading (straight
 // ahead), so with the head turned round, pushing ahead panned backwards.
 // headYaw is the head's heading from straight ahead (yawOf, positive to the
-// left); the stick (x right, y ahead) turns by it.
+// left); the stick (x right, y ahead) turns by it, then stretches so its
+// larger axis is the whole push (a part push pans at any heading).
 void headRelativeStick(const float stick[2], float headYaw, float game[2]);
 
 // Press patterns on a tap button (one with no job while held): a click, a

@@ -270,10 +270,12 @@ The interface only rests in a headset session, so no desktop run covers it.
 
 ## On the Quest (VR, `future-features/VR-TABLETOP.md`)
 
-- [ ] **Left stick pans the way you face** (branch `claude/vr-stick-head-relative`).
+- [ ] **Left stick pans the way you face** (PR #170).
       In a mission, turn your body (or head) to the side and then round, and
       push the left stick ahead each time: the view moves the way you
-      look, never sideways or back. Half way between, it pans diagonally.
+      look, never sideways or back. Half way between, it pans diagonally,
+      and a part push (not to the stop) pans too. On the tabletop the stick
+      pans along the table, whichever way you look.
 - [ ] **Bomber target marker and explosions** (branch `fix/bomber-marker-explosion`).
       Call a strike, then another close by: while the first marker spins, the
       second's explosion shows whole, with no square in it, and the marker's

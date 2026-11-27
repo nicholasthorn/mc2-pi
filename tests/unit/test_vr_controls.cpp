@@ -549,6 +549,30 @@ TEST_CASE("sticks: the left stick pans the way the head faces, not the game came
 	CHECK(vr_controls::stickActions(game, centre, 0) == 0u);
 }
 
+TEST_CASE("sticks: a part push pans at any heading") {
+	const float centre[2] = {0.0f, 0.0f};
+	float game[2];
+	// past the start threshold, but turned 45 degrees each axis alone would
+	// be under it (0.42): the push still pans, both ways at once
+	const float push[2] = {0.0f, 0.6f};
+	vr_controls::headRelativeStick(push, 0.25f * kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == (vr_controls::PAN_UP | vr_controls::PAN_LEFT));
+	// a little off ahead is still ahead alone
+	vr_controls::headRelativeStick(push, 0.15f, game);
+	CHECK(vr_controls::stickActions(game, centre, 0) == vr_controls::PAN_UP);
+	// under the start threshold nothing starts, at any heading
+	const float light[2] = {0.0f, 0.45f};
+	for (int i = 0; i < 16; ++i) {
+		vr_controls::headRelativeStick(light, (float)i * kPi / 8.0f, game);
+		CHECK(vr_controls::stickActions(game, centre, 0) == 0u);
+	}
+	// a push let back to over the stop threshold keeps panning, diagonally too
+	const uint32_t upLeft = vr_controls::PAN_UP | vr_controls::PAN_LEFT;
+	const float held[2] = {0.0f, 0.4f};
+	vr_controls::headRelativeStick(held, 0.25f * kPi, game);
+	CHECK(vr_controls::stickActions(game, centre, upLeft) == upLeft);
+}
+
 }
 
 TEST_CASE("a beam to a far pick still has a valid orientation")
