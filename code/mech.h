@@ -367,6 +367,7 @@ class BattleMech : public Mover {
 		unsigned char		numJumpJets;
 		float				lastJumpTime;
 		bool				inJump;
+		bool				wreckLocksReleased;	// BattleMech::update, once destroyed
 		Stuff::Vector3D		jumpGoal;
 		float				centerTorsoBlowTime;
 		bool				hitFromBehindThisFrame;

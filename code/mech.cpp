@@ -1186,6 +1186,7 @@ void BattleMech::init (bool create) {
 	numJumpJets = 0;
 	lastJumpTime = -100.0;
 	inJump = false;
+	wreckLocksReleased = false;
 	jumpGoal.Zero();
 	centerTorsoBlowTime = -1.0;
 	hitFromBehindThisFrame = false;
@@ -6177,6 +6178,21 @@ long BattleMech::update (void)
 	}
 	else
 	{
+		// A mech killed outright comes straight here, past the disabled
+		// branch above that lets go of its path locks: its cell and the steps
+		// it had locked ahead stayed locked for the rest of the mission, so a
+		// wreck on a bridge closed it. Once (another mover may lock the cell
+		// later), and not through updatePathLock, which does nothing in a jump.
+		if (!wreckLocksReleased)
+		{
+			if (pathLocks)
+			{
+				setPathRangeLock(false);
+				GameMap->setPathlock((moveLevel == 2), cellPositionRow, cellPositionCol, false);
+			}
+			wreckLocksReleased = true;
+		}
+
 		//--------------------------------------------------------
 		//We are destroyed now.  Stop trying to animate, dammit!
 		control.settings.mech.gestureGoal = -1;
