@@ -5820,6 +5820,7 @@ long BattleMech::update (void)
 
 	if (withdrawing && (pilot->getStatus() == WARRIOR_STATUS_WITHDRAWN)) {
 		setTangible(false);
+		releasePathLocks();
 		return(1);		//This guy is gone.
 	}
 	
@@ -6177,6 +6178,8 @@ long BattleMech::update (void)
 	}
 	else
 	{
+		releasePathLocks();		// a mech killed outright comes straight here
+
 		//--------------------------------------------------------
 		//We are destroyed now.  Stop trying to animate, dammit!
 		control.settings.mech.gestureGoal = -1;

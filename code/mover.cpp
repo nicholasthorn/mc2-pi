@@ -2245,6 +2245,7 @@ void Mover::init (bool create) {
 	startDisabled = false;
 
 	pathLocks = true;
+	pathLocksReleased = false;
 	
 	damageRateTally = 0;
 	damageRateCheckTime = 1.0;
@@ -5344,6 +5345,25 @@ long Mover::setPathRangeLock (bool set, long range) {
 	}
 
 	return(NO_ERR);
+}
+
+//---------------------------------------------------------------------------
+
+// Once, for a mover that will not lock again: a mech killed outright, which
+// goes straight to destroyed past the disabled branch that lets go of its
+// locks, or a unit withdrawn off the map, whose update returns early. Their
+// cell and the steps they had locked ahead stayed locked for the rest of the
+// mission, so a wreck on a bridge closed it. Once, as another mover may lock
+// the cell later; not through updatePathLock, which does nothing in a jump.
+void Mover::releasePathLocks (void)
+{
+	if (pathLocksReleased)
+		return;
+	pathLocksReleased = true;
+	if (!pathLocks)
+		return;
+	setPathRangeLock(false);
+	GameMap->setPathlock((moveLevel == 2), cellPositionRow, cellPositionCol, false);
 }
 
 //---------------------------------------------------------------------------

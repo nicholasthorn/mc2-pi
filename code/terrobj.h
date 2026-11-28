@@ -269,6 +269,8 @@ class TerrainObject : public GameObject {
 
 		void calcSubAreas (long numCells, short cells[MAX_GAME_OBJECT_CELLS][2]);
 
+		void setCellsCoveredOnly (Stuff::Vector3D& pos);
+
 		void markMoveMap (bool passable);
 
 		void openSubAreas (void);
