@@ -176,6 +176,8 @@ void SensorSystem::setShutdown (bool setting) {
 				MoverPtr mover = (MoverPtr)ObjectManager->get(contacts[i] & 0x7FFF);
 				if (contacts[i] & VISUAL_CONTACT_FLAG) {
 					master->removeContact(this, mover);
+					// still on this sensor's list: keep its link (the team cleared it)
+					mover->getContactInfo()->sensors[id] = i;
 					i++;
 					}
 				else
@@ -400,6 +402,8 @@ void SensorSystem::addContact (MoverPtr mover, bool visual) {
 		contacts[numContacts] = mover->getHandle();
 		if (visual)
 			contacts[numContacts] |= VISUAL_CONTACT_FLAG;
+		// the link, which the team sets too, but not while this sensor is shut down
+		mover->getContactInfo()->sensors[id] = numContacts;
 		if (notShutdown)
 			master->addContact(this, mover, numContacts, visual ? CONTACT_VISUAL :  getSensorQuality());
 		numContacts++;
@@ -435,6 +439,11 @@ void SensorSystem::removeContact (long contactIndex) {
 
 	MoverPtr contact = (MoverPtr)ObjectManager->get(contacts[contactIndex] & 0x7FFF);
 	Assert(contact != NULL, contacts[contactIndex] & 0x7FFF, " SensorSystem.removeContact: bad contact ");
+	// The team clears the link too, but not while this sensor is shut down; a
+	// stale link let a later scan write this mover over another one's slot, and
+	// the team then uncounted a contact it never counted.
+	if (contact)
+		contact->getContactInfo()->sensors[id] = 255;
 	
 	numContacts--;
 	if ((numContacts > 0) && (contactIndex != numContacts)) {
@@ -1078,8 +1087,10 @@ void TeamSensorSystem::removeContact (SensorSystemPtr sensor, MoverPtr contact) 
 
 	ContactInfoPtr contactInfo = contact->getContactInfo();
 	contactInfo->sensors[sensor->id] = 255;
+	Assert(contactInfo->contactCount[teamId] != 0, 0, "FUDGE");
+	if (contactInfo->contactCount[teamId] == 0)
+		return;		// never counted: do not wrap the count to 255
 	contactInfo->contactCount[teamId]--;
-	Assert(contactInfo->contactCount[teamId] != 255, 0, "FUDGE");
 
 	if (contactInfo->contactCount[teamId] == 0) {
 		long contactIndex = contactInfo->teams[teamId];
