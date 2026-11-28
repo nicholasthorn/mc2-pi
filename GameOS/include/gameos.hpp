@@ -1963,6 +1963,11 @@ float __stdcall gos_GetFixedFrameLength();
 //
 bool __stdcall gos_IsAutomatedRun();
 //
+// Android: the app is in the background, or on its way there (the game's
+// suspend save runs then). Nothing shown on screen can be seen or answered.
+//
+bool __stdcall gos_IsInBackground();
+//
 // "-uismoke <walk>": the comma-separated front-end screens to visit, or NULL.
 // The game's UI smoke driver (code/uismokedriver.cpp) walks them, prints
 // "[SCREEN] <name> shown" for each and "[UISMOKE] done" at the end, then

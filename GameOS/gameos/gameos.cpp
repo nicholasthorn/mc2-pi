@@ -263,6 +263,20 @@ bool __stdcall gos_IsAutomatedRun()
     return g_automated_run;
 }
 
+// here, not in gameosmain.cpp: the error box (gameos_debugging.cpp) reads it,
+// and the data tools link that file without the game's main loop
+static bool g_in_background = false;
+
+void gos_SetInBackground(bool background)
+{
+    g_in_background = background;
+}
+
+bool __stdcall gos_IsInBackground()
+{
+    return g_in_background;
+}
+
 // -bench named stages and -benchfov: set up and read by gameosmain.cpp, here
 // for the same reason (mclib's TG_MultiShape times a stage)
 static bool g_bench_stages_on = false;

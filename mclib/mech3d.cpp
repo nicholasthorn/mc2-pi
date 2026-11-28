@@ -4938,6 +4938,15 @@ void Mech3DAppearance::destroy (void)
 }
 
 //*****************************************************************************
+// Bytes of a weapon node array that a save keeps: 10, as it always has, but
+// no more than a mech with numNodes nodes holds.
+static size_t savedNodeBytes (long numNodes, size_t entrySize)
+{
+	const size_t held = (numNodes > 0) ? (size_t)numNodes * entrySize : 0;
+	return (held < 10) ? held : 10;
+}
+
+//*****************************************************************************
 void Mech3DAppearance::copyTo (MechAppearanceData *data)
 {
 	data->frameNum = frameNum;
@@ -4968,11 +4977,17 @@ void Mech3DAppearance::copyTo (MechAppearanceData *data)
 	data->currentFrame = currentFrame;
 	data->currentLOD = currentLOD;
 
-	if (mechType->numWeaponNodes > 10)
-		STOP(("Mech Has too many weapon nodes to save %d",mechType->numWeaponNodes));
-
-	memcpy(data->nodeUsed,nodeUsed,10);		 
-	memcpy(data->nodeRecycle,nodeRecycle,10);
+	// The save keeps the first 10 bytes of each array, as it always has
+	// (bytes, not entries). A mech with more than 10 weapon nodes (mod data has
+	// 12) saves the same way: this was a STOP, which ended the game on a save,
+	// or hung it when the save ran on the way into the background. A mech with
+	// fewer nodes has smaller arrays, or none.
+	memset(data->nodeUsed,0,sizeof(data->nodeUsed));
+	memset(data->nodeRecycle,0,sizeof(data->nodeRecycle));
+	if (nodeUsed)
+		memcpy(data->nodeUsed,nodeUsed,savedNodeBytes(mechType->numWeaponNodes,sizeof(long)));
+	if (nodeRecycle)
+		memcpy(data->nodeRecycle,nodeRecycle,savedNodeBytes(mechType->numWeaponNodes,sizeof(float)));
 
 	data->isSmoking = isSmoking;
 	data->isWaking = isWaking;
@@ -5018,8 +5033,11 @@ void Mech3DAppearance::copyFrom (MechAppearanceData *data)
 	currentFrame = data->currentFrame;
 	currentLOD = data->currentLOD;
 
-	memcpy(nodeUsed,data->nodeUsed,10);		 
-	memcpy(nodeRecycle,data->nodeRecycle,10);
+	// as copyTo saved them, and no more than this mech's arrays hold
+	if (nodeUsed)
+		memcpy(nodeUsed,data->nodeUsed,savedNodeBytes(mechType->numWeaponNodes,sizeof(long)));
+	if (nodeRecycle)
+		memcpy(nodeRecycle,data->nodeRecycle,savedNodeBytes(mechType->numWeaponNodes,sizeof(float)));
 
 	isSmoking = -1;
 	if (data->isSmoking >= 0)
