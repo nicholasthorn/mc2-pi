@@ -321,6 +321,26 @@ int scrollSteps(StickScroll& scroll, float stickY, double seconds)
     return direction * steps;
 }
 
+void headRelativeStick(const float stick[2], float headYaw, float game[2])
+{
+    // seen from above, x right and y ahead: turning left turns the stick
+    // anticlockwise
+    const float c = std::cos(headYaw);
+    const float s = std::sin(headYaw);
+    game[0] = c * stick[0] - s * stick[1];
+    game[1] = s * stick[0] + c * stick[1];
+    // stickActions tests each axis on its own, so a push turned part way
+    // shares itself out and can fall under the threshold on both (0.6 at 45
+    // degrees is 0.42 each): stretch it so the larger axis carries the whole
+    // push, and the thresholds act on how far the stick is pushed
+    const float larger = std::max(std::fabs(game[0]), std::fabs(game[1]));
+    if(larger > 0.0f) {
+        const float stretch = std::sqrt(stick[0] * stick[0] + stick[1] * stick[1]) / larger;
+        game[0] *= stretch;
+        game[1] *= stretch;
+    }
+}
+
 uint32_t pressEvents(PressPattern& press, bool down, double seconds, bool hasLong)
 {
     uint32_t events = 0;

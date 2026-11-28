@@ -1817,7 +1817,20 @@ void pollInput()
             g.stickScroll = vr_controls::StickScroll();
         }
         const float noStick[2] = {0.0f, 0.0f};
-        g.stickActions = vr_controls::stickActions(left, g.stickScroll.direction != 0 ? noStick : right,
+        // the game camera looks where the head does: pan that way too. The
+        // head the camera takes (gos_GetVRHead), so none on the tabletop or
+        // with MC2_XR_FOLLOW=0, where the camera keeps its own heading, and
+        // the one it holds through a click or a drag
+        float pan[2] = {left[0], left[1]};
+        float headYaw = 0.0f;
+        float head[4];
+        const bool follows = gos_GetVRHead(head);
+        if(follows) {
+            headYaw = vr_controls::yawOf(head);
+            vr_controls::headRelativeStick(left, headYaw, pan);
+        }
+        const uint32_t before = g.stickActions;
+        g.stickActions = vr_controls::stickActions(pan, g.stickScroll.direction != 0 ? noStick : right,
                 g.stickActions);
         // the tabletop: zooming makes the battle larger or smaller on the
         // table, as the game camera's height means nothing there
@@ -1832,6 +1845,13 @@ void pollInput()
             g.tableZooming = zooming;
             g.stickActions &= ~zoom;
         }
+        // MC2_XR_STICK_LOG=1: each change of the camera keys, and why
+        static const char* stickLogEnv = getenv("MC2_XR_STICK_LOG");
+        static const bool stickLog = stickLogEnv && stickLogEnv[0] == '1';
+        if(stickLog && g.stickActions != before)
+            printf("[XR] stick keys %02x: left %.2f %.2f, head %.0f degrees (follows %d) -> %.2f %.2f, right %.2f %.2f\n",
+                    (unsigned)g.stickActions, left[0], left[1], headYaw * 180.0f / 3.14159265f, (int)follows,
+                    pan[0], pan[1], right[0], right[1]);
     }
     memcpy(g.buttonDown, buttons, sizeof(g.buttonDown));
     if(g.ordersAge < kOrdersFrames)

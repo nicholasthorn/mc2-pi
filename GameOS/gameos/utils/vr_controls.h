@@ -130,6 +130,14 @@ struct StickScroll {
 // The wheel steps for this frame, given the stick's y and the time in seconds.
 int scrollSteps(StickScroll& scroll, float stickY, double seconds);
 
+// The left stick as the game's camera keys see it. The view turns with the
+// head, but the arrow keys pan along the game camera's own heading (straight
+// ahead), so with the head turned round, pushing ahead panned backwards.
+// headYaw is the head's heading from straight ahead (yawOf, positive to the
+// left); the stick (x right, y ahead) turns by it, then stretches so its
+// larger axis is the whole push (a part push pans at any heading).
+void headRelativeStick(const float stick[2], float headYaw, float game[2]);
+
 // Press patterns on a tap button (one with no job while held): a click, a
 // double click (a second press within kDoubleClick seconds of a click's
 // release) and a long press (held kLongPress seconds). A button without a
